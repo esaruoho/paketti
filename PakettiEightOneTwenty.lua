@@ -57,6 +57,52 @@ gbx_record_phase = {0,0,0,0,0,0,0,0} -- 0=idle, 1=armed (dialog visible), 2=reco
 gbx_prev_sample_count = {0,0,0,0,0,0,0,0}
 gbx_record_instrument_index = {0,0,0,0,0,0,0,0}
 
+-- Map the just-recorded take to 00-7F (others to 00-00), select it, enable the
+-- convenience flags, and re-point the per-row beatsync controls at it. The
+-- recorded take is the highest-index sample that actually carries audio (it is
+-- appended after any pre-existing placeholder slots). Safe to call repeatedly:
+-- it is idempotent, which is what lets the deferred retry below cover the case
+-- where Renoise commits the recorded sample a document tick late.
+function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index)
+  local song = renoise.song()
+  if not song then return false end
+  local inst = target_inst_index and song.instruments[target_inst_index] or nil
+  if not inst or #inst.samples == 0 then return false end
+
+  local new_index
+  for si = #inst.samples, 1, -1 do
+    local smp = inst.samples[si]
+    local buf = smp and smp.sample_buffer
+    if buf and buf.has_sample_data then new_index = si break end
+  end
+  if not new_index then new_index = song.selected_sample_index end
+  if new_index < 1 then new_index = 1 end
+  if new_index > #inst.samples then new_index = #inst.samples end
+
+  song.selected_instrument_index = target_inst_index
+  song.selected_sample_index = new_index
+
+  -- Set velocity mapping: recorded sample 00-7F, others 00-00
+  for si = 1, #inst.samples do
+    local smp = inst.samples[si]
+    if smp and smp.sample_mapping and not smp.sample_mapping.read_only then
+      smp.sample_mapping.velocity_range = (si == new_index) and {0x00, 0x7F} or {0x00, 0x00}
+    end
+  end
+
+  if inst.samples[new_index] then
+    inst.samples[new_index].autoseek = true
+    inst.samples[new_index].autofade = true
+  end
+
+  -- Re-point the per-row beatsync controls/observers at the recorded sample so
+  -- toggling beatsync (here or in the Sample List) reflects on the recorded take.
+  if beatsync_visible then
+    PakettiEightOneTwentyUpdateBeatsyncUiFor(row_index)
+  end
+  return true
+end
+
 function PakettiEightOneTwentyRowRecordToggle(row_index)
   local song = renoise.song()
   if not song then return end
@@ -97,40 +143,20 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
     song.transport:start_stop_sample_recording()
 
     local target_inst_index = gbx_record_instrument_index[row_index] or ii
-    local inst = target_inst_index and song.instruments[target_inst_index] or nil
-    if inst then
-      local new_count = #inst.samples
-      local prev_count = gbx_prev_sample_count[row_index] or 0
-      local new_index = (new_count > 0) and new_count or 1
-      if new_count == prev_count then
-        -- Fallback: keep current selected sample index if no new slot detected
-        new_index = song.selected_sample_index
+
+    -- Map immediately (covers the synchronous case where the recorded sample is
+    -- already committed), then once more shortly after, because Renoise may
+    -- commit the recorded sample on a later document tick. The helper is
+    -- idempotent, so the retry is a safe no-op when the first pass already saw it.
+    PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index)
+    local retry_fn
+    retry_fn = function()
+      if renoise.tool():has_timer(retry_fn) then
+        renoise.tool():remove_timer(retry_fn)
       end
-
-      if new_index < 1 then new_index = 1 end
-      if new_index > #inst.samples then new_index = #inst.samples end
-
-      song.selected_instrument_index = target_inst_index
-      song.selected_sample_index = new_index
-
-      -- Set velocity mapping: new sample 00-7F, others 00-00
-      for si = 1, #inst.samples do
-        local smp = inst.samples[si]
-        if smp and smp.sample_mapping and not smp.sample_mapping.read_only then
-          if si == new_index then
-            smp.sample_mapping.velocity_range = {0x00, 0x7F}
-          else
-            smp.sample_mapping.velocity_range = {0x00, 0x00}
-          end
-        end
-      end
-
-      -- Enable convenience flags on the new sample
-      if inst.samples[new_index] then
-        inst.samples[new_index].autoseek = true
-        inst.samples[new_index].autofade = true
-      end
+      PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index)
     end
+    renoise.tool():add_timer(retry_fn, 150)
 
     gbx_record_phase[row_index] = 0
     gbx_prev_sample_count[row_index] = 0
@@ -140,19 +166,37 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
   end
 end
 
--- Helper to find the primary 00-7F sample for an instrument
+-- Helper to find the primary 00-7F sample for an instrument.
+-- A freshly recorded sample can leave the instrument with an empty placeholder
+-- still mapped 00-7F, or the recorded slot may not be the one carrying the
+-- full-velocity mapping yet. So we don't just grab the first 00-7F slot:
+-- 1. a sample that BOTH has audio AND is mapped 00-7F (the ideal primary),
+-- 2. else any sample that actually has audio (e.g. the recorded take),
+-- 3. else any 00-7F slot (empty placeholder),
+-- 4. else slot 1.
+-- This keeps the beatsync controls/observers pointed at a real, audible sample
+-- instead of silently binding to an empty slot ("clicking does nothing").
 function PakettiEightOneTwentyFindPrimarySampleIndex(instrument)
   if not instrument or not instrument.samples or #instrument.samples == 0 then
     return nil
   end
+  local first_full_velocity_with_data, first_with_data, first_full_velocity
   for sample_idx, sample in ipairs(instrument.samples) do
-    local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
-    local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
-    if velocity_min == 0x00 and velocity_max == 0x7F then
-      return sample_idx
+    local vr = sample.sample_mapping and sample.sample_mapping.velocity_range
+    local is_full = vr and vr[1] == 0x00 and vr[2] == 0x7F
+    local buf = sample.sample_buffer
+    local has_data = buf and buf.has_sample_data
+    if is_full and has_data and not first_full_velocity_with_data then
+      first_full_velocity_with_data = sample_idx
+    end
+    if has_data and not first_with_data then
+      first_with_data = sample_idx
+    end
+    if is_full and not first_full_velocity then
+      first_full_velocity = sample_idx
     end
   end
-  return 1
+  return first_full_velocity_with_data or first_with_data or first_full_velocity or 1
 end
 
 function PakettiEightOneTwentyDetachBeatsyncObserversFor(i)
