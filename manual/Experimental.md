@@ -15490,6 +15490,18 @@ Automatically finds/creates optimal device:
 - **LPB-aware** - Respects lines per beat
 - **Multi-row Write** - All 8 rows simultaneously
 
+### Live MIDI Write
+
+Record your MIDI controller's knobs straight into the step grid while the song plays.
+
+Assign your rows to the parameters you want to move. Turn on Renoise's MIDI Map mode — each row's **MIDI** button lights up; click one and wiggle a knob to bind it (knob 1 → row 1, knob 8 → row 8, and so on). Then tick the **MIDI Write** checkbox in the toolbar, hit play with Follow on, and tweak: each knob writes its value into its row's step as the playhead passes — you're drawing automation by hand, in time, live. Stop the transport and the same knobs write into the step under your edit cursor instead.
+
+It's just normal step automation underneath, so anything you record you can still nudge, redraw, or clear by hand afterward. Works with regular knobs and endless encoders.
+
+- **MIDI Mapping:** `Paketti:Paketti HyperEdit:MIDI Write Row 01` … `Row 16` (one per row)
+- Each row's **MIDI** button is a click-to-map target in Renoise's MIDI Map mode (no hunting in the mapping list)
+- **MIDI Write** toggle saved in preferences
+
 ### Use Cases
 
 **Complex Modulation:**
