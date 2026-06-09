@@ -109,6 +109,14 @@ function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_inde
   if inst.samples[new_index] then
     inst.samples[new_index].autoseek = true
     inst.samples[new_index].autofade = true
+    -- Inject the recorded take INTO the Paketti chassis: point it at the
+    -- instrument's modulation set (the pitch-bend envelope loaded with the
+    -- Paketti Default Instrument) so the recorded sample is Pakettified.
+    -- Guarded: only when a modulation set exists.
+    -- See features/groovebox-8120-record-pakettified-instrument.feature.
+    if inst.sample_modulation_sets and #inst.sample_modulation_sets > 0 then
+      pcall(function() inst.samples[new_index].modulation_set_index = 1 end)
+    end
   end
 
   -- Refresh the row's sample-name label so it stops showing "No sample available"
@@ -161,6 +169,17 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
   -- never ran and the row never updated.
   local phase = gbx_record_phase[row_index] or 0
   if phase == 0 then
+    -- Pakettified record: load a FRESH Paketti Default Instrument chassis into
+    -- this row's instrument slot before recording, so the take lands inside a
+    -- Pakettified instrument (pitch-bend modulation, *Instr. Macros). Each
+    -- Record press starts from a clean chassis (replaces whatever was in the
+    -- slot). See features/groovebox-8120-record-pakettified-instrument.feature.
+    if ii then
+      if song.selected_instrument_index ~= ii then song.selected_instrument_index = ii end
+      if type(pakettiPreferencesDefaultInstrumentLoader) == "function" then
+        pakettiPreferencesDefaultInstrumentLoader()
+      end
+    end
     -- Start: open the sample recorder and begin recording immediately.
     local inst = song.instruments[ii]
     gbx_prev_sample_count[row_index] = (inst and #inst.samples or 0)
@@ -383,6 +402,42 @@ local local_groove_sliders, local_groove_labels
 local number_buttons_row
 local number_buttons
 local initializing = false  -- Add initializing flag
+
+-- Feature: on opening Groovebox 8120 with an EMPTY song (no real instruments),
+-- create the 8 instrument slots and load the Paketti Default Instrument into
+-- each, so rows 01-08 are ready to play. Fires ONLY from the 8120 dialog-open
+-- path (never on New Song). Guarded by:
+--   1. the pakettiEightOneTwentyAutoFillDefaultSlots preference (default ON), and
+--   2. an empty-song check (a single, empty instrument) — so it never overwrites
+--      an existing song's instruments, and once it fills 8 slots the song is no
+--      longer "empty", so reopening 8120 never re-fires.
+-- See features/groovebox-8120-default-instrument-slots.feature.
+function PakettiEightOneTwentyInitializeDefaultSlots()
+  if not (preferences and preferences.pakettiEightOneTwentyAutoFillDefaultSlots
+      and preferences.pakettiEightOneTwentyAutoFillDefaultSlots.value) then
+    return
+  end
+  local song = renoise.song()
+  if not song then return end
+  local function inst_is_empty(inst)
+    return inst and #inst.samples == 0
+      and not (inst.plugin_properties and inst.plugin_properties.plugin_loaded)
+  end
+  -- "Empty song" = the fresh-song state: exactly one, empty instrument.
+  if not (#song.instruments == 1 and inst_is_empty(song.instruments[1])) then
+    return
+  end
+  if type(pakettiPreferencesDefaultInstrumentLoader) ~= "function" then return end
+  renoise.app():show_status("Groovebox 8120: loading Paketti Default Instrument into 8 slots…")
+  for i = 1, 8 do
+    if #song.instruments < i then
+      if not safeInsertInstrumentAt(song, i) then break end
+    end
+    song.selected_instrument_index = i
+    pakettiPreferencesDefaultInstrumentLoader()
+  end
+  song.selected_instrument_index = 1
+end
 
 -- Ensure instruments exist
 function ensure_instruments_exist()
@@ -3795,6 +3850,7 @@ function pakettiEightSlotsByOneTwentyDialog()
   local prev_selected_track = song.selected_track_index
   local prev_selected_instrument = song.selected_instrument_index
 
+  PakettiEightOneTwentyInitializeDefaultSlots()  -- Empty-song boot: fill rows 01-08 with the Paketti Default Instrument
   ensure_instruments_exist()  -- Ensure at least 8 instruments exist
   PakettiEightOneTwentyInit()
   
@@ -5187,6 +5243,19 @@ PakettiAddMenuEntry{
 PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Groovebox:Sequential RandomLoadAll (1 folder, all 8 rows)…",
   invoke = paketti_8120_sequential_random_all_safe }
+
+-- Toggle the empty-song auto-fill (Feature 2). Persisted to preferences.xml.
+function PakettiEightOneTwentyToggleAutoFillDefaultSlots()
+  local p = preferences and preferences.pakettiEightOneTwentyAutoFillDefaultSlots
+  if not p then return end
+  p.value = not p.value
+  preferences:save_as("preferences.xml")
+  renoise.app():show_status("Groovebox 8120: auto-fill default instrument slots on empty-song open is now " .. (p.value and "ON" or "OFF"))
+end
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:Toggle Auto-Fill Default Instrument Slots (empty song)",
+  invoke = PakettiEightOneTwentyToggleAutoFillDefaultSlots }
+renoise.tool():add_keybinding{name="Global:Paketti:Groovebox 8120 Toggle Auto-Fill Default Slots",invoke=PakettiEightOneTwentyToggleAutoFillDefaultSlots}
 
 -- Duplicate current pattern below and jump to it (no clearing of muted tracks)
 function PakettiEightOneTwentyDuplicatePattern()
