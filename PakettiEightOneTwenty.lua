@@ -4921,6 +4921,21 @@ for step = 1, 16 do
   }
 end
 
+-- "Disabled NN" — do-nothing placeholder mappings whose ONLY purpose is to ABSORB
+-- a controller message. Renoise consumes any MIDI message that is bound to a MIDI
+-- mapping, so it never reaches the note-input path. Map each Akai MidiMix step
+-- button to one of these (Disabled 01..16) in Renoise's MIDI Map mode and the
+-- button stops playing a sample — while the 8120's direct MidiMix bridge still
+-- reads the same button independently to toggle the step + light the LED. So you
+-- keep the MidiMix as a Renoise MIDI input AND get a clean step sequencer with no
+-- note bleed: no need to disable the device.
+for i = 1, 16 do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Paketti Groovebox 8120:Disabled %02d", i),
+    invoke = function(message) end
+  }
+end
+
 -- Move focus across the 8 rows.
 renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:Focused Row Next [Trigger]",
@@ -5188,11 +5203,12 @@ function PakettiEightOneTwentyMidiMixOpen()
   paketti_midimix_install_idle()
   paketti_midimix_redraw_all_leds()
   renoise.app():show_status("Groovebox 8120: Akai MidiMix opened — buttons drive focused row, LEDs mirror it")
-  -- If button presses also PLAY notes, the MidiMix is enabled as a Renoise note
-  -- input. The bridge reads it directly, so Renoise doesn't need to: turn it off
-  -- in Preferences > MIDI by clearing the MidiMix from the "MIDI In Device" slots
-  -- (a tool cannot suppress Renoise's own MIDI-in note routing via the API).
-  print("Groovebox 8120 MidiMix: if pressing buttons also plays notes, open Renoise Preferences > MIDI and set any 'MIDI In Device' slot that lists the MidiMix to None. The bridge opens the device itself, so the step sequencer + LEDs keep working.")
+  -- If button presses also PLAY notes, absorb them WITHOUT disabling the device:
+  -- in Renoise MIDI Map mode, bind each MidiMix step button to one of the
+  -- "Paketti Groovebox 8120:Disabled 01..16" do-nothing mappings. Renoise then
+  -- consumes the message (no note bleed) while this bridge still reads the same
+  -- button directly to toggle the step + light the LED.
+  print("Groovebox 8120 MidiMix: if pressing buttons also plays notes, MIDI-Map each step button to 'Paketti Groovebox 8120:Disabled 01..16' (do-nothing absorbers). That stops the note bleed while the bridge still drives the steps + LEDs — no need to disable the MidiMix as a Renoise input.")
   return true
 end
 

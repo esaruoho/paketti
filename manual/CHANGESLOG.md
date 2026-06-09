@@ -8,9 +8,11 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-06-09 - Note: Groovebox 8120 MidiMix bridge — how to stop button presses from also playing notes
+### 2026-06-09 - Feature: Groovebox 8120 "Disabled 01–16" — absorb MidiMix button notes so they stop playing samples (keep the device enabled)
 
-If pressing the Akai MidiMix buttons toggles the 8120 steps **and** also plays a sample, that's because the MidiMix is enabled as a note input in Renoise itself (Preferences > MIDI > the "MIDI In Device" slots). The 8120 bridge opens the MidiMix directly, so Renoise doesn't need it as a note input — clear the MidiMix from those slots and the note-bleed stops while the step sequencer and LEDs keep working. A tool cannot suppress Renoise's own MIDI-in note routing from the API, so this is a one-time Preferences setting; the bridge now prints this reminder to the terminal when it opens.
+If pressing the Akai MidiMix buttons toggles the 8120 steps **and** also plays a sample, you no longer have to disable the MidiMix as a Renoise MIDI input. Sixteen new do-nothing MIDI mappings, `Disabled 01` … `Disabled 16`, exist purely to **absorb** a controller message: Renoise consumes any MIDI message that's bound to a MIDI mapping, so it never reaches the note-input path. Map each MidiMix step button to one of these in Renoise's MIDI Map mode and the note-bleed stops — while the 8120's direct MidiMix bridge still reads the same button independently to toggle the step and light its LED. So the buttons work as a clean step sequencer with no played notes, and the MidiMix stays a normal Renoise input.
+
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Disabled 01` … `Disabled 16` (do-nothing absorbers)
 
 ### 2026-06-09 - Feature/Fix: Groovebox 8120 "Selected Row Step01–Step16" — a 16-button step sequencer for the focused row
 
