@@ -8,6 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-09 - Fix: Groovebox 8120 — Global Step MIDI mappings zero-padded; sample slider focuses its row
+
+Two MidiMix workflow tidies. **(1)** The Global Step MIDI mappings are now `Global Step 001` … `Global Step 512` (zero-padded to three digits) instead of `Global Step 1`, so they sort numerically in the MIDI mapping list (`<<` and `>>` unchanged). **(2)** Moving a row's `Row01 Sample Slider` … `Row08 Sample Slider` now also focuses that row, so the `Selected Row Step01–16` buttons and the MidiMix LEDs follow whichever row's fader you just touched — pick a sound with the fader, then sequence that row with the 16 buttons.
+
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Global Step 001` … `Global Step 512` (was `Global Step 1` …)
+- Note: the rename means any controller bound to the old `Global Step N` names needs re-binding to the zero-padded `Global Step NNN`.
+
 ### 2026-06-09 - Feature: Groovebox 8120 "Disabled 01–16" — absorb MidiMix button notes so they stop playing samples (keep the device enabled)
 
 If pressing the Akai MidiMix buttons toggles the 8120 steps **and** also plays a sample, you no longer have to disable the MidiMix as a Renoise MIDI input. Sixteen new do-nothing MIDI mappings, `Disabled 01` … `Disabled 16`, exist purely to **absorb** a controller message: Renoise consumes any MIDI message that's bound to a MIDI mapping, so it never reaches the note-input path. Map each MidiMix step button to one of these in Renoise's MIDI Map mode and the note-bleed stops — while the 8120's direct MidiMix bridge still reads the same button independently to toggle the step and light its LED. So the buttons work as a clean step sequencer with no played notes, and the MidiMix stays a normal Renoise input.

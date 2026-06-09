@@ -3299,7 +3299,7 @@ local randomize_all_yxx_button = vb:button{
   for _, step in ipairs(step_values) do
     global_step_buttons:add_child(vb:button{
       text = step,
-      midi_mapping = "Paketti:Paketti Groovebox 8120:Global Step " .. step,
+      midi_mapping = "Paketti:Paketti Groovebox 8120:Global Step " .. (tonumber(step) and string.format("%03d", tonumber(step)) or step),
       notifier=function()
         if initializing then return end
         if step == "<<" then
@@ -4675,7 +4675,7 @@ function assign_midi_mappings()
 
   local step_button_names = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "24", "32", "48", "64", "128", "192", "256", "384", "512", "<<", ">>"}
   for _, step in ipairs(step_button_names) do
-    renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Step " .. step,invoke=function(message)
+    renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Step " .. (tonumber(step) and string.format("%03d", tonumber(step)) or step),invoke=function(message)
       if message:is_trigger() then
         if step == "<<" then
           for _, row_elements in ipairs(rows) do
@@ -4803,6 +4803,10 @@ function assign_midi_mappings()
   for row = 1, 8 do
     renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%02d Sample Slider", row),invoke=function(message)
       if not message:is_abs_value() then return end
+      -- Tweaking a row's sample slider focuses that row, so the Selected Row Step
+      -- buttons (01..16) and the MidiMix LEDs follow the row you're working on.
+      PakettiEightOneTwentyFocusedRow = row
+      if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(row) end
       local slider_value = math.floor((message.int_value / 127) * 119) + 1
       local song = renoise.song()
       -- If dialog row exists, use existing slider logic and also select sample immediately

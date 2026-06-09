@@ -285,8 +285,8 @@ function get_active_midi_mappings()
     -- We'll skip these for now as they require runtime device enumeration
     
     -- PakettiEightOneTwenty.lua patterns
-    {pattern = "Paketti:Paketti Groovebox 8120:Global Step %d", range = {1, 16}},
-    {pattern = "Paketti:Paketti Groovebox 8120:Row%d Step%d", nested_range = {{1, 8}, {1, 16}}},
+    {pattern = "Paketti:Paketti Groovebox 8120:Global Step %03d", range = {1, 16}},
+    {pattern = "Paketti:Paketti Groovebox 8120:Row%02d Step%02d", nested_range = {{1, 8}, {1, 16}}},
   }
   
   -- Check dynamic patterns
@@ -669,7 +669,7 @@ function test_dynamic_mapping_detection()
     {
       name = "PakettiEightOneTwenty Groovebox Patterns",
       patterns = {
-        {base = "Paketti:Paketti Groovebox 8120:Global Step %d", range = {1, 16}}
+        {base = "Paketti:Paketti Groovebox 8120:Global Step %03d", range = {1, 16}}
       }
     }
   }
