@@ -64,6 +64,54 @@ Context: Global
   # song's observables. Make teardown idempotent (has_notifier-guarded) so it is
   # safe to run twice (dialog-close path + song-release path).
   #
+  # ============================================================================
+  # REPO-WIDE AUDIT (2026-06-09) — 30 MORE TOOLS WITH THE SAME LATENT CRASH
+  # ============================================================================
+  # Four parallel Explore agents swept all 181 .lua files for: persistent UI +
+  # song-level observers / song-reading canvas/timer + NO app_release teardown.
+  # All 30 below are @todo (un-fixed). Grouped by crash likelihood.
+  #
+  # GROUP A — canvas / timer continuously READS the dying song (highest risk;
+  # identical profile to the 3 already-fixed tools — most likely to bite live):
+  #   PakettiPCMWriter.lua            (canvas+timer read sample buffer; app_idle only)
+  #   PakettiPlayerProSuite.lua       (6 dialogs, 9 canvas, 6 timers; selected_track_index)
+  #   PakettiPlayerProWaveformViewer.lua (canvas+timers; tracks_observable, selected_track_index)
+  #   PakettiEQ30.lua                 (drawable EQ canvas; selected_device + selected_track_index)
+  #   PakettiSliceEffectStepSequencer.lua (canvas velocity bars; track/pattern/playing observers)
+  #   PakettiGater.lua                (dialog+timer; transport.playing + selected_track_index)
+  #   PakettiChords.lua               (7 timers call song:trigger_instrument_note_on)
+  #
+  # GROUP B — wrong hook: uses app_new_document_observable (fires too LATE):
+  #   PakettiAutomateLastTouched.lua  (selected_track_index, track.devices; +timers)
+  #   PakettiExperimental_Verify.lua  (transport.playing)
+  #   PakettiPatternEditor.lua        (selected_track_index, transport.edit_mode)
+  #   PakettiPhraseWorkflow.lua       (selected_phrase_index)
+  #
+  # GROUP C — persistent dialog + song observers, detach ONLY on dialog-close:
+  #   PakettiCommandWheel.lua         (selected_device/instrument/track)
+  #   PakettiDigitakt.lua             (selected_instrument_index)
+  #   PakettiFrameCalculator.lua      (transport.bpm/lpb/tpl, selected_pattern_index, pattern.number_of_lines)
+  #   PakettiForeignSnippets.lua      (selected_instrument, selected_sample)
+  #   PakettiLoaders.lua              (selected_instrument, selected_track_index, sample_device_chain)
+  #   PakettiMetricModulation.lua     (transport.bpm x2 dialogs)
+  #   PakettiMixerParameterExposer.lua(selected_track_index)
+  #   PakettiOldschoolSlicePitch.lua  (selected_instrument_index; +timer)
+  #   PakettiOpenMPTLinearKeyboardLayer.lua (transport.octave; +timer)
+  #   PakettiPatternDelayViewer.lua   (selected_track_index, selected_sequence_index)
+  #   PakettiPatternLength.lua        (selected_pattern, selected_phrase)
+  #   PakettiPhraseGenerator.lua      (selected_instrument)
+  #   PakettiPitchControl.lua         (selected_instrument, selected_sample)
+  #   PakettiPolyendSliceSwitcher.lua (selected_instrument_index)
+  #   PakettiRequests.lua             (selected_track_index, selected_pattern, selected_sample/track)
+  #   PakettiStacker.lua              (instrument/pattern observers)
+  #   PakettiStemSlicer.lua           (transport.bpm)
+  #   PakettiSteppers.lua             (selected_instrument_index)
+  #   PakettiWTImport.lua             (selected_instrument_index)
+  #
+  # NOTE: static analysis — not every one is guaranteed to crash on every song
+  # swap (a cheap observer with no canvas may survive), but all share the unsafe
+  # pattern of the two confirmed crashes. Group A is the priority for the demo.
+  #
   # WATCH: app_release_document_observable PakettiHyperEditCreateDialog PakettiHyperEditRemoveObservers PakettiCanvasExperimentsCreateDialog
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
 #   2026-06-09  direct-commit  touched: app_release_document_observable
