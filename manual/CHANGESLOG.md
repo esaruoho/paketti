@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-09 - Feature: Groovebox 8120 "Select Row 01–08" — switch-bank that jumps the whole selection between the 8 rows
+
+Eight new MIDI mappings, `Select Row 01` … `Select Row 08`. Each one moves the **whole selection** to that row in one flick: it selects the row's track *and* its instrument, and focuses the row so the `Selected Row Step01–16` buttons and the MidiMix LEDs follow. Bind eight switches/buttons on a controller and you can jump between instrument rows 1–8 instantly.
+
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Select Row 01` … `Select Row 08`
+
 ### 2026-06-09 - Improvement: HyperEdit Stepper mode shows steppers in a fixed order (Volume, Cutoff, Resonance, Pan, Drive, Pitch)
 
 In Stepper mode the rows used to follow whatever order the Stepper devices happened to sit in the modulation chain. They are now always presented in a fixed, musically sensible order — **Volume, Cutoff, Resonance, Pan, Drive, Pitch** — both in the row assignment when you open it and in the per-row stepper dropdown. Unknown stepper types fall to the end in their original order.
