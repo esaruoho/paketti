@@ -506,6 +506,48 @@ local function sbx_install_playing_notifier()
   end
 end
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song). renoise.song() is still the OLD song here, so this detaches the
+-- transport.playing observer (and the line/idle notifiers) from the song that
+-- is about to die. Leaving them live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- app_new_document_observable fires too late (old song already freed).
+-- See features/song-lifecycle-safety.feature.
+local sbx_release_doc_observer = nil
+
+-- Idempotent teardown: detach the transport.playing observer from the
+-- still-alive old song, drop line/idle notifiers, and remove the release-doc
+-- observer itself. Safe to run twice.
+local function sbx_release_teardown()
+  local song = renoise.song()
+  if song then
+    pcall(function()
+      if song.transport.playing_observable:has_notifier(sbx_on_playing_changed) then
+        song.transport.playing_observable:remove_notifier(sbx_on_playing_changed)
+      end
+    end)
+  end
+  sbx_playing_notifier_installed = false
+  sbx_remove_line_notifiers()
+  if sbx_active and renoise.tool().app_idle_observable:has_notifier(monitor_playback) then
+    renoise.tool().app_idle_observable:remove_notifier(monitor_playback)
+    sbx_active = false
+  end
+  if sbx_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(sbx_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(sbx_release_doc_observer)
+  end
+  sbx_release_doc_observer = nil
+end
+
+local function sbx_install_release_doc_observer()
+  if not sbx_release_doc_observer then
+    sbx_release_doc_observer = function() sbx_release_teardown() end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(sbx_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(sbx_release_doc_observer)
+  end
+end
+
 ---------------------------------------------------------------------------
 -- Initialize / Enable / Disable
 ---------------------------------------------------------------------------
@@ -523,6 +565,7 @@ end
 local function enable_monitoring()
   sbx_monitoring_enabled = true
   sbx_install_playing_notifier()
+  sbx_install_release_doc_observer()  -- seatbelt: detach before old song dies (features/song-lifecycle-safety.feature)
   InitSBx()
 end
 
@@ -596,12 +639,19 @@ local function PakettiSBxNewDocumentHandler()
   sbx_last_pattern_index = nil
   if sbx_monitoring_enabled then
     sbx_install_playing_notifier()
+    sbx_install_release_doc_observer()  -- reinstall seatbelt on the new song (features/song-lifecycle-safety.feature)
     InitSBx()
   end
 end
 
 if not renoise.tool().app_new_document_observable:has_notifier(PakettiSBxNewDocumentHandler) then
   renoise.tool().app_new_document_observable:add_notifier(PakettiSBxNewDocumentHandler)
+end
+
+-- If monitoring was already enabled from preferences at load, arm the
+-- song-release seatbelt for the current song too.
+if sbx_monitoring_enabled then
+  sbx_install_release_doc_observer()
 end
 
 function crossfade_loop(crossfade_length)

@@ -2840,11 +2840,21 @@ function pakettiEditModeSignalerTrackIndexNotifier()
   end
 end
 
+-- Song-lifecycle safety: forward-declared here so the app_new handler can
+-- re-arm the release-doc seatbelt on each new song. See teardown below and
+-- features/song-lifecycle-safety.feature.
+local pakettiEditModeSignalerReleaseDocObserver = nil
+
 -- Named handler function for proper notifier management
 local function pakettiEditModeSignalerNewDocumentHandler()
   local song=renoise.song()
   if not song.transport.edit_mode_observable:has_notifier(pakettiEditModeSignalerEditModeNotifier) then
     song.transport.edit_mode_observable:add_notifier(pakettiEditModeSignalerEditModeNotifier)
+  end
+  -- Re-arm the release-doc seatbelt: the teardown detaches itself, so reinstall
+  -- it on the new song so the next New/Load Song is protected too.
+  if pakettiEditModeSignalerReleaseDocObserver and not renoise.tool().app_release_document_observable:has_notifier(pakettiEditModeSignalerReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:add_notifier(pakettiEditModeSignalerReleaseDocObserver)
   end
   pakettiEditModeSignalerEditModeNotifier() -- Call once to ensure the state is consistent
 end
@@ -2852,6 +2862,38 @@ end
 -- Add notifiers for edit mode change and initial track selection (with guard)
 if not renoise.tool().app_new_document_observable:has_notifier(pakettiEditModeSignalerNewDocumentHandler) then
   renoise.tool().app_new_document_observable:add_notifier(pakettiEditModeSignalerNewDocumentHandler)
+end
+
+-- Song-lifecycle safety: app_new_document_observable fires AFTER the old song is
+-- freed, so detaching there is too late. app_release_document_observable fires
+-- while renoise.song() is still the OLD song, so we detach the two song-scoped
+-- observers (selected_track_index + transport.edit_mode) before that song dies.
+-- Leaving them live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+-- during pattern-pool teardown on New Song / Load Song.
+-- See features/song-lifecycle-safety.feature.
+local function pakettiEditModeSignalerReleaseDocTeardown()
+  local song = renoise.song()
+  if song then
+    pcall(function()
+      if song.selected_track_index_observable:has_notifier(pakettiEditModeSignalerTrackIndexNotifier) then
+        song.selected_track_index_observable:remove_notifier(pakettiEditModeSignalerTrackIndexNotifier)
+      end
+    end)
+    trackNotifierAdded = false
+    pcall(function()
+      if song.transport.edit_mode_observable:has_notifier(pakettiEditModeSignalerEditModeNotifier) then
+        song.transport.edit_mode_observable:remove_notifier(pakettiEditModeSignalerEditModeNotifier)
+      end
+    end)
+  end
+  -- Detach this release-doc observer itself (idempotent; safe to run twice).
+  if pakettiEditModeSignalerReleaseDocObserver and renoise.tool().app_release_document_observable:has_notifier(pakettiEditModeSignalerReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:remove_notifier(pakettiEditModeSignalerReleaseDocObserver)
+  end
+end
+pakettiEditModeSignalerReleaseDocObserver = pakettiEditModeSignalerReleaseDocTeardown
+if not renoise.tool().app_release_document_observable:has_notifier(pakettiEditModeSignalerReleaseDocObserver) then
+  renoise.tool().app_release_document_observable:add_notifier(pakettiEditModeSignalerReleaseDocObserver)
 end
 
 -- Keybinding and MIDI mapping

@@ -178,7 +178,13 @@ function PakettiPhraseVoiceOnNewDocument()
   
   -- Reload preferences
   PakettiPhraseVoiceLoadPreferences()
-  
+
+  -- Re-arm the song-lifecycle release seatbelt for the new song. The teardown
+  -- nils + detaches the release observer when the old song dies, so we must
+  -- re-register it here. Guarded; the registration function tolerates nil.
+  -- See features/song-lifecycle-safety.feature.
+  if PakettiPhraseWorkflowRearmReleaseDoc then PakettiPhraseWorkflowRearmReleaseDoc() end
+
   -- Update UI
   PakettiPhraseVoiceUpdateUI()
 end
@@ -258,6 +264,35 @@ end
 if not renoise.tool().app_new_document_observable:has_notifier(PakettiPhraseVoiceOnNewDocument) then
   renoise.tool().app_new_document_observable:add_notifier(PakettiPhraseVoiceOnNewDocument)
 end
+
+-- Song-lifecycle safety seatbelt. The phrase-selection notifier lives on the
+-- song (song.selected_phrase_index_observable). app_release_document_observable
+-- fires while renoise.song() is STILL the OLD song, so we detach there; the
+-- app_new handler above then resets state on the new song. Detaching too late
+-- (app_new only) leaves the observer on the freed song and crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown on New
+-- Song / Load Song. See features/song-lifecycle-safety.feature.
+local PakettiPhraseWorkflowReleaseDocObserver = nil
+function PakettiPhraseWorkflowReleaseDocTeardown()
+  -- Detach the song-scoped phrase-selection notifier from the still-alive old
+  -- song (idempotent; has_notifier-guarded + pcall inside).
+  PakettiPhraseVoiceRemoveSelectionNotifier()
+  -- Detach this release-doc observer (guarded) and nil it. Idempotent.
+  if PakettiPhraseWorkflowReleaseDocObserver and
+     renoise.tool().app_release_document_observable:has_notifier(PakettiPhraseWorkflowReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:remove_notifier(PakettiPhraseWorkflowReleaseDocObserver)
+  end
+  PakettiPhraseWorkflowReleaseDocObserver = nil
+end
+function PakettiPhraseWorkflowRearmReleaseDoc()
+  if not PakettiPhraseWorkflowReleaseDocObserver then
+    PakettiPhraseWorkflowReleaseDocObserver = PakettiPhraseWorkflowReleaseDocTeardown
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(PakettiPhraseWorkflowReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:add_notifier(PakettiPhraseWorkflowReleaseDocObserver)
+  end
+end
+PakettiPhraseWorkflowRearmReleaseDoc()
 
 -- Initialize preferences on tool load (with pcall protection)
 PakettiPhraseVoiceLoadPreferences()

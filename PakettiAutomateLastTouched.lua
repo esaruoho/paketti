@@ -39,6 +39,12 @@ local persistent_parameter_observers = {}
 local track_change_observer = nil
 local device_list_observers = {}  -- Track -> observer for devices_observable
 local persistent_setup_timer = nil  -- Timer function reference for persistent watching setup
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- selected_track_index/track.devices observers (and the live timers) attached to
+-- the dying song crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+-- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local automate_last_touched_release_doc_observer = nil
 
 --------------------------------------------------------------------------------
 -- Global State Variables - Timer Mode
@@ -197,6 +203,14 @@ function PakettiAutomateLastTouchedCleanup()
   PakettiAutomateLastTouchedCleanupTemporary()
   PakettiAutomateLastTouchedCleanupPersistent()
   PakettiAutomateLastTouchedStopTimerMode()
+
+  -- Detach the song-release safety observer (idempotent; safe to run twice).
+  -- See features/song-lifecycle-safety.feature.
+  if automate_last_touched_release_doc_observer
+     and renoise.tool().app_release_document_observable:has_notifier(automate_last_touched_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(automate_last_touched_release_doc_observer)
+  end
+  automate_last_touched_release_doc_observer = nil
 end
 
 --------------------------------------------------------------------------------
@@ -822,10 +836,26 @@ end
 -- Song Change Handler
 --------------------------------------------------------------------------------
 
+-- Register the song-release safety observer (idempotent). Fires BEFORE the old
+-- song is freed; runs the existing teardown so observers/timers detach while
+-- renoise.song() is still the OLD song. See features/song-lifecycle-safety.feature.
+function PakettiAutomateLastTouchedRegisterReleaseDocObserver()
+  if not automate_last_touched_release_doc_observer then
+    automate_last_touched_release_doc_observer = function()
+      PakettiAutomateLastTouchedCleanup()  -- detaches observers from the still-alive old song; removes this observer
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(automate_last_touched_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(automate_last_touched_release_doc_observer)
+  end
+end
+
 function PakettiAutomateLastTouchedOnSongChange()
   print("AUTOMATE_LAST_TOUCHED: Song changed - cleaning up")
   PakettiAutomateLastTouchedCleanup()
-  
+  -- Re-arm the release-doc seatbelt for the NEW song (Cleanup detached it).
+  PakettiAutomateLastTouchedRegisterReleaseDocObserver()
+
   -- Re-setup persistent watching if mode requires it
   local watching_mode = PakettiAutomateLastTouchedGetPref("WatchingMode", WATCHING_MODE_SHORTCUT_FIRST)
   if watching_mode == WATCHING_MODE_TRACK_WATCHING or watching_mode == WATCHING_MODE_ALWAYS_WATCHING or watching_mode == WATCHING_MODE_TIMER then
@@ -850,6 +880,11 @@ end
 if not renoise.tool().app_new_document_observable:has_notifier(PakettiAutomateLastTouchedOnSongChange) then
   renoise.tool().app_new_document_observable:add_notifier(PakettiAutomateLastTouchedOnSongChange)
 end
+
+-- Song-lifecycle safety seatbelt: registered at load (persistent observers can
+-- be active without any dialog). Tears down BEFORE the song is released so
+-- observers detach from the OLD song. See features/song-lifecycle-safety.feature.
+PakettiAutomateLastTouchedRegisterReleaseDocObserver()
 
 --------------------------------------------------------------------------------
 -- Initialize Persistent Watching on Tool Load
