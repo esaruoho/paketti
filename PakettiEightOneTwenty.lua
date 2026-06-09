@@ -95,6 +95,19 @@ function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_inde
     return false
   end
 
+  -- Wait for the REAL recorded name. Right after recording, the take still
+  -- carries the Paketti chassis placeholder name ("Placeholder sample"); Renoise
+  -- renames it to the actual recorded name ("Recorded sample NN") a moment later.
+  -- If we finalized now we'd name the instrument "Placeholder sample". So if the
+  -- name is still empty or the placeholder, return false and let the poll loop
+  -- wait until the real name arrives.
+  do
+    local rec_name = inst.samples[new_index].name
+    if not rec_name or rec_name == "" or rec_name == "Placeholder sample" then
+      return false
+    end
+  end
+
   song.selected_instrument_index = target_inst_index
   song.selected_sample_index = new_index
 
@@ -220,7 +233,9 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
       poll_fn = function()
         attempts = attempts + 1
         local done = PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_index)
-        if done or attempts >= 60 then
+        -- ~12s budget (was 6s): finalize now also waits for Renoise to rename the
+        -- take away from the chassis placeholder name, which lands after the audio.
+        if done or attempts >= 120 then
           if renoise.tool():has_timer(poll_fn) then renoise.tool():remove_timer(poll_fn) end
         end
       end
