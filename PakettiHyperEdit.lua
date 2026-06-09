@@ -4608,6 +4608,9 @@ PakettiAddMenuEntry {name = "--Mixer:Paketti Gadgets:Paketti HyperEdit",invoke =
 PakettiAddMenuEntry {name = "--Pattern Matrix:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 PakettiAddMenuEntry {name = "--Track Automation:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+-- Open/close (toggle) HyperEdit from a controller button. PakettiHyperEditInit
+-- closes the dialog if it's already open, otherwise opens it.
+renoise.tool():add_midi_mapping {name = "Paketti:Paketti HyperEdit Open/Close",invoke = function(message) if message:is_trigger() then PakettiHyperEditInit() end end}
 
 -- Stepper mode entry point: open HyperEdit editing the selected instrument's
 -- Stepper modulation devices instead of track-device automation. Does not create
