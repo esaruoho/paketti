@@ -4713,7 +4713,7 @@ function assign_midi_mappings()
 
   for row = 1, 8 do
     for step = 1, MAX_STEPS do
-      renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%d Step%d", row, step),invoke=function(message)
+      renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%02d Step%d", row, step),invoke=function(message)
         if message:is_trigger() then
           local row_elements = rows[row]
           if row_elements and row_elements.checkboxes[step] then
@@ -4724,7 +4724,7 @@ function assign_midi_mappings()
     end
     local buttons = {"<", ">", "Clear", "Randomize", "Load", "Show", "Random", "Automation", "Reverse"}
     for _, btn in ipairs(buttons) do
-      renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%d %s", row, btn),invoke=function(message)
+      renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%02d %s", row, btn),invoke=function(message)
         if message:is_trigger() then
           local row_elements = rows[row]
           if row_elements then
@@ -4793,7 +4793,7 @@ function assign_midi_mappings()
   
   -- Sample slider MIDI mappings for each row (works with or without dialog)
   for row = 1, 8 do
-    renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%d Sample Slider", row),invoke=function(message)
+    renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%02d Sample Slider", row),invoke=function(message)
       if not message:is_abs_value() then return end
       local slider_value = math.floor((message.int_value / 127) * 119) + 1
       local song = renoise.song()
