@@ -1155,8 +1155,8 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     min = -64,
     max = 64,
     value = init_transpose_val,
-    width=25,
-    height = 25,
+    width=18,
+    height = 18,
     notifier=function(value)
       if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       if row_elements and row_elements.updating_transpose then return end
@@ -1210,8 +1210,8 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       min = -1.0,
       max = 1.0,
       value = (current_volume or 1.0) - 1.0,
-      width=25,
-      height = 25,
+      width=18,
+      height = 18,
     notifier=function(value)
       if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
         if row_elements and row_elements.updating_volume then return end
@@ -2758,9 +2758,9 @@ end
   -- 11px pad) so the columns line up with the 36-wide Vol/Pitch labels and
   -- Solo/Mute buttons — alignment without a tall knob.
   local rotaries_row = vb:row{
-    vb:row{volume_rotary, vb:space{width=11}},
+    vb:row{volume_rotary, vb:space{width=18}},
     vb:space{width=3},
-    vb:row{transpose_rotary, vb:space{width=11}}
+    vb:row{transpose_rotary, vb:space{width=18}}
   }
   local toggles_labels_row = vb:row{solo_label, vb:space{width=3}, mute_label}
   local toggles_row = vb:row{solo_checkbox, vb:space{width=3}, mute_checkbox}
