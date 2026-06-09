@@ -8,7 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-06-09 - Improvement: Groovebox 8120 MidiMix step sequencer works headlessly (dialog closed)
+### 2026-06-09 - Fix: Groovebox 8120 MidiMix bridge stays open when the dialog closes (so headless really works)
+
+The headless step sequencer added moments ago still looked dead with the dialog closed because closing the 8120 dialog also closed the MidiMix bridge — which is what drives the LEDs and reads the buttons — so the row-select knob had nothing to update. The dialog no longer closes the bridge: once opened it stays running, so with the dialog closed the Select Row knob updates the LEDs and the step buttons keep sequencing the pattern. Turn the bridge off explicitly with the `MidiMix Bridge Toggle` mapping when you want it off.
 
 The MidiMix step sequencer no longer needs the 8120 dialog open. The step toggles (`Selected Row StepNN`, `RowNN StepNN`, and the direct MidiMix buttons) and the MidiMix LEDs previously only worked through the dialog's on-screen checkboxes, so with the dialog closed nothing happened. They now fall back to reading and writing the **selected pattern directly** when the dialog is closed: a groovebox row maps to its track + instrument, a step is a pattern line (ON = a C-4 note, repeated across the pattern), so you can sequence and see the LEDs from the MidiMix with no window open. The `Select Row (Knob 01-08 / 08-01)` row selector therefore also drives the headless step display: pick a row with the knob and the 16 LEDs + buttons follow it against the live pattern. When the dialog is open, behaviour is unchanged (it still goes through the checkboxes).
 

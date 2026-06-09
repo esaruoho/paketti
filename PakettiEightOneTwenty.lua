@@ -5533,7 +5533,10 @@ function GrooveboxShowClose()
   if dialog and dialog.visible then
     -- Cleanup BPM observable before closing
     cleanup_bpm_observable()
-    if PakettiEightOneTwentyMidiMixClose then PakettiEightOneTwentyMidiMixClose() end
+    -- NOTE: do NOT close the MidiMix bridge here. The step sequencer + LEDs now
+    -- work headlessly (read/write the pattern directly), so leaving the bridge
+    -- open keeps the MidiMix driving steps + showing LEDs after the dialog is
+    -- closed. Toggle it off explicitly with the "MidiMix Bridge Toggle" mapping.
     dialog:close()
     dialog = nil
     rows = {}
