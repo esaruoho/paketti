@@ -482,7 +482,14 @@ function PakettiZeroCrossingsDetachAll()
 end
 
 -- Handler for new document
+local function PakettiZeroCrossingsAutoSnapEnabled()
+  return preferences.ZeroCrossings and preferences.ZeroCrossings.AutoSnapSelection
+    and preferences.ZeroCrossings.AutoSnapSelection.value
+end
+
 function PakettiZeroCrossingsNewDocumentHandler()
+  -- Only attach when the feature is enabled in Paketti Preferences.
+  if not PakettiZeroCrossingsAutoSnapEnabled() then return end
   local s = renoise.song()
   if not s.selected_sample_observable:has_notifier(PakettiZeroCrossingsAttachSelectionObservable) then
     s.selected_sample_observable:add_notifier(PakettiZeroCrossingsAttachSelectionObservable)
@@ -490,8 +497,9 @@ function PakettiZeroCrossingsNewDocumentHandler()
   PakettiZeroCrossingsAttachSelectionObservable()
 end
 
--- Attach observable when sample changes
-function PakettiZeroCrossingsInitAutoSnap()
+-- ENABLE auto-snap: arm the song hooks and attach to the current song. Only
+-- called when the AutoSnapSelection preference is ON.
+function PakettiZeroCrossingsEnableAutoSnap()
   if not renoise.tool().app_new_document_observable:has_notifier(PakettiZeroCrossingsNewDocumentHandler) then
     renoise.tool().app_new_document_observable:add_notifier(PakettiZeroCrossingsNewDocumentHandler)
   end
@@ -501,8 +509,6 @@ function PakettiZeroCrossingsInitAutoSnap()
   if not renoise.tool().app_release_document_observable:has_notifier(PakettiZeroCrossingsDetachAll) then
     renoise.tool().app_release_document_observable:add_notifier(PakettiZeroCrossingsDetachAll)
   end
-
-  -- Initialize for current song (safely check if song exists)
   local song_available, s = pcall(function() return renoise.song() end)
   if song_available and s then
     if not s.selected_sample_observable:has_notifier(PakettiZeroCrossingsAttachSelectionObservable) then
@@ -510,6 +516,34 @@ function PakettiZeroCrossingsInitAutoSnap()
     end
     PakettiZeroCrossingsAttachSelectionObservable()
   end
+end
+
+-- DISABLE auto-snap: detach the song observers AND the new/release song hooks,
+-- so nothing watches the song (no overhead, no crash surface) when OFF.
+function PakettiZeroCrossingsDisableAutoSnap()
+  PakettiZeroCrossingsDetachAll()
+  if renoise.tool().app_new_document_observable:has_notifier(PakettiZeroCrossingsNewDocumentHandler) then
+    renoise.tool().app_new_document_observable:remove_notifier(PakettiZeroCrossingsNewDocumentHandler)
+  end
+  if renoise.tool().app_release_document_observable:has_notifier(PakettiZeroCrossingsDetachAll) then
+    renoise.tool().app_release_document_observable:remove_notifier(PakettiZeroCrossingsDetachAll)
+  end
+end
+
+-- Apply the current AutoSnapSelection preference: attach if ON, detach if OFF.
+-- Call this at tool load AND whenever the preference is toggled.
+function PakettiZeroCrossingsApplyAutoSnapPreference()
+  if PakettiZeroCrossingsAutoSnapEnabled() then
+    PakettiZeroCrossingsEnableAutoSnap()
+  else
+    PakettiZeroCrossingsDisableAutoSnap()
+  end
+end
+
+-- Called once at tool load (main.lua). Arms auto-snap ONLY if the preference is
+-- enabled — never watches the song otherwise.
+function PakettiZeroCrossingsInitAutoSnap()
+  PakettiZeroCrossingsApplyAutoSnapPreference()
 end
 
 local PakettiZeroCrossingsDialog = nil

@@ -146,6 +146,7 @@ Context: Global
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable
+#   2026-06-09  direct-commit  touched: app_release_document_observable
 
   Scenario: 8120 survives New Song with its canvas open
     Given the Groovebox 8120 dialog and canvas are open
