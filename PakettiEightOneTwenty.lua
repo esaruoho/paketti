@@ -4631,6 +4631,64 @@ end
 
 
 
+-- ============================================================================
+-- Headless step access — so the MidiMix step sequencer (step toggles + LEDs)
+-- works whether or not the 8120 dialog is open. When the dialog is open, steps
+-- live in rows[row].checkboxes (the UI mirror). When it's closed, those don't
+-- exist, so we read/write the note directly in the selected pattern: a groovebox
+-- row maps to track `row`, instrument `row`, a step is a pattern line, ON = a
+-- C-4 note. This is exactly what the dialog's print_to_pattern would produce.
+-- ----------------------------------------------------------------------------
+
+-- Is step ON for a row? Dialog checkbox if open, else the selected pattern.
+function PakettiEightOneTwentyGetStepState(row, step)
+  if dialog and dialog.visible then
+    local re = rows and rows[row]
+    if re and re.checkboxes and re.checkboxes[step] then
+      return re.checkboxes[step].value and true or false
+    end
+  end
+  local song = renoise.song()
+  if not song then return false end
+  local pattern = song.selected_pattern
+  if not pattern or row < 1 or row > #pattern.tracks then return false end
+  if step < 1 or step > pattern.number_of_lines then return false end
+  local nc = pattern.tracks[row]:line(step).note_columns[1]
+  return nc.note_value < 120
+end
+
+-- Toggle a step for a row. Dialog open → flip the checkbox (which prints to the
+-- pattern). Dialog closed → write the note directly, propagating across every
+-- MAX_STEPS-line repeat block so it matches the dialog's repeated output.
+function PakettiEightOneTwentyToggleStepState(row, step)
+  if dialog and dialog.visible then
+    local re = rows and rows[row]
+    if re and re.checkboxes and re.checkboxes[step] then
+      re.checkboxes[step].value = not re.checkboxes[step].value
+      return
+    end
+  end
+  local song = renoise.song()
+  if not song then return end
+  local pattern = song.selected_pattern
+  if not pattern or row < 1 or row > #pattern.tracks then return end
+  local plen = pattern.number_of_lines
+  if step < 1 or step > MAX_STEPS or step > plen then return end
+  local first = pattern.tracks[row]:line(step).note_columns[1]
+  local turn_on = (first.note_value >= 120)  -- currently empty → turn on
+  local line = step
+  while line <= plen do
+    local nc = pattern.tracks[row]:line(line).note_columns[1]
+    if turn_on then
+      nc.note_string = "C-4"
+      nc.instrument_value = row - 1
+    else
+      nc:clear()
+    end
+    line = line + MAX_STEPS
+  end
+end
+
 function assign_midi_mappings()
   renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Play Control",invoke=function(message)
     if message:is_trigger() then
@@ -4723,10 +4781,7 @@ function assign_midi_mappings()
     for step = 1, MAX_STEPS do
       renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%02d Step%02d", row, step),invoke=function(message)
         if message:is_trigger() then
-          local row_elements = rows[row]
-          if row_elements and row_elements.checkboxes[step] then
-            row_elements.checkboxes[step].value = not row_elements.checkboxes[step].value
-          end
+          PakettiEightOneTwentyToggleStepState(row, step)
         end
       end}
     end
@@ -4917,10 +4972,7 @@ for step = 1, 16 do
       if not message:is_trigger() then return end
       if step > MAX_STEPS then return end
       local row = paketti_8120_selected_row()
-      local row_elements = rows and rows[row]
-      if row_elements and row_elements.checkboxes and row_elements.checkboxes[step] then
-        row_elements.checkboxes[step].value = not row_elements.checkboxes[step].value
-      end
+      PakettiEightOneTwentyToggleStepState(row, step)
     end
   }
 end
@@ -5330,13 +5382,8 @@ end
 local function paketti_midimix_redraw_all_leds()
   if not paketti_midimix_out then return end
   local row = paketti_8120_selected_row()
-  local row_elements = rows and rows[row]
   for step = 1, 16 do
-    local on = false
-    if row_elements and row_elements.checkboxes and row_elements.checkboxes[step] then
-      on = row_elements.checkboxes[step].value and true or false
-    end
-    paketti_midimix_set_led(step, on)
+    paketti_midimix_set_led(step, PakettiEightOneTwentyGetStepState(row, step))
   end
 end
 
@@ -5354,11 +5401,8 @@ end
 local function paketti_midimix_idle_handler()
   if not paketti_midimix_out then return end
   local row = paketti_8120_selected_row()
-  local row_elements = rows and rows[row]
-  if not (row_elements and row_elements.checkboxes) then return end
   for step = 1, 16 do
-    local cb = row_elements.checkboxes[step]
-    local cur = (cb and cb.value) and true or false
+    local cur = PakettiEightOneTwentyGetStepState(row, step)
     if paketti_midimix_last_led[step] ~= cur then
       paketti_midimix_set_led(step, cur)
     end
@@ -5402,11 +5446,8 @@ local function paketti_midimix_on_midi(message)
     local step = paketti_midimix_step_for_note(data1)
     if step then
       local row = paketti_8120_selected_row()
-      local row_elements = rows and rows[row]
-      if row_elements and row_elements.checkboxes and row_elements.checkboxes[step] then
-        row_elements.checkboxes[step].value = not row_elements.checkboxes[step].value
-        paketti_midimix_set_led(step, row_elements.checkboxes[step].value)
-      end
+      PakettiEightOneTwentyToggleStepState(row, step)
+      paketti_midimix_set_led(step, PakettiEightOneTwentyGetStepState(row, step))
     end
   end
 end

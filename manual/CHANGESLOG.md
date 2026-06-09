@@ -8,7 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-06-09 - Feature: Master Low-Cut 200Hz "Hold" (momentary) MIDI mapping
+### 2026-06-09 - Improvement: Groovebox 8120 MidiMix step sequencer works headlessly (dialog closed)
+
+The MidiMix step sequencer no longer needs the 8120 dialog open. The step toggles (`Selected Row StepNN`, `RowNN StepNN`, and the direct MidiMix buttons) and the MidiMix LEDs previously only worked through the dialog's on-screen checkboxes, so with the dialog closed nothing happened. They now fall back to reading and writing the **selected pattern directly** when the dialog is closed: a groovebox row maps to its track + instrument, a step is a pattern line (ON = a C-4 note, repeated across the pattern), so you can sequence and see the LEDs from the MidiMix with no window open. The `Select Row (Knob 01-08 / 08-01)` row selector therefore also drives the headless step display: pick a row with the knob and the 16 LEDs + buttons follow it against the live pattern. When the dialog is open, behaviour is unchanged (it still goes through the checkboxes).
 
 A trigger-and-hold companion to the Master Low-Cut toggle: the 200Hz high-pass on the master is active **while you hold the button** and turns off the moment you release it — for momentary low-end drops. It reads the button's value (press vs release) rather than just the trigger edge, so it catches both the hold and the let-go.
 
