@@ -803,6 +803,11 @@ local wavetable_content = nil
 local current_sample_count = 0
 local ignore_knob_change = false
 local wavetable_dialog_observer = nil
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- them live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+-- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local wavetable_release_doc_observer = nil
 
 -- Dialog observer functions (must be before browse function)
 function PakettiWTCreateDialogObserver(dialog_ref)
@@ -843,6 +848,28 @@ local function PakettiWTRemoveDialogObserver(update_function)
       end
     end)
   end
+end
+
+-- Idempotent teardown: detaches the per-instrument observer from the
+-- still-alive old song, removes the song-release safety observer, and closes
+-- the dialog. Safe to run twice (dialog close re-runs it). See
+-- features/song-lifecycle-safety.feature.
+local function PakettiWTTeardown()
+  if wavetable_dialog_observer then
+    PakettiWTRemoveDialogObserver(wavetable_dialog_observer)
+    wavetable_dialog_observer = nil
+  end
+  -- Detach the song-release safety observer (idempotent; safe to run twice)
+  if wavetable_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(wavetable_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(wavetable_release_doc_observer)
+  end
+  wavetable_release_doc_observer = nil
+  if wavetable_dialog and wavetable_dialog.visible then
+    wavetable_dialog:close()
+  end
+  wavetable_dialog = nil
+  wavetable_content = nil
+  vb = nil
 end
 
 -- Simple dialog update function
@@ -976,15 +1003,8 @@ end
 function show_wavetable_dialog()
   -- If dialog is already open, close it (toggle behavior)
   if wavetable_dialog and wavetable_dialog.visible then
-    -- Clean up observer
-    if wavetable_dialog_observer then
-      PakettiWTRemoveDialogObserver(wavetable_dialog_observer)
-      wavetable_dialog_observer = nil
-    end
-    wavetable_dialog:close()
-    wavetable_dialog = nil
-    wavetable_content = nil
-    vb = nil
+    -- Clean up observer + song-release safety observer + close dialog (idempotent)
+    PakettiWTTeardown()
     return
   end
   
@@ -1002,6 +1022,21 @@ function show_wavetable_dialog()
   
   -- Add observer after dialog is created
   wavetable_dialog_observer = PakettiWTCreateDialogObserver(wavetable_dialog)
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiWTTeardown() detaches the per-instrument observer from the song
+  -- that is about to die. Without this, the live observer plus the open dialog
+  -- crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+  -- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not wavetable_release_doc_observer then
+    wavetable_release_doc_observer = function()
+      PakettiWTTeardown()  -- detaches observers from the still-alive old song; removes this observer; closes dialog
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(wavetable_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(wavetable_release_doc_observer)
+  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Wavetable Control", invoke = show_wavetable_dialog}

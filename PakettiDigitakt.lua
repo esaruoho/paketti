@@ -5,6 +5,11 @@
 
 local dialog = nil
 local separator = package.config:sub(1,1)
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- them live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+-- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local digitakt_release_doc_observer = nil
 
 -- Digitakt configurations for different hardware versions
 local digitakt_configs = {
@@ -616,18 +621,30 @@ end
 -- Create export dialog
 local selected_instrument_notifier = nil
 
+-- Idempotent teardown: detaches the song observer (from whichever song is
+-- current/alive), detaches the song-release safety observer, and closes/nils
+-- the dialog. Safe to run twice. See features/song-lifecycle-safety.feature.
+function PakettiDigitaktCleanup()
+  if selected_instrument_notifier then
+    local song = renoise.song()
+    if song and song.selected_instrument_index_observable:has_notifier(selected_instrument_notifier) then
+      song.selected_instrument_index_observable:remove_notifier(selected_instrument_notifier)
+    end
+    selected_instrument_notifier = nil
+  end
+  -- Detach the song-release safety observer (idempotent; safe to run twice)
+  if digitakt_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(digitakt_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(digitakt_release_doc_observer)
+  end
+  digitakt_release_doc_observer = nil
+  if dialog and dialog.visible then dialog:close() end
+  dialog = nil
+end
+
 function PakettiDigitaktDialog()
   if dialog and dialog.visible then
     -- Clean up observable notifier before closing
-    local song = renoise.song()
-    if selected_instrument_notifier then
-      if song.selected_instrument_index_observable:has_notifier(selected_instrument_notifier) then
-        song.selected_instrument_index_observable:remove_notifier(selected_instrument_notifier)
-      end
-      selected_instrument_notifier = nil
-    end
-    dialog:close()
-    dialog = nil
+    PakettiDigitaktCleanup()
     return
   end
   
@@ -825,14 +842,7 @@ function PakettiDigitaktDialog()
         width = 80,
         notifier = function()
           -- Clean up observable notifier
-          if selected_instrument_notifier then
-            if song.selected_instrument_index_observable:has_notifier(selected_instrument_notifier) then
-              song.selected_instrument_index_observable:remove_notifier(selected_instrument_notifier)
-            end
-            selected_instrument_notifier = nil
-          end
-          dialog:close()
-          dialog = nil
+          PakettiDigitaktCleanup()
         end
       }
     },
@@ -852,6 +862,21 @@ function PakettiDigitaktDialog()
   }
   
   dialog = renoise.app():show_custom_dialog("Digitakt Sample Chain Exporter", content)
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiDigitaktCleanup() detaches the selected_instrument_index observer
+  -- from the song that is about to die. Without this, the live observer and
+  -- the open dialog crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+  -- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not digitakt_release_doc_observer then
+    digitakt_release_doc_observer = function()
+      PakettiDigitaktCleanup()  -- detaches observers from the still-alive old song; removes this observer; closes dialog
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(digitakt_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(digitakt_release_doc_observer)
+  end
 end
 
 -- Quick export functions for menu integration

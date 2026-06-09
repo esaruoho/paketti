@@ -32,6 +32,12 @@ local pattern_data_cache = {}
 local notifiers = {}
 local button_registry = {}  -- Track all buttons for keyboard navigation
 local selected_button_index = 0  -- Currently selected button for keyboard nav
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- the selected_track_index / selected_sequence_index / pattern line notifiers
+-- live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+-- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local pattern_delay_viewer_release_doc_observer = nil
 
 -- Color palette for notes (12 colors for 12 notes in octave)
 local note_colors = {
@@ -389,11 +395,18 @@ end
 function PakettiPatternDelayViewerCloseDialog()
   if dialog and dialog.visible then
     dialog:close()
-    dialog = nil
-    dialog_content = nil
-    pattern_data_cache = {}
-    PakettiPatternDelayViewerRemoveNotifiers()
   end
+  dialog = nil
+  dialog_content = nil
+  pattern_data_cache = {}
+  PakettiPatternDelayViewerRemoveNotifiers()
+  -- Detach the song-release safety observer (idempotent; safe to run twice).
+  -- See features/song-lifecycle-safety.feature.
+  if pattern_delay_viewer_release_doc_observer and
+     renoise.tool().app_release_document_observable:has_notifier(pattern_delay_viewer_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(pattern_delay_viewer_release_doc_observer)
+  end
+  pattern_delay_viewer_release_doc_observer = nil
 end
 
 function PakettiPatternDelayViewerRemoveNotifiers()
@@ -671,6 +684,22 @@ function PakettiPatternDelayViewerShowDialog()
   )
   
   PakettiPatternDelayViewerSetupNotifiers()
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiPatternDelayViewerCloseDialog() detaches the track/sequence/line
+  -- notifiers from the song that is about to die. Without this, leaving them
+  -- live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+  -- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not pattern_delay_viewer_release_doc_observer then
+    pattern_delay_viewer_release_doc_observer = function()
+      PakettiPatternDelayViewerCloseDialog()  -- detaches notifiers from the still-alive old song; removes this observer
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(pattern_delay_viewer_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(pattern_delay_viewer_release_doc_observer)
+  end
+
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 

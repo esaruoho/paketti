@@ -702,9 +702,29 @@ end
  -- Store our observer function reference so we can remove it later
 local instrument_observer = nil
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the instrument observer detaches while renoise.song() is still the
+-- OLD song. Leaving it live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local phrasegen_release_doc_observer = nil
+
+-- Idempotent teardown: detach the song-release safety observer, then run
+-- close_dialog() which removes the instrument observer (has_notifier-guarded)
+-- and closes/nils the dialog. Safe to run twice.
+-- See features/song-lifecycle-safety.feature.
+function phrasegen_teardown()
+  if phrasegen_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(phrasegen_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(phrasegen_release_doc_observer)
+  end
+  phrasegen_release_doc_observer = nil
+  close_dialog()
+end
+
 function close_dialog()
    if dialog and dialog.visible then
-     if renoise.song() and renoise.song().selected_instrument_observable and instrument_observer then
+     if renoise.song() and renoise.song().selected_instrument_observable and instrument_observer
+        and renoise.song().selected_instrument_observable:has_notifier(instrument_observer) then
        renoise.song().selected_instrument_observable:remove_notifier(instrument_observer)
      end
      dialog:close()
@@ -2724,6 +2744,21 @@ end
   -- Only set up observers if we have a valid song and dialog
   if renoise.song() and dialog and dialog.visible then
     setup_observers()
+  end
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- phrasegen_teardown() detaches the instrument observer from the song that
+  -- is about to die. Without this, the live selected_instrument_observable and
+  -- the open dialog crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+  -- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not phrasegen_release_doc_observer then
+    phrasegen_release_doc_observer = function()
+      phrasegen_teardown()  -- detaches the instrument observer from the still-alive old song + closes the dialog; removes this observer
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(phrasegen_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(phrasegen_release_doc_observer)
   end
 end
  

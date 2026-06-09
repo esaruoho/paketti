@@ -506,6 +506,11 @@ end
 
 -- BPM observable wiring (keeps the dialog BPM in sync with transport)
 local stemslicer_bpm_observer = nil
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the BPM observer detaches while renoise.song() is still the OLD song.
+-- Leaving it live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+-- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local stemslicer_release_doc_observer = nil
 
 function updateStemSlicerBpmDisplay()
   local bpm = renoise.song().transport.bpm
@@ -642,6 +647,12 @@ function cleanupStemSlicerBpmObservable()
     renoise.song().transport.bpm_observable:remove_notifier(stemslicer_bpm_observer)
   end
   stemslicer_bpm_observer = nil
+  -- Song-lifecycle safety: detach the song-release observer too (idempotent;
+  -- safe to run twice). See features/song-lifecycle-safety.feature.
+  if stemslicer_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(stemslicer_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(stemslicer_release_doc_observer)
+  end
+  stemslicer_release_doc_observer = nil
 end
 
 -- Instrument capacity guard (global, available everywhere)
@@ -3142,6 +3153,25 @@ function pakettiStemSlicerDialogInternal()
     )
     dialog = renoise.app():show_custom_dialog("Paketti Stem Slicer", content, keyhandler)
     setupStemSlicerBpmObservable()
+
+    -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+    -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+    -- cleanupStemSlicerBpmObservable() detaches the BPM observer from the song
+    -- about to die, then the dialog is closed. Without this, the live BPM
+    -- observer + open dialog crashed Renoise in
+    -- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+    -- See features/song-lifecycle-safety.feature.
+    if not stemslicer_release_doc_observer then
+        stemslicer_release_doc_observer = function()
+            local dlg = dialog
+            cleanupStemSlicerBpmObservable()  -- detaches BPM + this observer from the still-alive old song
+            if dlg and dlg.visible then dlg:close() end
+            dialog = nil
+        end
+    end
+    if not renoise.tool().app_release_document_observable:has_notifier(stemslicer_release_doc_observer) then
+        renoise.tool().app_release_document_observable:add_notifier(stemslicer_release_doc_observer)
+    end
 end
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti StemSlicer Dialog...",invoke = pakettiStemSlicerDialog}

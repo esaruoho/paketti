@@ -55,6 +55,13 @@ PakettiCommandWheelState = {
 PakettiCommandWheelDialog = nil
 PakettiCommandWheelViewBuilder = nil
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- the selected_device/instrument/track observers live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local pakettiCommandWheelReleaseDocObserver = nil
+
 -- Observable tracking
 PakettiCommandWheelObservables = {
   device_observer = nil,
@@ -476,6 +483,24 @@ function PakettiCommandWheelCleanupObservables()
     end
   end)
   PakettiCommandWheelObservables.track_observer = nil
+end
+
+-- Idempotent teardown: detach song observers, the release-doc safety observer,
+-- and close/nil the dialog. Safe to run twice (close callback may re-enter).
+-- See features/song-lifecycle-safety.feature.
+function PakettiCommandWheelTeardown()
+  PakettiCommandWheelCleanupObservables()
+
+  -- Detach the song-release safety observer (idempotent; safe to run twice)
+  if pakettiCommandWheelReleaseDocObserver and
+     renoise.tool().app_release_document_observable:has_notifier(pakettiCommandWheelReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:remove_notifier(pakettiCommandWheelReleaseDocObserver)
+  end
+  pakettiCommandWheelReleaseDocObserver = nil
+
+  local dlg = PakettiCommandWheelDialog
+  PakettiCommandWheelDialog = nil
+  if dlg and dlg.visible then dlg:close() end
 end
 
 function PakettiCommandWheelOnDeviceChanged()
@@ -1344,9 +1369,7 @@ function PakettiCommandWheelKeyHandler(dialog, key)
   PakettiCommandWheelPrint("KEY: name='" .. tostring(key.name) .. "' mod='" .. tostring(key.modifiers) .. "'")
   
   if key.modifiers == "" and key.name == closer then
-    PakettiCommandWheelCleanupObservables()
-    dialog:close()
-    PakettiCommandWheelDialog = nil
+    PakettiCommandWheelTeardown()
     return nil
   end
   
@@ -1408,9 +1431,7 @@ end
 --------------------------------------------------------------------------------
 function PakettiCommandWheelShowDialog()
   if PakettiCommandWheelDialog and PakettiCommandWheelDialog.visible then
-    PakettiCommandWheelCleanupObservables()
-    PakettiCommandWheelDialog:close()
-    PakettiCommandWheelDialog = nil
+    PakettiCommandWheelTeardown()
     return
   end
   
@@ -1564,7 +1585,22 @@ function PakettiCommandWheelShowDialog()
   
   -- Setup observables before showing dialog
   PakettiCommandWheelSetupObservables()
-  
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiCommandWheelTeardown() detaches the selected_device/instrument/track
+  -- observers from the song that is about to die. Without this, leaving them
+  -- live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+  -- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not pakettiCommandWheelReleaseDocObserver then
+    pakettiCommandWheelReleaseDocObserver = function()
+      PakettiCommandWheelTeardown()  -- detaches observers from the still-alive old song; removes this observer; closes dialog
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(pakettiCommandWheelReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:add_notifier(pakettiCommandWheelReleaseDocObserver)
+  end
+
   -- Sync current values
   if state.mode == PAKETTI_COMMAND_WHEEL_MODE_DEVICE then
     PakettiCommandWheelSyncDeviceValue()

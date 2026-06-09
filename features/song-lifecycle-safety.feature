@@ -69,7 +69,9 @@ Context: Global
   # ============================================================================
   # Four parallel Explore agents swept all 181 .lua files for: persistent UI +
   # song-level observers / song-reading canvas/timer + NO app_release teardown.
-  # All 30 below are @todo (un-fixed). Grouped by crash likelihood.
+  # ALL 30 BELOW ARE NOW FIXED (2026-06-09): Group A = commit 32f5fe5, Group B =
+  # commit 10d8df9, Group C = this batch — each got the app_release seatbelt.
+  # @built @untested-in-renoise. Grouped by original crash likelihood.
   #
   # GROUP A — canvas / timer continuously READS the dying song (highest risk;
   # identical profile to the 3 already-fixed tools — most likely to bite live):
@@ -114,6 +116,7 @@ Context: Global
   #
   # WATCH: app_release_document_observable PakettiHyperEditCreateDialog PakettiHyperEditRemoveObservers PakettiCanvasExperimentsCreateDialog
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+#   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable

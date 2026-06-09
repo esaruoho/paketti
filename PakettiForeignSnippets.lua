@@ -724,6 +724,12 @@ local sample_viz_canvas_height = 512
 local sample_viz_dialog = nil
 local sample_viz_vb = nil
 local sample_viz_observables = {}
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- selected_instrument/selected_sample observers live on the dying song crashed
+-- Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool
+-- teardown. See features/song-lifecycle-safety.feature.
+local sample_viz_release_doc_observer = nil
 
 -- Cache sample waveform data for canvas display
 local function cache_sample_viz_waveform()
@@ -864,6 +870,23 @@ local function cleanup_sample_viz_observables()
   sample_viz_observables = {}
 end
 
+-- Idempotent teardown: detach all song observers + the song-release safety
+-- observer and close/clear the dialog. Safe to run twice (toggle-close, Close
+-- button, and app_release_document_observable all route here).
+-- See features/song-lifecycle-safety.feature.
+local function teardown_sample_viz()
+  cleanup_sample_viz_observables()
+  if sample_viz_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(sample_viz_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(sample_viz_release_doc_observer)
+  end
+  sample_viz_release_doc_observer = nil
+  if sample_viz_dialog and sample_viz_dialog.visible then
+    sample_viz_dialog:close()
+  end
+  sample_viz_dialog = nil
+  sample_viz_vb = nil
+end
+
 -- Render sample visualization canvas
 local function render_sample_viz_canvas(ctx)
   local w, h = sample_viz_canvas_width, sample_viz_canvas_height
@@ -949,10 +972,7 @@ function pakettiSampleVisualizerDialog()
   end
 
   if sample_viz_dialog and sample_viz_dialog.visible then
-    cleanup_sample_viz_observables()
-    sample_viz_dialog:close()
-    sample_viz_dialog = nil
-    sample_viz_vb = nil
+    teardown_sample_viz()
     return
   end
 
@@ -1064,10 +1084,7 @@ function pakettiSampleVisualizerDialog()
             width = 80,
             tooltip = "Close the sample visualizer dialog",
             notifier = function()
-              cleanup_sample_viz_observables()
-              sample_viz_dialog:close()
-              sample_viz_dialog = nil
-              sample_viz_vb = nil
+              teardown_sample_viz()
             end
           }
         }
@@ -1079,7 +1096,23 @@ function pakettiSampleVisualizerDialog()
   
   -- Set up automatic updates via observables
   setup_sample_viz_observables()
-  
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- teardown_sample_viz() detaches every observer from the song that is about
+  -- to die and closes the dialog. Without this, the live selected_instrument/
+  -- selected_sample observers crashed Renoise in
+  -- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+  -- See features/song-lifecycle-safety.feature.
+  if not sample_viz_release_doc_observer then
+    sample_viz_release_doc_observer = function()
+      teardown_sample_viz()  -- detaches observers from the still-alive old song; removes this observer
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(sample_viz_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(sample_viz_release_doc_observer)
+  end
+
   -- Initial refresh to populate dropdown and ensure everything is up to date
   refresh_sample_visualization()
   

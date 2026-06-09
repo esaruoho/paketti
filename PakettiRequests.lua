@@ -4930,6 +4930,28 @@ end
 
 -- Global dialog reference for Convolver toggle behavior
 local dialog = nil
+-- Song-lifecycle safety (features/song-lifecycle-safety.feature): the dialog
+-- attaches selected_sample_observable. These hold the closure + the
+-- app_release_document_observable hook so we can detach BEFORE the old song is
+-- freed on New/Load Song (otherwise SIGSEGV in TWeakRefOwner::SOnWeakReferencableDying).
+local convolver_sample_observer = nil
+local convolver_release_doc_observer = nil
+
+-- Idempotent teardown: detach the sample observer from the still-alive song and
+-- the release-doc hook. Safe to call multiple times. features/song-lifecycle-safety.feature
+local function pakettiConvolverCleanup()
+  if convolver_sample_observer then
+    local ok, song = pcall(renoise.song)
+    if ok and song and song.selected_sample_observable:has_notifier(convolver_sample_observer) then
+      song.selected_sample_observable:remove_notifier(convolver_sample_observer)
+    end
+    convolver_sample_observer = nil
+  end
+  if convolver_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(convolver_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(convolver_release_doc_observer)
+  end
+  convolver_release_doc_observer = nil
+end
 
 -- Function to show the GUI for selecting or adding a Convolver device
 function pakettiConvolverSelectionDialog(callback)
@@ -4937,6 +4959,7 @@ function pakettiConvolverSelectionDialog(callback)
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
+    pakettiConvolverCleanup()
     return
   end
   
@@ -4956,9 +4979,15 @@ function pakettiConvolverSelectionDialog(callback)
         pakettiConvolverSelectionDialog(callback)
       end
     })
-    renoise.song().selected_sample_observable:add_notifier(function()
+    -- Detach any prior sample observer (Refresh rebuilds content) then attach a
+    -- tracked one so it can be removed on close / song release.
+    if convolver_sample_observer and renoise.song().selected_sample_observable:has_notifier(convolver_sample_observer) then
+      renoise.song().selected_sample_observable:remove_notifier(convolver_sample_observer)
+    end
+    convolver_sample_observer = function()
       sample_name_text.text="Selected Sample: " .. (renoise.song().selected_sample and renoise.song().selected_sample.name or "None")
-    end)
+    end
+    renoise.song().selected_sample_observable:add_notifier(convolver_sample_observer)
     for t = 1, #renoise.song().tracks do
       local track = renoise.song().tracks[t]
       local track_type = "Unknown"
@@ -5026,6 +5055,23 @@ function pakettiConvolverSelectionDialog(callback)
     function(value) dialog = value end
   )
   dialog = renoise.app():show_custom_dialog("Load, Import/Export Convolver Device", create_dialog_content(), keyhandler)
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song); renoise.song() is still the OLD song here, so the
+  -- sample observer detaches from the song about to die. Without this, the live
+  -- observer crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+  -- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not convolver_release_doc_observer then
+    convolver_release_doc_observer = function()
+      local dlg = dialog
+      pakettiConvolverCleanup()  -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end
+      dialog = nil
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(convolver_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(convolver_release_doc_observer)
+  end
 end
 
 function handle_convolver_action(device, track_index, device_index, action)
@@ -7945,9 +7991,36 @@ function auto_receive_all()
   is_receiving = false
 end
 
+-- Song-lifecycle safety (features/song-lifecycle-safety.feature): the VolDelayPan
+-- dialog attaches selected_track_observable. Track the closure + the
+-- app_release_document_observable hook so we detach BEFORE the old song is freed
+-- on New/Load Song (otherwise SIGSEGV in TWeakRefOwner::SOnWeakReferencableDying).
+local voldelaypan_track_observer = nil
+local voldelaypan_release_doc_observer = nil
+
+-- Idempotent teardown: detach the track observer from the still-alive song and
+-- the release-doc hook. Safe to call multiple times. features/song-lifecycle-safety.feature
+function pakettiVolDelayPanCleanup()
+  if voldelaypan_track_observer then
+    local ok, song = pcall(renoise.song)
+    if ok and song and song.selected_track_observable:has_notifier(voldelaypan_track_observer) then
+      song.selected_track_observable:remove_notifier(voldelaypan_track_observer)
+    end
+    voldelaypan_track_observer = nil
+  end
+  if voldelaypan_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(voldelaypan_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(voldelaypan_release_doc_observer)
+  end
+  voldelaypan_release_doc_observer = nil
+end
+
 -- Observe track changes and auto-update if auto-grab is enabled
 function observe_track_changes()
-  renoise.song().selected_track_observable:add_notifier(function()
+  -- Detach any prior observer before re-attaching (idempotent across re-opens)
+  if voldelaypan_track_observer and renoise.song().selected_track_observable:has_notifier(voldelaypan_track_observer) then
+    renoise.song().selected_track_observable:remove_notifier(voldelaypan_track_observer)
+  end
+  voldelaypan_track_observer = function()
     if auto_grab_enabled then
       if not is_normal_track() then
         handle_invalid_track()
@@ -7957,7 +8030,8 @@ function observe_track_changes()
       auto_receive_all()
       renoise.app():show_status("Track changed: auto-grab updated sliders.")
     end
-  end)
+  end
+  renoise.song().selected_track_observable:add_notifier(voldelaypan_track_observer)
 end
 
 function create_sliders(row, initial_value, range, slider_set)
@@ -8815,6 +8889,7 @@ function pakettiVolDelayPanSliderDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog=nil
+    pakettiVolDelayPanCleanup()
     return
   end
   renoise.app().window.active_middle_frame=1
@@ -8866,6 +8941,23 @@ function pakettiVolDelayPanSliderDialog()
   )
   dialog = renoise.app():show_custom_dialog("Paketti Volume/Delay/Pan Slider Controls", content, keyhandler)
   renoise.app().window.active_middle_frame=1
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song); renoise.song() is still the OLD song here, so the
+  -- track observer detaches from the song about to die. Without this, the live
+  -- observer crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+  -- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not voldelaypan_release_doc_observer then
+    voldelaypan_release_doc_observer = function()
+      local dlg = dialog
+      pakettiVolDelayPanCleanup()  -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end
+      dialog = nil
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(voldelaypan_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(voldelaypan_release_doc_observer)
+  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
@@ -12120,6 +12212,11 @@ end
 local switch_note_on_track_or_pattern_change
 local switch_note_line_notifier_callback
 local switch_note_refresh_dialog
+-- Song-lifecycle safety (features/song-lifecycle-safety.feature): fires BEFORE
+-- the song is released (New/Load Song) so the track/pattern observers detach
+-- while renoise.song() is still the OLD song; otherwise SIGSEGV in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+local switch_note_release_doc_observer = nil
 
 -- Remove line notifier from tracked pattern
 local function switch_note_remove_lines_notifier()
@@ -12158,6 +12255,11 @@ local function switch_note_cleanup_all_notifiers()
     end
   end
   switch_note_remove_lines_notifier()
+  -- Detach the song-release safety observer (idempotent). features/song-lifecycle-safety.feature
+  if switch_note_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(switch_note_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(switch_note_release_doc_observer)
+  end
+  switch_note_release_doc_observer = nil
 end
 
 -- Close dialog and clean up everything
@@ -12343,6 +12445,19 @@ function pakettiSwitchNoteInstrumentDialog()
   song.selected_track_index_observable:add_notifier(switch_note_on_track_or_pattern_change)
   song.selected_pattern_index_observable:add_notifier(switch_note_on_track_or_pattern_change)
   switch_note_update_lines_notifier()
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New/Load Song); renoise.song() is still the OLD song here, so the existing
+  -- idempotent cleanup detaches every observer from the song about to die.
+  -- features/song-lifecycle-safety.feature
+  if not switch_note_release_doc_observer then
+    switch_note_release_doc_observer = function()
+      switch_note_close_dialog()  -- runs switch_note_cleanup_all_notifiers (idempotent) + closes dialog; removes this observer
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(switch_note_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(switch_note_release_doc_observer)
+  end
 
   -- Show the dialog
   switch_note_refresh_dialog()

@@ -4,6 +4,12 @@
 local vb = renoise.ViewBuilder()
 local dialog = nil
 local current_vb = nil -- Store reference to current ViewBuilder for updates
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the selected_instrument_index observer detaches while renoise.song()
+-- is still the OLD song. Leaving it live with the dialog open crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local polyend_slice_release_doc_observer = nil
 current_selected_slice = 0
 local total_slices = 0
 local slice_instrument = nil
@@ -216,7 +222,22 @@ function PakettiPolyendSliceSwitcherCreateDialog()
   }
   
   dialog = renoise.app():show_custom_dialog("Polyend Slice Switcher", dialog_content, my_keyhandler_func)
-  
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so the
+  -- cleanup detaches the selected_instrument_index observer from the song that
+  -- is about to die and closes the dialog. Without this, the live observer plus
+  -- the open dialog crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+  -- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not polyend_slice_release_doc_observer then
+    polyend_slice_release_doc_observer = function()
+      PakettiPolyendSliceSwitcherCleanup() -- detaches observers from the still-alive old song; removes this observer; closes dialog
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(polyend_slice_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(polyend_slice_release_doc_observer)
+  end
+
   -- Set focus back to Renoise after dialog opens
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
@@ -468,4 +489,20 @@ function PakettiPolyendSliceSwitcherRemoveNotifier()
       print("-- Polyend Slice instrument change notifier removed")
     end
   end
+end
+
+-- Idempotent song-lifecycle teardown: detaches the instrument observer, the
+-- release-doc observer, and closes/nils the dialog. Safe to run twice. Runs
+-- BEFORE the old song dies (via app_release_document_observable) so observers
+-- detach from the still-alive old song. See features/song-lifecycle-safety.feature.
+function PakettiPolyendSliceSwitcherCleanup()
+  pcall(PakettiPolyendSliceSwitcherRemoveNotifier)
+  -- Detach the song-release safety observer (guarded; safe to run twice)
+  if polyend_slice_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(polyend_slice_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(polyend_slice_release_doc_observer)
+  end
+  polyend_slice_release_doc_observer = nil
+  if dialog and dialog.visible then dialog:close() end
+  dialog = nil
+  current_vb = nil
 end

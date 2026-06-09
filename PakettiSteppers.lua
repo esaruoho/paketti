@@ -28,6 +28,12 @@ local global_stepcount_valuebox = nil
 local current_visible_stepper = nil
 local current_stepper_instrument = nil
 local instrument_change_observer = nil
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- the selected_instrument_index observer live with the dialog open crashed
+-- Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool
+-- teardown. See features/song-lifecycle-safety.feature.
+local steppers_release_doc_observer = nil
 
 function pakettiPitchStepperDemo()
   if dialog and dialog.visible then
@@ -285,6 +291,25 @@ function PakettiSetupInstrumentAwareness()
   end
   
   renoise.song().selected_instrument_index_observable:add_notifier(instrument_change_observer)
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiCleanupInstrumentAwareness() detaches the instrument observer from
+  -- the song that is about to die and closes the dialog. Without this, the
+  -- live observer plus open dialog crashed Renoise in
+  -- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+  -- See features/song-lifecycle-safety.feature.
+  if not steppers_release_doc_observer then
+    steppers_release_doc_observer = function()
+      local dlg = dialog
+      PakettiCleanupInstrumentAwareness()  -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end
+      dialog = nil
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(steppers_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(steppers_release_doc_observer)
+  end
 end
 
 function PakettiCleanupInstrumentAwareness()
@@ -295,11 +320,17 @@ function PakettiCleanupInstrumentAwareness()
     end
     instrument_change_observer = nil
   end
-  
+
+  -- Detach the song-release safety observer (idempotent; safe to run twice)
+  if steppers_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(steppers_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(steppers_release_doc_observer)
+  end
+  steppers_release_doc_observer = nil
+
   -- Clear tracking variables
   current_visible_stepper = nil
   current_stepper_instrument = nil
-  
+
   print("Steppers instrument awareness cleaned up")
 end
 ---

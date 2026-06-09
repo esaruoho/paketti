@@ -13,6 +13,29 @@ PakettiMixerParameterExposer_slider_ref = nil  -- Reference to the slider widget
 -- State for humanize
 PakettiMixerParameterExposer_humanize_percent = 10  -- Default 10%
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the selected_track_index observer detaches while renoise.song() is
+-- still the OLD song. Leaving it live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local PakettiMixerParameterExposer_release_doc_observer = nil
+
+-- Idempotent teardown: detach the track-change observer and the song-release
+-- safety observer. Safe to call multiple times. Does NOT close the dialog (the
+-- callers manage the dialog handle). See features/song-lifecycle-safety.feature.
+function PakettiMixerParameterExposerTeardown()
+  if PakettiMixerParameterExposer_track_notifier then
+    if renoise.song() and renoise.song().selected_track_index_observable:has_notifier(PakettiMixerParameterExposer_track_notifier) then
+      renoise.song().selected_track_index_observable:remove_notifier(PakettiMixerParameterExposer_track_notifier)
+    end
+    PakettiMixerParameterExposer_track_notifier = nil
+  end
+  if PakettiMixerParameterExposer_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(PakettiMixerParameterExposer_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(PakettiMixerParameterExposer_release_doc_observer)
+  end
+  PakettiMixerParameterExposer_release_doc_observer = nil
+end
+
 -- Apply offset to all exposed parameters on selected track
 function PakettiMixerParameterExposerApplyOffset(offset)
   local song = renoise.song()
@@ -158,15 +181,10 @@ function PakettiMixerParameterExposerTrackChangeHandler()
   
   if PakettiMixerParameterExposer_dialog and PakettiMixerParameterExposer_dialog.visible then
     PakettiMixerParameterExposer_rebuilding = true
-    
-    -- Remove notifier before closing
-    if PakettiMixerParameterExposer_track_notifier then
-      if renoise.song().selected_track_index_observable:has_notifier(PakettiMixerParameterExposer_track_notifier) then
-        renoise.song().selected_track_index_observable:remove_notifier(PakettiMixerParameterExposer_track_notifier)
-      end
-      PakettiMixerParameterExposer_track_notifier = nil
-    end
-    
+
+    -- Remove observers before closing (idempotent teardown; reopen re-registers them)
+    PakettiMixerParameterExposerTeardown()
+
     -- Close existing dialog
     PakettiMixerParameterExposer_dialog:close()
     PakettiMixerParameterExposer_dialog = nil
@@ -475,7 +493,25 @@ function PakettiMixerParameterExposerOpenDialog()
   if not renoise.song().selected_track_index_observable:has_notifier(PakettiMixerParameterExposer_track_notifier) then
     renoise.song().selected_track_index_observable:add_notifier(PakettiMixerParameterExposer_track_notifier)
   end
-  
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released (New
+  -- Song / Load Song). renoise.song() is still the OLD song here, so the
+  -- teardown detaches the selected_track_index observer from the song that is
+  -- about to die. Without this, the live observer plus the open dialog crashed
+  -- Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool
+  -- teardown. See features/song-lifecycle-safety.feature.
+  if not PakettiMixerParameterExposer_release_doc_observer then
+    PakettiMixerParameterExposer_release_doc_observer = function()
+      local dlg = PakettiMixerParameterExposer_dialog
+      PakettiMixerParameterExposerTeardown()  -- detaches observers from the still-alive old song; removes this observer
+      PakettiMixerParameterExposer_dialog = nil
+      if dlg and dlg.visible then dlg:close() end
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(PakettiMixerParameterExposer_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(PakettiMixerParameterExposer_release_doc_observer)
+  end
+
   -- Reset keyboard focus to Renoise
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
@@ -484,14 +520,9 @@ end
 function PakettiMixerParameterExposerShowDialog()
   -- Toggle behavior: if dialog is open and visible, close it and return
   if PakettiMixerParameterExposer_dialog and PakettiMixerParameterExposer_dialog.visible then
-    -- Remove track notifier when closing
-    if PakettiMixerParameterExposer_track_notifier then
-      if renoise.song().selected_track_index_observable:has_notifier(PakettiMixerParameterExposer_track_notifier) then
-        renoise.song().selected_track_index_observable:remove_notifier(PakettiMixerParameterExposer_track_notifier)
-      end
-      PakettiMixerParameterExposer_track_notifier = nil
-    end
-    
+    -- Detach observers when closing (idempotent teardown)
+    PakettiMixerParameterExposerTeardown()
+
     PakettiMixerParameterExposer_dialog:close()
     PakettiMixerParameterExposer_dialog = nil
     return

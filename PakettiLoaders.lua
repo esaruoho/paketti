@@ -2913,14 +2913,38 @@ end
 -- Global dialog reference for Randomizer toggle behavior
 local dialog = nil
 
+-- Song-lifecycle safety (features/song-lifecycle-safety.feature): a shared,
+-- module-local release-doc observer fires on New Song / Load Song BEFORE the old
+-- song is freed (app_new fires too late). It detaches every song observer this
+-- file may have attached -- the Randomizer dialog's selected_instrument_observable,
+-- and the auto-open systems' selected_track_index_observable /
+-- selected_sample_device_chain_observable -- while renoise.song() is still the OLD
+-- song, then closes the Randomizer dialog. Leaving any of them attached crashed
+-- Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+local pakettiLoadersReleaseDocObserver = nil
+-- Named handler for the Randomizer dialog's instrument observer so it can be
+-- detached by reference (an anonymous closure cannot be removed).
+local pakettiRandomizerInstrumentNotifier = nil
+
+-- Idempotent teardown for the Randomizer dialog's instrument observer.
+-- features/song-lifecycle-safety.feature.
+function PakettiRandomizerDialogCleanup()
+  if pakettiRandomizerInstrumentNotifier
+     and renoise.song().selected_instrument_observable:has_notifier(pakettiRandomizerInstrumentNotifier) then
+    renoise.song().selected_instrument_observable:remove_notifier(pakettiRandomizerInstrumentNotifier)
+  end
+  pakettiRandomizerInstrumentNotifier = nil
+end
+
 function pakettiRandomizerDialog()
   -- Check if dialog is already open and close it
   if dialog and dialog.visible then
+    PakettiRandomizerDialogCleanup()
     dialog:close()
     dialog = nil
     return
   end
-  
+
   local vb = renoise.ViewBuilder()
   local song=renoise.song()
   local device = song.selected_device
@@ -3223,25 +3247,34 @@ vb:horizontal_aligner{
   )
   dialog = renoise.app():show_custom_dialog("Randomize Devices and Plugins", dialog_content, keyhandler)
 
-song.selected_instrument_observable:add_notifier(function()
-  local new_instrument = song.selected_instrument
-      if dialog and dialog.visible then
-    if new_instrument and renoise.song().instruments[renoise.song().selected_instrument_index].name ~= "" then
-      -- Ensure plugin_properties exist and the plugin is loaded
-      if new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_loaded then
-        if new_instrument.plugin_properties.plugin_device then
-          vb.views["plugin_name_text"].text = new_instrument.plugin_properties.plugin_device.name
+  -- Named instrument observer (so the song-lifecycle release handler can detach
+  -- it by reference). features/song-lifecycle-safety.feature.
+  pakettiRandomizerInstrumentNotifier = function()
+    local new_instrument = renoise.song().selected_instrument
+    if dialog and dialog.visible then
+      if new_instrument and renoise.song().instruments[renoise.song().selected_instrument_index].name ~= "" then
+        -- Ensure plugin_properties exist and the plugin is loaded
+        if new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_loaded then
+          if new_instrument.plugin_properties.plugin_device then
+            vb.views["plugin_name_text"].text = new_instrument.plugin_properties.plugin_device.name
+          else
+            vb.views["plugin_name_text"].text="Instrument plugin device missing"
+          end
         else
-          vb.views["plugin_name_text"].text="Instrument plugin device missing"
+          vb.views["plugin_name_text"].text="Instrument has no Plugin"
         end
       else
-        vb.views["plugin_name_text"].text="Instrument has no Plugin"
+        vb.views["plugin_name_text"].text="No Instrument Selected"
       end
-    else
-      vb.views["plugin_name_text"].text="No Instrument Selected"
     end
   end
-end)
+  if not song.selected_instrument_observable:has_notifier(pakettiRandomizerInstrumentNotifier) then
+    song.selected_instrument_observable:add_notifier(pakettiRandomizerInstrumentNotifier)
+  end
+
+  -- Song-lifecycle safety seatbelt: register the shared release-doc observer when
+  -- this dialog opens. features/song-lifecycle-safety.feature.
+  PakettiLoadersRegisterReleaseDocObserver()
 end
 
 
@@ -4056,6 +4089,48 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Auto-Open Sample FX Chain Devices",invoke = PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode}
+-------
+
+-- Song-lifecycle safety seatbelt (features/song-lifecycle-safety.feature).
+-- Detaches EVERY song observer this file may have attached, while renoise.song()
+-- is still the OLD song (app_release fires before the song is freed; app_new
+-- fires too late). Covers: the Randomizer dialog's selected_instrument_observable,
+-- the auto-open systems' selected_track_index_observable, and the sample-FX-chain
+-- auto-open selected_sample_device_chain_observable. Idempotent; safe to run twice.
+function PakettiLoadersHandleReleaseDocument()
+  -- Randomizer dialog instrument observer + close the dialog before the old song dies
+  PakettiRandomizerDialogCleanup()
+  if dialog and dialog.visible then dialog:close() end
+  dialog = nil
+
+  -- Auto-open track-device observer (toggle-driven; outlives any dialog)
+  if renoise.song().selected_track_index_observable:has_notifier(PakettiTrackIndexChanged) then
+    renoise.song().selected_track_index_observable:remove_notifier(PakettiTrackIndexChanged)
+  end
+  current_track_index = nil
+
+  -- Sample FX chain auto-open observer (preference-driven; outlives any dialog)
+  if renoise.song().selected_sample_device_chain_observable:has_notifier(PakettiSampleDeviceChainIndexChanged) then
+    renoise.song().selected_sample_device_chain_observable:remove_notifier(PakettiSampleDeviceChainIndexChanged)
+  end
+  current_sample_device_chain_index = nil
+end
+
+-- Register the shared release-doc observer (has_notifier-guarded, idempotent).
+function PakettiLoadersRegisterReleaseDocObserver()
+  if not pakettiLoadersReleaseDocObserver then
+    pakettiLoadersReleaseDocObserver = function() PakettiLoadersHandleReleaseDocument() end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(pakettiLoadersReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:add_notifier(pakettiLoadersReleaseDocObserver)
+  end
+end
+
+-- The auto-open observers are toggle/preference-driven and persist independently
+-- of any dialog, so register the seatbelt at load (like the ParameterEditor global
+-- auto-open observer in commit 7e99d7a). After New/Load Song the song-observers are
+-- re-attached on demand by the toggle/preference code paths.
+PakettiLoadersRegisterReleaseDocObserver()
 -------
 function XOPointCloud()
   local au_path = "Audio/Generators/AU/aumu:xAXO:xlnA"

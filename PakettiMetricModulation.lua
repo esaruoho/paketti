@@ -7,6 +7,53 @@ local vb = renoise.ViewBuilder()
 local dialog = nil
 local subdivision_dialog = nil
 
+-- Song-lifecycle safety: both dialogs attach a notifier to
+-- song.transport.bpm_observable. On New Song / Load Song that observable
+-- belongs to the song Renoise is about to free; leaving the notifier (and the
+-- open dialog) live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+-- during pattern-pool teardown. app_release_document_observable fires while the
+-- OLD song is still alive, so we detach there (detaching only on dialog-close
+-- is insufficient). See features/song-lifecycle-safety.feature.
+local mm_bpm_observable = nil        -- the bpm_observable the metric dialog hooked
+local mm_bpm_notifier = nil          -- the metric dialog's transport notifier
+local mm_release_doc_observer = nil  -- app_release_document_observable hook (metric)
+local subdiv_bpm_observable = nil        -- the bpm_observable the subdivision dialog hooked
+local subdiv_bpm_notifier = nil          -- the subdivision dialog's transport notifier
+local subdiv_release_doc_observer = nil  -- app_release_document_observable hook (subdivision)
+
+-- Idempotent teardown for the Metric Modulation dialog: detach the bpm
+-- notifier from the (still-alive) old song, drop the release-doc observer, and
+-- close the dialog. Safe to run twice. See features/song-lifecycle-safety.feature.
+function PakettiMetricModulationCleanup()
+  if mm_bpm_observable and mm_bpm_notifier and mm_bpm_observable:has_notifier(mm_bpm_notifier) then
+    mm_bpm_observable:remove_notifier(mm_bpm_notifier)
+  end
+  mm_bpm_observable = nil
+  mm_bpm_notifier = nil
+  if mm_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(mm_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(mm_release_doc_observer)
+  end
+  mm_release_doc_observer = nil
+  if dialog and dialog.visible then dialog:close() end
+  dialog = nil
+end
+
+-- Idempotent teardown for the Subdivision Calculator dialog.
+-- See features/song-lifecycle-safety.feature.
+function PakettiSubdivisionCalculatorCleanup()
+  if subdiv_bpm_observable and subdiv_bpm_notifier and subdiv_bpm_observable:has_notifier(subdiv_bpm_notifier) then
+    subdiv_bpm_observable:remove_notifier(subdiv_bpm_notifier)
+  end
+  subdiv_bpm_observable = nil
+  subdiv_bpm_notifier = nil
+  if subdiv_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(subdiv_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(subdiv_release_doc_observer)
+  end
+  subdiv_release_doc_observer = nil
+  if subdivision_dialog and subdivision_dialog.visible then subdivision_dialog:close() end
+  subdivision_dialog = nil
+end
+
 local metricWidth = 90
 -- Metric modulation state
 local mm_state = {
@@ -398,9 +445,9 @@ end
 function show_metric_modulation_dialog()
   -- Close existing dialog first to avoid ViewBuilder ID conflicts
   if dialog and dialog.visible then
-    dialog:close()
+    PakettiMetricModulationCleanup()  -- detaches the prior bpm/release observers too
   end
-  
+
   -- Create fresh ViewBuilder instance to avoid ID conflicts
   vb = renoise.ViewBuilder()  -- Make vb global so update functions can access it
   
@@ -852,7 +899,22 @@ text="7:4 (Odd time signature), 4:7 (Reverse odd time)"},
   end
   
   song.transport.bpm_observable:add_notifier(update_from_transport)
-  
+  -- Remember what we hooked so the teardown can detach it from the OLD song
+  -- before it is freed. See features/song-lifecycle-safety.feature.
+  mm_bpm_observable = song.transport.bpm_observable
+  mm_bpm_notifier = update_from_transport
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here.
+  if not mm_release_doc_observer then
+    mm_release_doc_observer = function()
+      PakettiMetricModulationCleanup()  -- detaches from the still-alive old song; removes this observer; closes dialog
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(mm_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(mm_release_doc_observer)
+  end
+
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
@@ -1034,8 +1096,7 @@ function show_subdivision_calculator_dialog()
   
   -- Close existing subdivision dialog if open
   if subdivision_dialog and subdivision_dialog.visible then
-    subdivision_dialog:close()
-    subdivision_dialog = nil
+    PakettiSubdivisionCalculatorCleanup()  -- detaches the bpm/release observers too
     return
   end
   
@@ -1137,10 +1198,7 @@ function show_subdivision_calculator_dialog()
     table.insert(rows, vb:button {
       text = "Close",
       notifier = function()
-        if subdivision_dialog and subdivision_dialog.visible then
-          subdivision_dialog:close()
-          subdivision_dialog = nil
-        end
+        PakettiSubdivisionCalculatorCleanup()  -- detaches the bpm/release observers too
       end
     })
     
@@ -1166,6 +1224,21 @@ function show_subdivision_calculator_dialog()
   end
   
   song.transport.bpm_observable:add_notifier(update_from_transport)
-  
+  -- Remember what we hooked so the teardown can detach it from the OLD song
+  -- before it is freed. See features/song-lifecycle-safety.feature.
+  subdiv_bpm_observable = song.transport.bpm_observable
+  subdiv_bpm_notifier = update_from_transport
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here.
+  if not subdiv_release_doc_observer then
+    subdiv_release_doc_observer = function()
+      PakettiSubdivisionCalculatorCleanup()  -- detaches from the still-alive old song; removes this observer; closes dialog
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(subdiv_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(subdiv_release_doc_observer)
+  end
+
   print("-- Subdivision Calculator: Dialog opened successfully")
 end

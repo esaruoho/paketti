@@ -1,5 +1,10 @@
 local vb = renoise.ViewBuilder()
 local dialog
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the song observers detach while renoise.song() is still the OLD
+-- song. Leaving them live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+-- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local frameCalc_release_doc_observer = nil
 
 
 -- Calculate frame length of current pattern
@@ -556,6 +561,18 @@ function PakettiFrameCalculatorDialog()
       line_timer = nil
     end
   end
+
+  -- Single idempotent teardown: detaches every song observer (via the still-alive
+  -- old song inside stopObservables) plus the line timer, then removes the
+  -- song-release safety observer. Safe to run twice. See features/song-lifecycle-safety.feature.
+  local function teardown()
+    stopObservables()
+    stopLineTimer()
+    if frameCalc_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(frameCalc_release_doc_observer) then
+      renoise.tool().app_release_document_observable:remove_notifier(frameCalc_release_doc_observer)
+    end
+    frameCalc_release_doc_observer = nil
+  end
   
   -- Update calculation function
   function updateCalculation()
@@ -820,16 +837,32 @@ function PakettiFrameCalculatorDialog()
       dialog = value
       if value == nil then
         -- Dialog is being closed, stop observables and timer
-        stopObservables()
-        stopLineTimer()
+        teardown()
       end
     end
   )
-  
+
   dialog = renoise.app():show_custom_dialog("Paketti Frame Calculator", buildContent(), keyhandler)
-  
+
   -- Start observables after dialog is created
   startObservables()
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- teardown() detaches every song observer from the song that is about to die
+  -- and closes the dialog. Without this, the live transport/pattern observers
+  -- crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+  -- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not frameCalc_release_doc_observer then
+    frameCalc_release_doc_observer = function()
+      local dlg = dialog
+      teardown()  -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end  -- close callback re-runs teardown (idempotent)
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(frameCalc_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(frameCalc_release_doc_observer)
+  end
 end
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Pattern Frame Info", invoke = PakettiFrameCalculatorShowPatternInfo}

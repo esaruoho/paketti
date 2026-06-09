@@ -3,6 +3,13 @@
 -- Detects silent gaps and fills them with reversed audio from the preceding slice
 -- Also includes slice-to-pattern reconstruction for timing-accurate break programming
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the Intelligent BPM Detection dialog's song observer detaches while
+-- renoise.song() is still the OLD song. Leaving it live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local pakettiOldschoolSlicePitch_release_doc_observer = nil
+
 function detectGapsInSample()
   local song = renoise.song()
   local instrument = song.selected_instrument
@@ -753,12 +760,24 @@ function pakettiIntelligentBPMDetection()
     }
   }
   
-  local function bpm_dialog_close_notifier()
-    -- Clean up observer when dialog closes (following PakettiPlayerProSuite.lua pattern)
+  -- Single idempotent teardown: detach the song observer + the song-release
+  -- safety observer. Safe to run twice (dialog-close AND app_release_document).
+  -- See features/song-lifecycle-safety.feature.
+  local function bpm_dialog_teardown()
+    -- Clean up observer (following PakettiPlayerProSuite.lua pattern)
     if instrument_observer and song.selected_instrument_index_observable:has_notifier(instrument_observer) then
       song.selected_instrument_index_observable:remove_notifier(instrument_observer)
       print("Removed instrument observer for BPM dialog")
     end
+    -- Detach the song-release safety observer (idempotent)
+    if pakettiOldschoolSlicePitch_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(pakettiOldschoolSlicePitch_release_doc_observer) then
+      renoise.tool().app_release_document_observable:remove_notifier(pakettiOldschoolSlicePitch_release_doc_observer)
+    end
+    pakettiOldschoolSlicePitch_release_doc_observer = nil
+  end
+
+  local function bpm_dialog_close_notifier()
+    bpm_dialog_teardown()
   end
 
   if PAKETTI_API >= 6 then
@@ -790,7 +809,24 @@ function pakettiIntelligentBPMDetection()
     song.selected_instrument_index_observable:add_notifier(instrument_observer)
     print("Added instrument observer for BPM dialog")
   end
-  
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- bpm_dialog_teardown() detaches the observer from the song that is about to
+  -- die. Without this, the live song observer + open dialog crashed Renoise in
+  -- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+  -- See features/song-lifecycle-safety.feature.
+  if not pakettiOldschoolSlicePitch_release_doc_observer then
+    pakettiOldschoolSlicePitch_release_doc_observer = function()
+      local dlg = dialog
+      bpm_dialog_teardown()                        -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end  -- close callback re-runs teardown (idempotent)
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(pakettiOldschoolSlicePitch_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(pakettiOldschoolSlicePitch_release_doc_observer)
+  end
+
   -- Initial update
   update_sample_analysis()
   update_current_bpm_display()

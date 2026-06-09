@@ -1,5 +1,40 @@
 local dialog = nil
 
+-- Song-lifecycle safety seatbelt (features/song-lifecycle-safety.feature):
+-- app_release_document_observable fires BEFORE the song is released (New Song /
+-- Load Song) while renoise.song() is still the OLD song, so observers detach
+-- from the song that is about to die. Leaving them live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- bpm_selection_observer holds the closure attached to selected_instrument/
+-- selected_sample observables (captured when pakettiBpmFromSampleDialog opens);
+-- bpm_release_doc_observer holds the app_release hook.
+local bpm_selection_observer = nil
+local bpm_release_doc_observer = nil
+
+-- Idempotent teardown: detaches the two song observers (guarded), removes the
+-- release-doc observer, and closes/nils the dialog. Safe to run repeatedly.
+function PakettiPitchControlBpmCleanup()
+  local song = renoise.song()
+  if song and bpm_selection_observer then
+    if song.selected_instrument_observable:has_notifier(bpm_selection_observer) then
+      song.selected_instrument_observable:remove_notifier(bpm_selection_observer)
+    end
+    if song.selected_sample_observable:has_notifier(bpm_selection_observer) then
+      song.selected_sample_observable:remove_notifier(bpm_selection_observer)
+    end
+  end
+  bpm_selection_observer = nil
+  if bpm_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(bpm_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(bpm_release_doc_observer)
+  end
+  bpm_release_doc_observer = nil
+  if dialog then
+    local dlg = dialog
+    dialog = nil
+    pcall(function() if dlg and dlg.visible then dlg:close() end end)
+  end
+end
+
 
 -- Function to calculate length of a specific sample selection/range
 function calculate_sample_selection_length()
@@ -1122,7 +1157,25 @@ function pakettiBpmFromSampleDialog()
   -- Add the observers for live updating
   song.selected_instrument_observable:add_notifier(update_dialog_on_selection_change)
   song.selected_sample_observable:add_notifier(update_dialog_on_selection_change)
-  
+  -- Capture the observer closure module-locally so the song-lifecycle teardown
+  -- can detach it (features/song-lifecycle-safety.feature).
+  bpm_selection_observer = update_dialog_on_selection_change
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiPitchControlBpmCleanup() detaches the instrument/sample observers
+  -- from the song that is about to die and closes the dialog. Without this the
+  -- live observers crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+  -- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not bpm_release_doc_observer then
+    bpm_release_doc_observer = function()
+      PakettiPitchControlBpmCleanup()
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(bpm_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(bpm_release_doc_observer)
+  end
+
   update_calculation()  -- Initial calculation
   
   -- Set initial transpose/finetune values from current sample

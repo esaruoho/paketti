@@ -43,6 +43,14 @@ local instrument_observable = nil
 -- Observable for pattern length changes
 local pattern_observable = nil
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- them live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+-- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local stacker_release_doc_observer = nil
+-- Forward declaration; defined after the observer callbacks it references.
+local PakettiStackerTeardown
+
 -- Pattern navigation buttons (for dynamic updates)
 local pattern_buttons = {}
 
@@ -280,6 +288,24 @@ local function update_volume_controls_for_instrument()
       end
     end
   end
+end
+
+-- Idempotent teardown: detaches the instrument/pattern song observers and the
+-- song-release safety observer. Safe to run twice (every removal is guarded).
+-- See features/song-lifecycle-safety.feature.
+function PakettiStackerTeardown()
+  if instrument_observable then
+    pcall(function() instrument_observable:remove_notifier(update_volume_controls_for_instrument) end)
+    instrument_observable = nil
+  end
+  if pattern_observable then
+    pcall(function() pattern_observable:remove_notifier(update_pattern_buttons) end)
+    pattern_observable = nil
+  end
+  if stacker_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(stacker_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(stacker_release_doc_observer)
+  end
+  stacker_release_doc_observer = nil
 end
 
 -- Volume Canvas Drawing Function
@@ -1432,17 +1458,27 @@ steppers_content_column
   -- Initialize steppers section visibility
   update_steppers_visibility()
   
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiStackerTeardown() detaches the instrument/pattern observers from the
+  -- song that is about to die. Without this, the live observers and the open
+  -- dialog crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+  -- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not stacker_release_doc_observer then
+    stacker_release_doc_observer = function()
+      local dlg = dialog
+      PakettiStackerTeardown()  -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end  -- close callback re-runs Teardown (idempotent)
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(stacker_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(stacker_release_doc_observer)
+  end
+
   -- Set up dialog close cleanup
   local original_close = dialog.close
   dialog.close = function(self)
-    if instrument_observable then
-      pcall(function() instrument_observable:remove_notifier(update_volume_controls_for_instrument) end)
-      instrument_observable = nil
-    end
-    if pattern_observable then
-      pcall(function() pattern_observable:remove_notifier(update_pattern_buttons) end)
-      pattern_observable = nil
-    end
+    PakettiStackerTeardown()  -- idempotent: detaches instrument/pattern + release-doc observers
     original_close(self)
   end
 end

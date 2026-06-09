@@ -21,6 +21,11 @@ PakettiLinearKeyboard_minimized = false  -- Track minimized state
 PakettiLinearKeyboard_fret_mode_enabled = false  -- Track fret mode state across dialog rebuilds
 PakettiLinearKeyboard_follow_transport_enabled = false  -- Track follow transport state across dialog rebuilds
 PakettiLinearKeyboard_cleanup_timer = nil -- Timer for cleaning up stuck notes
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the octave observer detaches while renoise.song() is still the OLD
+-- song. Leaving it live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+-- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+PakettiLinearKeyboard_release_doc_observer = nil
 PakettiLinearKeyboard_NOTE_TIMEOUT = 5000 -- Auto-release notes after 5 seconds (only for truly stuck notes when no keys pressed)
 PakettiLinearKeyboard_TIMER_INTERVAL = 5000 -- Timer interval in milliseconds for safety cleanup only (5 seconds)
 
@@ -738,6 +743,27 @@ function PakettiLinearKeyboard_UpdateFretModeDropdowns()
 end
 
 -- Open dialog
+-- Idempotent teardown: detach the octave observer (from the still-alive song),
+-- stop the safety timer, and detach the song-release observer. Safe to call
+-- repeatedly and from the app_release_document_observable handler (old song is
+-- still current there). See features/song-lifecycle-safety.feature.
+function PakettiLinearKeyboard_Teardown()
+  if renoise.song() and renoise.song().transport.octave_observable:has_notifier(PakettiLinearKeyboard_TransportOctaveChanged) then
+    renoise.song().transport.octave_observable:remove_notifier(PakettiLinearKeyboard_TransportOctaveChanged)
+  end
+  PakettiLinearKeyboard_transport_notifier = nil
+
+  if renoise.tool():has_timer(PakettiLinearKeyboard_CleanupStuckNotes) then
+    renoise.tool():remove_timer(PakettiLinearKeyboard_CleanupStuckNotes)
+  end
+  PakettiLinearKeyboard_cleanup_timer = nil
+
+  if PakettiLinearKeyboard_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(PakettiLinearKeyboard_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(PakettiLinearKeyboard_release_doc_observer)
+  end
+  PakettiLinearKeyboard_release_doc_observer = nil
+end
+
 function PakettiOpenMPTLinearKeyboardLayerDialog()
   if PakettiLinearKeyboard_dialog and PakettiLinearKeyboard_dialog.visible then
     PakettiLinearKeyboard_dialog:close()
@@ -883,21 +909,9 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
           tooltip = "Close Linear Keyboard Layer",
           notifier = function()
             PakettiLinearKeyboard_StopAllNotes()
-            
-            -- Clean up transport notifier
-            if renoise.song().transport.octave_observable:has_notifier(PakettiLinearKeyboard_TransportOctaveChanged) then
-              renoise.song().transport.octave_observable:remove_notifier(PakettiLinearKeyboard_TransportOctaveChanged)
-            end
-            PakettiLinearKeyboard_transport_notifier = nil
-            
-            -- Clean up timer
-            if renoise.tool():has_timer(PakettiLinearKeyboard_CleanupStuckNotes) then
-              renoise.tool():remove_timer(PakettiLinearKeyboard_CleanupStuckNotes)
-            end
-            PakettiLinearKeyboard_cleanup_timer = nil
-            
-            if PakettiLinearKeyboard_dialog and PakettiLinearKeyboard_dialog.visible then 
-              PakettiLinearKeyboard_dialog:close() 
+            PakettiLinearKeyboard_Teardown()  -- detaches octave observer + timer + release-doc observer (idempotent)
+            if PakettiLinearKeyboard_dialog and PakettiLinearKeyboard_dialog.visible then
+              PakettiLinearKeyboard_dialog:close()
             end
           end
         }
@@ -1018,21 +1032,9 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
           tooltip = "Close the Linear Keyboard Layer dialog",
           notifier = function()
             PakettiLinearKeyboard_StopAllNotes()
-            
-            -- Clean up transport notifier
-            if renoise.song().transport.octave_observable:has_notifier(PakettiLinearKeyboard_TransportOctaveChanged) then
-              renoise.song().transport.octave_observable:remove_notifier(PakettiLinearKeyboard_TransportOctaveChanged)
-            end
-            PakettiLinearKeyboard_transport_notifier = nil
-            
-            -- Clean up timer
-            if renoise.tool():has_timer(PakettiLinearKeyboard_CleanupStuckNotes) then
-              renoise.tool():remove_timer(PakettiLinearKeyboard_CleanupStuckNotes)
-            end
-            PakettiLinearKeyboard_cleanup_timer = nil
-            
-            if PakettiLinearKeyboard_dialog and PakettiLinearKeyboard_dialog.visible then 
-              PakettiLinearKeyboard_dialog:close() 
+            PakettiLinearKeyboard_Teardown()  -- detaches octave observer + timer + release-doc observer (idempotent)
+            if PakettiLinearKeyboard_dialog and PakettiLinearKeyboard_dialog.visible then
+              PakettiLinearKeyboard_dialog:close()
             end
           end
         }
@@ -1064,7 +1066,25 @@ function PakettiOpenMPTLinearKeyboardLayerDialog()
     renoise.tool():remove_timer(PakettiLinearKeyboard_CleanupStuckNotes)
   end
   PakettiLinearKeyboard_cleanup_timer = renoise.tool():add_timer(PakettiLinearKeyboard_CleanupStuckNotes, PakettiLinearKeyboard_TIMER_INTERVAL) -- Safety backup timer to clean up truly stuck notes
-  
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiLinearKeyboard_Teardown() detaches the octave observer from the song
+  -- that is about to die and stops the timer. Without this, the live observer
+  -- crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool
+  -- teardown. See features/song-lifecycle-safety.feature.
+  if not PakettiLinearKeyboard_release_doc_observer then
+    PakettiLinearKeyboard_release_doc_observer = function()
+      local dlg = PakettiLinearKeyboard_dialog
+      PakettiLinearKeyboard_StopAllNotes()
+      PakettiLinearKeyboard_Teardown()  -- detaches octave observer + timer + this observer (idempotent)
+      if dlg and dlg.visible then dlg:close() end
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(PakettiLinearKeyboard_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(PakettiLinearKeyboard_release_doc_observer)
+  end
+
   -- Ensure Renoise keeps focus for keyboard
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   
@@ -1088,19 +1108,7 @@ end
 function PakettiOpenMPTLinearKeyboardLayerToggle()
   if PakettiLinearKeyboard_dialog and PakettiLinearKeyboard_dialog.visible then
     PakettiLinearKeyboard_StopAllNotes()
-    
-    -- Clean up transport notifier
-    if renoise.song().transport.octave_observable:has_notifier(PakettiLinearKeyboard_TransportOctaveChanged) then
-      renoise.song().transport.octave_observable:remove_notifier(PakettiLinearKeyboard_TransportOctaveChanged)
-    end
-    PakettiLinearKeyboard_transport_notifier = nil
-    
-    -- Clean up timer
-    if renoise.tool():has_timer(PakettiLinearKeyboard_CleanupStuckNotes) then
-      renoise.tool():remove_timer(PakettiLinearKeyboard_CleanupStuckNotes)
-    end
-    PakettiLinearKeyboard_cleanup_timer = nil
-    
+    PakettiLinearKeyboard_Teardown()  -- detaches octave observer + timer + release-doc observer (idempotent)
     PakettiLinearKeyboard_dialog:close()
     PakettiLinearKeyboard_dialog = nil
   else

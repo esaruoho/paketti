@@ -1,6 +1,12 @@
 local dialog = nil
 local view_builder = nil
 local is_updating_textfield = false
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- selected_pattern/phrase observers live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local patternlength_release_doc_observer = nil
 local debug_mode = true -- Set to true to see what's happening
 
 local function debug_print(...)
@@ -248,31 +254,40 @@ local function length_textfield_notifier(new_value)
   end
 end
 
--- Clean up function to remove notifiers and reset state
+-- Clean up function to remove notifiers and reset state.
+-- Idempotent: safe to run twice (close callback + release-doc both call it).
+-- Song observers are detached unconditionally (not gated on dialog.visible) so
+-- the song-lifecycle seatbelt can detach them before the old song is released.
+-- See features/song-lifecycle-safety.feature.
 local function cleanup_dialog()
-  if dialog and dialog.visible then
-    debug_print("Cleanup: Starting dialog cleanup")
+  debug_print("Cleanup: Starting dialog cleanup")
+  -- Detach the song-release safety observer (idempotent; has_notifier-guarded)
+  if patternlength_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(patternlength_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(patternlength_release_doc_observer)
+  end
+  patternlength_release_doc_observer = nil
+
+  -- Remove song notifiers if they exist (pcall: song may be mid-release)
+  pcall(function()
     local song=renoise.song()
-    
-    -- Remove pattern notifier if exists
     local pattern_observable = song.selected_pattern_observable
     if pattern_observable:has_notifier(length_change_notifier) then
       pattern_observable:remove_notifier(length_change_notifier)
       debug_print("Cleanup: Removed pattern change notifier")
     end
-    
-    -- Remove phrase notifier if exists
     if song.selected_phrase_observable:has_notifier(length_change_notifier) then
       song.selected_phrase_observable:remove_notifier(length_change_notifier)
       debug_print("Cleanup: Removed phrase change notifier")
     end
-    
+  end)
+
+  if dialog and dialog.visible then
     dialog:close()
-    dialog = nil
-    view_builder = nil
-    is_updating_textfield = false
-    debug_print("Cleanup: Dialog cleanup complete")
   end
+  dialog = nil
+  view_builder = nil
+  is_updating_textfield = false
+  debug_print("Cleanup: Dialog cleanup complete")
 end
 
 -- Show or toggle the Length dialog
@@ -356,6 +371,21 @@ function pakettiLengthDialog()
       view_builder:row{ cancel_button, set_button }
     }, keyhandler
   )
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- cleanup_dialog() detaches the selected_pattern/phrase observers from the
+  -- song that is about to die. Without this, those live observers crashed
+  -- Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool
+  -- teardown. See features/song-lifecycle-safety.feature.
+  if not patternlength_release_doc_observer then
+    patternlength_release_doc_observer = function()
+      cleanup_dialog()  -- detaches observers from the still-alive old song; removes this observer; closes dialog
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(patternlength_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(patternlength_release_doc_observer)
+  end
 
   -- Add appropriate change observer based on context
   if is_pattern_editor then
