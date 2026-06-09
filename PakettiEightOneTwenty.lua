@@ -5047,20 +5047,43 @@ local function paketti_parse_hz(s)
   return num
 end
 
--- Set the filter to a high-pass type and its cutoff to ~target_hz. Returns
--- whether each was successfully set.
-local function paketti_configure_lowcut(dev, target_hz)
-  local set_type, set_cut = false, false
+-- The proven Paketti "Hipass (Preset++)" state for the native Digital Filter:
+-- Biquad model, Type Value 3 = HIGH PASS. Cutoff starts at min (≈20Hz); we raise
+-- it to 200Hz afterwards. (Same XML as HipassPlusPlus in PakettiPresetPlusPlus.lua.)
+local PAKETTI_MASTER_HIPASS_XML = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="DigitalFilterDevice">
+    <IsMaximized>true</IsMaximized>
+    <OversamplingFactor>2x</OversamplingFactor>
+    <Model>Biquad</Model>
+    <Type>
+      <Value>3</Value>
+    </Type>
+    <Cutoff>
+      <Value>0.0</Value>
+    </Cutoff>
+    <Q>
+      <Value>0.125</Value>
+    </Q>
+    <Ripple>
+      <Value>0.0</Value>
+    </Ripple>
+    <Inertia>
+      <Value>0.0078125</Value>
+    </Inertia>
+    <ShowResponseView>true</ShowResponseView>
+    <ResponseViewMaxGain>18</ResponseViewMaxGain>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+
+-- Raise the Digital Filter's Cutoff parameter to ~target_hz by reading the
+-- displayed value (kHz) back, so it lands on the right frequency regardless of
+-- the parameter's internal 0..1 scaling. Returns true on success.
+local function paketti_set_cutoff_hz(dev, target_hz)
   for i = 1, #dev.parameters do
     local p = dev.parameters[i]
-    local n = (p.name or ""):lower()
-    if (not set_type) and (n == "type" or n:find("model") or n:find("filter type")) then
-      for v = math.floor(p.value_min), math.floor(p.value_max) do
-        p.value = v
-        local s = (p.value_string or ""):lower()
-        if s:find("high") or s:find("hp") then set_type = true break end
-      end
-    elseif (not set_cut) and (n:find("cutoff") or n == "freq" or n:find("frequency")) then
+    if (p.name or ""):lower():find("cutoff") then
       local lo, hi = p.value_min, p.value_max
       local best_v, best_diff
       local function pass(a, b, steps)
@@ -5081,11 +5104,12 @@ local function paketti_configure_lowcut(dev, target_hz)
         local span = (hi - lo) / 200
         pass(best_v - span, best_v + span, 100)  -- refine around the best coarse hit
         p.value = best_v
-        set_cut = true
+        return true
       end
+      return false
     end
   end
-  return set_type, set_cut
+  return false
 end
 
 function PakettiToggleMasterLowCut200()
@@ -5101,23 +5125,23 @@ function PakettiToggleMasterLowCut200()
     end
   end
 
-  -- Punch in: insert + configure.
+  -- Punch in: insert the native Digital Filter and inject the high-pass preset.
   local ok, err = pcall(function()
-    master:insert_device_at("Audio/Effects/Native/Filter", #master.devices + 1)
+    master:insert_device_at("Audio/Effects/Native/Digital Filter", #master.devices + 1)
   end)
   if not ok then
-    renoise.app():show_status("Master Low-Cut: could not insert Filter device — " .. tostring(err))
+    renoise.app():show_status("Master Low-Cut: could not insert Digital Filter — " .. tostring(err))
     return
   end
   local dev = master.devices[#master.devices]
+  dev.active_preset_data = PAKETTI_MASTER_HIPASS_XML  -- Biquad high-pass (Type 3)
+  local set_cut = paketti_set_cutoff_hz(dev, PAKETTI_MASTER_LOWCUT_HZ)
   dev.display_name = PAKETTI_MASTER_LOWCUT_TAG
   dev.is_maximized = false
-  local set_type, set_cut = paketti_configure_lowcut(dev, PAKETTI_MASTER_LOWCUT_HZ)
-  if set_type and set_cut then
+  if set_cut then
     renoise.app():show_status("Master Low-Cut 200Hz: ON — lows dropped")
   else
-    renoise.app():show_status("Master Low-Cut: Filter inserted but could not auto-set " ..
-      (set_type and "" or "type ") .. (set_cut and "" or "cutoff") .. "— set high-pass / 200Hz manually")
+    renoise.app():show_status("Master Low-Cut: high-pass added, but could not auto-set 200Hz cutoff — adjust manually")
   end
 end
 
