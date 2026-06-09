@@ -22,14 +22,14 @@ The per-row MIDI mappings were named `Row1`…`Row16`, which sorted as Row1, Row
 
 - MIDI Mapping: `Paketti:Paketti Groovebox 8120:Row01 Step NN` … `Row16 …` (was `Row1 …`)
 
-### 2026-06-09 - Feature: Groovebox 8120 CleverLoad — sort one folder's samples into 8 drum-type rows automatically
+### 2026-06-09 - Feature: Groovebox 8120 Kit — sort one folder's samples into 8 drum-type rows automatically
 
-CleverLoad is a smarter sibling of Sequential RandomLoadAll. You pick **one base folder** (scanned recursively, subpaths included) and instead of dumping random samples into every row, CleverLoad reads each sample's **filename** and sorts it into a drum category, then gives each of the 8 rows a type and fills it with up to **120** samples of that type: **row 1 Kick** (KICK/BD/BASSDRUM…), **row 2 Snare** (SNARE/SNAR/SN…), **row 3 Hihat** (HIHAT/HAT/HH…), **row 4 Clap** (CLAP/CLP/CLA…), **row 5 Ride**, **row 6 Perc** (PERC/CONGA/BONGO…), **row 7 Rimshot** (RIMSHOT/RIM…), **row 8 Toms/Cymbals/Misc** (TOM/CRASH/CYMBAL/OPENHAT/COWBELL/SHAKER…). Each file is assigned to the first category it matches (row order = priority) so a kick never doubles as "Other", and keyword matching is anchored at a token boundary so "SN" matches "SN_01"/"Snare" but not "bassnote". The result is an instantly playable drum machine where every row is a known style and you can scroll through up to 120 alternatives per slot. Categories with no matches are left empty and reported; a per-category count is printed and shown on completion. The category keyword lists are a plain table at the top of the function (`PakettiEightOneTwentyCleverLoadCategories`), easy to edit.
+Kit is a smarter sibling of Sequential RandomLoadAll. You pick **one base folder** (scanned recursively, subpaths included) and instead of dumping random samples into every row, Kit reads each sample's **filename** and sorts it into a drum category, then gives each of the 8 rows a type and fills it with up to **120** samples of that type: **row 1 Kick** (KICK/BD/BASSDRUM…), **row 2 Snare** (SNARE/SNAR/SN…), **row 3 Hihat** (HIHAT/HAT/HH…), **row 4 Clap** (CLAP/CLP/CLA…), **row 5 Ride**, **row 6 Perc** (PERC/CONGA/BONGO…), **row 7 Rimshot** (RIMSHOT/RIM…), **row 8 Toms/Cymbals/Misc** (TOM/CRASH/CYMBAL/OPENHAT/COWBELL/SHAKER…). Each file is assigned to the first category it matches (row order = priority) so a kick never doubles as "Other", and keyword matching is anchored at a token boundary so "SN" matches "SN_01"/"Snare" but not "bassnote". The result is an instantly playable drum machine where every row is a known style and you can scroll through up to 120 alternatives per slot. Categories with no matches are left empty and reported; a per-category count is printed and shown on completion. The category keyword lists are a plain table at the top of the function (`PakettiEightOneTwentyKitCategories`), easy to edit.
 
-- Button: "CleverLoad" in the Groovebox 8120 toolbar (next to Sequential RandomLoadAll)
-- Menu: `Main Menu:Tools:Paketti:Groovebox:CleverLoad (1 folder, sorted into 8 drum categories)…`
-- Keybinding: `Global:Paketti:Paketti Groovebox 8120 CleverLoad`
-- MIDI Mapping: `Paketti:Paketti Groovebox 8120:CleverLoad [Trigger]`
+- Button: "Kit" in the Groovebox 8120 toolbar (next to Sequential RandomLoadAll)
+- Menu: `Main Menu:Tools:Paketti:Groovebox:Kit (1 folder, sorted into 8 drum categories)…`
+- Keybinding: `Global:Paketti:Paketti Groovebox 8120 Kit`
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Kit [Trigger]`
 
 ### 2026-06-09 - Fix: ChordsPlus (Add NN) keybinding names had inconsistent capitalization
 
