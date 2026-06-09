@@ -1319,7 +1319,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local update_row_loop_ui
   local loop_mode_switch = vb:switch{
     items = {"Off","->","<-","<->"},
-    width = 140,
+    width = 115,
     value = 1,
     notifier = function(value)
       PakettiEightOneTwentyHighlightRow(row_index)
@@ -1363,7 +1363,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   -- Loop Range Switch (Full / Start Half / End Half)
   local loop_range_switch = vb:switch{
     items = {"[--]","[- ]","[ -]"},
-    width = 100,
+    width = 80,
     value = 1,
     notifier = function(val)
       PakettiEightOneTwentyHighlightRow(row_index)
