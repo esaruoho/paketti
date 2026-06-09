@@ -1029,6 +1029,14 @@ end
 function PakettiEightOneTwentyHighlightRow(row_index)
   if initializing then return end
   if not rows then return end
+  -- Keep the MIDImix step sequencer's focus on whatever row you're interacting
+  -- with: HighlightRow is the common entry point for every row-control notifier,
+  -- so setting the focused row here makes the 16 MIDImix buttons + LEDs follow
+  -- the on-screen row selection. The bridge's idle poller redraws the LEDs for
+  -- the new focus within a tick. (Self-contained — no Renoise selected_track tie.)
+  if row_index and row_index >= 1 and row_index <= 8 then
+    PakettiEightOneTwentyFocusedRow = row_index
+  end
   for i, row_elements in ipairs(rows) do
     local rc = row_elements and row_elements.row_container
     if rc then
@@ -4871,18 +4879,13 @@ assign_midi_mappings()
 
 PakettiEightOneTwentyFocusedRow = 1
 
--- The "selected row" is whichever of the 8 groovebox rows is selected RIGHT NOW.
--- Groovebox rows are tracks 1..8, so the live selection is renoise.song()'s
--- selected_track_index when it falls in 1..8 (falls back to the manually-set
--- focused row otherwise). Reading this live at MIDI-trigger time is what lets the
--- 16 "Selected Row Step" buttons re-route automatically the instant you select a
--- different row — no re-registration, no observer.
+-- The "selected row" for the MIDImix step sequencer is the groovebox's own
+-- focused row (PakettiEightOneTwentyFocusedRow). It is moved by the MIDImix bank
+-- buttons, the Focused Row Next/Previous/Set mappings, AND by interacting with a
+-- row in the dialog (HighlightRow sets it). It is deliberately NOT tied to
+-- Renoise's selected_track_index — the direct-from-input bridge stays
+-- self-contained, which is what makes it reliable.
 local function paketti_8120_selected_row()
-  local song = renoise.song()
-  if song then
-    local ti = song.selected_track_index
-    if ti and ti >= 1 and ti <= 8 then return ti end
-  end
   local f = PakettiEightOneTwentyFocusedRow or 1
   if f < 1 then f = 1 elseif f > 8 then f = 8 end
   return f
@@ -4892,17 +4895,10 @@ local function paketti_set_focused_row(target)
   if target < 1 then target = 1 end
   if target > 8 then target = 8 end
   PakettiEightOneTwentyFocusedRow = target
-  -- Drive the REAL Renoise selection too, so controller-driven focus changes and
-  -- in-app track selection stay in lockstep and the Selected Row Step buttons
-  -- follow either source.
-  local song = renoise.song()
-  if song and target <= #song.tracks and song.tracks[target].type == renoise.Track.TRACK_TYPE_SEQUENCER then
-    song.selected_track_index = target
-  end
   if PakettiEightOneTwentyHighlightRow then
     PakettiEightOneTwentyHighlightRow(target)
   end
-  renoise.app():show_status(string.format("Groovebox 8120: selected row = %d", target))
+  renoise.app():show_status(string.format("Groovebox 8120: focused row = %d", target))
 end
 
 -- Selected Row step toggles — 16 fixed mappings (Step01..Step16) for a 16-button

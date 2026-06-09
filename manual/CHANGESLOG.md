@@ -8,13 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-06-09 - Feature/Fix: Groovebox 8120 "Selected Row Step01–Step16" — a 16-button step sequencer that follows the selected row
+### 2026-06-09 - Feature/Fix: Groovebox 8120 "Selected Row Step01–Step16" — a 16-button step sequencer for the focused row
 
-The 16 step-toggle MIDI mappings are now named `Selected Row Step01` … `Selected Row Step16` (renamed from the old `Focused Row Step1..16`, now zero-padded) and, more importantly, they target **whichever of the 8 rows is selected right now**, resolved live at the moment you press the button. Groovebox rows are tracks 1–8, so "selected row" follows Renoise's selected track: select a different row (by clicking it, or with the focus Next/Previous/Set buttons, which now also move the real track selection) and all 16 buttons instantly re-route to that row — no rebinding, no re-mapping. Bind 16 buttons on an Akai MIDImix (or any controller) once and use it as a step sequencer for the focused track. The dedicated MIDImix integration (with LED feedback and bank Left/Right) was unified onto the same live selection, so its LEDs and step toggles follow the selected row too. Also zero-padded the per-row step mappings to `Row01 Step01 … Row16 Step16` so they sort numerically.
+The 16 step-toggle MIDI mappings are now named `Selected Row Step01` … `Selected Row Step16` (renamed from `Focused Row Step1..16`, now zero-padded). They — and the dedicated, direct-from-input Akai MIDImix bridge (with LED feedback and bank Left/Right) — act on the groovebox's **focused row**, the self-contained focus the bridge already owns. The focus is moved by the MIDImix bank buttons, by the Focused Row Next/Previous/Set mappings, and now also by interacting with any row in the dialog (clicking a row's controls focuses it), at which point the 16 buttons re-route and the MIDImix LEDs redraw to that row's step pattern. The focus is deliberately NOT tied to Renoise's selected track, so the direct MIDImix reader stays reliable. Bind 16 buttons on a MIDImix (or any controller) once and use it as a step sequencer for whichever row you're working on. Also zero-padded the per-row step mappings to `Row01 Step01 … Row16 Step16` so they sort numerically.
 
 - MIDI Mapping: `Paketti:Paketti Groovebox 8120:Selected Row Step01` … `Selected Row Step16` (renamed from `Focused Row Step1..16`)
 - MIDI Mapping: `Paketti:Paketti Groovebox 8120:Row01 Step01` … `Row16 Step16` (step number now zero-padded)
-- Note: the focus Next/Previous/Set and per-row utility mappings now act on the live selected row; the rename means any controller bound to the old `Focused Row Step1..16` names needs re-binding to `Selected Row StepNN`.
+- Note: the rename means any controller bound to the old `Focused Row Step1..16` names needs re-binding to `Selected Row StepNN`.
 
 ### 2026-06-09 - Fix: Groovebox 8120 MIDI mapping row numbers now zero-padded (Row01–Row16)
 
