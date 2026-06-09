@@ -3031,8 +3031,8 @@ local randomize_all_yxx_button = vb:button{
       fill_empty_slider,
       vb:text{text=" | ", font = "bold", style = "strong"},
       vb:button{
-        text = "Switch to MK2 (Canvas)",
-        width = 160,
+        text = "MK1->MK2",
+        width = 70,
         tooltip = "Open the canvas-rendered MK2 view of the same state. Both windows stay open and edit shared data; close the one you don't want via its X button.",
         notifier = function()
           if PakettiEightOneTwentyCanvasViewShow then
@@ -7939,7 +7939,7 @@ local function cv_build_view()
     step_mode_btn,
     vb:button{ text="Duplicate Pattern", width=130, notifier=PakettiEightOneTwentyDuplicatePattern },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="Switch to MK1 (Classic)", width=170,
+    vb:button{ text="MK2->MK1", width=70,
       tooltip = "Open the classic 8120 dialog with all controls. Both windows stay open and share state; close whichever you don't need via its X button.",
       notifier = function()
         if not (dialog and dialog.visible) then pakettiEightSlotsByOneTwentyDialog() end
