@@ -8,11 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-06-09 - Feature: Groovebox 8120 "Select Row (Knob 01-08)" — one knob sweeps the selection across the 8 rows
+### 2026-06-09 - Feature: Groovebox 8120 "Select Row (Knob 01-08 / 08-01)" — one knob sweeps the selection across the 8 rows
 
-A single MIDI mapping for one absolute knob/fader: its 0–127 range is split evenly into the 8 rows, so sweeping it walks the **whole selection** through rows 1→8 — each position selects that row's track *and* its instrument and focuses the row, so the `Selected Row Step01–16` buttons and the MidiMix LEDs follow. 16 values per row (0–15 = row 1, … 112–127 = row 8).
+Two MIDI mappings for one absolute knob/fader: the 0–127 range is split evenly into the 8 rows, so sweeping it walks the **whole selection** through the rows — each position selects that row's track *and* its instrument and focuses the row, so the `Selected Row Step01–16` buttons and the MidiMix LEDs follow. 16 values per row. `Select Row (Knob 01-08)` goes 0→127 = row 1→8; `Select Row (Knob 08-01)` is the reverse (0→127 = row 8→1) for a fader whose travel feels inverted.
 
 - MIDI Mapping: `Paketti:Paketti Groovebox 8120:Select Row (Knob 01-08)`
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Select Row (Knob 08-01)`
 
 ### 2026-06-09 - Improvement: HyperEdit Stepper mode shows steppers in a fixed order (Volume, Cutoff, Resonance, Pan, Drive, Pitch)
 
