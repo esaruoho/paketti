@@ -3149,7 +3149,7 @@ function PakettiCreateGaterDialogContent(vb_instance)
   
   -- Create step mode switch
   local step_mode_switch = vb_local:switch{
-    items = {"16 Steps", "32 Steps"},
+    items = {"16", "32"},
     width = 150,
     value = (MAX_STEPS == 32) and 2 or 1,
     notifier = function(value)
