@@ -363,6 +363,24 @@ function PakettiHyperEditGetSteppersInSet(modset)
       })
     end
   end
+  -- Present the steppers in a fixed, musically sensible order regardless of the
+  -- order the devices happen to sit in the modulation chain:
+  -- Volume, Cutoff, Resonance, Pan, Drive, Pitch. Unknown stepper types fall to
+  -- the end in their original chain order.
+  local stepper_order = {
+    ["Volume Stepper"]    = 1,
+    ["Cutoff Stepper"]    = 2,
+    ["Resonance Stepper"] = 3,
+    ["Panning Stepper"]   = 4,
+    ["Drive Stepper"]     = 5,
+    ["Pitch Stepper"]     = 6,
+  }
+  table.sort(steppers, function(a, b)
+    local oa = stepper_order[a.name] or 99
+    local ob = stepper_order[b.name] or 99
+    if oa == ob then return a.device_index < b.device_index end
+    return oa < ob
+  end)
   return steppers
 end
 

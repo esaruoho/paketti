@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-09 - Improvement: HyperEdit Stepper mode shows steppers in a fixed order (Volume, Cutoff, Resonance, Pan, Drive, Pitch)
+
+In Stepper mode the rows used to follow whatever order the Stepper devices happened to sit in the modulation chain. They are now always presented in a fixed, musically sensible order — **Volume, Cutoff, Resonance, Pan, Drive, Pitch** — both in the row assignment when you open it and in the per-row stepper dropdown. Unknown stepper types fall to the end in their original order.
+
 ### 2026-06-09 - Fix: Groovebox 8120 — Global Step MIDI mappings zero-padded; sample slider focuses its row
 
 Two MidiMix workflow tidies. **(1)** The Global Step MIDI mappings are now `Global Step 001` … `Global Step 512` (zero-padded to three digits) instead of `Global Step 1`, so they sort numerically in the MIDI mapping list (`<<` and `>>` unchanged). **(2)** Moving a row's `Row01 Sample Slider` … `Row08 Sample Slider` now also focuses that row, so the `Selected Row Step01–16` buttons and the MidiMix LEDs follow whichever row's fader you just touched — pick a sound with the fader, then sequence that row with the 16 buttons.
