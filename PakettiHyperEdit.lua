@@ -236,6 +236,13 @@ local stepper_follow_seq = nil   -- last processed playback sequence index
 local stepper_follow_line = nil  -- last processed playback line
 local stepper_was_playing = false
 
+-- Guard: while we are READING a Stepper into the UI (or assigning rows during
+-- init), programmatically setting a row's step-count valuebox or dropdowns fires
+-- their notifiers, which would call WriteStepper with not-yet-populated step
+-- data and wipe the Stepper's points (clear_points). This flag makes WriteStepper
+-- a no-op during those windows so reads never destroy the data they're reading.
+local hyperedit_suppress_stepper_write = false
+
 -- Row state variables (must be declared early for playhead functions)
 local row_steps = {}  -- [row] = step count for this row (individual per row)
 
@@ -366,16 +373,20 @@ function PakettiHyperEditReadStepper(row)
   if not info or not info.is_stepper or not info.stepper then return end
   local stepper = info.stepper
 
+  -- Suppress writes for the whole read: setting the valuebox/colors below can
+  -- fire notifiers that call WriteStepper, which would clear the points we are
+  -- about to read. Save/restore so nested reads (during StepperInit) compose.
+  local prev_suppress = hyperedit_suppress_stepper_write
+  hyperedit_suppress_stepper_write = true
+
   local len = stepper.length or 16
   if len < 1 then len = 1 end
   if len > MAX_STEPS then len = MAX_STEPS end
   row_steps[row] = len
 
-  if dialog_vb and dialog_vb.views["steps_" .. row] then
-    dialog_vb.views["steps_" .. row].value = len
-  end
-  PakettiHyperEditUpdateStepButtonColors(row)
-
+  -- Populate the step buffers FROM the stepper FIRST, so that even if some
+  -- notifier cascade does reach WriteStepper, it would re-write the same data
+  -- (idempotent) rather than empty data.
   if not step_active[row] then step_active[row] = {} end
   if not step_data[row] then step_data[row] = {} end
   for step = 1, MAX_STEPS do
@@ -395,8 +406,16 @@ function PakettiHyperEditReadStepper(row)
     end
   end
 
+  -- Now update the UI (these may fire notifiers; writes stay suppressed).
+  if dialog_vb and dialog_vb.views["steps_" .. row] then
+    dialog_vb.views["steps_" .. row].value = len
+  end
+  PakettiHyperEditUpdateStepButtonColors(row)
+
   if row_canvases[row] then row_canvases[row]:update() end
   print("DEBUG: Read " .. points_read .. " stepper points for row " .. row .. " (" .. info.name .. ", length " .. len .. ")")
+
+  hyperedit_suppress_stepper_write = prev_suppress
 end
 
 -- Write the row's active steps into the Stepper's points and set its length to
@@ -404,6 +423,10 @@ end
 -- loops over its length automatically while a note is held, so this is all that
 -- "looping steppers" requires.
 function PakettiHyperEditWriteStepper(row)
+  -- Never write while a read/init is in progress (would clobber points with
+  -- not-yet-populated step data — see hyperedit_suppress_stepper_write).
+  if hyperedit_suppress_stepper_write then return end
+
   local info = row_parameters[row]
   if not info or not info.is_stepper or not info.stepper then return end
   local stepper = info.stepper
@@ -477,6 +500,13 @@ function PakettiHyperEditStepperInit()
     renoise.app():show_status("HyperEdit Steppers: instrument has modulation sets but no Stepper devices — add a Stepper to a modulation set")
   end
 
+  -- Suppress writes for the whole assignment pass: setting dropdown/valuebox
+  -- values fires notifiers (SelectDevice/SelectParameter/ChangeRowStepCount) that
+  -- would otherwise reach WriteStepper before the rows are read in, wiping the
+  -- Stepper points. We only READ here; the user's data must not be touched.
+  local prev_suppress = hyperedit_suppress_stepper_write
+  hyperedit_suppress_stepper_write = true
+
   for row = 1, NUM_ROWS do
     local a = assignments[row]
     if a then
@@ -499,6 +529,8 @@ function PakettiHyperEditStepperInit()
       PakettiHyperEditReadStepper(row)
     end
   end
+
+  hyperedit_suppress_stepper_write = prev_suppress
 end
 
 -- Stepper-mode observer: when the user selects a different instrument, rebuild
@@ -3728,7 +3760,7 @@ function PakettiHyperEditCreateDialog()
       vb:text { text = "Mode", style="strong", font="bold", width = 36 },
       vb:popup {
         id = "hyperedit_mode_popup",
-        items = {"Effect Params", "Steppers"},
+        items = {"Effect Parameters", "Steppers"},
         value = (hyperedit_mode == "stepper") and 2 or 1,
         width = 110,
         tooltip = "Effect Params: edit track-device parameters as pattern automation. Steppers: edit the selected instrument's Stepper modulation devices (looping step sequencers).",
