@@ -3264,7 +3264,14 @@ local randomize_all_yxx_button = vb:button{
       notifier=function()
         loadSequentialRandomLoadAll()
       end
-    },    
+    },
+    vb:button{
+      text="CleverLoad",
+      tooltip="Pick one base folder; samples are sorted by filename into drum categories — row 1 Kick, 2 Snare, 3 Hihat, 4 Clap, 5 Ride, 6 Perc, 7 Rimshot, 8 Toms/Cymbals/Misc — up to 120 of each.",
+      notifier=function()
+        loadSequentialCleverLoadAll()
+      end
+    },
   }
   
   local global_groove_controls = vb:row{
@@ -5246,6 +5253,12 @@ local function paketti_8120_sequential_random_all_safe()
   end
   loadSequentialRandomLoadAll()
 end
+local function paketti_8120_clever_load_all_safe()
+  if pakettiEightSlotsByOneTwentyDialog and not (dialog and dialog.visible) then
+    pakettiEightSlotsByOneTwentyDialog()
+  end
+  loadSequentialCleverLoadAll()
+end
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Paketti Groovebox 8120 Sequential Load",
@@ -5256,6 +5269,9 @@ renoise.tool():add_keybinding{
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Paketti Groovebox 8120 Sequential RandomLoadAll",
   invoke = paketti_8120_sequential_random_all_safe }
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Paketti Groovebox 8120 CleverLoad",
+  invoke = paketti_8120_clever_load_all_safe }
 
 renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:Sequential Load [Trigger]",
@@ -5266,6 +5282,9 @@ renoise.tool():add_midi_mapping{
 renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:Sequential RandomLoadAll [Trigger]",
   invoke = function(message) if message:is_trigger() then paketti_8120_sequential_random_all_safe() end end }
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:CleverLoad [Trigger]",
+  invoke = function(message) if message:is_trigger() then paketti_8120_clever_load_all_safe() end end }
 
 PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Groovebox:Sequential Load (8 folders)…",
@@ -5276,6 +5295,9 @@ PakettiAddMenuEntry{
 PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Groovebox:Sequential RandomLoadAll (1 folder, all 8 rows)…",
   invoke = paketti_8120_sequential_random_all_safe }
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:CleverLoad (1 folder, sorted into 8 drum categories)…",
+  invoke = paketti_8120_clever_load_all_safe }
 
 -- Toggle the empty-song auto-fill (Feature 2). Persisted to preferences.xml.
 function PakettiEightOneTwentyToggleAutoFillDefaultSlots()
@@ -6329,7 +6351,321 @@ function loadSequentialRandomLoadAll()
   end
 
   startProcessing()
-  
+
+  -- Restore AutoSamplify monitoring state
+  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+end
+
+-- ============================================================================
+-- CleverLoad — category-aware RandomLoadAll
+-- ----------------------------------------------------------------------------
+-- Like Sequential RandomLoadAll (one base folder, fills all 8 rows), but instead
+-- of dumping random samples into every row it sorts the folder's samples by drum
+-- TYPE using filename keywords and gives each row a category: row 1 kicks, row 2
+-- snares, row 3 hihats, row 4 claps, row 5 rides, row 6 perc, row 7 rimshots,
+-- row 8 toms/cymbals/misc. Each row gets up to 120 of its own type, so you end up
+-- with a ready-to-play drum machine where every row is a known style. The folder
+-- is scanned recursively (subpaths included). Each file is assigned to the FIRST
+-- category it matches (row order = priority), so a kick never doubles as "Other".
+
+-- Editable category table. Keywords match case-insensitively at a leading token
+-- boundary (preceded by start-of-name or a non-letter), so "SN" matches "SN_01"
+-- and "Snare" but not "bassnote".
+PakettiEightOneTwentyCleverLoadCategories = {
+  { name = "Kick",    keywords = {"KICK","KCK","BD","BASSDRUM","BASS DRUM","KICKDRUM"} },
+  { name = "Snare",   keywords = {"SNARE","SNAR","SNR","SN"} },
+  { name = "Hihat",   keywords = {"HIHAT","HAT","HH","HIT","CLOSEDHAT"} },
+  { name = "Clap",    keywords = {"CLAP","CLP","CLA","HANDCLAP"} },
+  { name = "Ride",    keywords = {"RIDE","RIDECYMBAL"} },
+  { name = "Perc",    keywords = {"PERC","PERCUSSION","PRC","CONGA","BONGO","TIMBALE"} },
+  { name = "Rimshot", keywords = {"RIMSHOT","RIMS","RIM"} },
+  { name = "Other",   keywords = {"TOM","CRASH","CYMBAL","CYM","OPENHAT","OPEN HAT","COWBELL","SHAKER","TAMB","CLAVE","SHKR"} },
+}
+
+-- True if name_upper contains any keyword at a leading token boundary.
+function PakettiEightOneTwentyCleverNameMatches(name_upper, keywords)
+  for _, kw in ipairs(keywords) do
+    local start = 1
+    while true do
+      local s = name_upper:find(kw, start, true)  -- plain substring search
+      if not s then break end
+      local before = (s > 1) and name_upper:sub(s - 1, s - 1) or ""
+      if before == "" or not before:match("%a") then return true end
+      start = s + 1
+    end
+  end
+  return false
+end
+
+function loadSequentialCleverLoadAll()
+  -- Temporarily disable AutoSamplify monitoring to prevent interference
+  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+
+  -- We pakettify ourselves, so keep the automatic sample loader out of the way
+  PakettiDontRunAutomaticSampleLoader = true
+
+  local base_folder = renoise.app():prompt_for_path("Select a single base folder for CleverLoad (sorted into the 8 drum categories)")
+  if not base_folder then
+    renoise.app():show_status("CleverLoad cancelled - no folder selected")
+    PakettiDontRunAutomaticSampleLoader = false
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+
+  math.randomseed(os.time())
+  math.random(); math.random(); math.random()
+
+  local function getFilename(filepath)
+    local clean_path = filepath:gsub("[/\\]+$", "")
+    return clean_path:match("([^/\\]+)%.%w+$") or clean_path:match("([^/\\]+)$") or clean_path
+  end
+
+  local function getFileSize(filepath)
+    local file = io.open(filepath, "rb")
+    if file then
+      local size = file:seek("end")
+      file:close()
+      return size
+    end
+    return 0
+  end
+
+  local function formatFileSize(size)
+    local units = {'B','KB','MB','GB'}
+    local unit_index = 1
+    while size > 1024 and unit_index < #units do
+      size = size / 1024
+      unit_index = unit_index + 1
+    end
+    return string.format("%.2f %s", size, units[unit_index])
+  end
+
+  local function capFilename(filename)
+    if #filename > 80 then
+      return filename:sub(1, 77) .. "..."
+    end
+    return filename
+  end
+
+  -- Scan once (recursive — find/dir already walk subpaths), then bucket every
+  -- file into the FIRST category whose keywords its filename matches.
+  local all_files = PakettiGetFilesInDirectory(base_folder)
+  if #all_files == 0 then
+    renoise.app():show_status("CleverLoad: no audio files found in " .. base_folder)
+    PakettiDontRunAutomaticSampleLoader = false
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    return
+  end
+
+  local cats = PakettiEightOneTwentyCleverLoadCategories
+  local buckets = {}
+  for i = 1, 8 do buckets[i] = {} end
+
+  for _, filepath in ipairs(all_files) do
+    local name_upper = getFilename(filepath):upper()
+    for i = 1, 8 do
+      if PakettiEightOneTwentyCleverNameMatches(name_upper, cats[i].keywords) then
+        table.insert(buckets[i], filepath)
+        break
+      end
+    end
+  end
+
+  -- Report the per-category counts up front (also surfaces empty categories).
+  do
+    local parts = {}
+    for i = 1, 8 do table.insert(parts, string.format("%s %d", cats[i].name, #buckets[i])) end
+    print("CleverLoad buckets: " .. table.concat(parts, ", "))
+  end
+
+  local slicer = nil
+  local dialog = nil
+  local status_labels = {}
+
+  local function processInstrument(instrument_index, files_for_row, category_name)
+    local song=renoise.song()
+    song.selected_track_index = instrument_index
+    song.selected_instrument_index = instrument_index
+    local instrument = song.selected_instrument
+
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
+    renoise.app():load_instrument(defaultInstrument)
+    instrument = song.selected_instrument
+    instrument.name = string.format("8120_%02d %s", instrument_index, category_name)
+    instrument.macros_visible = true
+
+    -- Apply modulation settings using helper function
+    PakettiApplyLoaderModulationSettings(instrument, "loadSequentialCleverLoadAll Part " .. instrument_index)
+
+    -- Work on a copy so we can random-pick without repeats.
+    local pool = {}
+    for _, f in ipairs(files_for_row) do table.insert(pool, f) end
+
+    if #pool == 0 then
+      if dialog and dialog.visible then
+        status_labels[instrument_index].text = string.format("Part %d/8 [%s]: no matching samples found", instrument_index, category_name)
+        status_labels[instrument_index].font = "bold"
+        pakettiSetViewStyle(status_labels[instrument_index], "strong")
+      end
+      print(string.format("CleverLoad Part %d [%s]: no matching samples", instrument_index, category_name))
+      return true, 0
+    end
+
+    local max_samples = 120
+    local num_samples_to_load = math.min(#pool, max_samples)
+    local failed_files = {}
+
+    for i = 1, num_samples_to_load do
+      local random_index = math.random(1, #pool)
+      local selected_file = pool[random_index]
+      table.remove(pool, random_index)
+
+      local file_size = getFileSize(selected_file)
+
+      if #instrument.samples < i then
+        instrument:insert_sample_at(i)
+      end
+
+      local load_failed = false
+      local error_msg = ""
+
+      local ok = pcall(function()
+        local buffer = instrument.samples[i].sample_buffer
+        if not buffer then
+          load_failed = true
+          error_msg = "No sample buffer available"
+          return
+        end
+        local load_ok, load_err = buffer:load_from(selected_file)
+        if not load_ok then
+          load_failed = true
+          error_msg = load_err or "Unknown error during load_from"
+          return
+        end
+        instrument.samples[i].name = getFilename(selected_file)
+      end)
+
+      if ok and not load_failed then
+        local sample = instrument.samples[i]
+        if preferences then
+          if preferences.pakettiLoaderAutofade then sample.autofade = preferences.pakettiLoaderAutofade.value end
+          if preferences.pakettiLoaderAutoseek then sample.autoseek = preferences.pakettiLoaderAutoseek.value end
+          if preferences.pakettiLoaderInterpolation then sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value end
+          if preferences.pakettiLoaderOverSampling then sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value end
+          if preferences.pakettiLoaderOneshot then sample.oneshot = preferences.pakettiLoaderOneshot.value end
+          if preferences.pakettiLoaderNNA then
+            sample.new_note_action = preferences.pakettiLoaderNNA.value
+          else
+            sample.new_note_action = 1
+          end
+          if preferences.pakettiLoaderLoopMode then sample.loop_mode = preferences.pakettiLoaderLoopMode.value end
+          if preferences.pakettiLoaderLoopExit then sample.loop_release = preferences.pakettiLoaderLoopExit.value end
+        end
+      end
+
+      if not ok or load_failed then
+        print(string.format("CleverLoad FAILED Part %d [%s] [%d/%d]: PATH: %s SIZE: %s",
+          instrument_index, category_name, i, num_samples_to_load, selected_file, formatFileSize(file_size)))
+        table.insert(failed_files, {index=i, path=selected_file, size=file_size, error=error_msg})
+      end
+
+      if dialog and dialog.visible then
+        local display_name = capFilename(getFilename(selected_file))
+        status_labels[instrument_index].text = string.format("Part %d/8 [%s]: Loading %03d/%03d: %s",
+          instrument_index, category_name, i, num_samples_to_load, display_name)
+        status_labels[instrument_index].font = "bold"
+        pakettiSetViewStyle(status_labels[instrument_index], "strong")
+      end
+
+      if i % 5 == 0 then
+        coroutine.yield()
+      end
+    end
+
+    return true, num_samples_to_load
+  end
+
+  local loaded_counts = {}
+
+  local function process()
+    for i = 1, 8 do
+      if slicer:was_cancelled() then
+        renoise.app():show_status("CleverLoad cancelled")
+        PakettiDontRunAutomaticSampleLoader = false
+        break
+      end
+
+      for j = i + 1, 8 do
+        status_labels[j].text = string.format("Part %d/8 [%s]: Queued (%d matches)", j, cats[j].name, #buckets[j])
+        status_labels[j].font = "bold"
+        pakettiSetViewStyle(status_labels[j], "strong")
+      end
+
+      local success, loaded = processInstrument(i, buckets[i], cats[i].name)
+      loaded_counts[i] = loaded or 0
+
+      coroutine.yield()
+    end
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+
+    for i = 1, 8 do
+      local instrument = renoise.song():instrument(i)
+      if instrument then
+        for sample_idx, sample in ipairs(instrument.samples) do
+          sample.sample_mapping.velocity_range = {0, 0}
+          sample.sample_mapping.base_note = 48
+          sample.sample_mapping.note_range = {0, 119}
+        end
+        if #instrument.samples > 0 then
+          instrument.samples[1].sample_mapping.velocity_range = {0, 127}
+        end
+        if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
+          renoise.song().selected_track_index = i
+          PakettiEightOneTwentyAddInstrMacrosToTrack(i)
+        end
+      end
+    end
+
+    update_instrument_list_and_popups()
+
+    local summary = {}
+    for i = 1, 8 do table.insert(summary, string.format("%s %d", cats[i].name, loaded_counts[i] or 0)) end
+    renoise.app():show_status("CleverLoad complete — " .. table.concat(summary, ", "))
+    PakettiDontRunAutomaticSampleLoader = false
+  end
+
+  local function startProcessing()
+    slicer = ProcessSlicer(process)
+    local vb = renoise.ViewBuilder()
+    local DEFAULT_MARGIN=renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
+    local DEFAULT_SPACING=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+
+    local dialog_content = vb:column{margin=DEFAULT_MARGIN, spacing=DEFAULT_SPACING}
+    for i = 1, 8 do
+      local status_label = vb:text{ text = string.format("Part %d/8 [%s]: Queued (%d matches)", i, cats[i].name, #buckets[i]), font = "bold", style = "strong" }
+      status_labels[i] = status_label
+      dialog_content:add_child(status_label)
+    end
+    dialog_content:add_child(vb:button{ text = "Cancel", width = 80, notifier = function()
+      slicer:cancel()
+      if dialog and dialog.visible then dialog:close() end
+      renoise.app():show_status("CleverLoad cancelled by user")
+      PakettiDontRunAutomaticSampleLoader = false
+    end})
+
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120 CleverLoad Progress", dialog_content, keyhandler)
+    slicer:start()
+  end
+
+  startProcessing()
+
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
 end
