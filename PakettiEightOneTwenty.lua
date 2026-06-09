@@ -1156,7 +1156,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     max = 64,
     value = init_transpose_val,
     width=36,
-    height = 36,
+    height = 25,
     notifier=function(value)
       if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       if row_elements and row_elements.updating_transpose then return end
@@ -1211,7 +1211,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       max = 1.0,
       value = (current_volume or 1.0) - 1.0,
       width=36,
-      height = 36,
+      height = 25,
     notifier=function(value)
       if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
         if row_elements and row_elements.updating_volume then return end
