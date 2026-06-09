@@ -4713,7 +4713,7 @@ function assign_midi_mappings()
 
   for row = 1, 8 do
     for step = 1, MAX_STEPS do
-      renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%02d Step%d", row, step),invoke=function(message)
+      renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%02d Step%02d", row, step),invoke=function(message)
         if message:is_trigger() then
           local row_elements = rows[row]
           if row_elements and row_elements.checkboxes[step] then
@@ -4871,24 +4871,52 @@ assign_midi_mappings()
 
 PakettiEightOneTwentyFocusedRow = 1
 
+-- The "selected row" is whichever of the 8 groovebox rows is selected RIGHT NOW.
+-- Groovebox rows are tracks 1..8, so the live selection is renoise.song()'s
+-- selected_track_index when it falls in 1..8 (falls back to the manually-set
+-- focused row otherwise). Reading this live at MIDI-trigger time is what lets the
+-- 16 "Selected Row Step" buttons re-route automatically the instant you select a
+-- different row — no re-registration, no observer.
+local function paketti_8120_selected_row()
+  local song = renoise.song()
+  if song then
+    local ti = song.selected_track_index
+    if ti and ti >= 1 and ti <= 8 then return ti end
+  end
+  local f = PakettiEightOneTwentyFocusedRow or 1
+  if f < 1 then f = 1 elseif f > 8 then f = 8 end
+  return f
+end
+
 local function paketti_set_focused_row(target)
   if target < 1 then target = 1 end
   if target > 8 then target = 8 end
   PakettiEightOneTwentyFocusedRow = target
+  -- Drive the REAL Renoise selection too, so controller-driven focus changes and
+  -- in-app track selection stay in lockstep and the Selected Row Step buttons
+  -- follow either source.
+  local song = renoise.song()
+  if song and target <= #song.tracks and song.tracks[target].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    song.selected_track_index = target
+  end
   if PakettiEightOneTwentyHighlightRow then
     PakettiEightOneTwentyHighlightRow(target)
   end
-  renoise.app():show_status(string.format("Groovebox 8120: focused row = %d", target))
+  renoise.app():show_status(string.format("Groovebox 8120: selected row = %d", target))
 end
 
--- Step toggles for the focused row — one mapping per step, MAX_STEPS deep.
-for step = 1, MAX_STEPS do
+-- Selected Row step toggles — 16 fixed mappings (Step01..Step16) for a 16-button
+-- controller bank (e.g. Akai MIDImix). Each toggles that step on WHICHEVER row is
+-- selected right now, resolved live, so selecting a different row instantly
+-- re-routes all 16 buttons to that row — turning the bank into a step sequencer
+-- for the focused track.
+for step = 1, 16 do
   renoise.tool():add_midi_mapping{
-    name = string.format("Paketti:Paketti Groovebox 8120:Focused Row Step%d", step),
+    name = string.format("Paketti:Paketti Groovebox 8120:Selected Row Step%02d", step),
     invoke = function(message)
       if not message:is_trigger() then return end
       if step > MAX_STEPS then return end
-      local row = PakettiEightOneTwentyFocusedRow or 1
+      local row = paketti_8120_selected_row()
       local row_elements = rows and rows[row]
       if row_elements and row_elements.checkboxes and row_elements.checkboxes[step] then
         row_elements.checkboxes[step].value = not row_elements.checkboxes[step].value
@@ -4902,15 +4930,14 @@ renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:Focused Row Next [Trigger]",
   invoke = function(message)
     if not message:is_trigger() then return end
-    paketti_set_focused_row((PakettiEightOneTwentyFocusedRow or 1) % 8 + 1)
+    paketti_set_focused_row(paketti_8120_selected_row() % 8 + 1)
   end
 }
 renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:Focused Row Previous [Trigger]",
   invoke = function(message)
     if not message:is_trigger() then return end
-    local cur = PakettiEightOneTwentyFocusedRow or 1
-    paketti_set_focused_row(((cur - 2) % 8) + 1)
+    paketti_set_focused_row(((paketti_8120_selected_row() - 2) % 8) + 1)
   end
 }
 
@@ -4935,7 +4962,7 @@ for _, btn in ipairs(PAKETTI_FOCUSED_ROW_BUTTONS) do
     name = string.format("Paketti:Paketti Groovebox 8120:Focused Row %s", btn),
     invoke = function(message)
       if not message:is_trigger() then return end
-      local row = PakettiEightOneTwentyFocusedRow or 1
+      local row = paketti_8120_selected_row()
       local row_elements = rows and rows[row]
       if not row_elements then return end
       if btn == "<" then
@@ -5061,7 +5088,7 @@ end
 
 local function paketti_midimix_redraw_all_leds()
   if not paketti_midimix_out then return end
-  local row = PakettiEightOneTwentyFocusedRow or 1
+  local row = paketti_8120_selected_row()
   local row_elements = rows and rows[row]
   for step = 1, 16 do
     local on = false
@@ -5085,7 +5112,7 @@ end
 -- every notifier site.
 local function paketti_midimix_idle_handler()
   if not paketti_midimix_out then return end
-  local row = PakettiEightOneTwentyFocusedRow or 1
+  local row = paketti_8120_selected_row()
   local row_elements = rows and rows[row]
   if not (row_elements and row_elements.checkboxes) then return end
   for step = 1, 16 do
@@ -5120,20 +5147,20 @@ local function paketti_midimix_on_midi(message)
   -- Note On with non-zero velocity = press; Note Off OR Note On vel 0 = release
   if msg_type == 0x90 and data2 > 0 then
     if data1 == PAKETTI_MIDIMIX_BANK_LEFT then
-      local cur = PakettiEightOneTwentyFocusedRow or 1
+      local cur = paketti_8120_selected_row()
       paketti_set_focused_row(((cur - 2) % 8) + 1)
       paketti_midimix_redraw_all_leds()
       return
     end
     if data1 == PAKETTI_MIDIMIX_BANK_RIGHT then
-      local cur = PakettiEightOneTwentyFocusedRow or 1
+      local cur = paketti_8120_selected_row()
       paketti_set_focused_row(cur % 8 + 1)
       paketti_midimix_redraw_all_leds()
       return
     end
     local step = paketti_midimix_step_for_note(data1)
     if step then
-      local row = PakettiEightOneTwentyFocusedRow or 1
+      local row = paketti_8120_selected_row()
       local row_elements = rows and rows[row]
       if row_elements and row_elements.checkboxes and row_elements.checkboxes[step] then
         row_elements.checkboxes[step].value = not row_elements.checkboxes[step].value

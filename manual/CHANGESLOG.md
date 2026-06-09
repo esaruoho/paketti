@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-09 - Feature/Fix: Groovebox 8120 "Selected Row Step01–Step16" — a 16-button step sequencer that follows the selected row
+
+The 16 step-toggle MIDI mappings are now named `Selected Row Step01` … `Selected Row Step16` (renamed from the old `Focused Row Step1..16`, now zero-padded) and, more importantly, they target **whichever of the 8 rows is selected right now**, resolved live at the moment you press the button. Groovebox rows are tracks 1–8, so "selected row" follows Renoise's selected track: select a different row (by clicking it, or with the focus Next/Previous/Set buttons, which now also move the real track selection) and all 16 buttons instantly re-route to that row — no rebinding, no re-mapping. Bind 16 buttons on an Akai MIDImix (or any controller) once and use it as a step sequencer for the focused track. The dedicated MIDImix integration (with LED feedback and bank Left/Right) was unified onto the same live selection, so its LEDs and step toggles follow the selected row too. Also zero-padded the per-row step mappings to `Row01 Step01 … Row16 Step16` so they sort numerically.
+
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Selected Row Step01` … `Selected Row Step16` (renamed from `Focused Row Step1..16`)
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Row01 Step01` … `Row16 Step16` (step number now zero-padded)
+- Note: the focus Next/Previous/Set and per-row utility mappings now act on the live selected row; the rename means any controller bound to the old `Focused Row Step1..16` names needs re-binding to `Selected Row StepNN`.
+
 ### 2026-06-09 - Fix: Groovebox 8120 MIDI mapping row numbers now zero-padded (Row01–Row16)
 
 The per-row MIDI mappings were named `Row1`…`Row16`, which sorted as Row1, Row10, Row11… Row16, Row2 in the MIDI mapping list. They are now `Row01`…`Row16` so the rows list in numeric order. Affects the Row step toggles, the per-row buttons (shift/randomize etc.), and the per-row Sample Slider mappings.
