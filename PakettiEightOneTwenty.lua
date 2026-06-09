@@ -3004,7 +3004,7 @@ local randomize_all_yxx_button = vb:button{
   -- Create step mode switch
   local step_mode_switch = vb:switch{
     items = {"16", "32"},
-    width = 150,
+    width = 75,
     value = (MAX_STEPS == 32) and 2 or 1,
     notifier = function(value)
       local new_max_steps = (value == 2) and 32 or 16
