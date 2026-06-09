@@ -611,27 +611,51 @@ end
 -- Playhead update functions (like PakettiGater)
 function PakettiHyperEditUpdatePlayheadHighlights()
   if not hyperedit_dialog or not hyperedit_dialog.visible then return end
-  
+
   local song = renoise.song()
   if not song then return end
-  
+
+  -- Stepper mode: a Stepper is NOT locked to pattern playback — it advances one
+  -- step on every sample trigger and reports its live position in device.play_step
+  -- (-1 when idle). So each row's playhead follows its own Stepper's play_step,
+  -- not the pattern line. Trigger four notes and the stepper advances four steps.
+  if hyperedit_mode == "stepper" then
+    for row = 1, NUM_ROWS do
+      local info = row_parameters[row]
+      local step_index = nil
+      if info and info.is_stepper and info.stepper then
+        local ok, ps = pcall(function() return info.stepper.play_step end)
+        if ok and ps and ps >= 1 then
+          local row_step_count = row_steps[row] or 16
+          if row_step_count < 1 then row_step_count = 1 end
+          step_index = ((ps - 1) % row_step_count) + 1
+        end
+      end
+      if playhead_step_indices[row] ~= step_index then
+        playhead_step_indices[row] = step_index
+        if row_canvases[row] then row_canvases[row]:update() end
+      end
+    end
+    return
+  end
+
   local current_line = song.selected_line_index
   if song.transport.playing then
     local pos = song.transport.playback_pos
     if pos and pos.line then current_line = pos.line end
   end
   if not current_line then return end
-  
+
   -- Update playhead for each row based on its individual step count
   local needs_update = false
   for row = 1, NUM_ROWS do
     local row_step_count = row_steps[row] or 16
     local step_index = ((current_line - 1) % row_step_count) + 1
-    
+
     if playhead_step_indices[row] ~= step_index then
       playhead_step_indices[row] = step_index
       needs_update = true
-      
+
       -- Update the canvas for this row
       if row_canvases[row] then
         row_canvases[row]:update()
@@ -4490,18 +4514,32 @@ renoise.tool():add_keybinding {name = "Global:Paketti:HyperEdit Duplicate to Nex
 -- edit cursor (when stopped). It reuses the existing per-row step tables and
 -- automation writer, so the result is identical to drawing the step by hand.
 
--- Resolve the row's "current" step the same way the playhead highlight does:
--- the playing line while running, else the edit-cursor (selected) line.
+-- Resolve the row's "current" step the same way the playhead highlight does.
+-- Stepper mode: the Stepper's live play_step (it advances per sample trigger,
+-- not per pattern line); falls back to step 1 when idle. Effect mode: the
+-- playing line while running, else the edit-cursor (selected) line.
 function PakettiHyperEditCurrentStepForRow(row)
   local song = renoise.song()
   if not song then return 1 end
+  local row_step_count = row_steps[row] or 16
+  if row_step_count < 1 then row_step_count = 1 end
+
+  if hyperedit_mode == "stepper" then
+    local info = row_parameters[row]
+    if info and info.is_stepper and info.stepper then
+      local ok, ps = pcall(function() return info.stepper.play_step end)
+      if ok and ps and ps >= 1 then
+        return ((ps - 1) % row_step_count) + 1
+      end
+    end
+    return 1
+  end
+
   local current_line = song.selected_line_index
   if song.transport.playing then
     local pos = song.transport.playback_pos
     if pos and pos.line then current_line = pos.line end
   end
-  local row_step_count = row_steps[row] or 16
-  if row_step_count < 1 then row_step_count = 1 end
   return ((current_line - 1) % row_step_count) + 1
 end
 
