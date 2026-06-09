@@ -4877,6 +4877,12 @@ local always_open_current_context = nil
 local always_open_last_cursor_state = nil
 local always_open_timer = nil
 local always_open_context_delay_timer = nil
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the always-open observer + context timers detach while renoise.song()
+-- is still the OLD song. Leaving them live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local pakettiPlayerProReleaseDocObserver = nil
 
 -- Middle Frame Observer for Auto-Hide
 local middle_frame_observer = nil
@@ -5284,6 +5290,23 @@ function pakettiPlayerProStartAlwaysOpen()
   if not always_open_timer then
     always_open_timer = renoise.tool():add_timer(pakettiPlayerProTimerContextMonitor, 100) -- Check every 100ms
   end
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- pakettiPlayerProStopAlwaysOpen() detaches the selected_track_index observer
+  -- and stops the context-monitor timers (which read song state) from the song
+  -- that is about to die. Without this, those live observers/timers crashed
+  -- Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool
+  -- teardown. main.lua's app_new_document handler reinstalls on the new song.
+  -- See features/song-lifecycle-safety.feature.
+  if not pakettiPlayerProReleaseDocObserver then
+    pakettiPlayerProReleaseDocObserver = function()
+      pakettiPlayerProStopAlwaysOpen()  -- detaches observer + timers from the still-alive old song; removes this observer
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(pakettiPlayerProReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:add_notifier(pakettiPlayerProReleaseDocObserver)
+  end
   
   -- Initialize current context and open appropriate dialog
   always_open_current_context = nil
@@ -5324,10 +5347,17 @@ function pakettiPlayerProStopAlwaysOpen()
     always_open_context_delay_timer:remove()
     always_open_context_delay_timer = nil
   end
-  
+
+  -- Detach the song-release safety observer (idempotent; safe to run twice).
+  -- See features/song-lifecycle-safety.feature.
+  if pakettiPlayerProReleaseDocObserver and renoise.tool().app_release_document_observable:has_notifier(pakettiPlayerProReleaseDocObserver) then
+    renoise.tool().app_release_document_observable:remove_notifier(pakettiPlayerProReleaseDocObserver)
+  end
+  pakettiPlayerProReleaseDocObserver = nil
+
   always_open_current_context = nil
   always_open_last_cursor_state = nil
-  
+
   renoise.app():show_status("PlayerPro Always Open Dialog: Disabled")
 end
 

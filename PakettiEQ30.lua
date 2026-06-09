@@ -72,6 +72,13 @@ local track_index_notifier = nil
 -- Device selection observer for auto-opening EQ30 dialog
 local device_selection_notifier = nil
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- the track/device observers (and the live canvas) attached crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local eq30_release_doc_observer = nil
+
 -- Cleanup EQ30 dialog state
 function EQ30Cleanup()
   -- turn off automation sync on close to avoid accidental writes next time
@@ -107,6 +114,12 @@ function EQ30Cleanup()
     end
   end)
   device_selection_notifier = nil
+  -- Detach the song-release safety observer (idempotent; safe to run twice).
+  -- See features/song-lifecycle-safety.feature.
+  if eq30_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(eq30_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(eq30_release_doc_observer)
+  end
+  eq30_release_doc_observer = nil
 end
 
 -- Check if selected device is an EQ30 device
@@ -161,6 +174,29 @@ function setup_eq30_device_observer()
   -- Add the notifier
   if song.selected_device_observable then
     song.selected_device_observable:add_notifier(device_selection_notifier)
+  end
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- EQ30Cleanup() detaches the track/device observers and the live canvas from
+  -- the song that is about to die; without this Renoise crashed in
+  -- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+  -- Re-arm the auto-open device observer on the new song so EQ30 keeps working.
+  -- See features/song-lifecycle-safety.feature.
+  if not eq30_release_doc_observer then
+    eq30_release_doc_observer = function()
+      local dlg = eq_dialog
+      EQ30Cleanup()                                -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end  -- close path re-runs Cleanup (idempotent)
+      eq_dialog = nil
+      -- Re-install the auto-open device observer once the new song exists.
+      if renoise.tool().app_new_document_observable and not renoise.tool().app_new_document_observable:has_notifier(setup_eq30_device_observer) then
+        renoise.tool().app_new_document_observable:add_notifier(setup_eq30_device_observer)
+      end
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(eq30_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(eq30_release_doc_observer)
   end
 end
 

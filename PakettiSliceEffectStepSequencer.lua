@@ -108,6 +108,12 @@ local playhead_timer_fn = nil
 local playing_observer_fn = nil
 local playhead_step_indices = {}
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- them live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+-- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local slicestep_release_doc_observer = nil
+
 -- (Reverse functionality removed)
 
 -- Velocity Canvas Functions
@@ -1028,6 +1034,21 @@ function PakettiSliceStepCleanupPlayhead()
   for row = 1, NUM_ROWS do
     playhead_step_indices[row] = nil
   end
+end
+
+-- Idempotent full teardown: detaches every song-level observer + playhead timer
+-- (via the three Cleanup helpers, each has_notifier/has_timer-guarded) and the
+-- song-release safety observer. Safe to run twice. Called on dialog close and
+-- on app_release_document_observable. See features/song-lifecycle-safety.feature.
+function PakettiSliceStepTeardown()
+  PakettiSliceStepCleanupPlayhead()              -- removes playhead timer + transport.playing observer
+  PakettiSliceStepCleanupTrackChangeDetection()  -- removes selected_track_index observer
+  PakettiSliceStepCleanupPatternChangeDetection()-- removes selected_pattern_index observer
+  -- Detach the song-release safety observer (idempotent; safe to run twice)
+  if slicestep_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(slicestep_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(slicestep_release_doc_observer)
+  end
+  slicestep_release_doc_observer = nil
 end
 
 -- Button color management
@@ -3972,9 +3993,7 @@ end
 function PakettiSliceStepCreateDialog()
   -- Handle close-on-reopen: if dialog is already open, close it
   if dialog and dialog.visible then
-    PakettiSliceStepCleanupPlayhead()
-    PakettiSliceStepCleanupTrackChangeDetection()
-    PakettiSliceStepCleanupPatternChangeDetection()
+    PakettiSliceStepTeardown()
     dialog:close()
     dialog = nil
     return
@@ -4142,9 +4161,7 @@ function PakettiSliceStepCreateDialog()
           end
           
           -- Refresh dialog (unavoidable due to ViewBuilder limitations)
-          PakettiSliceStepCleanupPlayhead()
-          PakettiSliceStepCleanupTrackChangeDetection()
-          PakettiSliceStepCleanupPatternChangeDetection()
+          PakettiSliceStepTeardown()  -- CreateDialog() below re-registers the release-doc observer
           dialog:close()
           dialog = nil
           PakettiSliceStepCreateDialog()
@@ -4722,10 +4739,8 @@ vb:valuebox{
     function(value) 
       dialog = value 
       if not value then
-        -- Dialog closed, cleanup
-        PakettiSliceStepCleanupPlayhead()
-        PakettiSliceStepCleanupTrackChangeDetection()
-        PakettiSliceStepCleanupPatternChangeDetection()
+        -- Dialog closed, cleanup (also detaches the song-release safety observer)
+        PakettiSliceStepTeardown()
       end
     end,
     -- Custom key handler for CTRL-Z/CMD-Z undo support
@@ -4755,6 +4770,24 @@ vb:valuebox{
   PakettiSliceStepSetupPlayhead()
   PakettiSliceStepSetupTrackChangeDetection()
   PakettiSliceStepSetupPatternChangeDetection()
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiSliceStepTeardown() detaches every observer from the song that is
+  -- about to die. Without this, the live transport/track/pattern observers and
+  -- the open canvas crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+  -- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not slicestep_release_doc_observer then
+    slicestep_release_doc_observer = function()
+      local dlg = dialog
+      PakettiSliceStepTeardown()  -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end
+      dialog = nil
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(slicestep_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(slicestep_release_doc_observer)
+  end
   
   -- STEP 3: READ PATTERN to populate rows (NOW that UI elements exist)
   print("DEBUG: Dialog opened - READING pattern to populate rows")

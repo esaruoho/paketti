@@ -18,6 +18,12 @@ PakettiChords_playback_timer = nil
 PakettiChords_note_off_timers = {} -- Track note-off timers
 PakettiChords_clipboard_slot = nil -- For copy/paste
 PakettiChords_DEBUG = false
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so the playback/strum/note-off timers (which call song:trigger_*) are
+-- stopped while renoise.song() is still the OLD song. Leaving them live crashed
+-- Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool
+-- teardown. See features/song-lifecycle-safety.feature.
+PakettiChords_release_doc_observer = nil
 
 -- UI Width Constants
 PakettiChords_LABEL_WIDTH = 50
@@ -256,6 +262,31 @@ function PakettiChords_Stop()
   PakettiChords_UpdateUI()
   
   renoise.app():show_status("PakettiChords: Stopped")
+end
+
+-- Song-lifecycle safety teardown: stop every song-touching timer (reuses the
+-- has_timer-guarded ClearAllTimers) and close the dialog BEFORE the old song is
+-- freed. Idempotent — safe to run twice. The release-doc observer is registered
+-- once at load and left attached so it re-arms across every New/Load Song.
+-- A separate PakettiChords_DetachReleaseObserver() removes it if ever needed.
+-- See features/song-lifecycle-safety.feature.
+function PakettiChords_ReleaseDocumentCleanup()
+  PakettiChords_is_playing = false
+  PakettiChords_is_auditioning = false
+  PakettiChords_ClearAllTimers()  -- has_timer-guarded; nils playback timer + clears note_off_timers
+  if PakettiChords_dialog and PakettiChords_dialog.visible then
+    PakettiChords_dialog:close()
+  end
+  PakettiChords_dialog = nil
+end
+
+-- Detach the song-release safety observer (idempotent; has_notifier-guarded).
+function PakettiChords_DetachReleaseObserver()
+  if PakettiChords_release_doc_observer
+    and renoise.tool().app_release_document_observable:has_notifier(PakettiChords_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(PakettiChords_release_doc_observer)
+  end
+  PakettiChords_release_doc_observer = nil
 end
 
 -- Preview/Audition a single slot (slow, non-looping)
@@ -1475,7 +1506,20 @@ end
 if PAKETTI_API >= 6.2 then
   -- Initialize on load (safe - no renoise.song() calls, just creates empty tables)
   PakettiChords_Initialize()
-  
+
+  -- Song-lifecycle safety seatbelt: register at load (timers can be live with no
+  -- dialog open, so the teardown must fire on song swap regardless of dialog state).
+  -- Fires BEFORE the song is released so song-touching timers stop while
+  -- renoise.song() is still the OLD song. See features/song-lifecycle-safety.feature.
+  if not PakettiChords_release_doc_observer then
+    PakettiChords_release_doc_observer = function()
+      PakettiChords_ReleaseDocumentCleanup()
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(PakettiChords_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(PakettiChords_release_doc_observer)
+  end
+
   renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords - Progression Player...", invoke = PakettiChords_Toggle}
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords - Progression Player", invoke = PakettiChords_Toggle}
   PakettiAddMenuEntry{name = "Main Menu:Tools:Chords - Progression Player...", invoke = PakettiChords_Toggle}

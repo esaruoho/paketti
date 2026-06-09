@@ -119,6 +119,13 @@ local initializing = false -- Flag to control printing during initialization or 
 local auto_grab = false
 local previous_track_index = nil
 local track_notifier = nil
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- the transport.playing / selected_track_index observers (and the playhead
+-- timer reading song data) live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+-- See features/song-lifecycle-safety.feature.
+local gater_release_doc_observer = nil
 local solo_mode = false
 local selection_only = false
 local print_once = false
@@ -253,6 +260,29 @@ function PakettiGaterCleanupPlayhead()
   gater_play_step_index_playback = nil
   gater_play_step_index_panning = nil
   if had_any then update_step_button_colors() end
+end
+
+-- Idempotent teardown: detaches every song-level observer (track index +
+-- transport.playing), stops the playhead timer, closes/nils the dialog, and
+-- removes the song-release safety observer. Safe to run twice. Called both on
+-- dialog-close and from the app_release_document_observable seatbelt below
+-- (where renoise.song() is still the OLD song, so detaching here happens before
+-- the song is freed). See features/song-lifecycle-safety.feature.
+function PakettiGaterTeardown()
+  local song = renoise.song()
+  if track_notifier and song and song.selected_track_index_observable:has_notifier(track_notifier) then
+    pcall(function() song.selected_track_index_observable:remove_notifier(track_notifier) end)
+  end
+  PakettiGaterCleanupPlayhead()
+  if dialog and dialog.visible then
+    pcall(function() dialog:close() end)
+  end
+  dialog = nil
+  -- Detach the song-release safety observer (idempotent; safe to run twice)
+  if gater_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(gater_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(gater_release_doc_observer)
+  end
+  gater_release_doc_observer = nil
 end
 
 -- Helper function to safely switch to pattern editor only if not in sample/phrase editor
@@ -3070,6 +3100,19 @@ function pakettiGaterDialog()
   dialog = renoise.app():show_custom_dialog("Paketti Volume/Retrig/Playback/Panning Gater", content, keyhandler)
   safe_switch_to_pattern_editor()
   PakettiGaterSetupPlayhead()
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiGaterTeardown() detaches every observer from the song about to die.
+  -- See features/song-lifecycle-safety.feature.
+  if not gater_release_doc_observer then
+    gater_release_doc_observer = function()
+      PakettiGaterTeardown()  -- detaches observers from the still-alive old song; removes this observer
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(gater_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(gater_release_doc_observer)
+  end
 
   -- Automatically receive the current pattern state when opening the dialog
   receive_volume_checkboxes()

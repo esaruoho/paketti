@@ -23,6 +23,12 @@ PakettiPPWV_selected_event_id = nil
 PakettiPPWV_cached_waveforms = {}
 PakettiPPWV_reference_scale_cache = {}  -- OPTIMIZATION: Cache reference calculations per zoom
 PakettiPPWV_debug = false
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. The
+-- live tracks/selected-track observers, the realtime timer and the open canvas
+-- otherwise crash Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+-- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+PakettiPPWV_release_doc_observer = nil
 
 -- Double-click tracking
 PakettiPPWV_last_click_time_ms = 0
@@ -3249,7 +3255,14 @@ function PakettiPPWV_Cleanup()
   -- Detach all observers
   PakettiPPWV_DetachTrackMuteObservers()
   PakettiPPWV_DetachSelectedTrackObserver()
-  
+
+  -- Detach the song-release safety observer (idempotent; safe to run twice).
+  -- See features/song-lifecycle-safety.feature.
+  if PakettiPPWV_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(PakettiPPWV_release_doc_observer) then
+    pcall(function() renoise.tool().app_release_document_observable:remove_notifier(PakettiPPWV_release_doc_observer) end)
+  end
+  PakettiPPWV_release_doc_observer = nil
+
   -- Clear state
   PakettiPPWV_dialog = nil
   PakettiPPWV_vb = nil
@@ -3421,6 +3434,24 @@ function PakettiPPWV_ReopenDialog()
   PakettiPPWV_RebuildEvents(); PakettiPPWV_UpdateScrollbars(); PakettiPPWV_RebuildTrackCanvases(); PakettiPPWV_UpdateCanvasThrottled()
   if not PakettiPPWV_timer_running then renoise.tool():add_timer(PakettiPPWV_TimerTick, PakettiPPWV_timer_interval_ms); PakettiPPWV_timer_running = true end
   cleanup_observers = PakettiPPWV_Cleanup
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiPPWV_Cleanup() detaches the tracks/selected-track observers and stops
+  -- the realtime timer on the song that is about to die. Detaching only on
+  -- dialog-close (or on app_new_document, which fires too late) crashed Renoise
+  -- in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown.
+  -- See features/song-lifecycle-safety.feature.
+  if not PakettiPPWV_release_doc_observer then
+    PakettiPPWV_release_doc_observer = function()
+      local dlg = PakettiPPWV_dialog
+      PakettiPPWV_Cleanup()  -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(PakettiPPWV_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(PakettiPPWV_release_doc_observer)
+  end
 end
 
 -- Open dialog

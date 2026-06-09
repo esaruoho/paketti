@@ -261,6 +261,12 @@ local is_drawing = false
 local hex_buttons = {}
 local pcm_dialog = nil
 local waveform_canvas = nil
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- the sample/LFO-device observers (and the live canvas) pointing at the dying
+-- song crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+-- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local pcmwriter_release_doc_observer = nil
 local dialog_initialized = false
 local selection_info_view = nil
 local dialog_rebuilding = false  -- Flag to prevent dropdown from triggering during rebuild
@@ -7338,6 +7344,35 @@ function cleanup_on_dialog_close()
   end
 end
 
+-- Song-lifecycle safety seatbelt: idempotent teardown that detaches every
+-- song-level observer and closes the dialog/canvas. Called from BOTH the
+-- dialog-close path AND the app_release_document path (which fires while the
+-- OLD song is still alive, so renoise.song() still returns it and the
+-- detach succeeds before the song is freed). Safe to run twice.
+-- See features/song-lifecycle-safety.feature.
+function PCMWriterReleaseDocumentCleanup()
+  -- Detach the song-level sample observer (guarded + pcall: the song may be
+  -- mid-teardown). cleanup_sample_notifier() reads renoise.song().
+  pcall(cleanup_sample_notifier)
+  -- Detach the LFO device value observers (these live on a DSP device in the song)
+  pcall(PCMWriterDetachLFODeviceNotifiers)
+  -- Remove the idle-based close watcher so it can't fire against a dead song
+  if renoise.tool().app_idle_observable:has_notifier(cleanup_on_dialog_close) then
+    renoise.tool().app_idle_observable:remove_notifier(cleanup_on_dialog_close)
+  end
+  -- Close the dialog and drop the live canvas reference
+  if pcm_dialog and pcm_dialog.visible then
+    pcm_dialog:close()
+  end
+  pcm_dialog = nil
+  waveform_canvas = nil
+  -- Detach this release-doc observer itself (idempotent; safe to run twice)
+  if pcmwriter_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(pcmwriter_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(pcmwriter_release_doc_observer)
+  end
+  pcmwriter_release_doc_observer = nil
+end
+
 function PCMWriterLoadSampleToWaveform()
   local song = renoise.song()
   local inst = song.selected_instrument
@@ -9307,7 +9342,22 @@ function PCMWriterShowPcmDialog()
   if not renoise.tool().app_idle_observable:has_notifier(cleanup_on_dialog_close) then
     renoise.tool().app_idle_observable:add_notifier(cleanup_on_dialog_close)
   end
-  
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PCMWriterReleaseDocumentCleanup() detaches the sample/LFO-device observers
+  -- from the song that is about to die and drops the live canvas. Without this,
+  -- those observers + the open canvas crashed Renoise in
+  -- TWeakRefOwner::SOnWeakReferencableDying. See features/song-lifecycle-safety.feature.
+  if not pcmwriter_release_doc_observer then
+    pcmwriter_release_doc_observer = function()
+      PCMWriterReleaseDocumentCleanup()  -- detaches from the still-alive old song; removes this observer
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(pcmwriter_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(pcmwriter_release_doc_observer)
+  end
+
   PCMWriterUpdateAllDisplays()
   
   -- Initialize LFO controls if in enhanced mode
