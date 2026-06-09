@@ -8,6 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-09 - Improvement: Impulse Tracker F8 Stop Playback (Panic) also bindable in the Pattern Editor
+
+The F8 Stop Playback (Panic) action (and its "(2nd)" companion) now also exists as a Pattern Editor keybinding, in addition to the existing Global ones — so you can assign it specifically in the Pattern Editor context.
+
+- Keybinding: `Pattern Editor:Paketti:Impulse Tracker F8 Stop Playback (Panic)`
+- Keybinding: `Pattern Editor:Paketti:Impulse Tracker F8 Stop Playback (Panic) (2nd)`
+
 ### 2026-06-09 - Feature: Master Low-Cut 200Hz punch toggle
 
 A one-button "punch it in, punch it off" toggle for dropping the low end. Punch it ON and a high-pass at 200Hz is added to the **master** track — a native **Digital Filter** in Biquad high-pass mode (the same configuration as Paketti's "Hipass (Preset++)"), so everything below 200Hz is filtered out; punch it OFF and the device is removed, restoring the lows — great for live build-ups and drops. The device is tagged by name so the toggle finds and removes exactly its own device; the high-pass shape comes from the proven preset and the 200Hz cutoff is dialed in by reading the parameter's displayed value back.

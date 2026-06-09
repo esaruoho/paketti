@@ -522,6 +522,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop Playback (Panic)",invoke=function() ImpulseTrackerStop() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop Playback (Panic) (2nd)",invoke=function() ImpulseTrackerStop() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker F8 Stop Playback (Panic)",invoke=function() ImpulseTrackerStop() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker F8 Stop Playback (Panic) (2nd)",invoke=function() ImpulseTrackerStop() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop/Start Playback (Panic)",invoke=function() 
 local t = renoise.song().transport
