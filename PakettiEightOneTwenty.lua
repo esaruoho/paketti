@@ -5188,6 +5188,11 @@ function PakettiEightOneTwentyMidiMixOpen()
   paketti_midimix_install_idle()
   paketti_midimix_redraw_all_leds()
   renoise.app():show_status("Groovebox 8120: Akai MidiMix opened — buttons drive focused row, LEDs mirror it")
+  -- If button presses also PLAY notes, the MidiMix is enabled as a Renoise note
+  -- input. The bridge reads it directly, so Renoise doesn't need to: turn it off
+  -- in Preferences > MIDI by clearing the MidiMix from the "MIDI In Device" slots
+  -- (a tool cannot suppress Renoise's own MIDI-in note routing via the API).
+  print("Groovebox 8120 MidiMix: if pressing buttons also plays notes, open Renoise Preferences > MIDI and set any 'MIDI In Device' slot that lists the MidiMix to None. The bridge opens the device itself, so the step sequencer + LEDs keep working.")
   return true
 end
 

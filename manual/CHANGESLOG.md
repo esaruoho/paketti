@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-09 - Note: Groovebox 8120 MidiMix bridge — how to stop button presses from also playing notes
+
+If pressing the Akai MidiMix buttons toggles the 8120 steps **and** also plays a sample, that's because the MidiMix is enabled as a note input in Renoise itself (Preferences > MIDI > the "MIDI In Device" slots). The 8120 bridge opens the MidiMix directly, so Renoise doesn't need it as a note input — clear the MidiMix from those slots and the note-bleed stops while the step sequencer and LEDs keep working. A tool cannot suppress Renoise's own MIDI-in note routing from the API, so this is a one-time Preferences setting; the bridge now prints this reminder to the terminal when it opens.
+
 ### 2026-06-09 - Feature/Fix: Groovebox 8120 "Selected Row Step01–Step16" — a 16-button step sequencer for the focused row
 
 The 16 step-toggle MIDI mappings are now named `Selected Row Step01` … `Selected Row Step16` (renamed from `Focused Row Step1..16`, now zero-padded). They — and the dedicated, direct-from-input Akai MIDImix bridge (with LED feedback and bank Left/Right) — act on the groovebox's **focused row**, the self-contained focus the bridge already owns. The focus is moved by the MIDImix bank buttons, by the Focused Row Next/Previous/Set mappings, and now also by interacting with any row in the dialog (clicking a row's controls focuses it), at which point the 16 buttons re-route and the MIDImix LEDs redraw to that row's step pattern. The focus is deliberately NOT tied to Renoise's selected track, so the direct MIDImix reader stays reliable. Bind 16 buttons on a MIDImix (or any controller) once and use it as a step sequencer for whichever row you're working on. Also zero-padded the per-row step mappings to `Row01 Step01 … Row16 Step16` so they sort numerically.
