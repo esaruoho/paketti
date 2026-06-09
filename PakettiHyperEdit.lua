@@ -4,6 +4,9 @@
 
 -- Debug control flag - set to true to enable verbose logging
 local DEBUG_HYPEREDIT = false
+-- Temporary: prints stepper play_step transitions so we can verify whether the
+-- Lua API exposes a live, polling-readable stepper position. Set false to silence.
+local DEBUG_STEPPER_PLAYHEAD = true
 
 -- Helper function to clean parameter names by removing "CC XX " prefix
 -- e.g., "CC 1 (Mod Wheel)" becomes "Mod Wheel"
@@ -623,8 +626,10 @@ function PakettiHyperEditUpdatePlayheadHighlights()
     for row = 1, NUM_ROWS do
       local info = row_parameters[row]
       local step_index = nil
+      local raw_ps = nil
       if info and info.is_stepper and info.stepper then
         local ok, ps = pcall(function() return info.stepper.play_step end)
+        if ok then raw_ps = ps end
         if ok and ps and ps >= 1 then
           local row_step_count = row_steps[row] or 16
           if row_step_count < 1 then row_step_count = 1 end
@@ -632,6 +637,12 @@ function PakettiHyperEditUpdatePlayheadHighlights()
         end
       end
       if playhead_step_indices[row] ~= step_index then
+        -- DIAGNOSTIC (temporary): prints only when a row's mapped step changes.
+        -- If notes play and this never prints, play_step is not advancing via the
+        -- Lua API (polling sees a frozen value) and we need a different mechanism.
+        if DEBUG_STEPPER_PLAYHEAD then
+          print(string.format("STEPPER PLAYHEAD: row %d play_step=%s -> step_index=%s", row, tostring(raw_ps), tostring(step_index)))
+        end
         playhead_step_indices[row] = step_index
         if row_canvases[row] then row_canvases[row]:update() end
       end
