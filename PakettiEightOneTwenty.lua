@@ -1155,8 +1155,8 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     min = -64,
     max = 64,
     value = init_transpose_val,
-    width=25,
-    height = 25,
+    width=36,
+    height = 36,
     notifier=function(value)
       if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       if row_elements and row_elements.updating_transpose then return end
@@ -1203,15 +1203,15 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     end
   }
     -- Create transpose label
-    local transpose_label = vb:text{text="Pitch",font="bold",style="strong"}
+    local transpose_label = vb:text{text="Pitch",font="bold",style="strong",width=36}
     -- Create volume label and rotary
-    local volume_label = vb:text{text="Vol",font="bold",style="strong"}
+    local volume_label = vb:text{text="Vol",font="bold",style="strong",width=36}
     local volume_rotary = vb:rotary{
       min = -1.0,
       max = 1.0,
       value = (current_volume or 1.0) - 1.0,
-      width=25,
-      height = 25,
+      width=36,
+      height = 36,
     notifier=function(value)
       if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
         if row_elements and row_elements.updating_volume then return end
@@ -1819,7 +1819,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
 
   local mute_checkbox = vb:checkbox{
     value = false,
-    width=30,
+    width=36,
     notifier=function(value)
       if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       local prev_device, prev_param = nil, nil
@@ -2710,7 +2710,7 @@ end
   end
 
   -- Define the Row Column Layout
-  local solo_checkbox = vb:checkbox{value=false,width=30,notifier=function(value)
+  local solo_checkbox = vb:checkbox{value=false,width=36,notifier=function(value)
     PakettiEightOneTwentyHighlightRow(row_index)
     local prev_device, prev_param = nil, nil
     if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
@@ -2750,8 +2750,8 @@ end
   end}
   row_elements.solo_checkbox = solo_checkbox
 
-  local mute_label = vb:text{text="Mute",font="bold",style="strong",width=30}
-  local solo_label = vb:text{text="Solo",font="bold",style="strong",width=30}
+  local mute_label = vb:text{text="Mute",font="bold",style="strong",width=36}
+  local solo_label = vb:text{text="Solo",font="bold",style="strong",width=36}
 
   local labels_row = vb:row{volume_label, vb:space{width=3}, transpose_label}
   local rotaries_row = vb:row{volume_rotary, vb:space{width=3}, transpose_rotary}
