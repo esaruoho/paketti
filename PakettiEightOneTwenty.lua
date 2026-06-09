@@ -4968,29 +4968,30 @@ for row = 1, 8 do
   }
 end
 
--- Select Row 01..08 — flick a switch to move the WHOLE selection to that row:
--- selects the row's track AND instrument, and focuses it so the Selected Row
--- Step buttons + MidiMix LEDs follow. One mapping per row (1..8) for an
--- 8-switch row selector on the controller.
-for row = 1, 8 do
-  renoise.tool():add_midi_mapping{
-    name = string.format("Paketti:Paketti Groovebox 8120:Select Row %02d", row),
-    invoke = function(message)
-      if not message:is_trigger() then return end
-      local song = renoise.song()
-      if not song then return end
-      if row <= #song.tracks and song:track(row).type == renoise.Track.TRACK_TYPE_SEQUENCER then
-        song.selected_track_index = row
-      end
-      if row <= #song.instruments then
-        song.selected_instrument_index = row
-      end
-      PakettiEightOneTwentyFocusedRow = row
-      if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(row) end
-      renoise.app():show_status(string.format("Groovebox 8120: selected row %02d (track + instrument)", row))
+-- Select Row (Knob) — ONE absolute knob/fader (0..127) split evenly across the
+-- 8 rows: sweeping it min→max walks the selection through rows 1→8, each setting
+-- that row's track AND instrument and focusing it (so the Selected Row Step
+-- buttons + MidiMix LEDs follow). 16 values per row (0-15 = row 1 … 112-127 = row 8).
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:Select Row (Knob 01-08)",
+  invoke = function(message)
+    if not message:is_abs_value() then return end
+    local v = message.int_value or 0
+    local row = math.floor(v / 16) + 1
+    if row < 1 then row = 1 elseif row > 8 then row = 8 end
+    local song = renoise.song()
+    if not song then return end
+    if row <= #song.tracks and song:track(row).type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      song.selected_track_index = row
     end
-  }
-end
+    if row <= #song.instruments then
+      song.selected_instrument_index = row
+    end
+    PakettiEightOneTwentyFocusedRow = row
+    if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(row) end
+    renoise.app():show_status(string.format("Groovebox 8120: knob selected row %02d (track + instrument)", row))
+  end
+}
 
 -- Mirror the per-row utility buttons onto the focused row so the same controller
 -- bank can drive < / > / Clear / Randomize / Load / Show / Random / Automation /
