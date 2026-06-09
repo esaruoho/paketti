@@ -253,6 +253,21 @@ end
 --------------------------------------------------------------------------------
 -- Registration (re-enabled 2026-05-13 after Taktik confirmed API works)
 --------------------------------------------------------------------------------
+
+-- Song-lifecycle safety: detach the selected_pattern_index + pattern line
+-- observers BEFORE the old song is released (New/Load Song), so they never
+-- dangle into the dying song (SIGSEGV in TWeakRefOwner::SOnWeakReferencableDying
+-- pattern-pool teardown). main.lua re-arms via PakettiTriggerOnInputOnNewDocument
+-- on the new song when the feature is enabled. Safe no-op when disabled.
+-- See features/song-lifecycle-safety.feature.
+local function toi_on_release_document()
+  toi_remove_notifier()
+  toi_remove_pattern_observer()
+end
+if not renoise.tool().app_release_document_observable:has_notifier(toi_on_release_document) then
+  renoise.tool().app_release_document_observable:add_notifier(toi_on_release_document)
+end
+
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Trigger Sample on Pattern Input During Record Toggle",
   invoke = function() PakettiTriggerOnInputToggle() end

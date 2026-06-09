@@ -114,8 +114,34 @@ Context: Global
   # swap (a cheap observer with no canvas may survive), but all share the unsafe
   # pattern of the two confirmed crashes. Group A is the priority for the demo.
   #
+  # ============================================================================
+  # GROUP D — ALWAYS-ON, NO-DIALOG tools (2026-06-09, blind spot in the audit)
+  # ============================================================================
+  # A second crash recurred after Groups A-C. Root: the original audit scoped to
+  # tools with a DIALOG/canvas. But an ALWAYS-ON background feature (no UI) that
+  # attaches a song observer at tool load / via app_new_document and never
+  # detaches on app_release crashes on ANY New Song with NOTHING open. The
+  # preference that gates the feature's ACTION does not gate the OBSERVER
+  # attachment, so "off by default" does not save it. Found by a no-dialog sweep
+  # (song/buffer observer + no app_release + no show_custom_dialog):
+  #   PakettiZeroCrossings.lua  — FIXED: auto-snap (main.lua:1345, always on)
+  #     attached selected_sample_observable + a sample-buffer
+  #     selection_range_observable via an ANONYMOUS closure it could never remove
+  #     (it stored the add_notifier return value, not the fn). Rewrote the
+  #     notifier as a NAMED function (PakettiZeroCrossingsSelectionNotifier),
+  #     tracked the observable, added PakettiZeroCrossingsDetachAll on
+  #     app_release_document_observable. This was the likely live culprit.
+  #   PakettiTriggerOnInput.lua — FIXED: latent when the user enables it
+  #     (pref off by default); re-arms selected_pattern_index + pattern line
+  #     observers via main.lua on app_new but never detached. Added a
+  #     self-contained app_release detach (toi_remove_notifier +
+  #     toi_remove_pattern_observer). Safe no-op when disabled.
+  # The no-dialog sweep is now clean. LESSON: audit BOTH dialog-gated AND
+  # always-on (app_new / load-time) song-observer attachers.
+  #
   # WATCH: app_release_document_observable PakettiHyperEditCreateDialog PakettiHyperEditRemoveObservers PakettiCanvasExperimentsCreateDialog
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+#   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable

@@ -404,61 +404,81 @@ end
 local PakettiZeroCrossingsSelectionObservable = nil
 local PakettiZeroCrossingsIsAdjusting = false
 
-function PakettiZeroCrossingsAttachSelectionObservable()
+-- NAMED notifier (was an anonymous closure that could never be removed — its
+-- stored "handle" was the add_notifier return value, not the function, so the
+-- removal at the top of attach was a no-op and the notifier dangled into the
+-- dying song on New/Load Song -> SIGSEGV in TWeakRefOwner::SOnWeakReferencableDying
+-- pattern-pool teardown). A named function is removable by reference.
+-- See features/song-lifecycle-safety.feature.
+function PakettiZeroCrossingsSelectionNotifier()
+  -- Don't create feedback loops
+  if PakettiZeroCrossingsIsAdjusting then return end
+  -- Check if preference is enabled
+  if not preferences.ZeroCrossings.AutoSnapSelection.value then return end
   local s = renoise.song()
-  local sample = s.selected_sample
-  
-  if not sample or not sample.sample_buffer.has_sample_data then
-    return
+  local sample = s and s.selected_sample
+  local buffer = sample and sample.sample_buffer
+  if not buffer or not buffer.has_sample_data then return end
+  -- Only auto-snap if there's a selection
+  if buffer.selection_start == 0 and buffer.selection_end == 0 then return end
+  PakettiZeroCrossingsIsAdjusting = true
+  local zero_threshold = 0.01 -- 1% default
+  local search_range = math.floor(buffer.sample_rate * 0.01) -- 10ms search range
+  local original_start = buffer.selection_start
+  local original_end = buffer.selection_end
+  local new_start = PakettiZeroCrossingsFind(buffer, original_start, search_range, zero_threshold)
+  local new_end = PakettiZeroCrossingsFind(buffer, original_end, search_range, zero_threshold)
+  if new_start < new_end then
+    buffer.selection_start = new_start
+    buffer.selection_end = new_end
   end
-  
-  local buffer = sample.sample_buffer
-  
-  -- Remove existing observable if any
+  PakettiZeroCrossingsIsAdjusting = false
+end
+
+function PakettiZeroCrossingsAttachSelectionObservable()
+  -- Detach from the previously-tracked buffer observable (by reference).
   if PakettiZeroCrossingsSelectionObservable then
-    PakettiZeroCrossingsSelectionObservable:remove_notifier(PakettiZeroCrossingsSelectionObservable)
+    pcall(function()
+      if PakettiZeroCrossingsSelectionObservable:has_notifier(PakettiZeroCrossingsSelectionNotifier) then
+        PakettiZeroCrossingsSelectionObservable:remove_notifier(PakettiZeroCrossingsSelectionNotifier)
+      end
+    end)
     PakettiZeroCrossingsSelectionObservable = nil
   end
-  
-  -- Add new observable
-  PakettiZeroCrossingsSelectionObservable = buffer.selection_range_observable:add_notifier(function()
-    -- Don't create feedback loops
-    if PakettiZeroCrossingsIsAdjusting then
-      return
-    end
-    
-    -- Check if preference is enabled
-    if not preferences.ZeroCrossings.AutoSnapSelection.value then
-      return
-    end
-    
-    -- Only auto-snap if there's a selection
-    if buffer.selection_start == 0 and buffer.selection_end == 0 then
-      return
-    end
-    
-    -- Set flag to prevent recursive calls
-    PakettiZeroCrossingsIsAdjusting = true
-    
-    local zero_threshold = 0.01 -- 1% default
-    local search_range = math.floor(buffer.sample_rate * 0.01) -- 10ms search range
-    
-    local original_start = buffer.selection_start
-    local original_end = buffer.selection_end
-    
-    -- Find zero crossings
-    local new_start = PakettiZeroCrossingsFind(buffer, original_start, search_range, zero_threshold)
-    local new_end = PakettiZeroCrossingsFind(buffer, original_end, search_range, zero_threshold)
-    
-    -- Only apply if valid range
-    if new_start < new_end then
-      buffer.selection_start = new_start
-      buffer.selection_end = new_end
-    end
-    
-    -- Clear flag
-    PakettiZeroCrossingsIsAdjusting = false
-  end)
+
+  local s = renoise.song()
+  local sample = s and s.selected_sample
+  if not sample or not sample.sample_buffer.has_sample_data then return end
+  local buffer = sample.sample_buffer
+
+  -- Track the observable itself so we can detach the named notifier later.
+  PakettiZeroCrossingsSelectionObservable = buffer.selection_range_observable
+  if not PakettiZeroCrossingsSelectionObservable:has_notifier(PakettiZeroCrossingsSelectionNotifier) then
+    PakettiZeroCrossingsSelectionObservable:add_notifier(PakettiZeroCrossingsSelectionNotifier)
+  end
+end
+
+-- Song-lifecycle safety: detach BOTH song-bound observers before the old song
+-- is released (New/Load Song), so neither dangles into the dying song. The
+-- app_new_document handler re-attaches them on the new song.
+-- See features/song-lifecycle-safety.feature.
+function PakettiZeroCrossingsDetachAll()
+  if PakettiZeroCrossingsSelectionObservable then
+    pcall(function()
+      if PakettiZeroCrossingsSelectionObservable:has_notifier(PakettiZeroCrossingsSelectionNotifier) then
+        PakettiZeroCrossingsSelectionObservable:remove_notifier(PakettiZeroCrossingsSelectionNotifier)
+      end
+    end)
+    PakettiZeroCrossingsSelectionObservable = nil
+  end
+  local s = renoise.song()
+  if s then
+    pcall(function()
+      if s.selected_sample_observable:has_notifier(PakettiZeroCrossingsAttachSelectionObservable) then
+        s.selected_sample_observable:remove_notifier(PakettiZeroCrossingsAttachSelectionObservable)
+      end
+    end)
+  end
 end
 
 -- Handler for new document
@@ -475,7 +495,13 @@ function PakettiZeroCrossingsInitAutoSnap()
   if not renoise.tool().app_new_document_observable:has_notifier(PakettiZeroCrossingsNewDocumentHandler) then
     renoise.tool().app_new_document_observable:add_notifier(PakettiZeroCrossingsNewDocumentHandler)
   end
-  
+  -- Detach both song-bound observers BEFORE the old song is released, so they
+  -- never dangle into the dying song (SIGSEGV in pattern-pool teardown). The
+  -- app_new handler above re-attaches on the new song.
+  if not renoise.tool().app_release_document_observable:has_notifier(PakettiZeroCrossingsDetachAll) then
+    renoise.tool().app_release_document_observable:add_notifier(PakettiZeroCrossingsDetachAll)
+  end
+
   -- Initialize for current song (safely check if song exists)
   local song_available, s = pcall(function() return renoise.song() end)
   if song_available and s then
