@@ -192,10 +192,21 @@ function PakettiHyperEditUpdateRowCount()
   end
 end
 
+-- Mode: "effect" = each row edits a track-device parameter and writes a pattern
+-- automation envelope (the original HyperEdit). "stepper" = each row edits one
+-- Stepper modulation device in the SELECTED INSTRUMENT's sample modulation sets,
+-- writing directly into device.points (a real, looping step sequencer). The whole
+-- data layer (step_data / step_active / row_steps / the canvas) is shared between
+-- modes; only the enumerate / read / write seams branch on this flag.
+local hyperedit_mode = "effect"
+
 -- Dialog state
 local hyperedit_dialog = nil
 local dialog_vb = nil    -- Store ViewBuilder instance
 local row_canvases = {}  -- [row] = canvas
+-- Stepper-mode observer: re-scans the instrument's Stepper devices when the
+-- selected instrument changes (the stepper analogue of the track-change observer).
+local instrument_change_notifier = nil
 -- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
 -- Song) so observers detach while renoise.song() is still the OLD song. Leaving
 -- them live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
@@ -216,6 +227,283 @@ local playhead_color = nil
 
 -- Row state variables (must be declared early for playhead functions)
 local row_steps = {}  -- [row] = step count for this row (individual per row)
+
+-- ============================================================================
+-- Stepper mode engine
+-- ----------------------------------------------------------------------------
+-- Placed AFTER the local state declarations above (hyperedit_mode, NUM_ROWS,
+-- row_devices/row_parameters/device_lists/parameter_lists, dialog_vb,
+-- row_canvases, row_steps, instrument_change_notifier) so these functions close
+-- over the upvalues instead of treating them as globals.
+--
+-- In stepper mode a "device" (top dropdown) is a sample modulation SET of the
+-- selected instrument, and a "parameter" (second dropdown) is a Stepper device
+-- inside that set (Volume / Cutoff / Resonance / Pitch / Panning / Drive
+-- Stepper). A Stepper's data model is identical to a HyperEdit row: points with
+-- time 1..length and value 0.0..1.0, plus a length and a POINTS/LINES/CURVES
+-- play mode. So the shared canvas / draw / fill / step-count code is reused
+-- verbatim; only enumerate/read/write are stepper-specific.
+
+-- Set the active mode and persist it. Safe to call before the dialog exists.
+function PakettiHyperEditSetMode(mode)
+  hyperedit_mode = (mode == "stepper") and "stepper" or "effect"
+  if preferences and preferences.PakettiHyperEditMode then
+    preferences.PakettiHyperEditMode.value = hyperedit_mode
+    preferences:save_as("preferences.xml")
+  end
+end
+
+-- Return the selected instrument's modulation sets shaped like the entries
+-- PakettiHyperEditGetDevices() returns, so the device dropdown code is reused.
+function PakettiHyperEditGetStepperSets()
+  local song = renoise.song()
+  if not song then return {} end
+  local instrument = song.selected_instrument
+  if not instrument then return {} end
+
+  local sets = {}
+  for i = 1, #instrument.sample_modulation_sets do
+    local modset = instrument.sample_modulation_sets[i]
+    local label = modset.name
+    if not label or label == "" then label = "Mod Set " .. i end
+    table.insert(sets, {
+      index = i,
+      device = modset,   -- reused as row_devices[row]
+      name = label,
+      is_modset = true
+    })
+  end
+  return sets
+end
+
+-- Return the Stepper devices inside a modulation set, shaped like the entries
+-- PakettiHyperEditGetParameters() returns (so SelectParameter / canvas mapping
+-- work unchanged). Stepper values are natively 0..1, so min/max are 0/1.
+function PakettiHyperEditGetSteppersInSet(modset)
+  if not modset then return {} end
+  local steppers = {}
+  for j = 1, #modset.devices do
+    local dev = modset.devices[j]
+    if dev.name and dev.name:find("Stepper") then
+      table.insert(steppers, {
+        index = j,
+        device_index = j,
+        name = dev.name,
+        is_stepper = true,
+        stepper = dev,
+        value_min = 0.0,
+        value_max = 1.0,
+        value_default = 0.5,
+        original_min = 0.0,
+        original_max = 1.0,
+        is_custom_mapped = false
+      })
+    end
+  end
+  return steppers
+end
+
+-- Read one Stepper's points into the row's step buffers and sync row step count
+-- to the Stepper's length. The stepper analogue of AutoReadAutomation.
+function PakettiHyperEditReadStepper(row)
+  local info = row_parameters[row]
+  if not info or not info.is_stepper or not info.stepper then return end
+  local stepper = info.stepper
+
+  local len = stepper.length or 16
+  if len < 1 then len = 1 end
+  if len > MAX_STEPS then len = MAX_STEPS end
+  row_steps[row] = len
+
+  if dialog_vb and dialog_vb.views["steps_" .. row] then
+    dialog_vb.views["steps_" .. row].value = len
+  end
+  PakettiHyperEditUpdateStepButtonColors(row)
+
+  if not step_active[row] then step_active[row] = {} end
+  if not step_data[row] then step_data[row] = {} end
+  for step = 1, MAX_STEPS do
+    step_active[row][step] = false
+    step_data[row][step] = 0.5
+  end
+
+  local points_read = 0
+  for _, point in ipairs(stepper.points) do
+    local t = point.time
+    if t and t >= 1 and t <= MAX_STEPS then
+      local v = point.value or 0.5
+      if v < 0 then v = 0 elseif v > 1 then v = 1 end
+      step_active[row][t] = true
+      step_data[row][t] = v
+      points_read = points_read + 1
+    end
+  end
+
+  if row_canvases[row] then row_canvases[row]:update() end
+  print("DEBUG: Read " .. points_read .. " stepper points for row " .. row .. " (" .. info.name .. ", length " .. len .. ")")
+end
+
+-- Write the row's active steps into the Stepper's points and set its length to
+-- the row step count. The stepper analogue of WriteAutomationPattern. A Stepper
+-- loops over its length automatically while a note is held, so this is all that
+-- "looping steppers" requires.
+function PakettiHyperEditWriteStepper(row)
+  local info = row_parameters[row]
+  if not info or not info.is_stepper or not info.stepper then return end
+  local stepper = info.stepper
+
+  local len = row_steps[row] or 16
+  if len < 1 then len = 1 end
+  if len > MAX_STEPS then len = MAX_STEPS end
+
+  local points = {}
+  for step = 1, len do
+    if step_active[row] and step_active[row][step] then
+      local v = step_data[row][step] or 0.5
+      if v < 0 then v = 0 elseif v > 1 then v = 1 end
+      table.insert(points, {scaling = 0, time = step, value = v})
+    end
+  end
+
+  local ok, err = pcall(function()
+    stepper.length = len
+    if #points == 0 then
+      stepper:clear_points()
+    else
+      stepper.points = points
+    end
+  end)
+  if not ok then
+    renoise.app():show_status("HyperEdit Stepper: write failed - " .. tostring(err))
+    print("DEBUG: WriteStepper error for row " .. row .. ": " .. tostring(err))
+  end
+end
+
+-- Assign the selected instrument's Steppers to rows (selected sample's set first,
+-- then remaining sets) and read each one in. The stepper analogue of the
+-- automation init that runs when the dialog opens.
+function PakettiHyperEditStepperInit()
+  local sets = PakettiHyperEditGetStepperSets()
+  if #sets == 0 then
+    renoise.app():show_status("HyperEdit Steppers: selected instrument has no modulation sets")
+    return
+  end
+
+  -- Order sets so the selected sample's modulation set comes first.
+  local song = renoise.song()
+  local selected_set_index = (song and song.selected_sample_index) or 1
+  local ordered = {}
+  for _, s in ipairs(sets) do
+    if s.index == selected_set_index then table.insert(ordered, 1, s) else table.insert(ordered, s) end
+  end
+
+  -- Flatten every (set, stepper) pair into a single assignment list.
+  local assignments = {}
+  for _, set_info in ipairs(ordered) do
+    local steppers = PakettiHyperEditGetSteppersInSet(set_info.device)
+    -- Find this set's index in the dropdown list (sets, not ordered).
+    local set_list_idx = 1
+    for li, s in ipairs(sets) do if s.index == set_info.index then set_list_idx = li break end end
+    for stepper_list_idx, stepper_info in ipairs(steppers) do
+      table.insert(assignments, {
+        set_list_idx = set_list_idx,
+        set_info = set_info,
+        steppers = steppers,
+        stepper_list_idx = stepper_list_idx,
+        stepper_info = stepper_info
+      })
+    end
+  end
+
+  if #assignments == 0 then
+    renoise.app():show_status("HyperEdit Steppers: instrument has modulation sets but no Stepper devices — add a Stepper to a modulation set")
+  end
+
+  for row = 1, NUM_ROWS do
+    local a = assignments[row]
+    if a then
+      device_lists[row] = sets
+      parameter_lists[row] = a.steppers
+      row_devices[row] = a.set_info.device
+      row_parameters[row] = a.stepper_info
+
+      if dialog_vb and dialog_vb.views["device_popup_" .. row] then
+        dialog_vb.views["device_popup_" .. row].value = a.set_list_idx
+      end
+      if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
+        local names = {}
+        for _, s in ipairs(a.steppers) do table.insert(names, s.name) end
+        if #names == 0 then names = {"No steppers"} end
+        dialog_vb.views["parameter_popup_" .. row].items = names
+        dialog_vb.views["parameter_popup_" .. row].value = a.stepper_list_idx
+      end
+
+      PakettiHyperEditReadStepper(row)
+    end
+  end
+end
+
+-- Stepper-mode observer: when the user selects a different instrument, rebuild
+-- the modulation-set dropdowns and re-assign rows to the new instrument's
+-- Steppers. Replaces the track/device observers (which are automation-specific).
+function PakettiHyperEditSetupStepperObservers()
+  local song = renoise.song()
+  if not song then return end
+
+  if not instrument_change_notifier then
+    instrument_change_notifier = function()
+      if not (hyperedit_dialog and hyperedit_dialog.visible) then return end
+      if hyperedit_mode ~= "stepper" then return end
+
+      local sets = PakettiHyperEditGetStepperSets()
+      local set_names = {}
+      for _, s in ipairs(sets) do table.insert(set_names, s.name) end
+      if #set_names == 0 then set_names = {"No modulation sets"} end
+
+      for row = 1, NUM_ROWS do
+        device_lists[row] = sets
+        row_devices[row] = nil
+        row_parameters[row] = nil
+        parameter_lists[row] = {}
+        if dialog_vb and dialog_vb.views["device_popup_" .. row] then
+          local dp = dialog_vb.views["device_popup_" .. row]
+          dp.value = 1            -- clamp BEFORE shrinking items to avoid out-of-range
+          dp.items = set_names
+        end
+        if dialog_vb and dialog_vb.views["parameter_popup_" .. row] then
+          local pp = dialog_vb.views["parameter_popup_" .. row]
+          pp.value = 1
+          pp.items = {"Select device first"}
+        end
+      end
+
+      PakettiHyperEditInitStepData()
+      PakettiHyperEditStepperInit()
+      for row = 1, NUM_ROWS do
+        if row_canvases[row] then row_canvases[row]:update() end
+      end
+    end
+
+    if song.selected_instrument_index_observable and
+       not song.selected_instrument_index_observable:has_notifier(instrument_change_notifier) then
+      song.selected_instrument_index_observable:add_notifier(instrument_change_notifier)
+    end
+  end
+end
+
+function PakettiHyperEditRemoveStepperObservers()
+  if instrument_change_notifier then
+    local song = renoise.song()
+    if song and song.selected_instrument_index_observable then
+      pcall(function()
+        if song.selected_instrument_index_observable:has_notifier(instrument_change_notifier) then
+          song.selected_instrument_index_observable:remove_notifier(instrument_change_notifier)
+        end
+      end)
+    end
+    instrument_change_notifier = nil
+  end
+end
 
 -- Track color capture state is now stored in preferences (PakettiHyperEditCaptureTrackColor)
 
@@ -863,6 +1151,11 @@ end
 
 -- Get available devices from current track (skip Track Vol/Pan)
 function PakettiHyperEditGetDevices()
+  -- Stepper mode: the "devices" are the selected instrument's modulation sets.
+  if hyperedit_mode == "stepper" then
+    return PakettiHyperEditGetStepperSets()
+  end
+
   local song = renoise.song()
   if not song then return {} end
   
@@ -888,6 +1181,12 @@ end
 -- Get automatable parameters from device (with optional whitelist filtering)
 function PakettiHyperEditGetParameters(device)
   if not device then return {} end
+
+  -- Stepper mode: the "parameters" are the Stepper devices inside the modulation
+  -- set passed as `device`.
+  if hyperedit_mode == "stepper" then
+    return PakettiHyperEditGetSteppersInSet(device)
+  end
   
   local all_params = {}
   
@@ -1577,11 +1876,26 @@ end
 
 -- Delete automation envelope for a row
 function PakettiHyperEditDeleteAutomation(row)
-  if not row_parameters[row] then 
+  if not row_parameters[row] then
     renoise.app():show_status("HyperEdit Row " .. row .. ": No parameter selected")
-    return 
+    return
   end
-  
+
+  -- Stepper mode: clear the Stepper's points and the row's canvas data.
+  if hyperedit_mode == "stepper" then
+    local info = row_parameters[row]
+    if info.is_stepper and info.stepper then
+      pcall(function() info.stepper:clear_points() end)
+    end
+    for step = 1, MAX_STEPS do
+      step_active[row][step] = false
+      step_data[row][step] = 0.5
+    end
+    if row_canvases[row] then row_canvases[row]:update() end
+    renoise.app():show_status("HyperEdit Row " .. row .. ": Cleared stepper " .. (info.name or ""))
+    return
+  end
+
   local song = renoise.song()
   if not song then return end
   
@@ -1620,7 +1934,14 @@ end
 -- Write automation pattern (repeating across full pattern length)
 function PakettiHyperEditWriteAutomationPattern(row)
   if not row_parameters[row] then return end
-  
+
+  -- Stepper mode: write directly into the Stepper device's points instead of a
+  -- pattern automation envelope.
+  if hyperedit_mode == "stepper" then
+    PakettiHyperEditWriteStepper(row)
+    return
+  end
+
   local song = renoise.song()
   if not song then return end
   
@@ -1695,7 +2016,10 @@ end
 -- Switch automation view to show the parameter being edited (like PakettiCanvasExperiments)
 function PakettiHyperEditSwitchToAutomationView(row)
   if not row_parameters[row] then return end
-  
+
+  -- Stepper mode has no pattern automation lane to show — nothing to switch to.
+  if hyperedit_mode == "stepper" then return end
+
   local parameter = row_parameters[row].parameter
   if not parameter then return end
   
@@ -1802,14 +2126,20 @@ function PakettiHyperEditAutoReadAutomation(row)
     print("DEBUG: Skipping auto-read automation during device list update for row " .. row .. " - preserving existing step data")
     return
   end
-  
+
+  -- Stepper mode: read from the Stepper device's points instead of automation.
+  if hyperedit_mode == "stepper" then
+    PakettiHyperEditReadStepper(row)
+    return
+  end
+
   local song = renoise.song()
   if not song then return end
-  
+
   local current_pattern = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern_track = song:pattern(current_pattern):track(track_index)
-  
+
   -- Find existing automation
   local parameter = row_parameters[row].parameter
   local automation = pattern_track:find_automation(parameter)
@@ -2592,7 +2922,13 @@ end
 function PakettiHyperEditSetupObservers()
   local song = renoise.song()
   if not song then return end
-  
+
+  -- Stepper mode watches the selected instrument, not the track/devices.
+  if hyperedit_mode == "stepper" then
+    PakettiHyperEditSetupStepperObservers()
+    return
+  end
+
   -- Track change observer
   if not track_change_notifier then
     track_change_notifier = function()
@@ -2905,6 +3241,8 @@ function PakettiHyperEditRemoveObservers()
   
   PakettiHyperEditRemoveDeviceObserver()
   device_change_notifier = nil
+
+  PakettiHyperEditRemoveStepperObservers()
 end
 
 -- Change step count for specific row
@@ -2935,14 +3273,21 @@ end
 
 function PakettiHyperEditChangeRowStepCount(row, steps)
   row_steps[row] = steps
-  
+
   -- Update button colors to highlight the new step count
   PakettiHyperEditUpdateStepButtonColors(row)
-  
+
   -- Update only this row's canvas
   if row_canvases[row] then
     row_canvases[row]:update()
   end
+
+  -- Stepper mode: push the new length into the Stepper device immediately so its
+  -- loop length tracks the row step count.
+  if hyperedit_mode == "stepper" and row_parameters[row] and row_parameters[row].is_stepper then
+    PakettiHyperEditWriteStepper(row)
+  end
+
   renoise.app():show_status("HyperEdit Row " .. row .. ": Changed to " .. steps .. " steps")
 end
 
@@ -2950,7 +3295,25 @@ end
 function PakettiHyperEditClearAll()
   local song = renoise.song()
   if not song then return end
-  
+
+  -- Stepper mode: clear every assigned Stepper's points, then the canvas.
+  if hyperedit_mode == "stepper" then
+    local cleared = 0
+    for row = 1, NUM_ROWS do
+      local info = row_parameters[row]
+      if info and info.is_stepper and info.stepper then
+        pcall(function() info.stepper:clear_points() end)
+        cleared = cleared + 1
+      end
+    end
+    PakettiHyperEditInitStepData()
+    for row = 1, NUM_ROWS do
+      if row_canvases[row] then row_canvases[row]:update() end
+    end
+    renoise.app():show_status("HyperEdit Steppers: cleared " .. cleared .. " stepper(s) and canvas data")
+    return
+  end
+
   local current_pattern = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern_track = song:pattern(current_pattern):track(track_index)
@@ -3263,6 +3626,37 @@ function PakettiHyperEditCreateDialog()
   local dialog_content = vb:column {
     -- Global controls
     vb:row {
+      vb:text { text = "Mode", style="strong", font="bold", width = 36 },
+      vb:popup {
+        id = "hyperedit_mode_popup",
+        items = {"Effect Params", "Steppers"},
+        value = (hyperedit_mode == "stepper") and 2 or 1,
+        width = 110,
+        tooltip = "Effect Params: edit track-device parameters as pattern automation. Steppers: edit the selected instrument's Stepper modulation devices (looping step sequencers).",
+        notifier = function(index)
+          local new_mode = (index == 2) and "stepper" or "effect"
+          if new_mode ~= hyperedit_mode then
+            PakettiHyperEditSetMode(new_mode)
+            -- Reopen so the device/parameter enumeration + init run for the new
+            -- mode. Effect mode goes through Init (which ensures an instrument
+            -- control device exists); stepper mode just rebuilds the dialog.
+            if hyperedit_dialog and hyperedit_dialog.visible then
+              hyperedit_dialog:close()
+              local reopen_timer
+              reopen_timer = function()
+                renoise.tool():remove_timer(reopen_timer)
+                if hyperedit_mode == "stepper" then
+                  PakettiHyperEditCreateDialog()
+                else
+                  PakettiHyperEditInit()
+                end
+              end
+              renoise.tool():add_timer(reopen_timer, 100)
+            end
+          end
+        end
+      },
+      vb:text{text="|",style="strong",font="bold"},
       vb:checkbox {
         id = "capture_track_color",
         value = preferences.PakettiHyperEditCaptureTrackColor.value,
@@ -3729,9 +4123,22 @@ function PakettiHyperEditCreateDialog()
   -- Initialize colors based on track color capture setting
   PakettiHyperEditUpdateColors()
   
+  -- Stepper mode has its own init path: assign the selected instrument's Stepper
+  -- devices to rows and read them in. The automation pre-configure / populate
+  -- machinery below is effect-mode only.
+  if hyperedit_mode == "stepper" then
+    local stepper_init_timer
+    stepper_init_timer = function()
+      renoise.tool():remove_timer(stepper_init_timer)
+      PakettiHyperEditStepperInit()
+    end
+    renoise.tool():add_timer(stepper_init_timer, 150)
+    return
+  end
+
   -- Try to pre-configure parameters for empty channels
   PakettiHyperEditPreConfigureParameters()
-  
+
   -- CRITICAL: Initialize with existing automation or default to first device
   if #devices > 0 then
     local init_timer
@@ -4007,7 +4414,10 @@ function PakettiHyperEditInit()
     hyperedit_dialog:close()
     return
   end
-  
+
+  -- The plain entry point always opens in effect mode.
+  PakettiHyperEditSetMode("effect")
+
   -- Check if any priority instrument control device exists on selected track, create only if none exist
   local s = renoise.song()
   local track = s.selected_track
@@ -4049,6 +4459,23 @@ PakettiAddMenuEntry {name = "--Mixer:Paketti Gadgets:Paketti HyperEdit",invoke =
 PakettiAddMenuEntry {name = "--Pattern Matrix:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 PakettiAddMenuEntry {name = "--Track Automation:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+
+-- Stepper mode entry point: open HyperEdit editing the selected instrument's
+-- Stepper modulation devices instead of track-device automation. Does not create
+-- a track instrument-control device (steppers live on the instrument).
+function PakettiHyperEditInitStepper()
+  if hyperedit_dialog and hyperedit_dialog.visible then
+    hyperedit_dialog:close()
+    return
+  end
+  PakettiHyperEditSetMode("stepper")
+  PakettiHyperEditCreateDialog()
+end
+
+PakettiAddMenuEntry {name = "Pattern Editor:Paketti Gadgets:Paketti HyperEdit (Steppers)",invoke = PakettiHyperEditInitStepper}
+PakettiAddMenuEntry {name = "Mixer:Paketti Gadgets:Paketti HyperEdit (Steppers)",invoke = PakettiHyperEditInitStepper}
+PakettiAddMenuEntry {name = "Instrument Box:Paketti Gadgets:Paketti HyperEdit (Steppers)",invoke = PakettiHyperEditInitStepper}
+renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit (Steppers)",invoke = PakettiHyperEditInitStepper}
 
 -- HyperEdit Pattern Functions
 renoise.tool():add_keybinding {name = "Global:Paketti:HyperEdit Duplicate to Next Pattern",invoke = PakettiHyperEditDuplicateToNextPattern}
