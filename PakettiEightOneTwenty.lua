@@ -117,6 +117,12 @@ function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_inde
     if inst.sample_modulation_sets and #inst.sample_modulation_sets > 0 then
       pcall(function() inst.samples[new_index].modulation_set_index = 1 end)
     end
+    -- Name the instrument after the recorded sample, so the slot reads e.g.
+    -- "recorded sample 02" instead of the default chassis name (12st_Pitchbend).
+    local recorded_name = inst.samples[new_index].name
+    if recorded_name and recorded_name ~= "" then
+      inst.name = recorded_name
+    end
   end
 
   -- Refresh the row's sample-name label so it stops showing "No sample available"
@@ -127,6 +133,11 @@ function PakettiEightOneTwentyFinalizeRecordedSample(row_index, target_inst_inde
   local re = rows and rows[row_index]
   if re and re.update_sample_name_label then
     re.update_sample_name_label()
+  end
+  -- The instrument was just renamed after the recorded sample, so refresh the
+  -- row instrument popups to show the new name instead of the chassis name.
+  if type(update_instrument_list_and_popups) == "function" then
+    pcall(update_instrument_list_and_popups)
   end
   if beatsync_visible then
     PakettiEightOneTwentyUpdateBeatsyncUiFor(row_index)
