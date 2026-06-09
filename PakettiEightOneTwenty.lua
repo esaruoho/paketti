@@ -5112,42 +5112,78 @@ local function paketti_set_cutoff_hz(dev, target_hz)
   return false
 end
 
+-- Find the index of our tagged low-cut device on the master, or nil.
+local function paketti_master_lowcut_index(master)
+  for i = 1, #master.devices do
+    if master.devices[i].display_name == PAKETTI_MASTER_LOWCUT_TAG then return i end
+  end
+  return nil
+end
+
+-- Force the low-cut ON (insert + configure) or OFF (remove). Idempotent: calling
+-- it with the state it's already in does nothing, so it's safe for both the
+-- toggle and the held/momentary mapping.
+function PakettiMasterLowCut200SetState(active)
+  local master = paketti_master_track()
+  if not master then renoise.app():show_status("Master Low-Cut: no master track found") return end
+  local idx = paketti_master_lowcut_index(master)
+
+  if active then
+    if idx then return end  -- already on
+    local ok, err = pcall(function()
+      master:insert_device_at("Audio/Effects/Native/Digital Filter", #master.devices + 1)
+    end)
+    if not ok then
+      renoise.app():show_status("Master Low-Cut: could not insert Digital Filter — " .. tostring(err))
+      return
+    end
+    local dev = master.devices[#master.devices]
+    dev.active_preset_data = PAKETTI_MASTER_HIPASS_XML  -- Biquad high-pass (Type 3)
+    local set_cut = paketti_set_cutoff_hz(dev, PAKETTI_MASTER_LOWCUT_HZ)
+    dev.display_name = PAKETTI_MASTER_LOWCUT_TAG
+    dev.is_maximized = false
+    if set_cut then
+      renoise.app():show_status("Master Low-Cut 200Hz: ON — lows dropped")
+    else
+      renoise.app():show_status("Master Low-Cut: high-pass added, but could not auto-set 200Hz cutoff — adjust manually")
+    end
+  else
+    if not idx then return end  -- already off
+    master:delete_device_at(idx)
+    renoise.app():show_status("Master Low-Cut 200Hz: OFF — low end restored")
+  end
+end
+
 function PakettiToggleMasterLowCut200()
   local master = paketti_master_track()
   if not master then renoise.app():show_status("Master Low-Cut: no master track found") return end
+  PakettiMasterLowCut200SetState(paketti_master_lowcut_index(master) == nil)
+end
 
-  -- Already punched in? remove it (punch off).
-  for i = 1, #master.devices do
-    if master.devices[i].display_name == PAKETTI_MASTER_LOWCUT_TAG then
-      master:delete_device_at(i)
-      renoise.app():show_status("Master Low-Cut 200Hz: OFF — low end restored")
-      return
-    end
-  end
-
-  -- Punch in: insert the native Digital Filter and inject the high-pass preset.
-  local ok, err = pcall(function()
-    master:insert_device_at("Audio/Effects/Native/Digital Filter", #master.devices + 1)
-  end)
-  if not ok then
-    renoise.app():show_status("Master Low-Cut: could not insert Digital Filter — " .. tostring(err))
+-- Momentary / trigger-and-hold: active WHILE the button is held, off on release.
+-- A held button sends press (value > 0 / switch on) then release (value 0 / switch
+-- off); we read the message value rather than is_trigger so we catch both edges.
+function PakettiMasterLowCut200Momentary(message)
+  local on
+  if message:is_switch() then
+    on = message.boolean_value
+  elseif message:is_abs_value() then
+    on = (message.int_value or 0) > 0
+  elseif message:is_trigger() then
+    on = true  -- press-only controller: no release edge available, best effort
+  else
     return
   end
-  local dev = master.devices[#master.devices]
-  dev.active_preset_data = PAKETTI_MASTER_HIPASS_XML  -- Biquad high-pass (Type 3)
-  local set_cut = paketti_set_cutoff_hz(dev, PAKETTI_MASTER_LOWCUT_HZ)
-  dev.display_name = PAKETTI_MASTER_LOWCUT_TAG
-  dev.is_maximized = false
-  if set_cut then
-    renoise.app():show_status("Master Low-Cut 200Hz: ON — lows dropped")
-  else
-    renoise.app():show_status("Master Low-Cut: high-pass added, but could not auto-set 200Hz cutoff — adjust manually")
-  end
+  PakettiMasterLowCut200SetState(on)
 end
 
 renoise.tool():add_midi_mapping{
   name = "Paketti:Master Low-Cut 200Hz Toggle",
   invoke = function(message) if message:is_trigger() then PakettiToggleMasterLowCut200() end end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Master Low-Cut 200Hz Hold",
+  invoke = function(message) PakettiMasterLowCut200Momentary(message) end
 }
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Master Low-Cut 200Hz Toggle",

@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-09 - Feature: Master Low-Cut 200Hz "Hold" (momentary) MIDI mapping
+
+A trigger-and-hold companion to the Master Low-Cut toggle: the 200Hz high-pass on the master is active **while you hold the button** and turns off the moment you release it — for momentary low-end drops. It reads the button's value (press vs release) rather than just the trigger edge, so it catches both the hold and the let-go.
+
+- MIDI Mapping: `Paketti:Master Low-Cut 200Hz Hold`
+
 ### 2026-06-09 - Improvement: Impulse Tracker F8 Stop Playback (Panic) also bindable in the Pattern Editor
 
 The F8 Stop Playback (Panic) action (and its "(2nd)" companion) now also exists as a Pattern Editor keybinding, in addition to the existing Global ones — so you can assign it specifically in the Pattern Editor context.
