@@ -5017,6 +5017,123 @@ renoise.tool():add_midi_mapping{
   end
 }
 
+-- ============================================================================
+-- Master Low-Cut (High-Pass) 200Hz punch toggle
+-- ----------------------------------------------------------------------------
+-- One toggle: punch it ON to drop everything below ~200Hz off the MASTER track
+-- (a high-pass / low-cut at 200Hz), punch it OFF to bring the low end back. The
+-- inserted Filter device is tagged by display name so the toggle finds + removes
+-- it. The filter type (high-pass) and cutoff (200Hz) are set by READING the
+-- parameter's value_string back, so we don't depend on the device's internal
+-- value→Hz mapping.
+local PAKETTI_MASTER_LOWCUT_TAG = "Paketti LowCut 200Hz"
+local PAKETTI_MASTER_LOWCUT_HZ = 200
+
+local function paketti_master_track()
+  local song = renoise.song()
+  if not song then return nil end
+  for i = 1, #song.tracks do
+    if song.tracks[i].type == renoise.Track.TRACK_TYPE_MASTER then return song.tracks[i] end
+  end
+  return nil
+end
+
+local function paketti_parse_hz(s)
+  if not s then return nil end
+  local num = s:match("([%d%.]+)")
+  num = num and tonumber(num) or nil
+  if not num then return nil end
+  if s:lower():find("khz") then num = num * 1000 end
+  return num
+end
+
+-- Set the filter to a high-pass type and its cutoff to ~target_hz. Returns
+-- whether each was successfully set.
+local function paketti_configure_lowcut(dev, target_hz)
+  local set_type, set_cut = false, false
+  for i = 1, #dev.parameters do
+    local p = dev.parameters[i]
+    local n = (p.name or ""):lower()
+    if (not set_type) and (n == "type" or n:find("model") or n:find("filter type")) then
+      for v = math.floor(p.value_min), math.floor(p.value_max) do
+        p.value = v
+        local s = (p.value_string or ""):lower()
+        if s:find("high") or s:find("hp") then set_type = true break end
+      end
+    elseif (not set_cut) and (n:find("cutoff") or n == "freq" or n:find("frequency")) then
+      local lo, hi = p.value_min, p.value_max
+      local best_v, best_diff
+      local function pass(a, b, steps)
+        if a < lo then a = lo end
+        if b > hi then b = hi end
+        for s = 0, steps do
+          local v = a + (b - a) * (s / steps)
+          p.value = v
+          local hz = paketti_parse_hz(p.value_string)
+          if hz then
+            local d = math.abs(hz - target_hz)
+            if (not best_diff) or d < best_diff then best_diff = d best_v = v end
+          end
+        end
+      end
+      pass(lo, hi, 200)
+      if best_v then
+        local span = (hi - lo) / 200
+        pass(best_v - span, best_v + span, 100)  -- refine around the best coarse hit
+        p.value = best_v
+        set_cut = true
+      end
+    end
+  end
+  return set_type, set_cut
+end
+
+function PakettiToggleMasterLowCut200()
+  local master = paketti_master_track()
+  if not master then renoise.app():show_status("Master Low-Cut: no master track found") return end
+
+  -- Already punched in? remove it (punch off).
+  for i = 1, #master.devices do
+    if master.devices[i].display_name == PAKETTI_MASTER_LOWCUT_TAG then
+      master:delete_device_at(i)
+      renoise.app():show_status("Master Low-Cut 200Hz: OFF — low end restored")
+      return
+    end
+  end
+
+  -- Punch in: insert + configure.
+  local ok, err = pcall(function()
+    master:insert_device_at("Audio/Effects/Native/Filter", #master.devices + 1)
+  end)
+  if not ok then
+    renoise.app():show_status("Master Low-Cut: could not insert Filter device — " .. tostring(err))
+    return
+  end
+  local dev = master.devices[#master.devices]
+  dev.display_name = PAKETTI_MASTER_LOWCUT_TAG
+  dev.is_maximized = false
+  local set_type, set_cut = paketti_configure_lowcut(dev, PAKETTI_MASTER_LOWCUT_HZ)
+  if set_type and set_cut then
+    renoise.app():show_status("Master Low-Cut 200Hz: ON — lows dropped")
+  else
+    renoise.app():show_status("Master Low-Cut: Filter inserted but could not auto-set " ..
+      (set_type and "" or "type ") .. (set_cut and "" or "cutoff") .. "— set high-pass / 200Hz manually")
+  end
+end
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Master Low-Cut 200Hz Toggle",
+  invoke = function(message) if message:is_trigger() then PakettiToggleMasterLowCut200() end end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Master Low-Cut 200Hz Toggle",
+  invoke = function() PakettiToggleMasterLowCut200() end
+}
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Master Low-Cut 200Hz Toggle",
+  invoke = function() PakettiToggleMasterLowCut200() end
+}
+
 -- Mirror the per-row utility buttons onto the focused row so the same controller
 -- bank can drive < / > / Clear / Randomize / Load / Show / Random / Automation /
 -- Reverse against whichever row is in focus.

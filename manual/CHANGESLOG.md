@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-09 - Feature: Master Low-Cut 200Hz punch toggle
+
+A one-button "punch it in, punch it off" toggle for dropping the low end. Punch it ON and a high-pass / low-cut at ~200Hz is added to the **master** track (everything below 200Hz is filtered out); punch it OFF and the device is removed, restoring the lows — great for live build-ups and drops. The inserted Filter is tagged by name so the toggle finds and removes exactly its own device; the high-pass type and 200Hz cutoff are set by reading the parameter's displayed value back, so it lands on 200Hz regardless of the device's internal scaling.
+
+- MIDI Mapping: `Paketti:Master Low-Cut 200Hz Toggle`
+- Keybinding: `Global:Paketti:Master Low-Cut 200Hz Toggle`
+- Menu: `Main Menu:Tools:Paketti:Master Low-Cut 200Hz Toggle`
+
 ### 2026-06-09 - Feature: HyperEdit Open/Close MIDI mapping
 
 A new MIDI mapping toggles the Paketti HyperEdit dialog from a controller button — press once to open it, again to close it.
