@@ -196,6 +196,11 @@ end
 local hyperedit_dialog = nil
 local dialog_vb = nil    -- Store ViewBuilder instance
 local row_canvases = {}  -- [row] = canvas
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song) so observers detach while renoise.song() is still the OLD song. Leaving
+-- them live crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying during
+-- pattern-pool teardown. See features/song-lifecycle-safety.feature.
+local hyperedit_release_doc_observer = nil
 -- Live MIDI Write: when enabled, an external MIDI knob mapped to "MIDI Write Row N"
 -- writes its value into row N's currently-playing step (or the edit-cursor step
 -- when stopped). Initialized from preferences when the dialog opens.
@@ -3145,7 +3150,12 @@ function PakettiHyperEditCleanup()
   PakettiHyperEditRemoveObservers()
   PakettiHyperEditCleanupPlayhead()
   PakettiHyperEditStopMouseMonitor()
-  
+  -- Detach the song-release safety observer (idempotent; safe to run twice)
+  if hyperedit_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(hyperedit_release_doc_observer) then
+    renoise.tool().app_release_document_observable:remove_notifier(hyperedit_release_doc_observer)
+  end
+  hyperedit_release_doc_observer = nil
+
   hyperedit_dialog = nil
   dialog_vb = nil  -- Clear ViewBuilder reference
   row_canvases = {}
@@ -3698,7 +3708,24 @@ function PakettiHyperEditCreateDialog()
   
   -- Setup playhead
   PakettiHyperEditSetupPlayhead()
-  
+
+  -- Song-lifecycle safety seatbelt: tear down BEFORE the song is released
+  -- (New Song / Load Song). renoise.song() is still the OLD song here, so
+  -- PakettiHyperEditCleanup() detaches every observer from the song that is
+  -- about to die. Without this, the live transport/track/device observers and
+  -- the open canvas crashed Renoise in TWeakRefOwner::SOnWeakReferencableDying
+  -- during pattern-pool teardown. See features/song-lifecycle-safety.feature.
+  if not hyperedit_release_doc_observer then
+    hyperedit_release_doc_observer = function()
+      local dlg = hyperedit_dialog
+      PakettiHyperEditCleanup()      -- detaches observers from the still-alive old song; removes this observer
+      if dlg and dlg.visible then dlg:close() end  -- close callback re-runs Cleanup (idempotent)
+    end
+  end
+  if not renoise.tool().app_release_document_observable:has_notifier(hyperedit_release_doc_observer) then
+    renoise.tool().app_release_document_observable:add_notifier(hyperedit_release_doc_observer)
+  end
+
   -- Initialize colors based on track color capture setting
   PakettiHyperEditUpdateColors()
   

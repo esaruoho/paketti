@@ -2583,6 +2583,21 @@ function PakettiCanvasExperimentsHandleNewDocument()
   end
 end
 
+-- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
+-- Song). renoise.song() is still the OLD song here, so every observer below
+-- detaches from the song that is about to die: the persistent global
+-- auto-open observer, the dialog-scoped device/parameter observers, and the
+-- canvas timer. Leaving them live crashed Renoise in
+-- TWeakRefOwner::SOnWeakReferencableDying during pattern-pool teardown when the
+-- ParameterEditor canvas was open. app_new_document_observable fires too late
+-- (old song already freed). See features/song-lifecycle-safety.feature.
+function PakettiCanvasExperimentsHandleReleaseDocument()
+  PakettiCanvasExperimentsRemoveGlobalDeviceObserver()
+  local dlg = canvas_experiments_dialog
+  PakettiCanvasExperimentsCleanup()              -- detaches dialog-scoped observers from the still-alive old song (idempotent)
+  if dlg and dlg.visible then dlg:close() end    -- closed_observable re-runs Cleanup (idempotent)
+end
+
 -- Duplicate current device parameter automation to next pattern
 function PakettiCanvasExperimentsDuplicateToNextPattern()
   local song = renoise.song()
@@ -2900,4 +2915,11 @@ end)
 -- Handle new document to reinstall global observer if needed
 if not renoise.tool().app_new_document_observable:has_notifier(PakettiCanvasExperimentsHandleNewDocument) then
   renoise.tool().app_new_document_observable:add_notifier(PakettiCanvasExperimentsHandleNewDocument)
+end
+
+-- Tear down BEFORE the song is released so observers detach from the OLD song
+-- (the only safe place). Persistent because the global auto-open observer can
+-- be active without the dialog. See features/song-lifecycle-safety.feature.
+if not renoise.tool().app_release_document_observable:has_notifier(PakettiCanvasExperimentsHandleReleaseDocument) then
+  renoise.tool().app_release_document_observable:add_notifier(PakettiCanvasExperimentsHandleReleaseDocument)
 end
