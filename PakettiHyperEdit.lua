@@ -4,9 +4,6 @@
 
 -- Debug control flag - set to true to enable verbose logging
 local DEBUG_HYPEREDIT = false
--- Temporary: prints stepper play_step transitions so we can verify whether the
--- Lua API exposes a live, polling-readable stepper position. Set false to silence.
-local DEBUG_STEPPER_PLAYHEAD = true
 
 -- Helper function to clean parameter names by removing "CC XX " prefix
 -- e.g., "CC 1 (Mod Wheel)" becomes "Mod Wheel"
@@ -228,6 +225,17 @@ local playing_observer_fn = nil
 local playhead_step_indices = {}  -- [row] = current_step
 local playhead_color = nil
 
+-- Stepper-mode follower state. A Stepper advances one step per note-on of its
+-- instrument, NOT with the pattern line. So during playback we count the
+-- instrument's note-on triggers as the playhead crosses each line, and map that
+-- running count through each row's Stepper length. All rows share one count
+-- (one note-on advances every Stepper on the instrument), but each row wraps at
+-- its own length. The count resets when transport (re)starts.
+local stepper_trigger_count = 0
+local stepper_follow_seq = nil   -- last processed playback sequence index
+local stepper_follow_line = nil  -- last processed playback line
+local stepper_was_playing = false
+
 -- Row state variables (must be declared early for playhead functions)
 local row_steps = {}  -- [row] = step count for this row (individual per row)
 
@@ -254,6 +262,51 @@ function PakettiHyperEditSetMode(mode)
     preferences.PakettiHyperEditMode.value = hyperedit_mode
     preferences:save_as("preferences.xml")
   end
+end
+
+-- Reset the stepper follower (trigger count + last processed playback position).
+-- Called when the dialog opens in stepper mode, when the instrument changes, and
+-- whenever transport (re)starts.
+function PakettiHyperEditResetStepperFollow()
+  stepper_trigger_count = 0
+  stepper_follow_seq = nil
+  stepper_follow_line = nil
+end
+
+-- Count note-ons of the given instrument on one pattern line, across every
+-- sequencer track. Each note-on is one Stepper trigger (a chord of 4 notes =
+-- 4 triggers, matching the hardware behaviour). instr_index is 1-based;
+-- note_columns store instrument_value 0-based (255 = empty).
+function PakettiHyperEditCountInstrumentTriggersOnLine(song, seq_index, line_index, instr_index)
+  local seq = song.sequencer.pattern_sequence
+  if not seq or seq_index < 1 or seq_index > #seq then return 0 end
+  local pattern_index = seq[seq_index]
+  local pattern = song:pattern(pattern_index)
+  if not pattern or line_index < 1 or line_index > pattern.number_of_lines then return 0 end
+
+  local want = instr_index - 1
+  local count = 0
+  for t = 1, #song.tracks do
+    if song.tracks[t].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      local line = pattern:track(t):line(line_index)
+      for _, nc in ipairs(line.note_columns) do
+        -- note_value < 120 = an actual note (120 = OFF, 121 = empty)
+        if nc.note_value < 120 and nc.instrument_value == want then
+          count = count + 1
+        end
+      end
+    end
+  end
+  return count
+end
+
+-- Map the shared trigger count to a row's step using that row's Stepper length.
+-- Returns nil before any trigger (no highlight yet).
+function PakettiHyperEditStepperStepFromCount(row)
+  if stepper_trigger_count <= 0 then return nil end
+  local rc = row_steps[row] or 16
+  if rc < 1 then rc = 1 end
+  return ((stepper_trigger_count - 1) % rc) + 1
 end
 
 -- Return the selected instrument's modulation sets shaped like the entries
@@ -386,6 +439,8 @@ end
 -- then remaining sets) and read each one in. The stepper analogue of the
 -- automation init that runs when the dialog opens.
 function PakettiHyperEditStepperInit()
+  PakettiHyperEditResetStepperFollow()
+
   local sets = PakettiHyperEditGetStepperSets()
   if #sets == 0 then
     renoise.app():show_status("HyperEdit Steppers: selected instrument has no modulation sets")
@@ -618,31 +673,40 @@ function PakettiHyperEditUpdatePlayheadHighlights()
   local song = renoise.song()
   if not song then return end
 
-  -- Stepper mode: a Stepper is NOT locked to pattern playback — it advances one
-  -- step on every sample trigger and reports its live position in device.play_step
-  -- (-1 when idle). So each row's playhead follows its own Stepper's play_step,
-  -- not the pattern line. Trigger four notes and the stepper advances four steps.
+  -- Stepper mode: a Stepper advances one step per note-on of its instrument, NOT
+  -- per pattern line (trigger four notes and it advances four steps). So we count
+  -- the instrument's note-on triggers as the pattern playhead crosses each line
+  -- and map that running count through each row's Stepper length.
   if hyperedit_mode == "stepper" then
+    -- Advance the shared trigger count as the playhead crosses new lines, then
+    -- map it through each row's Stepper length. Count resets on (re)start.
+    local playing = song.transport.playing
+    if playing and not stepper_was_playing then
+      PakettiHyperEditResetStepperFollow()
+    end
+
+    if playing then
+      local pos = song.transport.playback_pos
+      if pos and pos.line then
+        local instr_index = song.selected_instrument_index
+        -- New line entered since we last looked? Count that line's triggers once.
+        if stepper_follow_seq ~= pos.sequence or stepper_follow_line ~= pos.line then
+          stepper_trigger_count = stepper_trigger_count +
+            PakettiHyperEditCountInstrumentTriggersOnLine(song, pos.sequence, pos.line, instr_index)
+          stepper_follow_seq = pos.sequence
+          stepper_follow_line = pos.line
+        end
+      end
+    end
+    stepper_was_playing = playing
+
     for row = 1, NUM_ROWS do
       local info = row_parameters[row]
       local step_index = nil
-      local raw_ps = nil
       if info and info.is_stepper and info.stepper then
-        local ok, ps = pcall(function() return info.stepper.play_step end)
-        if ok then raw_ps = ps end
-        if ok and ps and ps >= 1 then
-          local row_step_count = row_steps[row] or 16
-          if row_step_count < 1 then row_step_count = 1 end
-          step_index = ((ps - 1) % row_step_count) + 1
-        end
+        step_index = PakettiHyperEditStepperStepFromCount(row)
       end
       if playhead_step_indices[row] ~= step_index then
-        -- DIAGNOSTIC (temporary): prints only when a row's mapped step changes.
-        -- If notes play and this never prints, play_step is not advancing via the
-        -- Lua API (polling sees a frozen value) and we need a different mechanism.
-        if DEBUG_STEPPER_PLAYHEAD then
-          print(string.format("STEPPER PLAYHEAD: row %d play_step=%s -> step_index=%s", row, tostring(raw_ps), tostring(step_index)))
-        end
         playhead_step_indices[row] = step_index
         if row_canvases[row] then row_canvases[row]:update() end
       end
@@ -4526,9 +4590,9 @@ renoise.tool():add_keybinding {name = "Global:Paketti:HyperEdit Duplicate to Nex
 -- automation writer, so the result is identical to drawing the step by hand.
 
 -- Resolve the row's "current" step the same way the playhead highlight does.
--- Stepper mode: the Stepper's live play_step (it advances per sample trigger,
--- not per pattern line); falls back to step 1 when idle. Effect mode: the
--- playing line while running, else the edit-cursor (selected) line.
+-- Stepper mode: the live trigger-count follower (advances per instrument note-on
+-- during playback); falls back to step 1. Effect mode: the playing line while
+-- running, else the edit-cursor (selected) line.
 function PakettiHyperEditCurrentStepForRow(row)
   local song = renoise.song()
   if not song then return 1 end
@@ -4536,14 +4600,10 @@ function PakettiHyperEditCurrentStepForRow(row)
   if row_step_count < 1 then row_step_count = 1 end
 
   if hyperedit_mode == "stepper" then
-    local info = row_parameters[row]
-    if info and info.is_stepper and info.stepper then
-      local ok, ps = pcall(function() return info.stepper.play_step end)
-      if ok and ps and ps >= 1 then
-        return ((ps - 1) % row_step_count) + 1
-      end
-    end
-    return 1
+    -- The Stepper's current step is the live trigger-count follower (advances per
+    -- instrument note-on during playback), so MIDI Write records into that step.
+    local step = PakettiHyperEditStepperStepFromCount(row)
+    return step or 1
   end
 
   local current_line = song.selected_line_index
