@@ -5391,10 +5391,16 @@ end
 
 -- Global entry so non-bridge code (the row-select knob) can force an immediate
 -- LED refresh the instant the focused row changes — instead of waiting for, or
--- depending on, the idle poller (which we've seen not refresh reliably while the
--- dialog is closed). No-op when the bridge isn't open.
+-- depending on, the idle poller. Reports the bridge state so it's obvious when
+-- the LEDs aren't updating because the bridge simply isn't open.
 function PakettiEightOneTwentyMidiMixRefreshLeds()
+  if not paketti_midimix_out then
+    renoise.app():show_status("MidiMix LEDs: bridge is NOT open — run 'Groovebox 8120 MidiMix Bridge Toggle' (menu/keybinding) to start it")
+    return false
+  end
   paketti_midimix_redraw_all_leds()
+  renoise.app():show_status(string.format("MidiMix LEDs refreshed for row %02d", paketti_8120_selected_row()))
+  return true
 end
 
 local function paketti_midimix_clear_all_leds()
@@ -5529,17 +5535,44 @@ function PakettiEightOneTwentyMidiMixClose()
   paketti_midimix_last_led = {}
 end
 
+-- Open the bridge if closed, close it if open. This is what you run to START the
+-- headless LED work: it opens the MidiMix in/out so the step sequencer LEDs +
+-- buttons work with the 8120 dialog closed. Reports what it did + whether the
+-- device was found, so it's clear when no MidiMix is detected.
+function PakettiEightOneTwentyMidiMixBridgeToggle()
+  if paketti_midimix_in or paketti_midimix_out then
+    PakettiEightOneTwentyMidiMixClose()
+    renoise.app():show_status("Groovebox 8120: MidiMix bridge CLOSED")
+  else
+    local ok = PakettiEightOneTwentyMidiMixOpen()
+    if ok then
+      renoise.app():show_status("Groovebox 8120: MidiMix bridge OPEN — headless step LEDs active (out=" .. tostring(paketti_midimix_out ~= nil) .. ")")
+    end
+  end
+end
+
 renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:MidiMix Bridge Toggle [Trigger]",
   invoke = function(message)
     if not message:is_trigger() then return end
-    if paketti_midimix_in or paketti_midimix_out then
-      PakettiEightOneTwentyMidiMixClose()
-      renoise.app():show_status("Groovebox 8120: MidiMix bridge closed")
-    else
-      PakettiEightOneTwentyMidiMixOpen()
-    end
+    PakettiEightOneTwentyMidiMixBridgeToggle()
   end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Paketti Groovebox 8120 MidiMix Bridge Toggle",
+  invoke = function() PakettiEightOneTwentyMidiMixBridgeToggle() end
+}
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:MidiMix Bridge Toggle (start headless LEDs)",
+  invoke = function() PakettiEightOneTwentyMidiMixBridgeToggle() end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Paketti Groovebox 8120 MidiMix Refresh LEDs",
+  invoke = function() PakettiEightOneTwentyMidiMixRefreshLeds() end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Paketti Groovebox 8120:MidiMix Refresh LEDs [Trigger]",
+  invoke = function(message) if message:is_trigger() then PakettiEightOneTwentyMidiMixRefreshLeds() end end
 }
 
 -- Add MIDI mapping for step mode switch

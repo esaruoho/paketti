@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Improvement: Groovebox 8120 MidiMix bridge can be started/checked from menu + keybinding (headless LEDs)
+
+To use the MidiMix step LEDs without the 8120 dialog you need the MidiMix "bridge" open (it reads the buttons and drives the LEDs). It was only openable via a MIDI mapping or by opening the dialog; now there's a **menu entry and keybinding** for it, plus a "Refresh LEDs" action. The bridge toggle reports clearly whether it opened and found the MidiMix output. The row-select knob's LED refresh now also reports its result — if the LEDs aren't updating it says "bridge is NOT open" so you know to start it. So: run `MidiMix Bridge Toggle` once (menu/keybinding/MIDI) and the headless step LEDs come alive.
+
+- Menu: `Main Menu:Tools:Paketti:Groovebox:MidiMix Bridge Toggle (start headless LEDs)`
+- Keybinding: `Global:Paketti:Paketti Groovebox 8120 MidiMix Bridge Toggle`
+- Keybinding: `Global:Paketti:Paketti Groovebox 8120 MidiMix Refresh LEDs`
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:MidiMix Refresh LEDs [Trigger]`
+
 ### 2026-06-10 - Fix: Groovebox 8120 row-select knob now refreshes the MidiMix LEDs immediately (headless)
 
 With the dialog closed, sweeping the `Select Row (Knob 01-08 / 08-01)` selector changed the focused row but the LEDs stayed frozen on the previous row's pattern. The knob now forces an immediate MidiMix LED redraw the instant it changes rows, instead of relying on the idle poller. The idle poller itself is also now wrapped in a guard so a transient error can't make Renoise disable it (which would freeze the LEDs). So headless, sweeping the knob makes the 16 LEDs jump to the newly-selected row's steps right away.
