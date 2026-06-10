@@ -247,6 +247,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiHyperEditMidiWrite=false,  -- live MIDI-knob writing into the playing/edit step
   PakettiHyperEditMode="effect",  -- "effect" = track device params -> automation; "stepper" = instrument Stepper modulation devices
   PakettiEightOneTwentyMidiMixAutoStart=false,  -- auto-open the Akai MidiMix bridge at startup so its step LEDs/buttons work headlessly
+  PakettiEightOneTwentyAPCAutoStart=false,  -- auto-arm the Akai APC Key 25 step sequencer at startup so it works headlessly
   pakettiDefaultXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni"),
   pakettiDefaultDrumkitXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni"),
   pakettiDefaultMidiMappingPath = "",

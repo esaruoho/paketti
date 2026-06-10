@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: "Auto-Start AKAI APC Key 25" setting (Options menu) — APC step sequencer works headlessly
+
+The APC Key 25 step sequencer used to arm only when the 8120 dialog opened, so with the dialog closed the pads did nothing. There's now a persistent setting, mirroring the MidiMix one: turn **Auto-Start AKAI APC Key 25** ON once and the step sequencer arms at every launch and on song load, so the pads sequence the selected row with the dialog closed. Turning it ON arms immediately (or says it'll arm when the APC is next detected); turning it OFF stops it. Checkable entry in both the Options menu and the Groovebox menu, saved in preferences (default OFF).
+
+- Menu: `Main Menu:Options:Auto-Start AKAI APC Key 25` (checkable)
+- Menu: `Main Menu:Tools:Paketti:Groovebox:Auto-Start AKAI APC Key 25` (checkable)
+- Preference: `PakettiEightOneTwentyAPCAutoStart` (default OFF)
+
 ### 2026-06-10 - Fix: Scala Tuning Map now refreshes live on instrument switch and tuning change
 
 The map was staying static. It now attaches observers to the selected-instrument index and the instrument's `tuning` / `tuning_name` observables, so it refreshes the instant you switch instruments or load/change a tuning — and the polling timer re-reads every tick as a backstop. All observers detach on dialog close and on document release (song-lifecycle safe).

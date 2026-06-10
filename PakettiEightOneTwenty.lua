@@ -6252,6 +6252,60 @@ function PakettiEightOneTwentyAPCAutoArm()
   return true
 end
 
+-- "Auto-Start AKAI APC Key 25" setting. When ON, the APC step sequencer is armed
+-- at startup AND on every song load, so the pads work WITHOUT opening the 8120
+-- dialog (the sequencer reads/writes the pattern headlessly). Persisted in prefs.
+function PakettiEightOneTwentyAPCAutoStartEnabled()
+  return preferences and preferences.PakettiEightOneTwentyAPCAutoStart
+    and preferences.PakettiEightOneTwentyAPCAutoStart.value or false
+end
+
+function PakettiEightOneTwentyToggleAPCAutoStart()
+  local now = not PakettiEightOneTwentyAPCAutoStartEnabled()
+  if preferences and preferences.PakettiEightOneTwentyAPCAutoStart then
+    preferences.PakettiEightOneTwentyAPCAutoStart.value = now
+    preferences:save_as("preferences.xml")
+  end
+  if now then
+    if not PakettiEightOneTwentyAPCAutoArm() then
+      renoise.app():show_status("Auto-Start AKAI APC Key 25: ON — no APC connected yet (will arm when detected at next launch)")
+    end
+  else
+    PakettiEightOneTwentyAPCSeqStop()
+    renoise.app():show_status("Auto-Start AKAI APC Key 25: OFF — step sequencer stopped")
+  end
+end
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Options:Auto-Start AKAI APC Key 25",
+  selected = function() return PakettiEightOneTwentyAPCAutoStartEnabled() end,
+  invoke = function() PakettiEightOneTwentyToggleAPCAutoStart() end
+}
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:Auto-Start AKAI APC Key 25",
+  selected = function() return PakettiEightOneTwentyAPCAutoStartEnabled() end,
+  invoke = function() PakettiEightOneTwentyToggleAPCAutoStart() end
+}
+
+-- Startup auto-arm: when the setting is ON, arm the APC once a document exists.
+-- app_new_document fires on launch + song loads; AutoArm is silent if no APC.
+local function paketti_apc_autostart_on_doc()
+  if PakettiEightOneTwentyAPCAutoStartEnabled() and not paketti_apc_seq_active then
+    PakettiEightOneTwentyAPCAutoArm()
+  end
+end
+if not renoise.tool().app_new_document_observable:has_notifier(paketti_apc_autostart_on_doc) then
+  renoise.tool().app_new_document_observable:add_notifier(paketti_apc_autostart_on_doc)
+end
+if PakettiEightOneTwentyAPCAutoStartEnabled() then
+  local paketti_apc_autostart_timer
+  paketti_apc_autostart_timer = function()
+    renoise.tool():remove_timer(paketti_apc_autostart_timer)
+    paketti_apc_autostart_on_doc()
+  end
+  renoise.tool():add_timer(paketti_apc_autostart_timer, 900)
+end
+
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
   if message:is_trigger() then
