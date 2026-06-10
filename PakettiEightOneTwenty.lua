@@ -4747,6 +4747,11 @@ function PakettiEightOneTwentyToggleStepYxx(row, step)
     end
     line = line + MAX_STEPS
   end
+  -- DIAGNOSTIC: read the write back so we can see if the effect column took it.
+  local check = pattern.tracks[row]:line(step).effect_columns[1]
+  print(string.format("YXX HEADLESS: row=%d step=%d turn_on=%s -> number_string='%s' amount=%d vis_fx_cols=%d note='%s'",
+    row, step, tostring(turn_on), tostring(check.number_string), tostring(check.amount_value),
+    track.visible_effect_columns, tostring(pattern.tracks[row]:line(step).note_columns[1].note_string)))
 end
 
 function assign_midi_mappings()
