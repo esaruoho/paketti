@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: Groovebox 8120 auto-arms the APC Key 25 on open + 40 "Disabled APC" note absorbers
+
+Two fixes for the APC step sequencer. **(1)** Opening the Groovebox 8120 now auto-detects a connected APC Key 25 and arms the step sequencer, with a clear status: "APC Key 25 detected — step sequencer ARMED" (silent if no APC). Previously you had to start it by hand, so pads did nothing. **(2)** Forty new do-nothing MIDI mappings `Disabled APC 01` … `Disabled APC 40` (mirroring the MidiMix's `Disabled 01..16`): map each pad to one in Renoise MIDI Map mode and Renoise stops turning the pad's note into a played sample, while the bridge still sequences. That stops the "press a pad → it just triggers a sample" bleed.
+
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Disabled APC 01` … `Disabled APC 40` (do-nothing absorbers)
+
 ### 2026-06-10 - Feature: AKAI APC Key 25 as a Groovebox 8120 step sequencer (steps + per-step probability + row select)
 
 The 40 colour pads now drive the selected 8120 row. **16-step mode:** the top two rows are steps 1–16 (press to toggle, green = on, yellow = the moving playhead), the next two rows are **per-step probability** — Renoise's `0Y` "Maybe" command, already the 8120's `yxx` per-step toggle (red = on), and the bottom row of 8 **selects which instrument/row** is active (green = selected, red = the others). **32-step mode:** the top four rows become steps 1–32, bottom row still selects the row. It works whether or not the 8120 dialog is open (same headless step/probability read-write the MidiMix uses), with a timer redraw so the playhead animates. New headless helpers `GetStepYxx`/`ToggleStepYxx` mirror the step ones.

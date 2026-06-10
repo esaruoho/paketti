@@ -4627,6 +4627,10 @@ function pakettiEightSlotsByOneTwentyDialog()
   if PakettiEightOneTwentyMidiMixOpen then
     PakettiEightOneTwentyMidiMixOpen()
   end
+  -- Auto-detect + arm the APC Key 25 step sequencer (silent if no APC connected).
+  if PakettiEightOneTwentyAPCAutoArm then
+    PakettiEightOneTwentyAPCAutoArm()
+  end
 end
 
 
@@ -6225,6 +6229,28 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC St
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:APC Step Sequencer Toggle [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAPCSeqToggle() end end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Step Sequencer — Start", invoke=function() PakettiEightOneTwentyAPCSeqStart() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Step Sequencer — Stop",  invoke=function() PakettiEightOneTwentyAPCSeqStop() end}
+
+-- 40 do-nothing absorbers for the APC pads (mirror the MidiMix "Disabled 01..16").
+-- The APC bridge reads pads directly, but Renoise ALSO turns the pad notes into
+-- played samples. Map each pad to one of these in Renoise MIDI Map mode and
+-- Renoise consumes the note (no sample trigger) while the bridge still sequences.
+for i = 1, 40 do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Paketti Groovebox 8120:Disabled APC %02d", i),
+    invoke = function(message) end
+  }
+end
+
+-- Auto-arm on groovebox open: if an APC Key 25 is connected, start the step
+-- sequencer and tell the user. Silent when no APC is present.
+function PakettiEightOneTwentyAPCAutoArm()
+  local in_name = paketti_apc_find_device()
+  if not in_name then return false end
+  PakettiEightOneTwentyAPCSeqStart()
+  renoise.app():show_status("Groovebox 8120: APC Key 25 detected — step sequencer ARMED. Map pads to 'Disabled APC NN' (MIDI Map mode) so they stop triggering samples.")
+  print("APC AUTO-ARM: APC Key 25 detected, step sequencer armed. To stop pad notes also playing samples, MIDI-Map each pad to 'Paketti Groovebox 8120:Disabled APC 01..40'.")
+  return true
+end
 
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
