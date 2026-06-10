@@ -141,6 +141,7 @@ Context: Global
   #
   # WATCH: app_release_document_observable PakettiHyperEditCreateDialog PakettiHyperEditRemoveObservers PakettiCanvasExperimentsCreateDialog
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+#   2026-06-10  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: PakettiHyperEditCreateDialog
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable

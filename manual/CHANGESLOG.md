@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: Scala Tuning Map — see which note plays which frequency in a microtonal tuning
+
+A colour-coded canvas dialog that reads the selected instrument's native Renoise 3.5 Scala / custom tuning (`trigger_options.tuning`) and shows, for every note, its scale degree, within-period ratio, cents, and absolute frequency in Hz. Built for composing in tunings with more or fewer than 12 notes per octave (e.g. 22EDO), where the standard 12-tone note names no longer line up with octaves. **Octave-equivalent notes share the same colour** (same scale degree), and period roots are drawn off-white with a separator line — so you can see at a glance which notes are "an octave apart" even when the period isn't 12 notes. The row under the pattern-editor cursor is highlighted live and the table auto-refreshes when you load a different tuning or switch instruments. Click any row to preview that note through the instrument. Buttons: Load Scala (.scl) straight onto the instrument, Reset to 12-TET, period/note navigation, and Follow note input. This is the read/visualise companion to Microtonal Tunings (which generates and applies tunings). Requires Renoise 3.5+ (Canvas API).
+
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Scala Tuning Map...`
+- Menu: `Instrument Box:Paketti:Microtonal Tunings:Scala Tuning Map...`
+- Keybinding: `Global:Paketti:Scala Tuning Map`
+- MIDI Mapping: `Paketti:Scala Tuning Map`
+
 ### 2026-06-10 - Feature: Groovebox 8120 auto-arms the APC Key 25 on open + 40 "Disabled APC" note absorbers
 
 Two fixes for the APC step sequencer. **(1)** Opening the Groovebox 8120 now auto-detects a connected APC Key 25 and arms the step sequencer, with a clear status: "APC Key 25 detected — step sequencer ARMED" (silent if no APC). Previously you had to start it by hand, so pads did nothing. **(2)** Forty new do-nothing MIDI mappings `Disabled APC 01` … `Disabled APC 40` (mirroring the MidiMix's `Disabled 01..16`): map each pad to one in Renoise MIDI Map mode and Renoise stops turning the pad's note into a played sample, while the bridge still sequences. That stops the "press a pad → it just triggers a sample" bleed.

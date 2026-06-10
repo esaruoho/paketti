@@ -1250,6 +1250,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiXMLizer")
   timed_require("PakettiCommandWheel")
   timed_require("PakettiMicrotonalTunings")
+  timed_require("PakettiScalaTuningMap")
   timed_require("PakettiOctaCycle")
   timed_require("PakettiOTSTRDImporter")
   timed_require("PakettiCCizerLoader")
