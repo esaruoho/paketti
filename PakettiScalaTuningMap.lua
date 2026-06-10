@@ -53,10 +53,13 @@ local PSTM_canvas = nil
 local PSTM_view_start = 36
 local PSTM_highlight_note = -1
 local PSTM_follow = true
-local PSTM_last_sig = nil
-local PSTM_dirty = false
 local PSTM_playing = nil          -- {i=instr_idx, t=track_idx, n=note}
 local PSTM_release_installed = false
+
+-- observer bookkeeping (event-driven refresh on instrument / tuning change)
+local PSTM_song = nil
+local PSTM_idx_fn = nil           -- bound to selected_instrument_index_observable
+local PSTM_tuning_obs = {}        -- array of {obs=, fn=} for current instrument
 
 -- ===========================================================================
 -- Helpers
@@ -319,7 +322,76 @@ local function shift_view(delta)
 end
 
 -- ===========================================================================
--- Live tick (polling — robust, self-cleaning, song-lifecycle safe)
+-- Observers — event-driven refresh on instrument switch / tuning change
+-- ===========================================================================
+
+local function refresh_now()
+  if PSTM_canvas then pcall(function() PSTM_canvas:invalidate() end) end
+end
+
+local function unbind_tuning_obs()
+  for _, o in ipairs(PSTM_tuning_obs) do
+    pcall(function()
+      if o.obs and o.obs:has_notifier(o.fn) then o.obs:remove_notifier(o.fn) end
+    end)
+  end
+  PSTM_tuning_obs = {}
+end
+
+-- (re)bind to the CURRENT instrument's tuning + tuning_name observables
+local function bind_tuning_obs()
+  unbind_tuning_obs()
+  local song = renoise.song()
+  if not song then return end
+  local instr = song.selected_instrument
+  if not instr then return end
+  local topt = instr.trigger_options
+  local list = {topt.tuning_observable, topt.tuning_name_observable}
+  for _, obs in ipairs(list) do
+    if obs then
+      pcall(function()
+        obs:add_notifier(refresh_now)
+        table.insert(PSTM_tuning_obs, {obs = obs, fn = refresh_now})
+      end)
+    end
+  end
+end
+
+local function bind_observers()
+  local song = renoise.song()
+  if not song then return end
+  PSTM_song = song
+  if not PSTM_idx_fn then
+    PSTM_idx_fn = function()
+      bind_tuning_obs()   -- new instrument => rebind tuning observers
+      refresh_now()
+    end
+  end
+  pcall(function()
+    if not song.selected_instrument_index_observable:has_notifier(PSTM_idx_fn) then
+      song.selected_instrument_index_observable:add_notifier(PSTM_idx_fn)
+    end
+  end)
+  bind_tuning_obs()
+end
+
+local function unbind_observers()
+  unbind_tuning_obs()
+  if PSTM_song and PSTM_idx_fn then
+    pcall(function()
+      if PSTM_song.selected_instrument_index_observable:has_notifier(PSTM_idx_fn) then
+        PSTM_song.selected_instrument_index_observable:remove_notifier(PSTM_idx_fn)
+      end
+    end)
+  end
+  PSTM_song = nil
+end
+
+-- ===========================================================================
+-- Live tick — follows the pattern cursor (the "last entered" note) and keeps
+-- the canvas fresh. Self-cleaning and song-lifecycle safe. Instrument/tuning
+-- changes are handled by the observers above; this also re-reads every tick as
+-- a backstop, so the map can never go stale.
 -- ===========================================================================
 
 function PakettiScalaTuningMapTick()
@@ -330,21 +402,6 @@ function PakettiScalaTuningMapTick()
   pcall(function()
     local song = renoise.song()
     if not song then return end
-    local instr = song.selected_instrument
-    if not instr then return end
-
-    -- detect tuning / instrument change
-    local topt = instr.trigger_options
-    local t = topt.tuning
-    local sig = (topt.tuning_name or "") .. "|" .. tostring(#t)
-      .. "|i" .. tostring(song.selected_instrument_index)
-    if #t > 0 then
-      sig = sig .. "|" .. string.format("%.5f", t[1]) .. "|" .. string.format("%.5f", t[#t])
-    end
-    if sig ~= PSTM_last_sig then
-      PSTM_last_sig = sig
-      PSTM_dirty = true
-    end
 
     -- read note under the pattern-editor cursor (the "last entered" note)
     local cidx = song.selected_note_column_index
@@ -354,16 +411,13 @@ function PakettiScalaTuningMapTick()
         local col = line.note_columns[cidx]
         if col and col.note_value <= 119 and col.note_value ~= PSTM_highlight_note then
           PSTM_highlight_note = col.note_value
-          PSTM_dirty = true
           if PSTM_follow then follow_to_note(false) end
         end
       end
     end
 
-    if PSTM_dirty then
-      PSTM_dirty = false
-      if PSTM_canvas then PSTM_canvas:invalidate() end
-    end
+    -- backstop: always reflect current instrument/tuning state
+    if PSTM_canvas then PSTM_canvas:invalidate() end
   end)
 end
 
@@ -375,6 +429,7 @@ function PakettiScalaTuningMapCleanup()
   if renoise.tool():has_timer(PakettiScalaTuningMapTick) then
     renoise.tool():remove_timer(PakettiScalaTuningMapTick)
   end
+  unbind_observers()
   preview_off()
   PSTM_canvas = nil
 end
@@ -423,7 +478,6 @@ local function load_scala()
   else
     renoise.app():show_status("Paketti Scala Tuning Map: failed to load " .. fn)
   end
-  PSTM_last_sig = nil
   if PSTM_canvas then PSTM_canvas:invalidate() end
 end
 
@@ -435,7 +489,6 @@ local function reset_12tet()
   instr.trigger_options.tuning = {}        -- empty disables custom tuning
   instr.trigger_options.tuning_name = ""
   renoise.app():show_status("Tuning reset to 12-TET on selected instrument")
-  PSTM_last_sig = nil
   if PSTM_canvas then PSTM_canvas:invalidate() end
 end
 
@@ -459,7 +512,6 @@ function PakettiScalaTuningMapShow()
   PSTM_vb = vb
   PSTM_highlight_note = -1
   PSTM_view_start = 36
-  PSTM_last_sig = nil
 
   local content = vb:column{
     margin = 8, spacing = 6,
@@ -504,6 +556,7 @@ function PakettiScalaTuningMapShow()
   if not renoise.tool():has_timer(PakettiScalaTuningMapTick) then
     renoise.tool():add_timer(PakettiScalaTuningMapTick, 120)
   end
+  bind_observers()        -- instant refresh on instrument switch / tuning change
   install_release_guard()
 
   -- restore pattern editor focus so note input keeps flowing while the map is open

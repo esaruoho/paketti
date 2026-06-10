@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Fix: Scala Tuning Map now refreshes live on instrument switch and tuning change
+
+The map was staying static. It now attaches observers to the selected-instrument index and the instrument's `tuning` / `tuning_name` observables, so it refreshes the instant you switch instruments or load/change a tuning — and the polling timer re-reads every tick as a backstop. All observers detach on dialog close and on document release (song-lifecycle safe).
+
 ### 2026-06-10 - Feature: Scala Tuning Map — see which note plays which frequency in a microtonal tuning
 
 A colour-coded canvas dialog that reads the selected instrument's native Renoise 3.5 Scala / custom tuning (`trigger_options.tuning`) and shows, for every note, its scale degree, within-period ratio, cents, and absolute frequency in Hz. Built for composing in tunings with more or fewer than 12 notes per octave (e.g. 22EDO), where the standard 12-tone note names no longer line up with octaves. **Octave-equivalent notes share the same colour** (same scale degree), and period roots are drawn off-white with a separator line — so you can see at a glance which notes are "an octave apart" even when the period isn't 12 notes. The row under the pattern-editor cursor is highlighted live and the table auto-refreshes when you load a different tuning or switch instruments. Click any row to preview that note through the instrument. Buttons: Load Scala (.scl) straight onto the instrument, Reset to 12-TET, period/note navigation, and Follow note input. This is the read/visualise companion to Microtonal Tunings (which generates and applies tunings). Requires Renoise 3.5+ (Canvas API).
