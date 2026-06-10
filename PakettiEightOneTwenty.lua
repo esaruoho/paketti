@@ -5745,6 +5745,107 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Open (
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Test pad LEDs",              invoke=function() PakettiEightOneTwentyAPCTestLeds() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Close",                      invoke=function() PakettiEightOneTwentyAPCProbeClose() end}
 
+-- ============================================================================
+-- AKAI APC Key 25 mk1 — interactive light-show demo (confirmed by the probe)
+-- ----------------------------------------------------------------------------
+-- CONFIRMED FROM THE PROBE (APC Key 25 mk1):
+--   * Pads send Note On/Off on channel 1. note = row*8 + col, note 0 = BOTTOM-
+--     LEFT, col 0 = left. Bottom row = notes 0..7, top row = notes 32..39.
+--   * Pad LED = Note On ch1 with velocity: 0 off, 1 green, 2 green-blink,
+--     3 red, 4 red-blink, 5 yellow, 6 yellow-blink.
+-- This demo: press any pad to cycle its colour (off->green->red->yellow), plus an
+-- intro sweep animation across all 40 pads. Proves real-time read + per-pad write,
+-- which is everything the real step sequencer needs.
+local APC_OFF, APC_GREEN, APC_RED, APC_YELLOW = 0, 1, 3, 5
+local apc_pad_state = {}        -- [note] = 0 off / 1 green / 2 red / 3 yellow
+local APC_CYCLE_VEL = {[0]=APC_OFF, [1]=APC_GREEN, [2]=APC_RED, [3]=APC_YELLOW}
+local APC_CYCLE_NAME = {[0]="off", [1]="green", [2]="red", [3]="yellow"}
+local apc_show_timer_fn = nil
+local apc_show_frame = 0
+
+local function paketti_apc_set_pad(note, vel)
+  if not paketti_apc_out then return end
+  if note < 0 or note > 39 then return end
+  paketti_apc_out:send({0x90, note, vel})
+end
+
+local function paketti_apc_clear_all()
+  for n = 0, 39 do paketti_apc_set_pad(n, APC_OFF) end
+end
+
+-- Interactive: every pad press advances that pad's colour and lights it.
+local function paketti_apc_demo_on_midi(message)
+  if type(message) ~= "table" or #message < 3 then return end
+  local status, d1, d2 = message[1], message[2], message[3]
+  if math.floor(status / 16) * 16 == 0x90 and d2 > 0 and d1 >= 0 and d1 <= 39 then
+    local s = ((apc_pad_state[d1] or 0) + 1) % 4
+    apc_pad_state[d1] = s
+    paketti_apc_set_pad(d1, APC_CYCLE_VEL[s])
+    print(string.format("APC PAD note=%d (row %d, col %d) -> %s", d1, math.floor(d1 / 8), d1 % 8, APC_CYCLE_NAME[s]))
+  end
+end
+
+local function paketti_apc_show_step()
+  local f = apc_show_frame
+  if f <= 7 then
+    -- Paint column f top-to-bottom, colour cycling green/red/yellow per column.
+    local vel = ({APC_GREEN, APC_RED, APC_YELLOW})[(f % 3) + 1]
+    for row = 0, 4 do paketti_apc_set_pad(row * 8 + f, vel) end
+  elseif f <= 15 then
+    -- Clear columns left to right, leaving the grid blank.
+    local c = f - 8
+    for row = 0, 4 do paketti_apc_set_pad(row * 8 + c, APC_OFF) end
+  else
+    if apc_show_timer_fn and renoise.tool():has_timer(apc_show_timer_fn) then
+      renoise.tool():remove_timer(apc_show_timer_fn)
+    end
+    apc_show_timer_fn = nil
+    paketti_apc_clear_all()
+    return
+  end
+  apc_show_frame = f + 1
+end
+
+function PakettiEightOneTwentyAPCLightShow()
+  if not paketti_apc_out then
+    renoise.app():show_status("APC: output not open — run 'APC Demo — Open' first")
+    return
+  end
+  apc_show_frame = 0
+  if not apc_show_timer_fn then
+    apc_show_timer_fn = function() paketti_apc_show_step() end
+    renoise.tool():add_timer(apc_show_timer_fn, 90)
+  end
+end
+
+-- Open the APC for the interactive demo (closes the plain probe callback first so
+-- presses cycle colours instead of just printing), clear the grid, intro sweep.
+function PakettiEightOneTwentyAPCDemoOpen()
+  PakettiEightOneTwentyAPCProbeClose()  -- drop any existing handles/callback
+  local in_name, out_name = paketti_apc_find_device()
+  if not in_name and not out_name then
+    renoise.app():show_status("APC: not detected — see terminal device list")
+    return
+  end
+  if in_name then
+    local ok, dev = pcall(renoise.Midi.create_input_device, in_name, paketti_apc_demo_on_midi)
+    if ok and dev then paketti_apc_in = dev else print("APC demo: input open failed: " .. tostring(dev)) end
+  end
+  if out_name then
+    local ok, dev = pcall(renoise.Midi.create_output_device, out_name)
+    if ok and dev then paketti_apc_out = dev else print("APC demo: output open failed: " .. tostring(dev)) end
+  end
+  apc_pad_state = {}
+  paketti_apc_clear_all()
+  PakettiEightOneTwentyAPCLightShow()
+  renoise.app():show_status("APC Demo OPEN — press pads to cycle colours (off/green/red/yellow)")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Demo Open",      invoke=function() PakettiEightOneTwentyAPCDemoOpen() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Light Show",     invoke=function() PakettiEightOneTwentyAPCLightShow() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Demo — Open (press pads to paint)", invoke=function() PakettiEightOneTwentyAPCDemoOpen() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Demo — Light Show",                 invoke=function() PakettiEightOneTwentyAPCLightShow() end}
+
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
   if message:is_trigger() then

@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: AKAI APC Key 25 interactive light-show demo (pad map + colours confirmed)
+
+Building on the probe, the APC Key 25 mk1's pad layout and LED colours are now confirmed: pads send Note On ch1 with `note = row*8 + col` (note 0 = bottom-left, top row = 32–39), and pad LEDs are set by velocity (1 green, 3 red, 5 yellow, +blink variants). A new interactive demo proves real-time read + per-pad write end to end: "APC Demo — Open" lights an intro sweep across all 40 pads, then every pad press cycles that pad's colour (off → green → red → yellow) and prints its row/col. This is the full toolkit the real 8x5 grid step sequencer will be built on.
+
+- Menu: `Main Menu:Tools:Paketti:Groovebox:APC Demo — Open (press pads to paint)`
+- Menu: `Main Menu:Tools:Paketti:Groovebox:APC Demo — Light Show`
+- Keybindings: `Global:Paketti:Paketti Groovebox 8120 APC Demo Open / APC Light Show`
+
 ### 2026-06-10 - Feature: AKAI APC Key 25 probe — groundwork to turn the 8x5 pad grid into an 8120 step sequencer
 
 A read/light probe for the APC Key 25 (8x5 = 40 colour pads), the first step toward a full grid step sequencer for the Groovebox 8120. "APC Probe — Open" opens the device and prints every pad/key press to the terminal (`APC IN: …`) so the exact pad note-numbers can be confirmed; "APC Probe — Test pad LEDs" sends Note On with cycling velocities to pads 0–39 to reveal the colour map; "APC Probe — Close" releases it. Empirical first, so the real sequencer is built on confirmed note/LED data rather than guesses.
