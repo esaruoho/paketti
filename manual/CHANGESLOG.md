@@ -8,6 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: AKAI APC Key 25 light art — scrolling text, fireworks, lightning + a real Stop
+
+Proper light-art on the APC's 8×5 grid, driven by a small frame-buffer engine with a diff renderer (sends only changed pads, so it's smooth not a MIDI flood). **Scroll Text** scrolls "PAKETTI SUPPORTS APC KEY 25 - STAY TUNED FOR PAKETTI GROOVEBOX 8120" right-to-left in a 5-row font, colours cycling green/yellow/red. **Fireworks** launches expanding colour rings at random pads. **Lightning** flashes zigzag bolts down the grid. And a real **Stop** that turns every pad off (including the blink velocities) — fixing that the old Test/Close left pads flashing forever (Close now also clears the LEDs before releasing the device). Animations auto-open the device if needed.
+
+- Menu: `Main Menu:Tools:Paketti:Groovebox:APC — Scroll Text / Fireworks / Lightning / Stop (clear all LEDs)`
+- Keybindings: `Global:Paketti:Paketti Groovebox 8120 APC Scroll Text / Fireworks / Lightning / Stop`
+
 ### 2026-06-10 - Feature: AKAI APC Key 25 interactive light-show demo (pad map + colours confirmed)
 
 Building on the probe, the APC Key 25 mk1's pad layout and LED colours are now confirmed: pads send Note On ch1 with `note = row*8 + col` (note 0 = bottom-left, top row = 32–39), and pad LEDs are set by velocity (1 green, 3 red, 5 yellow, +blink variants). A new interactive demo proves real-time read + per-pad write end to end: "APC Demo — Open" lights an intro sweep across all 40 pads, then every pad press cycles that pad's colour (off → green → red → yellow) and prints its row/col. This is the full toolkit the real 8x5 grid step sequencer will be built on.

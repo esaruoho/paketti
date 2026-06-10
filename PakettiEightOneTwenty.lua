@@ -5719,9 +5719,15 @@ function PakettiEightOneTwentyAPCProbeOpen()
 end
 
 function PakettiEightOneTwentyAPCProbeClose()
+  -- Stop any running animation and turn EVERY pad off (incl. the blink velocities)
+  -- BEFORE closing the output — otherwise the hardware keeps flashing forever.
+  if PakettiEightOneTwentyAPCStop then PakettiEightOneTwentyAPCStop() end
+  if paketti_apc_out then
+    for n = 0, 39 do pcall(function() paketti_apc_out:send({0x90, n, 0}) end) end
+  end
   if paketti_apc_in  then pcall(function() paketti_apc_in:close()  end) paketti_apc_in  = nil end
   if paketti_apc_out then pcall(function() paketti_apc_out:close() end) paketti_apc_out = nil end
-  renoise.app():show_status("APC probe closed")
+  renoise.app():show_status("APC probe closed (LEDs cleared)")
 end
 
 -- Send Note On to pads 0..39 with cycling velocities 1..6 so we can see which
@@ -5845,6 +5851,200 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC De
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Light Show",     invoke=function() PakettiEightOneTwentyAPCLightShow() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Demo — Open (press pads to paint)", invoke=function() PakettiEightOneTwentyAPCDemoOpen() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Demo — Light Show",                 invoke=function() PakettiEightOneTwentyAPCLightShow() end}
+
+-- ============================================================================
+-- APC Key 25 — proper light art (scrolling text, fireworks, lightning)
+-- ----------------------------------------------------------------------------
+-- A small animation engine over the 8x5 grid. A frame buffer holds a colour per
+-- pad (note 0..39); a diff renderer sends only changed pads (so it's smooth, not
+-- a MIDI flood). xy helper: col 0..7, top_row 0..4 with row 0 = TOP so text reads
+-- the right way up. Every animation is a step(frame, buf) that fills the buffer.
+local paketti_apc_prev = {}        -- [note] = last velocity sent (diff state)
+local paketti_apc_anim_fn = nil
+local paketti_apc_anim_frame = 0
+
+local function paketti_apc_xy_note(col, top_row) return (4 - top_row) * 8 + col end
+
+local function paketti_apc_render(buf)
+  for n = 0, 39 do
+    local v = buf[n] or APC_OFF
+    if paketti_apc_prev[n] ~= v then
+      paketti_apc_set_pad(n, v)
+      paketti_apc_prev[n] = v
+    end
+  end
+end
+
+-- Stop EVERYTHING: kill any animation timer (and the old column-sweep timer),
+-- turn every pad off (clears the blink velocities too), reset the diff state.
+function PakettiEightOneTwentyAPCStop()
+  if paketti_apc_anim_fn and renoise.tool():has_timer(paketti_apc_anim_fn) then
+    renoise.tool():remove_timer(paketti_apc_anim_fn)
+  end
+  paketti_apc_anim_fn = nil
+  if apc_show_timer_fn and renoise.tool():has_timer(apc_show_timer_fn) then
+    renoise.tool():remove_timer(apc_show_timer_fn)
+  end
+  apc_show_timer_fn = nil
+  if paketti_apc_out then for n = 0, 39 do paketti_apc_set_pad(n, APC_OFF) end end
+  paketti_apc_prev = {}
+  renoise.app():show_status("APC: stopped — all LEDs off")
+end
+
+local function paketti_apc_run_anim(step_fn, interval)
+  PakettiEightOneTwentyAPCStop()
+  if not paketti_apc_out then
+    renoise.app():show_status("APC: output not open — run 'APC Demo — Open' first")
+    return false
+  end
+  paketti_apc_prev = {}  -- force a full redraw on the first frame
+  paketti_apc_anim_frame = 0
+  paketti_apc_anim_fn = function()
+    local f = paketti_apc_anim_frame
+    paketti_apc_anim_frame = f + 1
+    local buf = {}
+    local cont = step_fn(f, buf)
+    paketti_apc_render(buf)
+    if cont == false then PakettiEightOneTwentyAPCStop() end
+  end
+  renoise.tool():add_timer(paketti_apc_anim_fn, interval or 90)
+  return true
+end
+
+-- 5-row x 3-col font (X = lit). Enough to read while scrolling.
+local APC_FONT = {
+  [" "]={"...","...","...","...","..."},  ["-"]={"...","...","XXX","...","..."},
+  ["A"]={".X.","X.X","XXX","X.X","X.X"},  ["B"]={"XX.","X.X","XX.","X.X","XX."},
+  ["C"]={".XX","X..","X..","X..",".XX"},  ["D"]={"XX.","X.X","X.X","X.X","XX."},
+  ["E"]={"XXX","X..","XX.","X..","XXX"},  ["F"]={"XXX","X..","XX.","X..","X.."},
+  ["G"]={".XX","X..","X.X","X.X",".XX"},  ["H"]={"X.X","X.X","XXX","X.X","X.X"},
+  ["I"]={"XXX",".X.",".X.",".X.","XXX"},  ["J"]={"..X","..X","..X","X.X",".X."},
+  ["K"]={"X.X","XX.","X..","XX.","X.X"},  ["L"]={"X..","X..","X..","X..","XXX"},
+  ["M"]={"X.X","XXX","XXX","X.X","X.X"},  ["N"]={"X.X","XX.","X.X","X.X","X.X"},
+  ["O"]={".X.","X.X","X.X","X.X",".X."},  ["P"]={"XX.","X.X","XX.","X..","X.."},
+  ["Q"]={".X.","X.X","X.X","XX.",".XX"},  ["R"]={"XX.","X.X","XX.","XX.","X.X"},
+  ["S"]={".XX","X..",".X.","..X","XX."},  ["T"]={"XXX",".X.",".X.",".X.",".X."},
+  ["U"]={"X.X","X.X","X.X","X.X",".X."},  ["V"]={"X.X","X.X","X.X",".X.",".X."},
+  ["W"]={"X.X","X.X","XXX","XXX","X.X"},  ["X"]={"X.X","X.X",".X.","X.X","X.X"},
+  ["Y"]={"X.X","X.X",".X.",".X.",".X."},  ["Z"]={"XXX","..X",".X.","X..","XXX"},
+  ["0"]={".X.","X.X","X.X","X.X",".X."},  ["1"]={".X.","XX.",".X.",".X.","XXX"},
+  ["2"]={"XX.","..X",".X.","X..","XXX"},  ["3"]={"XX.","..X",".X.","..X","XX."},
+  ["4"]={"X.X","X.X","XXX","..X","..X"},  ["5"]={"XXX","X..","XX.","..X","XX."},
+  ["6"]={".XX","X..","XX.","X.X",".X."},  ["7"]={"XXX","..X",".X.",".X.",".X."},
+  ["8"]={".X.","X.X",".X.","X.X",".X."},  ["9"]={".X.","X.X",".XX","..X","XX."},
+}
+local paketti_apc_text_msg = "PAKETTI SUPPORTS APC KEY 25 - STAY TUNED FOR PAKETTI GROOVEBOX 8120   "
+local paketti_apc_text_cols = nil
+
+local function paketti_apc_build_text()
+  local cols = {}
+  local m = paketti_apc_text_msg
+  for i = 1, #m do
+    local g = APC_FONT[m:sub(i, i):upper()] or APC_FONT[" "]
+    for c = 1, 3 do
+      local bits = {}
+      for r = 1, 5 do bits[r] = (g[r]:sub(c, c) == "X") end
+      cols[#cols + 1] = bits
+    end
+    cols[#cols + 1] = {false, false, false, false, false}  -- 1-col gap between glyphs
+  end
+  return cols
+end
+
+local function paketti_apc_scroll_step(frame, buf)
+  if not paketti_apc_text_cols then paketti_apc_text_cols = paketti_apc_build_text() end
+  local total = #paketti_apc_text_cols
+  local offset = (frame % (total + 8)) - 7   -- enters from the right, loops forever
+  local vel = ({APC_GREEN, APC_YELLOW, APC_RED})[(math.floor(frame / 30) % 3) + 1]
+  for dc = 0, 7 do
+    local src = offset + dc
+    if src >= 0 and src < total then
+      local bits = paketti_apc_text_cols[src + 1]
+      for r = 0, 4 do if bits[r + 1] then buf[paketti_apc_xy_note(dc, r)] = vel end end
+    end
+  end
+  return true
+end
+
+local paketti_apc_fw = {}
+local function paketti_apc_fireworks_step(frame, buf)
+  if frame % 6 == 0 then
+    paketti_apc_fw[#paketti_apc_fw + 1] = {col = math.random(0, 7), row = math.random(0, 4),
+      age = 0, vel = ({APC_GREEN, APC_RED, APC_YELLOW})[math.random(1, 3)]}
+  end
+  local keep = {}
+  for _, b in ipairs(paketti_apc_fw) do
+    if b.age == 0 then
+      buf[paketti_apc_xy_note(b.col, b.row)] = b.vel
+    else
+      for dr = -b.age, b.age do                 -- expanding diamond ring
+        local dc = b.age - math.abs(dr)
+        local r = b.row + dr
+        if r >= 0 and r <= 4 then
+          if b.col + dc >= 0 and b.col + dc <= 7 then buf[paketti_apc_xy_note(b.col + dc, r)] = b.vel end
+          if b.col - dc >= 0 and b.col - dc <= 7 then buf[paketti_apc_xy_note(b.col - dc, r)] = b.vel end
+        end
+      end
+    end
+    b.age = b.age + 1
+    if b.age <= 4 then keep[#keep + 1] = b end
+  end
+  paketti_apc_fw = keep
+  return true
+end
+
+local paketti_apc_bolt = nil
+local function paketti_apc_lightning_step(frame, buf)
+  local phase = frame % 10
+  if phase == 0 then                            -- new zigzag bolt top->bottom
+    paketti_apc_bolt = {}
+    local c = math.random(0, 7)
+    for r = 0, 4 do
+      paketti_apc_bolt[r] = c
+      c = c + math.random(-1, 1)
+      if c < 0 then c = 0 elseif c > 7 then c = 7 end
+    end
+  end
+  if paketti_apc_bolt and phase <= 2 then        -- flash it for a few frames
+    for r = 0, 4 do buf[paketti_apc_xy_note(paketti_apc_bolt[r], r)] = APC_YELLOW end
+  end
+  return true
+end
+
+-- Ensure the device is open (output needed for LEDs) without the press-to-cycle
+-- intro; opens read+write so pads still register if you want.
+local function paketti_apc_ensure_open()
+  if paketti_apc_out then return true end
+  PakettiEightOneTwentyAPCDemoOpen()
+  return paketti_apc_out ~= nil
+end
+
+function PakettiEightOneTwentyAPCScrollText()
+  if not paketti_apc_ensure_open() then return end
+  paketti_apc_text_cols = nil
+  paketti_apc_run_anim(paketti_apc_scroll_step, 90)
+  renoise.app():show_status("APC: scrolling text — use 'APC — Stop' to clear")
+end
+function PakettiEightOneTwentyAPCFireworks()
+  if not paketti_apc_ensure_open() then return end
+  paketti_apc_fw = {}
+  paketti_apc_run_anim(paketti_apc_fireworks_step, 110)
+  renoise.app():show_status("APC: fireworks — use 'APC — Stop' to clear")
+end
+function PakettiEightOneTwentyAPCLightning()
+  if not paketti_apc_ensure_open() then return end
+  paketti_apc_run_anim(paketti_apc_lightning_step, 80)
+  renoise.app():show_status("APC: lightning — use 'APC — Stop' to clear")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Scroll Text", invoke=function() PakettiEightOneTwentyAPCScrollText() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Fireworks",   invoke=function() PakettiEightOneTwentyAPCFireworks() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Lightning",   invoke=function() PakettiEightOneTwentyAPCLightning() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Stop",        invoke=function() PakettiEightOneTwentyAPCStop() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Scroll Text", invoke=function() PakettiEightOneTwentyAPCScrollText() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Fireworks",   invoke=function() PakettiEightOneTwentyAPCFireworks() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Lightning",   invoke=function() PakettiEightOneTwentyAPCLightning() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Stop (clear all LEDs)", invoke=function() PakettiEightOneTwentyAPCStop() end}
 
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
