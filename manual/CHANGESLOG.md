@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: "Auto-Start AKAI MidiMix Bridge" setting (Options menu) — headless step LEDs without opening the dialog
+
+The reason the headless LEDs looked dead was simply that the MidiMix bridge wasn't open (it only auto-opened with the 8120 dialog). There's now a persistent setting: turn **Auto-Start AKAI MidiMix Bridge** ON once and the bridge opens at every launch (and on song load), so the step sequencer LEDs + buttons work with the dialog closed from then on — no manual toggling. Turning it ON opens the bridge immediately. It's a checkable entry in both the Options menu and the Groovebox menu, saved in preferences (default OFF).
+
+- Menu: `Main Menu:Options:Paketti:Auto-Start AKAI MidiMix Bridge` (checkable)
+- Menu: `Main Menu:Tools:Paketti:Groovebox:Auto-Start AKAI MidiMix Bridge` (checkable)
+- Preference: `PakettiEightOneTwentyMidiMixAutoStart` (default OFF)
+
 ### 2026-06-10 - Improvement: Groovebox 8120 row-select knob LED refresh is silent; MidiMix diagnostics go to the terminal
 
 The `Select Row (Knob 01-08 / 08-01)` selectors no longer spam the status bar with bridge state on every move — their LED refresh is now silent and instead prints a one-line diagnostic to the **terminal** (`MIDIMIX REFRESH (knob): bridge_out=… row=…`) that can be copied. Opening the bridge also prints the detected MidiMix input/output names and the full available-device lists to the terminal, so it's easy to see whether the MidiMix output was found. The explicit "Refresh LEDs" action still reports to the status bar (and terminal).

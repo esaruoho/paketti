@@ -5341,6 +5341,9 @@ local paketti_midimix_out   = nil
 local paketti_midimix_name  = nil
 local paketti_midimix_last_led = {}  -- [step] = bool, last value we wrote
 local paketti_midimix_idle_attached = false
+-- When true, stop auto-opening the bridge: either no MidiMix was detected (don't
+-- retry-spam) or the user explicitly closed it. Reset by the explicit toggle.
+local paketti_midimix_autoopen_blocked = false
 
 local function paketti_midimix_find_device()
   -- Match common name variants across OSes: "MIDI Mix", "MIDI Mix 1",
@@ -5394,6 +5397,16 @@ end
 -- spam status). Diagnostics go to the TERMINAL via print() so they can be copied.
 -- No-op (LED-wise) when the bridge isn't open.
 function PakettiEightOneTwentyMidiMixRefreshLedsSilent()
+  -- Lazy auto-start (only when the "Auto-Start MidiMix Bridge" setting is ON):
+  -- if the bridge isn't open, open it the first time the knob is used so headless
+  -- "just works". One attempt only — if no MidiMix is found we set the block flag
+  -- so we don't retry (and spam) on every knob move. The explicit toggle clears it.
+  if not paketti_midimix_out and not paketti_midimix_autoopen_blocked
+     and preferences and preferences.PakettiEightOneTwentyMidiMixAutoStart
+     and preferences.PakettiEightOneTwentyMidiMixAutoStart.value then
+    local ok = PakettiEightOneTwentyMidiMixOpen()
+    if not ok then paketti_midimix_autoopen_blocked = true end
+  end
   print(string.format("MIDIMIX REFRESH (knob): bridge_out=%s bridge_in=%s row=%02d",
     tostring(paketti_midimix_out ~= nil), tostring(paketti_midimix_in ~= nil), paketti_8120_selected_row()))
   paketti_midimix_redraw_all_leds()
@@ -5557,9 +5570,11 @@ end
 function PakettiEightOneTwentyMidiMixBridgeToggle()
   if paketti_midimix_in or paketti_midimix_out then
     PakettiEightOneTwentyMidiMixClose()
+    paketti_midimix_autoopen_blocked = true  -- explicit close: don't auto-reopen
     print("MIDIMIX BRIDGE: CLOSED")
     renoise.app():show_status("Groovebox 8120: MidiMix bridge CLOSED")
   else
+    paketti_midimix_autoopen_blocked = false  -- explicit open: allow auto-open again
     local ok = PakettiEightOneTwentyMidiMixOpen()
     local msg = string.format("MIDIMIX BRIDGE: open=%s in=%s out=%s name=%s",
       tostring(ok), tostring(paketti_midimix_in ~= nil), tostring(paketti_midimix_out ~= nil), tostring(paketti_midimix_name))
@@ -5591,6 +5606,66 @@ renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:MidiMix Refresh LEDs [Trigger]",
   invoke = function(message) if message:is_trigger() then PakettiEightOneTwentyMidiMixRefreshLeds() end end
 }
+
+-- "Auto-Start AKAI MidiMix Bridge" setting. When ON, the bridge opens at startup
+-- (and on every song load) so the step LEDs + buttons work without ever opening
+-- the 8120 dialog. Persisted in preferences; toggled from a checkable menu entry.
+function PakettiEightOneTwentyMidiMixAutoStartEnabled()
+  return preferences and preferences.PakettiEightOneTwentyMidiMixAutoStart
+    and preferences.PakettiEightOneTwentyMidiMixAutoStart.value or false
+end
+
+function PakettiEightOneTwentyToggleMidiMixAutoStart()
+  local now = not PakettiEightOneTwentyMidiMixAutoStartEnabled()
+  if preferences and preferences.PakettiEightOneTwentyMidiMixAutoStart then
+    preferences.PakettiEightOneTwentyMidiMixAutoStart.value = now
+    preferences:save_as("preferences.xml")
+  end
+  if now then
+    -- Turning it ON: open the bridge right away (don't make the user wait for a
+    -- restart) and clear the auto-open block.
+    paketti_midimix_autoopen_blocked = false
+    PakettiEightOneTwentyMidiMixOpen()
+    renoise.app():show_status("Auto-Start AKAI MidiMix Bridge: ON — bridge opened")
+  else
+    renoise.app():show_status("Auto-Start AKAI MidiMix Bridge: OFF (bridge left as-is)")
+  end
+end
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Options:Paketti:Auto-Start AKAI MidiMix Bridge",
+  selected = function() return PakettiEightOneTwentyMidiMixAutoStartEnabled() end,
+  invoke = function() PakettiEightOneTwentyToggleMidiMixAutoStart() end
+}
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Groovebox:Auto-Start AKAI MidiMix Bridge",
+  selected = function() return PakettiEightOneTwentyMidiMixAutoStartEnabled() end,
+  invoke = function() PakettiEightOneTwentyToggleMidiMixAutoStart() end
+}
+
+-- Startup auto-start: when the setting is ON, open the bridge once a document is
+-- available. app_new_document fires at launch and on every song load; MidiMixOpen
+-- is idempotent (early-returns if already open), so this just ensures it's up.
+local function paketti_midimix_autostart_on_doc()
+  if PakettiEightOneTwentyMidiMixAutoStartEnabled() and not paketti_midimix_in then
+    paketti_midimix_autoopen_blocked = false
+    PakettiEightOneTwentyMidiMixOpen()
+  end
+end
+if not renoise.tool().app_new_document_observable:has_notifier(paketti_midimix_autostart_on_doc) then
+  renoise.tool().app_new_document_observable:add_notifier(paketti_midimix_autostart_on_doc)
+end
+-- And open it once now: at launch the tool loads AFTER the song, so the
+-- app_new_document above already fired before our notifier was attached. A short
+-- deferred timer lets MIDI/devices settle first.
+if PakettiEightOneTwentyMidiMixAutoStartEnabled() then
+  local paketti_midimix_autostart_timer
+  paketti_midimix_autostart_timer = function()
+    renoise.tool():remove_timer(paketti_midimix_autostart_timer)
+    paketti_midimix_autostart_on_doc()
+  end
+  renoise.tool():add_timer(paketti_midimix_autostart_timer, 800)
+end
 
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
