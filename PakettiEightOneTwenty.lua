@@ -4689,6 +4689,62 @@ function PakettiEightOneTwentyToggleStepState(row, step)
   end
 end
 
+-- Per-step PROBABILITY (Renoise "0Y" Maybe command). Dialog: the row's yxx
+-- checkbox. Headless: presence of a "0Y" effect in the step's effect column.
+function PakettiEightOneTwentyGetStepYxx(row, step)
+  if dialog and dialog.visible then
+    local re = rows and rows[row]
+    if re and re.yxx_checkboxes and re.yxx_checkboxes[step] then
+      return re.yxx_checkboxes[step].value and true or false
+    end
+  end
+  local song = renoise.song()
+  if not song then return false end
+  local pattern = song.selected_pattern
+  if not pattern or row < 1 or row > #pattern.tracks then return false end
+  if step < 1 or step > pattern.number_of_lines then return false end
+  local ec = pattern.tracks[row]:line(step).effect_columns[1]
+  return ec.number_string == "0Y"
+end
+
+-- Toggle a step's probability. Dialog open → flip the yxx checkbox. Closed →
+-- write/clear the "0Y" effect directly (default amount 0x80 = ~50%, or the row's
+-- yxx value when the dialog is open), propagated across MAX_STEPS repeats.
+function PakettiEightOneTwentyToggleStepYxx(row, step)
+  if dialog and dialog.visible then
+    local re = rows and rows[row]
+    if re and re.yxx_checkboxes and re.yxx_checkboxes[step] then
+      re.yxx_checkboxes[step].value = not re.yxx_checkboxes[step].value
+      return
+    end
+  end
+  local song = renoise.song()
+  if not song then return end
+  local pattern = song.selected_pattern
+  if not pattern or row < 1 or row > #pattern.tracks then return end
+  local plen = pattern.number_of_lines
+  if step < 1 or step > MAX_STEPS or step > plen then return end
+  local track = song.tracks[row]
+  if track.visible_effect_columns == 0 then track.visible_effect_columns = 1 end
+  local first = pattern.tracks[row]:line(step).effect_columns[1]
+  local turn_on = (first.number_string ~= "0Y")
+  local amount = 0x80
+  if dialog and dialog.visible and rows and rows[row] and rows[row].yxx_valuebox then
+    amount = rows[row].yxx_valuebox.value
+  end
+  local line = step
+  while line <= plen do
+    local ec = pattern.tracks[row]:line(line).effect_columns[1]
+    if turn_on then
+      ec.number_string = "0Y"
+      ec.amount_value = amount
+    else
+      ec:clear()
+    end
+    line = line + MAX_STEPS
+  end
+end
+
 function assign_midi_mappings()
   renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Play Control",invoke=function(message)
     if message:is_trigger() then
@@ -6045,6 +6101,130 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Scroll Text"
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Fireworks",   invoke=function() PakettiEightOneTwentyAPCFireworks() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Lightning",   invoke=function() PakettiEightOneTwentyAPCLightning() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Stop (clear all LEDs)", invoke=function() PakettiEightOneTwentyAPCStop() end}
+
+-- ============================================================================
+-- APC Key 25 — Groovebox 8120 STEP SEQUENCER bridge
+-- ----------------------------------------------------------------------------
+-- The 8x5 grid drives the SELECTED 8120 row:
+--   16-step mode: top 2 rows = steps 1..16, next 2 rows = per-step probability
+--                 (the 0Y "Maybe" command), bottom row = select instrument/row.
+--   32-step mode: top 4 rows = steps 1..32, bottom row = select instrument/row.
+-- LEDs: step on = green, playhead = yellow; probability on = red; selected row =
+-- green, the other 7 selectors = red. Pad note = row*8+col, row 0 = bottom, so
+-- top_row = 4 - (note/8). Works headless via the same Get/Toggle helpers; a timer
+-- redraws so the playhead moves. Start/stop from menu, keybinding or MIDI.
+local paketti_apc_seq_active = false
+local paketti_apc_seq_timer_fn = nil
+
+local function paketti_apc_seq_zone(note)
+  local top = 4 - math.floor(note / 8)   -- 0 = top row, 4 = bottom row
+  local col = note % 8
+  if top == 4 then return "select", col + 1 end           -- bottom row: rows 1..8
+  if MAX_STEPS >= 32 then
+    return "step", top * 8 + col + 1                       -- top 4 rows: steps 1..32
+  end
+  if top <= 1 then return "step", top * 8 + col + 1 end    -- rows 0-1: steps 1..16
+  return "prob", (top - 2) * 8 + col + 1                   -- rows 2-3: probability 1..16
+end
+
+local function paketti_apc_seq_refresh()
+  if not (paketti_apc_seq_active and paketti_apc_out) then return end
+  local row = paketti_8120_selected_row()
+  local playing_step = nil
+  local song = renoise.song()
+  if song and song.transport.playing then
+    local pos = song.transport.playback_pos
+    if pos and pos.line then playing_step = ((pos.line - 1) % MAX_STEPS) + 1 end
+  end
+  local buf = {}
+  for note = 0, 39 do
+    local zone, idx = paketti_apc_seq_zone(note)
+    local vel = APC_OFF
+    if zone == "step" then
+      if idx <= MAX_STEPS then
+        if PakettiEightOneTwentyGetStepState(row, idx) then vel = APC_GREEN end
+        if playing_step == idx then vel = APC_YELLOW end
+      end
+    elseif zone == "prob" then
+      if idx <= MAX_STEPS and PakettiEightOneTwentyGetStepYxx(row, idx) then vel = APC_RED end
+    elseif zone == "select" then
+      vel = (idx == row) and APC_GREEN or APC_RED
+    end
+    buf[note] = vel
+  end
+  paketti_apc_render(buf)
+end
+
+local function paketti_apc_seq_on_midi(message)
+  if not paketti_apc_seq_active then return end
+  if type(message) ~= "table" or #message < 3 then return end
+  local status, d1, d2 = message[1], message[2], message[3]
+  if math.floor(status / 16) * 16 ~= 0x90 or d2 <= 0 or d1 < 0 or d1 > 39 then return end
+  local zone, idx = paketti_apc_seq_zone(d1)
+  local row = paketti_8120_selected_row()
+  if zone == "step" then
+    if idx <= MAX_STEPS then PakettiEightOneTwentyToggleStepState(row, idx) end
+  elseif zone == "prob" then
+    if idx <= MAX_STEPS then PakettiEightOneTwentyToggleStepYxx(row, idx) end
+  elseif zone == "select" then
+    if idx >= 1 and idx <= 8 then
+      PakettiEightOneTwentyFocusedRow = idx
+      local song = renoise.song()
+      if song then
+        if idx <= #song.tracks and song:track(idx).type == renoise.Track.TRACK_TYPE_SEQUENCER then song.selected_track_index = idx end
+        if idx <= #song.instruments then song.selected_instrument_index = idx end
+      end
+      if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(idx) end
+    end
+  end
+  paketti_apc_seq_refresh()
+end
+
+function PakettiEightOneTwentyAPCSeqStop()
+  paketti_apc_seq_active = false
+  if paketti_apc_seq_timer_fn and renoise.tool():has_timer(paketti_apc_seq_timer_fn) then
+    renoise.tool():remove_timer(paketti_apc_seq_timer_fn)
+  end
+  paketti_apc_seq_timer_fn = nil
+  if PakettiEightOneTwentyAPCStop then PakettiEightOneTwentyAPCStop() end  -- clears LEDs
+  renoise.app():show_status("APC 8120 step sequencer: OFF")
+end
+
+function PakettiEightOneTwentyAPCSeqStart()
+  if PakettiEightOneTwentyAPCStop then PakettiEightOneTwentyAPCStop() end  -- stop animations/clear
+  -- (Re)open the device with the SEQUENCER callback so pads drive the 8120.
+  PakettiEightOneTwentyAPCProbeClose()
+  local in_name, out_name = paketti_apc_find_device()
+  if not in_name and not out_name then
+    renoise.app():show_status("APC: not detected — see terminal device list")
+    return
+  end
+  if in_name then
+    local ok, dev = pcall(renoise.Midi.create_input_device, in_name, paketti_apc_seq_on_midi)
+    if ok and dev then paketti_apc_in = dev else print("APC seq: input open failed: " .. tostring(dev)) end
+  end
+  if out_name then
+    local ok, dev = pcall(renoise.Midi.create_output_device, out_name)
+    if ok and dev then paketti_apc_out = dev else print("APC seq: output open failed: " .. tostring(dev)) end
+  end
+  paketti_apc_seq_active = true
+  paketti_apc_prev = {}
+  if not paketti_apc_seq_timer_fn then
+    paketti_apc_seq_timer_fn = function() paketti_apc_seq_refresh() end
+    renoise.tool():add_timer(paketti_apc_seq_timer_fn, 50)
+  end
+  paketti_apc_seq_refresh()
+  renoise.app():show_status("APC 8120 step sequencer: ON — top rows = steps, mid rows = probability, bottom row = select row")
+end
+
+function PakettiEightOneTwentyAPCSeqToggle()
+  if paketti_apc_seq_active then PakettiEightOneTwentyAPCSeqStop() else PakettiEightOneTwentyAPCSeqStart() end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Step Sequencer Toggle", invoke=function() PakettiEightOneTwentyAPCSeqToggle() end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:APC Step Sequencer Toggle [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAPCSeqToggle() end end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Step Sequencer — Start", invoke=function() PakettiEightOneTwentyAPCSeqStart() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Step Sequencer — Stop",  invoke=function() PakettiEightOneTwentyAPCSeqStop() end}
 
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)

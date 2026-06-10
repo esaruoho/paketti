@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: AKAI APC Key 25 as a Groovebox 8120 step sequencer (steps + per-step probability + row select)
+
+The 40 colour pads now drive the selected 8120 row. **16-step mode:** the top two rows are steps 1–16 (press to toggle, green = on, yellow = the moving playhead), the next two rows are **per-step probability** — Renoise's `0Y` "Maybe" command, already the 8120's `yxx` per-step toggle (red = on), and the bottom row of 8 **selects which instrument/row** is active (green = selected, red = the others). **32-step mode:** the top four rows become steps 1–32, bottom row still selects the row. It works whether or not the 8120 dialog is open (same headless step/probability read-write the MidiMix uses), with a timer redraw so the playhead animates. New headless helpers `GetStepYxx`/`ToggleStepYxx` mirror the step ones.
+
+- Menu: `Main Menu:Tools:Paketti:Groovebox:APC Step Sequencer — Start / Stop`
+- Keybinding: `Global:Paketti:Paketti Groovebox 8120 APC Step Sequencer Toggle`
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:APC Step Sequencer Toggle [Trigger]`
+
 ### 2026-06-10 - Feature: AKAI APC Key 25 light art — scrolling text, fireworks, lightning + a real Stop
 
 Proper light-art on the APC's 8×5 grid, driven by a small frame-buffer engine with a diff renderer (sends only changed pads, so it's smooth not a MIDI flood). **Scroll Text** scrolls "PAKETTI SUPPORTS APC KEY 25 - STAY TUNED FOR PAKETTI GROOVEBOX 8120" right-to-left in a 5-row font, colours cycling green/yellow/red. **Fireworks** launches expanding colour rings at random pads. **Lightning** flashes zigzag bolts down the grid. And a real **Stop** that turns every pad off (including the blink velocities) — fixing that the old Test/Close left pads flashing forever (Close now also clears the LEDs before releasing the device). Animations auto-open the device if needed.
