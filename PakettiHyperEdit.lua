@@ -3852,7 +3852,7 @@ function PakettiHyperEditCreateDialog()
           print("DEBUG: === Checkbox notifier complete ===")
         end
       },
-      vb:text { text = "Capture Track Color", style="strong",font="bold",width = 120 },
+      vb:text { text = "Capture Track Color", style="strong",font="bold" },
       vb:text{text="|",style="strong",font="bold"},
       vb:checkbox {
         id = "auto_fit_checkbox",
@@ -3906,9 +3906,9 @@ function PakettiHyperEditCreateDialog()
           end
         end
       },
-      vb:text { text = "Auto-Fit", style="strong",font="bold",width = 60 },
+      vb:text { text = "Auto-Fit", style="strong",font="bold" },
       vb:text{text="|",style="strong",font="bold"},
-      vb:text { text = "Rows", width = 40, style="strong",font="bold" },
+      vb:text { text = "Rows", style="strong",font="bold" },
       vb:popup {
         id = "row_count_popup",
         items = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"},
@@ -3980,11 +3980,12 @@ function PakettiHyperEditCreateDialog()
           end
         end
       },
-      vb:text { text = "MIDI Write", style="strong", font="bold", width = 80, tooltip = "When ON, a MIDI knob mapped to 'MIDI Write Row NN' writes its value into that row's currently-playing step (or the edit-cursor step when stopped)." },
+      vb:text { text = "MIDI Write", style="strong", font="bold", tooltip = "When ON, a MIDI knob mapped to 'MIDI Write Row NN' writes its value into that row's currently-playing step (or the edit-cursor step when stopped)." },
       vb:text{text="|",style="strong",font="bold"},
       vb:checkbox {
         id = "set_all_rows_checkbox",
         value = PakettiHyperEditSetAllRows,
+        tooltip = "When ON, clicking any step-count button (1..256) or a 0.0/0.5/1.0 value button applies to ALL rows at once, instead of just the clicked row.",
         notifier = function(value)
           PakettiHyperEditSetAllRows = value
           renoise.app():show_status(value
@@ -3992,7 +3993,7 @@ function PakettiHyperEditCreateDialog()
             or  "HyperEdit: Set All Rows OFF — step/value buttons apply to the clicked row only")
         end
       },
-      vb:text { text = "All Rows", style="strong", font="bold", width = 56, tooltip = "When ON, clicking any step-count button (1..256) or a 0.0/0.5/1.0 value button applies to ALL rows at once (Renoise buttons can't detect modifier-clicks, so this toggle replaces cmd/ctrl/alt/shift-click)." },
+      vb:text { text = "All Rows", style="strong", font="bold", tooltip = "When ON, clicking any step-count button (1..256) or a 0.0/0.5/1.0 value button applies to ALL rows at once, instead of just the clicked row." },
 --[[      vb:space { width = 10 },
       vb:button {
         text = "DEBUG",
