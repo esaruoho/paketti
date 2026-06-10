@@ -5041,6 +5041,7 @@ renoise.tool():add_midi_mapping{
     end
     PakettiEightOneTwentyFocusedRow = row
     if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(row) end
+    if PakettiEightOneTwentyMidiMixRefreshLeds then PakettiEightOneTwentyMidiMixRefreshLeds() end
     renoise.app():show_status(string.format("Groovebox 8120: knob selected row %02d (track + instrument)", row))
   end
 }
@@ -5065,6 +5066,7 @@ renoise.tool():add_midi_mapping{
     end
     PakettiEightOneTwentyFocusedRow = row
     if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(row) end
+    if PakettiEightOneTwentyMidiMixRefreshLeds then PakettiEightOneTwentyMidiMixRefreshLeds() end
     renoise.app():show_status(string.format("Groovebox 8120: slider selected row %02d (track + instrument)", row))
   end
 }
@@ -5387,6 +5389,14 @@ local function paketti_midimix_redraw_all_leds()
   end
 end
 
+-- Global entry so non-bridge code (the row-select knob) can force an immediate
+-- LED refresh the instant the focused row changes — instead of waiting for, or
+-- depending on, the idle poller (which we've seen not refresh reliably while the
+-- dialog is closed). No-op when the bridge isn't open.
+function PakettiEightOneTwentyMidiMixRefreshLeds()
+  paketti_midimix_redraw_all_leds()
+end
+
 local function paketti_midimix_clear_all_leds()
   if not paketti_midimix_out then return end
   for step = 1, 16 do
@@ -5400,29 +5410,34 @@ end
 -- every notifier site.
 local function paketti_midimix_idle_handler()
   if not paketti_midimix_out then return end
-  local row = paketti_8120_selected_row()
+  -- Guard the whole body: a thrown error inside an app_idle notifier makes
+  -- Renoise DISABLE the notifier, which would freeze the LEDs (exactly the
+  -- "LEDs stay lit but never update" symptom). pcall keeps the poller alive.
+  pcall(function()
+    local row = paketti_8120_selected_row()
 
-  -- Playhead: while the transport is playing, invert the LED at the current
-  -- step so a moving cursor runs across the 16 LEDs. This is the headless
-  -- equivalent of the on-screen step highlight (which only runs when the dialog
-  -- is open) — the idle poller runs whenever the MidiMix bridge is open.
-  local playing_step = nil
-  local song = renoise.song()
-  if song and song.transport.playing then
-    local pos = song.transport.playback_pos
-    if pos and pos.line then
-      local s = ((pos.line - 1) % MAX_STEPS) + 1
-      if s >= 1 and s <= 16 then playing_step = s end
+    -- Playhead: while the transport is playing, invert the LED at the current
+    -- step so a moving cursor runs across the 16 LEDs. This is the headless
+    -- equivalent of the on-screen step highlight (which only runs when the dialog
+    -- is open) — the idle poller runs whenever the MidiMix bridge is open.
+    local playing_step = nil
+    local song = renoise.song()
+    if song and song.transport.playing then
+      local pos = song.transport.playback_pos
+      if pos and pos.line then
+        local s = ((pos.line - 1) % MAX_STEPS) + 1
+        if s >= 1 and s <= 16 then playing_step = s end
+      end
     end
-  end
 
-  for step = 1, 16 do
-    local led = PakettiEightOneTwentyGetStepState(row, step)
-    if playing_step == step then led = not led end  -- highlight the playhead step
-    if paketti_midimix_last_led[step] ~= led then
-      paketti_midimix_set_led(step, led)
+    for step = 1, 16 do
+      local led = PakettiEightOneTwentyGetStepState(row, step)
+      if playing_step == step then led = not led end  -- highlight the playhead step
+      if paketti_midimix_last_led[step] ~= led then
+        paketti_midimix_set_led(step, led)
+      end
     end
-  end
+  end)
 end
 
 local function paketti_midimix_install_idle()

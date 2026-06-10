@@ -8,7 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-06-10 - Feature: Groovebox 8120 MidiMix shows the playhead on its LEDs (works headless)
+### 2026-06-10 - Fix: Groovebox 8120 row-select knob now refreshes the MidiMix LEDs immediately (headless)
+
+With the dialog closed, sweeping the `Select Row (Knob 01-08 / 08-01)` selector changed the focused row but the LEDs stayed frozen on the previous row's pattern. The knob now forces an immediate MidiMix LED redraw the instant it changes rows, instead of relying on the idle poller. The idle poller itself is also now wrapped in a guard so a transient error can't make Renoise disable it (which would freeze the LEDs). So headless, sweeping the knob makes the 16 LEDs jump to the newly-selected row's steps right away.
 
 The step-position highlight used to be on-screen only — the playhead updater bails the moment the 8120 dialog is closed, and it never touched the MidiMix anyway — so with the dialog closed there was no moving highlight at all. The MidiMix LEDs now show the playhead: while the transport plays, the LED at the current step is inverted so a cursor runs across the 16 LEDs, on top of the step on/off display. Because it lives in the bridge's idle poller (which keeps running while the bridge is open), it works with the dialog closed.
 
