@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Fix: PCM Writer "Export A/B to Sample Slot" pakettifies an empty instrument
+
+When exporting Wave A or Wave B from the Single Cycle Waveform Writer into an **empty** instrument, the instrument wasn't being pakettified first — it just dropped the sample into a bare instrument. (The main "Export to Sample Slot" already handled this; the A/B variants were missing the empty-instrument branch.) Both `Export A` and `Export B` now apply the Paketti default instrument chassis (pitch-bend modulation + *Instr. Macros) before writing the sample, matching the main export.
+
 ### 2026-06-10 - Feature: plain Start/Stop Playback toggle (MIDI mapping + keybinding)
 
 A simple play/stop toggle — if the transport is playing it stops, otherwise it starts from the current position. No record, no follow (unlike the existing "Record and Follow and Start/Stop" mapping). Bind it to a single controller button or key.

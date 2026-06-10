@@ -5842,12 +5842,20 @@ function PCMWriterExportWaveAToSample()
   local song = renoise.song()
   local inst = song.selected_instrument
 
-  -- Check if instrument has samples or plugins, if so create new instrument
+  -- Check if instrument has samples or plugins, if so create new instrument;
+  -- otherwise (empty instrument) pakettify it in place. Either way the resulting
+  -- instrument is a Paketti default chassis before the sample goes in.
   if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
     if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     inst = song.selected_instrument
     -- Apply Paketti default instrument configuration
+    if pakettiPreferencesDefaultInstrumentLoader then
+      pakettiPreferencesDefaultInstrumentLoader()
+      inst = song.selected_instrument
+    end
+  elseif #inst.samples == 0 and not inst.plugin_properties.plugin_loaded then
+    -- Empty instrument: pakettify it in place
     if pakettiPreferencesDefaultInstrumentLoader then
       pakettiPreferencesDefaultInstrumentLoader()
       inst = song.selected_instrument
@@ -5858,13 +5866,13 @@ function PCMWriterExportWaveAToSample()
   local sample_slot = #inst.samples + 1
   inst:insert_sample_at(sample_slot)
   song.selected_sample_index = sample_slot
-  
+
   local sample = inst:sample(sample_slot)
   local buffer = sample.sample_buffer
-  
+
   buffer:create_sample_data(44100, 16, 1, wave_size)
   buffer:prepare_sample_data_changes()
-  
+
   -- Export Wave A specifically
   for i = 1, wave_size do
     local normalized_value = (wave_data_a[i] - 32768) / 32768
@@ -5932,12 +5940,19 @@ function PCMWriterExportWaveBToSample()
   local song = renoise.song()
   local inst = song.selected_instrument
 
-  -- Check if instrument has samples or plugins, if so create new instrument
+  -- Check if instrument has samples or plugins, if so create new instrument;
+  -- otherwise (empty instrument) pakettify it in place.
   if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
     if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then return end
     song.selected_instrument_index = song.selected_instrument_index + 1
     inst = song.selected_instrument
     -- Apply Paketti default instrument configuration
+    if pakettiPreferencesDefaultInstrumentLoader then
+      pakettiPreferencesDefaultInstrumentLoader()
+      inst = song.selected_instrument
+    end
+  elseif #inst.samples == 0 and not inst.plugin_properties.plugin_loaded then
+    -- Empty instrument: pakettify it in place
     if pakettiPreferencesDefaultInstrumentLoader then
       pakettiPreferencesDefaultInstrumentLoader()
       inst = song.selected_instrument

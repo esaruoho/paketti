@@ -25,6 +25,7 @@ Context: Global
   #
   # WATCH: PakettiEightOneTwentyRowRecordToggle PakettiEightOneTwentyFinalizeRecordedSample pakettiPreferencesDefaultInstrumentLoader
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+#   2026-06-10  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
 #   2026-06-09  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
 
   Scenario: Record press loads a Paketti Default Instrument then starts recording
