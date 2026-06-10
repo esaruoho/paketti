@@ -5517,13 +5517,17 @@ end
 function PakettiEightOneTwentyMidiMixOpen()
   if paketti_midimix_in then return true end  -- already open
   local in_name, out_name = paketti_midimix_find_device()
-  print(string.format("MIDIMIX OPEN: detected in_name=%s out_name=%s", tostring(in_name), tostring(out_name)))
-  print("MIDIMIX OPEN: available inputs = " .. table.concat(renoise.Midi.available_input_devices() or {}, " | "))
-  print("MIDIMIX OPEN: available outputs = " .. table.concat(renoise.Midi.available_output_devices() or {}, " | "))
   if not in_name and not out_name then
+    -- Not found: print the available device names ONCE so a name-match issue is
+    -- diagnosable, then bail. No retry loop — we only get here on a deliberate
+    -- open attempt (startup, song load, explicit toggle), never in a tight loop.
+    print("MIDIMIX OPEN: Akai MidiMix not detected.")
+    print("MIDIMIX OPEN: available inputs = " .. table.concat(renoise.Midi.available_input_devices() or {}, " | "))
+    print("MIDIMIX OPEN: available outputs = " .. table.concat(renoise.Midi.available_output_devices() or {}, " | "))
     renoise.app():show_status("Groovebox 8120: Akai MidiMix not detected — input/output unchanged")
     return false
   end
+  print(string.format("MIDIMIX OPEN: detected in_name=%s out_name=%s", tostring(in_name), tostring(out_name)))
   paketti_midimix_name = in_name or out_name
   if in_name then
     local ok, dev = pcall(renoise.Midi.create_input_device, in_name, paketti_midimix_on_midi)
