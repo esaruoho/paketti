@@ -5671,6 +5671,80 @@ if PakettiEightOneTwentyMidiMixAutoStartEnabled() then
   renoise.tool():add_timer(paketti_midimix_autostart_timer, 800)
 end
 
+-- ============================================================================
+-- AKAI APC Key 25 — step-sequencer PROBE (proof of concept)
+-- ----------------------------------------------------------------------------
+-- The APC Key 25 has an 8x5 = 40 pad grid with colour LEDs (far more than the
+-- MidiMix's 16). The bridge architecture generalises directly, but the exact pad
+-- note-numbers and the LED colour map differ between mk1 (red/green/yellow, set
+-- by velocity) and mk2 (RGB) and must NOT be guessed. This probe proves the two
+-- things we need and gathers the real data: (1) we can READ the pads — open it
+-- and every press prints "APC IN: …" to the terminal; (2) we can LIGHT them —
+-- the LED test walks notes 0..39 with cycling velocities so we see the palette.
+local paketti_apc_in  = nil
+local paketti_apc_out = nil
+
+local function paketti_apc_find_device()
+  local function match(name) return name:lower():find("apc") ~= nil end
+  local in_name, out_name
+  for _, n in ipairs(renoise.Midi.available_input_devices()  or {}) do if match(n) then in_name  = n break end end
+  for _, n in ipairs(renoise.Midi.available_output_devices() or {}) do if match(n) then out_name = n break end end
+  return in_name, out_name
+end
+
+local function paketti_apc_on_midi(message)
+  if type(message) ~= "table" or #message < 3 then return end
+  local status, d1, d2 = message[1], message[2], message[3]
+  print(string.format("APC IN: status=0x%02X type=0x%02X ch=%d data1=%d data2=%d",
+    status, math.floor(status / 16) * 16, (status % 16) + 1, d1, d2))
+end
+
+function PakettiEightOneTwentyAPCProbeOpen()
+  if paketti_apc_in then renoise.app():show_status("APC probe already open") return end
+  local in_name, out_name = paketti_apc_find_device()
+  print("APC PROBE: in_name=" .. tostring(in_name) .. " out_name=" .. tostring(out_name))
+  print("APC PROBE: available inputs = " .. table.concat(renoise.Midi.available_input_devices() or {}, " | "))
+  print("APC PROBE: available outputs = " .. table.concat(renoise.Midi.available_output_devices() or {}, " | "))
+  if not in_name then
+    renoise.app():show_status("APC: no MIDI device with 'APC' in the name — see terminal for the device list")
+    return
+  end
+  local ok, dev = pcall(renoise.Midi.create_input_device, in_name, paketti_apc_on_midi)
+  if ok and dev then paketti_apc_in = dev else print("APC: input open failed: " .. tostring(dev)) end
+  if out_name then
+    local ok2, dev2 = pcall(renoise.Midi.create_output_device, out_name)
+    if ok2 and dev2 then paketti_apc_out = dev2 else print("APC: output open failed: " .. tostring(dev2)) end
+  end
+  renoise.app():show_status("APC probe OPEN — press pads/keys; watch the terminal for 'APC IN:' lines")
+end
+
+function PakettiEightOneTwentyAPCProbeClose()
+  if paketti_apc_in  then pcall(function() paketti_apc_in:close()  end) paketti_apc_in  = nil end
+  if paketti_apc_out then pcall(function() paketti_apc_out:close() end) paketti_apc_out = nil end
+  renoise.app():show_status("APC probe closed")
+end
+
+-- Send Note On to pads 0..39 with cycling velocities 1..6 so we can see which
+-- velocity makes which colour (mk1 palette: 1 green, 3 red, 5 yellow + blinks).
+function PakettiEightOneTwentyAPCTestLeds()
+  if not paketti_apc_out then
+    renoise.app():show_status("APC: output not open — run 'APC Probe Open' first")
+    return
+  end
+  for note = 0, 39 do
+    paketti_apc_out:send({0x90, note, (note % 6) + 1})
+  end
+  print("APC TEST: sent Note On (0x90) to pads 0..39 with velocities 1..6 — note which pads light and what colour.")
+  renoise.app():show_status("APC: sent test colours to pads 0..39 — tell me what lights up")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Probe Open",  invoke=function() PakettiEightOneTwentyAPCProbeOpen() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Probe Close", invoke=function() PakettiEightOneTwentyAPCProbeClose() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Test LEDs",   invoke=function() PakettiEightOneTwentyAPCTestLeds() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyAPCProbeOpen() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Test pad LEDs",              invoke=function() PakettiEightOneTwentyAPCTestLeds() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Close",                      invoke=function() PakettiEightOneTwentyAPCProbeClose() end}
+
 -- Add MIDI mapping for step mode switch
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
   if message:is_trigger() then
