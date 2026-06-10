@@ -5401,10 +5401,26 @@ end
 local function paketti_midimix_idle_handler()
   if not paketti_midimix_out then return end
   local row = paketti_8120_selected_row()
+
+  -- Playhead: while the transport is playing, invert the LED at the current
+  -- step so a moving cursor runs across the 16 LEDs. This is the headless
+  -- equivalent of the on-screen step highlight (which only runs when the dialog
+  -- is open) — the idle poller runs whenever the MidiMix bridge is open.
+  local playing_step = nil
+  local song = renoise.song()
+  if song and song.transport.playing then
+    local pos = song.transport.playback_pos
+    if pos and pos.line then
+      local s = ((pos.line - 1) % MAX_STEPS) + 1
+      if s >= 1 and s <= 16 then playing_step = s end
+    end
+  end
+
   for step = 1, 16 do
-    local cur = PakettiEightOneTwentyGetStepState(row, step)
-    if paketti_midimix_last_led[step] ~= cur then
-      paketti_midimix_set_led(step, cur)
+    local led = PakettiEightOneTwentyGetStepState(row, step)
+    if playing_step == step then led = not led end  -- highlight the playhead step
+    if paketti_midimix_last_led[step] ~= led then
+      paketti_midimix_set_led(step, led)
     end
   end
 end

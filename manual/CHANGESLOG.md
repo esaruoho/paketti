@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: Groovebox 8120 MidiMix shows the playhead on its LEDs (works headless)
+
+The step-position highlight used to be on-screen only — the playhead updater bails the moment the 8120 dialog is closed, and it never touched the MidiMix anyway — so with the dialog closed there was no moving highlight at all. The MidiMix LEDs now show the playhead: while the transport plays, the LED at the current step is inverted so a cursor runs across the 16 LEDs, on top of the step on/off display. Because it lives in the bridge's idle poller (which keeps running while the bridge is open), it works with the dialog closed.
+
 ### 2026-06-09 - Fix: Groovebox 8120 MidiMix bridge stays open when the dialog closes (so headless really works)
 
 The headless step sequencer added moments ago still looked dead with the dialog closed because closing the 8120 dialog also closed the MidiMix bridge — which is what drives the LEDs and reads the buttons — so the row-select knob had nothing to update. The dialog no longer closes the bridge: once opened it stays running, so with the dialog closed the Select Row knob updates the LEDs and the step buttons keep sequencing the pattern. Turn the bridge off explicitly with the `MidiMix Bridge Toggle` mapping when you want it off.
