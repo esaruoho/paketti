@@ -8,6 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-10 - Feature: plain Start/Stop Playback toggle (MIDI mapping + keybinding)
+
+A simple play/stop toggle — if the transport is playing it stops, otherwise it starts from the current position. No record, no follow (unlike the existing "Record and Follow and Start/Stop" mapping). Bind it to a single controller button or key.
+
+- MIDI Mapping: `Paketti:Start/Stop Playback Toggle [Trigger]`
+- Keybinding: `Global:Paketti:Start/Stop Playback Toggle`
+
 ### 2026-06-10 - Feature: HyperEdit "All Rows" toggle — set every row's step count / value at once
 
 A new **All Rows** checkbox in the HyperEdit toolbar. When it's on, clicking any step-count button (1, 2, 4, … 256) or any 0.0 / 0.5 / 1.0 value button applies to **every row at once** instead of just the clicked row; when off, it's the usual per-row behaviour. (Renoise's button notifiers can't see modifier keys — cmd/ctrl/alt/shift-click is undetectable on a button — so this toggle is the working equivalent of the requested modifier-click.)

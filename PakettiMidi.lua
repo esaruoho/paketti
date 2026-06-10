@@ -147,6 +147,22 @@ w.lock_keyboard_focus = true
 end
 end
 
+-- Plain play/stop toggle: if the transport is playing, stop; if not, play (from
+-- the current position). No record, no follow — just start/stop.
+function PakettiStartStopPlaybackToggle()
+  local song = renoise.song()
+  if not song then return end
+  if song.transport.playing then
+    song.transport:stop()
+    renoise.app():show_status("Playback: stopped")
+  else
+    song.transport:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
+    renoise.app():show_status("Playback: playing")
+  end
+end
+renoise.tool():add_midi_mapping{name="Paketti:Start/Stop Playback Toggle [Trigger]",invoke=function(message) if message:is_trigger() then PakettiStartStopPlaybackToggle() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Start/Stop Playback Toggle",invoke=function() PakettiStartStopPlaybackToggle() end}
+
 renoise.tool():add_midi_mapping{name="Paketti:Record and Follow and Start/Stop Playback x[Toggle]",invoke=function(message) if message:is_trigger() then MidiRecordAndFollowToggle() end end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Record and Follow and Start/Stop Playback On/Off x[Knob]",invoke=function(midi_message) 
