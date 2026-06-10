@@ -12,7 +12,7 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 The reason the headless LEDs looked dead was simply that the MidiMix bridge wasn't open (it only auto-opened with the 8120 dialog). There's now a persistent setting: turn **Auto-Start AKAI MidiMix Bridge** ON once and the bridge opens at every launch (and on song load), so the step sequencer LEDs + buttons work with the dialog closed from then on — no manual toggling. Turning it ON opens the bridge immediately. It's a checkable entry in both the Options menu and the Groovebox menu, saved in preferences (default OFF).
 
-- Menu: `Main Menu:Options:Paketti:Auto-Start AKAI MidiMix Bridge` (checkable)
+- Menu: `Main Menu:Options:Auto-Start AKAI MidiMix Bridge` (checkable)
 - Menu: `Main Menu:Tools:Paketti:Groovebox:Auto-Start AKAI MidiMix Bridge` (checkable)
 - Preference: `PakettiEightOneTwentyMidiMixAutoStart` (default OFF)
 

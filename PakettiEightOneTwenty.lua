@@ -5633,7 +5633,7 @@ function PakettiEightOneTwentyToggleMidiMixAutoStart()
 end
 
 PakettiAddMenuEntry{
-  name = "Main Menu:Options:Paketti:Auto-Start AKAI MidiMix Bridge",
+  name = "Main Menu:Options:Auto-Start AKAI MidiMix Bridge",
   selected = function() return PakettiEightOneTwentyMidiMixAutoStartEnabled() end,
   invoke = function() PakettiEightOneTwentyToggleMidiMixAutoStart() end
 }
