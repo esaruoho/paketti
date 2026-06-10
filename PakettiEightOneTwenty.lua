@@ -5041,7 +5041,7 @@ renoise.tool():add_midi_mapping{
     end
     PakettiEightOneTwentyFocusedRow = row
     if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(row) end
-    if PakettiEightOneTwentyMidiMixRefreshLeds then PakettiEightOneTwentyMidiMixRefreshLeds() end
+    if PakettiEightOneTwentyMidiMixRefreshLedsSilent then PakettiEightOneTwentyMidiMixRefreshLedsSilent() end
     renoise.app():show_status(string.format("Groovebox 8120: knob selected row %02d (track + instrument)", row))
   end
 }
@@ -5066,7 +5066,7 @@ renoise.tool():add_midi_mapping{
     end
     PakettiEightOneTwentyFocusedRow = row
     if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(row) end
-    if PakettiEightOneTwentyMidiMixRefreshLeds then PakettiEightOneTwentyMidiMixRefreshLeds() end
+    if PakettiEightOneTwentyMidiMixRefreshLedsSilent then PakettiEightOneTwentyMidiMixRefreshLedsSilent() end
     renoise.app():show_status(string.format("Groovebox 8120: slider selected row %02d (track + instrument)", row))
   end
 }
@@ -5389,17 +5389,29 @@ local function paketti_midimix_redraw_all_leds()
   end
 end
 
--- Global entry so non-bridge code (the row-select knob) can force an immediate
--- LED refresh the instant the focused row changes — instead of waiting for, or
--- depending on, the idle poller. Reports the bridge state so it's obvious when
--- the LEDs aren't updating because the bridge simply isn't open.
+-- Silent immediate LED refresh for the row-select knob: pushes the current row's
+-- steps to the LEDs without touching the status bar (sweeping the knob must not
+-- spam status). Diagnostics go to the TERMINAL via print() so they can be copied.
+-- No-op (LED-wise) when the bridge isn't open.
+function PakettiEightOneTwentyMidiMixRefreshLedsSilent()
+  print(string.format("MIDIMIX REFRESH (knob): bridge_out=%s bridge_in=%s row=%02d",
+    tostring(paketti_midimix_out ~= nil), tostring(paketti_midimix_in ~= nil), paketti_8120_selected_row()))
+  paketti_midimix_redraw_all_leds()
+end
+
+-- Verbose refresh for the explicit "Refresh LEDs" action — reports the bridge
+-- state to BOTH the terminal and the status bar (manual press, so no spam).
 function PakettiEightOneTwentyMidiMixRefreshLeds()
   if not paketti_midimix_out then
-    renoise.app():show_status("MidiMix LEDs: bridge is NOT open — run 'Groovebox 8120 MidiMix Bridge Toggle' (menu/keybinding) to start it")
+    local msg = "MidiMix LEDs: bridge is NOT open — run 'Groovebox 8120 MidiMix Bridge Toggle' (menu/keybinding) to start it"
+    print(msg)
+    renoise.app():show_status(msg)
     return false
   end
   paketti_midimix_redraw_all_leds()
-  renoise.app():show_status(string.format("MidiMix LEDs refreshed for row %02d", paketti_8120_selected_row()))
+  local msg = string.format("MidiMix LEDs refreshed for row %02d (bridge open)", paketti_8120_selected_row())
+  print(msg)
+  renoise.app():show_status(msg)
   return true
 end
 
@@ -5492,6 +5504,9 @@ end
 function PakettiEightOneTwentyMidiMixOpen()
   if paketti_midimix_in then return true end  -- already open
   local in_name, out_name = paketti_midimix_find_device()
+  print(string.format("MIDIMIX OPEN: detected in_name=%s out_name=%s", tostring(in_name), tostring(out_name)))
+  print("MIDIMIX OPEN: available inputs = " .. table.concat(renoise.Midi.available_input_devices() or {}, " | "))
+  print("MIDIMIX OPEN: available outputs = " .. table.concat(renoise.Midi.available_output_devices() or {}, " | "))
   if not in_name and not out_name then
     renoise.app():show_status("Groovebox 8120: Akai MidiMix not detected — input/output unchanged")
     return false
@@ -5542,12 +5557,14 @@ end
 function PakettiEightOneTwentyMidiMixBridgeToggle()
   if paketti_midimix_in or paketti_midimix_out then
     PakettiEightOneTwentyMidiMixClose()
+    print("MIDIMIX BRIDGE: CLOSED")
     renoise.app():show_status("Groovebox 8120: MidiMix bridge CLOSED")
   else
     local ok = PakettiEightOneTwentyMidiMixOpen()
-    if ok then
-      renoise.app():show_status("Groovebox 8120: MidiMix bridge OPEN — headless step LEDs active (out=" .. tostring(paketti_midimix_out ~= nil) .. ")")
-    end
+    local msg = string.format("MIDIMIX BRIDGE: open=%s in=%s out=%s name=%s",
+      tostring(ok), tostring(paketti_midimix_in ~= nil), tostring(paketti_midimix_out ~= nil), tostring(paketti_midimix_name))
+    print(msg)
+    renoise.app():show_status("Groovebox 8120: " .. msg)
   end
 end
 
