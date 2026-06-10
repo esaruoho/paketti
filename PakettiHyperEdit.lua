@@ -3440,6 +3440,31 @@ function PakettiHyperEditChangeRowStepCount(row, steps)
   renoise.app():show_status("HyperEdit Row " .. row .. ": Changed to " .. steps .. " steps")
 end
 
+-- "Set All Rows" mode. Renoise buttons can't see modifier keys (their notifier
+-- takes no arguments), so cmd/ctrl/alt/shift-click on the step/value buttons is
+-- impossible to detect. This toggle is the equivalent: when ON, clicking any
+-- step-count button (1..256) or any 0.0/0.5/1.0 value button applies to EVERY
+-- row at once instead of only the clicked row.
+PakettiHyperEditSetAllRows = false
+
+function PakettiHyperEditStepCountClicked(row, count)
+  if PakettiHyperEditSetAllRows then
+    for r = 1, NUM_ROWS do PakettiHyperEditChangeRowStepCount(r, count) end
+    renoise.app():show_status("HyperEdit: ALL rows set to " .. count .. " steps")
+  else
+    PakettiHyperEditChangeRowStepCount(row, count)
+  end
+end
+
+function PakettiHyperEditValueClicked(row, value)
+  if PakettiHyperEditSetAllRows then
+    for r = 1, NUM_ROWS do PakettiHyperEditSetAllStepsToValue(r, value) end
+    renoise.app():show_status("HyperEdit: ALL rows set to value " .. value)
+  else
+    PakettiHyperEditSetAllStepsToValue(row, value)
+  end
+end
+
 -- Clear all automation data AND visual canvas
 function PakettiHyperEditClearAll()
   local song = renoise.song()
@@ -3956,6 +3981,18 @@ function PakettiHyperEditCreateDialog()
         end
       },
       vb:text { text = "MIDI Write", style="strong", font="bold", width = 80, tooltip = "When ON, a MIDI knob mapped to 'MIDI Write Row NN' writes its value into that row's currently-playing step (or the edit-cursor step when stopped)." },
+      vb:text{text="|",style="strong",font="bold"},
+      vb:checkbox {
+        id = "set_all_rows_checkbox",
+        value = PakettiHyperEditSetAllRows,
+        notifier = function(value)
+          PakettiHyperEditSetAllRows = value
+          renoise.app():show_status(value
+            and "HyperEdit: Set All Rows ON — step/value buttons now apply to EVERY row"
+            or  "HyperEdit: Set All Rows OFF — step/value buttons apply to the clicked row only")
+        end
+      },
+      vb:text { text = "All Rows", style="strong", font="bold", width = 56, tooltip = "When ON, clicking any step-count button (1..256) or a 0.0/0.5/1.0 value button applies to ALL rows at once (Renoise buttons can't detect modifier-clicks, so this toggle replaces cmd/ctrl/alt/shift-click)." },
 --[[      vb:space { width = 10 },
       vb:button {
         text = "DEBUG",
@@ -3981,7 +4018,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 1) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 1 (constant value)",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 1)
+            PakettiHyperEditStepCountClicked(row, 1)
           end
         },
         vb:button {
@@ -3991,7 +4028,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 2) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 2",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 2)
+            PakettiHyperEditStepCountClicked(row, 2)
           end
         },
         vb:button {
@@ -4001,7 +4038,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 4) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 4",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 4)
+            PakettiHyperEditStepCountClicked(row, 4)
           end
         },
         vb:button {
@@ -4011,7 +4048,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 8) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 8",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 8)
+            PakettiHyperEditStepCountClicked(row, 8)
           end
         },
         vb:button {
@@ -4021,7 +4058,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 16) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 16",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 16)
+            PakettiHyperEditStepCountClicked(row, 16)
           end
         },        
         vb:button {
@@ -4031,7 +4068,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 32) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 32",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 32)
+            PakettiHyperEditStepCountClicked(row, 32)
           end
         },
         vb:button {
@@ -4041,7 +4078,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 48) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 48",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 48)
+            PakettiHyperEditStepCountClicked(row, 48)
           end
         },
         vb:button {
@@ -4051,7 +4088,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 64) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 64",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 64)
+            PakettiHyperEditStepCountClicked(row, 64)
           end
         },
         vb:button {
@@ -4061,7 +4098,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 96) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 96",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 96)
+            PakettiHyperEditStepCountClicked(row, 96)
           end
         },
         vb:button {
@@ -4071,7 +4108,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 112) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 112",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 112)
+            PakettiHyperEditStepCountClicked(row, 112)
           end
         },
         vb:button {
@@ -4081,7 +4118,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 128) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 128",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 128)
+            PakettiHyperEditStepCountClicked(row, 128)
           end
         },
         vb:button {
@@ -4091,7 +4128,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 192) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 192",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 192)
+            PakettiHyperEditStepCountClicked(row, 192)
           end
         },
         vb:button {
@@ -4101,7 +4138,7 @@ function PakettiHyperEditCreateDialog()
           color = (row_steps[row] == 256) and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
           tooltip = "Set step count to 256",
           notifier = function()
-            PakettiHyperEditChangeRowStepCount(row, 256)
+            PakettiHyperEditStepCountClicked(row, 256)
           end
         },
         
@@ -4156,7 +4193,7 @@ function PakettiHyperEditCreateDialog()
           width = 30,
           tooltip = "Set all steps to 0.0",
           notifier = function()
-            PakettiHyperEditSetAllStepsToValue(row, 0.0)
+            PakettiHyperEditValueClicked(row, 0.0)
           end
         },
         vb:button {
@@ -4164,7 +4201,7 @@ function PakettiHyperEditCreateDialog()
           width = 30,
           tooltip = "Set all steps to 0.5 (center)",
           notifier = function()
-            PakettiHyperEditSetAllStepsToValue(row, 0.5)
+            PakettiHyperEditValueClicked(row, 0.5)
           end
         },
         vb:button {
@@ -4172,7 +4209,7 @@ function PakettiHyperEditCreateDialog()
           width = 30,
           tooltip = "Set all steps to 1.0 (maximum)",
           notifier = function()
-            PakettiHyperEditSetAllStepsToValue(row, 1.0)
+            PakettiHyperEditValueClicked(row, 1.0)
           end
         },
         -- Per-row MIDI Map target. With Renoise's MIDI Map mode ON this button
