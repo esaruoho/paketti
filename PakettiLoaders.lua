@@ -1334,7 +1334,49 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Chorus LX",inv
 renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Chorus",invoke=function() loadvst("Audio/Effects/AU/aufx:Chor:Togu") end}
 
 -- Esa Ruoho (AU)
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Esa Ruoho ParaEQ (AU)",invoke=function() loadvst("Audio/Effects/AU/aufx:peQA:EsaR") end}
+-- Find-or-add: if the ParaEQ AU is already on the selected track, just (re)open
+-- its external editor; otherwise add it, then open the editor. Never stacks
+-- duplicate copies. Matches on the device_path, or a name containing peQA/ParaEQ.
+local PAKETTI_PARAEQ_PATH = "Audio/Effects/AU/aufx:peQA:EsaR"
+function PakettiLoadOrShowParaEQ()
+  local song = renoise.song()
+  if not song then return end
+  local function find_on_selected()
+    local t = song.selected_track
+    if not t then return nil, nil end
+    for i = 1, #t.devices do
+      local dev = t.devices[i]
+      if dev.device_path == PAKETTI_PARAEQ_PATH
+         or (dev.name and (dev.name:find("peQA") or dev.name:find("ParaEQ"))) then
+        return t, i
+      end
+    end
+    return t, nil
+  end
+  local t, idx = find_on_selected()
+  if not t then renoise.app():show_status("ParaEQ: no track selected") return end
+  if not idx then
+    loadvst(PAKETTI_PARAEQ_PATH)   -- add it
+    t, idx = find_on_selected()    -- re-find (track/devices may have changed)
+  end
+  if not idx or not t then
+    renoise.app():show_status("ParaEQ: could not add the device — is the AU installed?")
+    return
+  end
+  song.selected_device_index = idx
+  local dev = t.devices[idx]
+  if dev.external_editor_available then
+    dev.external_editor_visible = true
+    renoise.app():show_status("ParaEQ: external editor opened")
+  else
+    renoise.app():show_status("ParaEQ: selected (this device has no external editor)")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Esa Ruoho ParaEQ (AU)",invoke=function() PakettiLoadOrShowParaEQ() end}
+renoise.tool():add_midi_mapping{name="Paketti:Load or Show Esa Ruoho ParaEQ (AU) [Trigger]",invoke=function(message) if message:is_trigger() then PakettiLoadOrShowParaEQ() end end}
+PakettiAddMenuEntry{name="Mixer:Paketti:Load or Show Esa Ruoho ParaEQ (AU)",invoke=function() PakettiLoadOrShowParaEQ() end}
+PakettiAddMenuEntry{name="DSP Device:Paketti:Load or Show Esa Ruoho ParaEQ (AU)",invoke=function() PakettiLoadOrShowParaEQ() end}
 
 -- ValhallaDSP (AU)
 renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaRoom",invoke=function() loadvst("Audio/Effects/AU/aufx:Ruum:oDin") end}
