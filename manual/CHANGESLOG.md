@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Capitalized "Auto-Samplify" in menu entries and status text
+
+The two `Main Menu:Options` toggles now read `Auto-Samplify Enable Monitoring Toggle` and `Auto-Samplify Pakettify Toggle` (was lowercase "Auto-samplify"), and the matching status message uses the same capitalization. Cosmetic only — no behavior, keybindings, or MIDI mappings changed.
+
 ### 2026-06-11 - Improvement: Moved AKAI controller debug entries out of the Groovebox menu
 
 The Groovebox 8120 menu was crowded with MIDI-controller debug and demo entries that did not belong in the Groovebox feature space. Moved all 29 of them — every LPD8, APC Key 25, and AKAI MidiMix probe/demo/lights/step-sequencer/page entry — into a new dedicated `Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers` submenu (e.g. `APC Probe — Open`, `APC Demo — Light Show`, `APC — Fireworks`, `APC Step Sequencer — Start/Stop`, `MidiMix Bridge Toggle`, `LPD8 Next/Previous Page`, `LPD8 Toggle Follow-Page Mode`, `LPD8 Toggle 4Steps+4Probability Layout`, `LPD8 Step Sequencer — Start/Stop`, `LPD8 Probe — Open/Test/Close`, `LPD8 Lights — Lightshow/Blink/Stars/Scroll/Snake/Stop`). The three **Auto-Start** toggles (AKAI MidiMix Bridge, AKAI APC Key 25, AKAI LPD8) were already present under `Main Menu:Options` and only duplicated in Groovebox — the Groovebox duplicates were removed, leaving them in `Main Menu:Options`. The standalone `Main Menu:Tools:Paketti:Debug:Trigger Sample Manual Test` entry was folded into `Main Menu:Tools:Paketti:!Preferences:Debug` alongside the other debug tools. The Groovebox menu now keeps only its actual features: Sequential Load / RandomLoad / RandomLoadAll, Kit, Toggle Auto-Fill Default Instrument Slots, Canvas View (MK2), and the 8ch960samp prototype. No keybindings or MIDI mappings changed — menu paths only.

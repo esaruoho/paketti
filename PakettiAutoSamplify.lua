@@ -1542,7 +1542,7 @@ function PakettiToggleAutoSamplifyPakettify()
   if preferences and preferences.pakettiAutoSamplifyPakettify then
     preferences.pakettiAutoSamplifyPakettify.value = not preferences.pakettiAutoSamplifyPakettify.value
     local status = preferences.pakettiAutoSamplifyPakettify.value and "enabled" or "disabled"
-    renoise.app():show_status("Paketti Auto-samplify Pakettify: " .. status)
+    renoise.app():show_status("Paketti Auto-Samplify Pakettify: " .. status)
   end
 end
 
