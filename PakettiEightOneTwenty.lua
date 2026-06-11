@@ -2260,6 +2260,20 @@ function row_elements.print_to_pattern()
         dest_line.effect_columns[1]:copy_from(source_line.effect_columns[1])
       end
     end
+    -- Fill the trailing partial block. full_repeats complete blocks cover
+    -- full_repeats*steps lines; the remaining lines (e.g. 64 lines / 3 steps =
+    -- 21 full blocks + 1 leftover line at the very last row) still belong to the
+    -- repeating cycle, so copy as many leading steps of the block as fit.
+    local remainder = pattern_length - full_repeats * steps
+    if remainder > 0 then
+      local start_line = full_repeats * steps + 1
+      for line = 1, math.min(remainder, MAX_STEPS) do
+        local source_line = track_in_pattern:line(line)
+        local dest_line = track_in_pattern:line(start_line + line - 1)
+        dest_line.note_columns[1]:copy_from(source_line.note_columns[1])
+        dest_line.effect_columns[1]:copy_from(source_line.effect_columns[1])
+      end
+    end
   end
 end
 
@@ -8212,8 +8226,19 @@ function PakettiEightOneTwentyRowToPhraseTriggersInPattern(row_index, phrase_ind
         dest_line.note_columns[1]:copy_from(source_line.note_columns[1])
       end
     end
+    -- Fill the trailing partial block so the final pattern rows aren't left
+    -- empty (e.g. 64 lines / 3 steps = 21 full blocks + 1 leftover last row).
+    local remainder = pattern_length - full_repeats * steps
+    if remainder > 0 then
+      local start_line = full_repeats * steps + 1
+      for line = 1, math.min(remainder, MAX_STEPS) do
+        local source_line = track_in_pattern:line(line)
+        local dest_line = track_in_pattern:line(start_line + line - 1)
+        dest_line.note_columns[1]:copy_from(source_line.note_columns[1])
+      end
+    end
   end
-  
+
   renoise.app():show_status(string.format("8120 row %d: phrase trigger Z%02X written to pattern", row_index, phrase_index))
 end
 

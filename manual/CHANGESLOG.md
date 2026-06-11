@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Fix: 8120 step-repeat fills the trailing partial block (last pattern row)
+
+When a row's step count doesn't divide the pattern length evenly (e.g. 3 steps in a 64-row pattern), the repeat logic stopped after the last complete block and left the leftover rows at the end of the pattern empty — the final row (row 63 in a 64-row pattern) never got its trigger. The writer now fills the trailing partial block by copying as many leading steps of the cycle as fit, so the repeat continues right to the last pattern row. Applies to both note-trigger and phrase-trigger pattern writes.
+
 ### 2026-06-11 - Improvement: Kit loader status lines align the per-part columns
 
 In the Kit (8120) loader progress dialog, the bracketed category name (`[Kick]`, `[Snare]`, … `[Rimshot]`) is now space-padded to a fixed width, so the "Loading …" / "Queued …" text on every Part line starts at the same column instead of jittering left and right with the name length.
