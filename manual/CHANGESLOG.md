@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Feature: choose the canvas font — 8bit (tDR) or Monospace — one preference, every canvas dialog
+
+Paketti's canvas dialogs have always drawn text in the 8bit "tDR" (Asteroids-style) vector font. There's now a **Monospace** font too, and a single Paketti preference picks which one every canvas dialog uses — the setting mirrors to all of them at once (DRY: they all draw through one routed `PakettiCanvasFontDrawText`). Default is **8bit**. A new **Canvas Font Demo** dialog renders the same sample text in both fonts side by side (with the switch built in) so you can compare and screenshot. The monospace set covers A–Z, 0–9 and common punctuation; any character it doesn't define falls back to the 8bit glyph, so nothing ever disappears, and both fonts use the same character advance so existing dialog layouts stay aligned when you switch.
+
+- Menu: `Main Menu:Tools:Paketti:Canvas Font Demo (8bit vs Monospace)...`
+- Keybinding: `Global:Paketti:Canvas Font Demo`
+- Preference: `pakettiCanvasFontStyle` ("8bit" default, or "monospace"), switchable in the Canvas Font Demo dialog
+
 ### 2026-06-11 - Improvement: LPD8 8-step sequencer — confirmed pad map, auto-opening Test, LED animations, auto-start
 
 Follow-up to the LPD8 support after a hardware probe. The pad notes are confirmed (36–43); they're now mapped **top-row-first** (steps 1–4 top row, 5–8 bottom row). **Test pad LEDs** now auto-opens the device if it isn't open (no need to "Open" first). New **LED animations** — Blink, Scroll, and a Snake (a 3-pad worm that slithers across the pads) — plus a Stop. And an **Auto-Start AKAI LPD8** setting (Options menu, like the MidiMix/APC ones) that arms the 8-step sequencer at launch / on song load; because it forces 8-step mode it's opt-in (default off), so it only auto-arms on 8120 open when the setting is enabled.

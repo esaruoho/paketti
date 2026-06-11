@@ -1303,6 +1303,7 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiPCMWriter")
   --timed_require("PakettiZyklusMPS1")
   timed_require("PakettiCanvasFont")
+  timed_require("PakettiCanvasFontMono")
   timed_require("PakettiCanvasFontPreview")
   timed_require("PakettiCanvasExperiments")
   timed_require("PakettiSampleEffectGenerator")

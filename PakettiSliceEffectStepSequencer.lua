@@ -235,42 +235,22 @@ function PakettiSliceStepDrawVelocityCanvas(ctx)
   local label_size = 8  -- Match the row number font size (was 10, now 8)
   local label_x = w - 13  -- Moved 2 pixels further to the right (was 15, now 13)
   
-  -- Draw "80" at top using proper canvas font with proper digit spacing
-  PakettiCanvasFontDrawDigit8(ctx, label_x - label_size - 3, 5, label_size)
-  PakettiCanvasFontDrawDigit0(ctx, label_x, 5, label_size)
-  
-  -- Draw "00" at bottom using proper canvas font with proper digit spacing  
-  PakettiCanvasFontDrawDigit0(ctx, label_x - label_size - 3, h - label_size - 5, label_size)
-  PakettiCanvasFontDrawDigit0(ctx, label_x, h - label_size - 5, label_size)
-  
+  -- Draw "80" at top / "00" at bottom via the high-level font API so they
+  -- follow the active canvas font (8bit / monospace) preference.
+  PakettiCanvasFontDrawText(ctx, "80", label_x - label_size - 3, 5, label_size)
+  PakettiCanvasFontDrawText(ctx, "00", label_x - label_size - 3, h - label_size - 5, label_size)
+
   -- Display current row info using PakettiCanvasFont
   ctx.stroke_color = {255, 255, 255, 255}
   ctx.line_width = 2
-  
+
   local info_size = 8
   local step_width = w / MAX_STEPS
   local info_x = (step_width / 2) - (info_size / 2)  -- Center horizontally in first step area
   local info_y = 5   -- Match the "80" label y position (was 10, now 5)
-  
-  -- Draw just the row number using direct function calls (same approach as "80"/"00" labels)
-  local row_digit = tostring(display_row or 1)
-  if row_digit == "1" then
-    PakettiCanvasFontDrawDigit1(ctx, info_x, info_y, info_size)
-  elseif row_digit == "2" then
-    PakettiCanvasFontDrawDigit2(ctx, info_x, info_y, info_size)
-  elseif row_digit == "3" then
-    PakettiCanvasFontDrawDigit3(ctx, info_x, info_y, info_size)
-  elseif row_digit == "4" then
-    PakettiCanvasFontDrawDigit4(ctx, info_x, info_y, info_size)
-  elseif row_digit == "5" then
-    PakettiCanvasFontDrawDigit5(ctx, info_x, info_y, info_size)
-  elseif row_digit == "6" then
-    PakettiCanvasFontDrawDigit6(ctx, info_x, info_y, info_size)
-  elseif row_digit == "7" then
-    PakettiCanvasFontDrawDigit7(ctx, info_x, info_y, info_size)
-  elseif row_digit == "8" then
-    PakettiCanvasFontDrawDigit8(ctx, info_x, info_y, info_size)
-  end
+
+  -- Row number through the same routed API (handles any digit)
+  PakettiCanvasFontDrawText(ctx, tostring(display_row or 1), info_x, info_y, info_size)
 end
 
 -- Handle velocity canvas mouse input

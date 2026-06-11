@@ -819,9 +819,37 @@ function PakettiCanvasFontGetLetterFunctions()
 end
 
 -- TEXT ---------------------------------------------------------------
-function PakettiCanvasFontDrawText(ctx, text, x, y, size)
+-- Two styles share one renderer: the original "8bit" (tDR / Asteroids-style)
+-- glyph table above, and an optional "monospace" table provided by
+-- PakettiCanvasFontMono.lua. A single Paketti preference
+-- (preferences.pakettiCanvasFontStyle = "8bit" | "monospace") decides which
+-- one PakettiCanvasFontDrawText uses, so EVERY canvas dialog that draws text
+-- through this function switches at once. The monospace table falls back to the
+-- 8bit glyph for any character it doesn't define, so text never disappears.
+
+-- which style is active (defaults to 8bit if the preference isn't loaded yet)
+function PakettiCanvasFontUseMono()
+  return preferences ~= nil
+    and preferences.pakettiCanvasFontStyle ~= nil
+    and preferences.pakettiCanvasFontStyle.value == "monospace"
+    and PakettiCanvasFontMonoFunctions ~= nil   -- only if a mono set is loaded
+end
+
+-- resolve a glyph for `char` from `tbl`, falling back to the 8bit table
+local function PakettiCanvasFontResolveGlyph(tbl, char)
+  local fn = tbl[char] or tbl[string.upper(char or "")]
+  if fn then return fn end
+  if tbl ~= PakettiCanvasFontLetterFunctions then
+    return PakettiCanvasFontLetterFunctions[char]
+      or PakettiCanvasFontLetterFunctions[string.upper(char or "")]
+  end
+  return nil
+end
+
+-- generic horizontal renderer over any glyph table (UTF-8 aware)
+local function PakettiCanvasFontRenderHorizontal(ctx, text, x, y, size, tbl, spacing_factor)
   local current_x = x
-  local letter_spacing = size * 1.4  -- Increased spacing for better readability with thicker fonts
+  local letter_spacing = size * spacing_factor
   local i = 1
   local n = #text
   while i <= n do
@@ -830,48 +858,66 @@ function PakettiCanvasFontDrawText(ctx, text, x, y, size)
     local advance = 1
     if not b then break end
     if b < 0x80 then
-      char = string.sub(text, i, i)
-      char = string.upper(char)
+      char = string.upper(string.sub(text, i, i))
       advance = 1
     elseif b >= 0xE0 then
-      -- 3-byte UTF-8
-      if i + 2 <= n then
-        char = string.sub(text, i, i + 2)
-        advance = 3
-      else
-        char = string.sub(text, i, i)
-        advance = 1
-      end
+      if i + 2 <= n then char = string.sub(text, i, i + 2); advance = 3
+      else char = string.sub(text, i, i); advance = 1 end
     elseif b >= 0xC0 then
-      -- 2-byte UTF-8 (covers ä ö å and uppercase variants)
-      if i + 1 <= n then
-        char = string.sub(text, i, i + 1)
-        advance = 2
-      else
-        char = string.sub(text, i, i)
-        advance = 1
-      end
+      if i + 1 <= n then char = string.sub(text, i, i + 1); advance = 2
+      else char = string.sub(text, i, i); advance = 1 end
     else
       char = string.sub(text, i, i)
       advance = 1
     end
-    local fn = PakettiCanvasFontLetterFunctions[char] or PakettiCanvasFontLetterFunctions[string.upper(char or "")]
+    local fn = PakettiCanvasFontResolveGlyph(tbl, char)
     if fn then fn(ctx, current_x, y, size) end
     current_x = current_x + letter_spacing
     i = i + advance
   end
 end
 
--- Draw text stacked vertically (top-to-bottom) without rotating glyphs
-function PakettiCanvasFontDrawTextVertical(ctx, text, x, y, size)
+-- generic vertical renderer (stacked, glyphs not rotated)
+local function PakettiCanvasFontRenderVertical(ctx, text, x, y, size, tbl)
   local current_y = y
   local letter_spacing = size + 4
   for i = 1, #text do
     local char = text:sub(i, i):upper()
-    local fn = PakettiCanvasFontLetterFunctions[char]
+    local fn = PakettiCanvasFontResolveGlyph(tbl, char)
     if fn then fn(ctx, x, current_y, size) end
     current_y = current_y + letter_spacing
   end
+end
+
+-- Style-explicit drawing (used by the Canvas Font Demo to force a style).
+-- style: "8bit" (default) or "monospace".
+function PakettiCanvasFontDrawTextStyled(ctx, text, x, y, size, style)
+  if style == "monospace" and PakettiCanvasFontMonoFunctions then
+    PakettiCanvasFontRenderHorizontal(ctx, text, x, y, size,
+      PakettiCanvasFontMonoFunctions, PakettiCanvasFontMonoSpacing or 1.4)
+  else
+    PakettiCanvasFontRenderHorizontal(ctx, text, x, y, size,
+      PakettiCanvasFontLetterFunctions, 1.4)
+  end
+end
+
+function PakettiCanvasFontDrawTextVerticalStyled(ctx, text, x, y, size, style)
+  if style == "monospace" and PakettiCanvasFontMonoFunctions then
+    PakettiCanvasFontRenderVertical(ctx, text, x, y, size, PakettiCanvasFontMonoFunctions)
+  else
+    PakettiCanvasFontRenderVertical(ctx, text, x, y, size, PakettiCanvasFontLetterFunctions)
+  end
+end
+
+-- Preference-driven entry points (what every canvas dialog calls).
+function PakettiCanvasFontDrawText(ctx, text, x, y, size)
+  PakettiCanvasFontDrawTextStyled(ctx, text, x, y, size,
+    PakettiCanvasFontUseMono() and "monospace" or "8bit")
+end
+
+function PakettiCanvasFontDrawTextVertical(ctx, text, x, y, size)
+  PakettiCanvasFontDrawTextVerticalStyled(ctx, text, x, y, size,
+    PakettiCanvasFontUseMono() and "monospace" or "8bit")
 end
 
 -- Orientation helper: orientation 1 = horizontal, 2 = vertical (stacked)

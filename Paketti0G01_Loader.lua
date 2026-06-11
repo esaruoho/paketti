@@ -88,6 +88,7 @@ end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   singlewaveformwriterhex=true,
+  pakettiCanvasFontStyle="8bit",  -- "8bit" (tDR/Asteroids) or "monospace"; mirrors to every canvas dialog
   paketti_auto_disk_browser_mode = 0,  -- 0=Do Nothing, 1=Hide, 2=Show
   pakettiRePitchEnhanced = false,
   PakettiSteppersGlobalStepCount="16",
