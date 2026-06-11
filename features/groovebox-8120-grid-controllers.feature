@@ -49,6 +49,7 @@ Context: Global
   #
   # WATCH: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState PakettiEightOneTwentyGetStepYxx PakettiEightOneTwentyToggleStepYxx PakettiEightOneTwentyAPCSeqStart PakettiEightOneTwentyMidiMixOpen PakettiEightOneTwentyAPCAutoArm
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+#   2026-06-11  direct-commit  touched: PakettiEightOneTwentyAPCSeqStart
 #   2026-06-11  direct-commit  touched: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState PakettiEightOneTwentyGetStepYxx PakettiEightOneTwentyToggleStepYxx
 #   2026-06-11  direct-commit  touched: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState
 

@@ -24,6 +24,7 @@ Context: Global
   #
   # WATCH: PakettiEightOneTwentyLPD8SeqStart PakettiEightOneTwentyLPD8NextPage PakettiEightOneTwentyLPD8ToggleFollow PakettiEightOneTwentyLPD8ToggleProbMode PakettiEightOneTwentySelectRowByValue PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepYxx
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+#   2026-06-11  direct-commit  touched: PakettiEightOneTwentyLPD8SeqStart PakettiEightOneTwentyLPD8NextPage PakettiEightOneTwentyLPD8ToggleFollow PakettiEightOneTwentyLPD8ToggleProbMode
 #   2026-06-11  direct-commit  touched: PakettiEightOneTwentyLPD8SeqStart
 #   2026-06-11  direct-commit  touched: PakettiEightOneTwentyLPD8NextPage PakettiEightOneTwentyLPD8ToggleFollow PakettiEightOneTwentyLPD8ToggleProbMode PakettiEightOneTwentySelectRowByValue PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepYxx
 

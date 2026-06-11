@@ -5711,7 +5711,7 @@ renoise.tool():add_keybinding{
   invoke = function() PakettiEightOneTwentyMidiMixBridgeToggle() end
 }
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Groovebox:MidiMix Bridge Toggle (start headless LEDs)",
+  name = "Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:MidiMix Bridge Toggle (start headless LEDs)",
   invoke = function() PakettiEightOneTwentyMidiMixBridgeToggle() end
 }
 renoise.tool():add_keybinding{
@@ -5750,11 +5750,6 @@ end
 
 PakettiAddMenuEntry{
   name = "Main Menu:Options:Auto-Start AKAI MidiMix Bridge",
-  selected = function() return PakettiEightOneTwentyMidiMixAutoStartEnabled() end,
-  invoke = function() PakettiEightOneTwentyToggleMidiMixAutoStart() end
-}
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Groovebox:Auto-Start AKAI MidiMix Bridge",
   selected = function() return PakettiEightOneTwentyMidiMixAutoStartEnabled() end,
   invoke = function() PakettiEightOneTwentyToggleMidiMixAutoStart() end
 }
@@ -5859,9 +5854,9 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Probe Open",  invoke=function() PakettiEightOneTwentyAPCProbeOpen() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Probe Close", invoke=function() PakettiEightOneTwentyAPCProbeClose() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Test LEDs",   invoke=function() PakettiEightOneTwentyAPCTestLeds() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyAPCProbeOpen() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Test pad LEDs",              invoke=function() PakettiEightOneTwentyAPCTestLeds() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Probe — Close",                      invoke=function() PakettiEightOneTwentyAPCProbeClose() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyAPCProbeOpen() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Probe — Test pad LEDs",              invoke=function() PakettiEightOneTwentyAPCTestLeds() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Probe — Close",                      invoke=function() PakettiEightOneTwentyAPCProbeClose() end}
 
 -- ============================================================================
 -- AKAI APC Key 25 mk1 — interactive light-show demo (confirmed by the probe)
@@ -5961,8 +5956,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Demo Open",      invoke=function() PakettiEightOneTwentyAPCDemoOpen() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Light Show",     invoke=function() PakettiEightOneTwentyAPCLightShow() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Demo — Open (press pads to paint)", invoke=function() PakettiEightOneTwentyAPCDemoOpen() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Demo — Light Show",                 invoke=function() PakettiEightOneTwentyAPCLightShow() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Demo — Open (press pads to paint)", invoke=function() PakettiEightOneTwentyAPCDemoOpen() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Demo — Light Show",                 invoke=function() PakettiEightOneTwentyAPCLightShow() end}
 
 -- ============================================================================
 -- APC Key 25 — proper light art (scrolling text, fireworks, lightning)
@@ -6153,10 +6148,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Sc
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Fireworks",   invoke=function() PakettiEightOneTwentyAPCFireworks() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Lightning",   invoke=function() PakettiEightOneTwentyAPCLightning() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Stop",        invoke=function() PakettiEightOneTwentyAPCStop() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Scroll Text", invoke=function() PakettiEightOneTwentyAPCScrollText() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Fireworks",   invoke=function() PakettiEightOneTwentyAPCFireworks() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Lightning",   invoke=function() PakettiEightOneTwentyAPCLightning() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC — Stop (clear all LEDs)", invoke=function() PakettiEightOneTwentyAPCStop() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC — Scroll Text", invoke=function() PakettiEightOneTwentyAPCScrollText() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC — Fireworks",   invoke=function() PakettiEightOneTwentyAPCFireworks() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC — Lightning",   invoke=function() PakettiEightOneTwentyAPCLightning() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC — Stop (clear all LEDs)", invoke=function() PakettiEightOneTwentyAPCStop() end}
 
 -- ============================================================================
 -- APC Key 25 — Groovebox 8120 STEP SEQUENCER bridge
@@ -6286,8 +6281,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Step Sequencer Toggle", invoke=function() PakettiEightOneTwentyAPCSeqToggle() end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:APC Step Sequencer Toggle [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAPCSeqToggle() end end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Step Sequencer — Start", invoke=function() PakettiEightOneTwentyAPCSeqStart() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:APC Step Sequencer — Stop",  invoke=function() PakettiEightOneTwentyAPCSeqStop() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Step Sequencer — Start", invoke=function() PakettiEightOneTwentyAPCSeqStart() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Step Sequencer — Stop",  invoke=function() PakettiEightOneTwentyAPCSeqStop() end}
 
 -- 40 do-nothing absorbers for the APC pads (mirror the MidiMix "Disabled 01..16").
 -- The APC bridge reads pads directly, but Renoise ALSO turns the pad notes into
@@ -6336,11 +6331,6 @@ end
 
 PakettiAddMenuEntry{
   name = "Main Menu:Options:Auto-Start AKAI APC Key 25",
-  selected = function() return PakettiEightOneTwentyAPCAutoStartEnabled() end,
-  invoke = function() PakettiEightOneTwentyToggleAPCAutoStart() end
-}
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Groovebox:Auto-Start AKAI APC Key 25",
   selected = function() return PakettiEightOneTwentyAPCAutoStartEnabled() end,
   invoke = function() PakettiEightOneTwentyToggleAPCAutoStart() end
 }
@@ -6763,23 +6753,23 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 N
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Previous Page", invoke=function() PakettiEightOneTwentyLPD8PrevPage() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Toggle Follow Page", invoke=function() PakettiEightOneTwentyLPD8ToggleFollow() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Toggle 4Steps 4Probability", invoke=function() PakettiEightOneTwentyLPD8ToggleProbMode() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Next Page", invoke=function() PakettiEightOneTwentyLPD8NextPage() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Previous Page", invoke=function() PakettiEightOneTwentyLPD8PrevPage() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Toggle Follow-Page Mode", invoke=function() PakettiEightOneTwentyLPD8ToggleFollow() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Toggle 4Steps+4Probability Layout", invoke=function() PakettiEightOneTwentyLPD8ToggleProbMode() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Start", invoke=function() PakettiEightOneTwentyLPD8SeqStart() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Stop", invoke=function() PakettiEightOneTwentyLPD8SeqStop() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyLPD8ProbeOpen() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Test pad LEDs", invoke=function() PakettiEightOneTwentyLPD8TestLeds() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Close", invoke=function() PakettiEightOneTwentyLPD8ProbeClose() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Lightshow (all)", invoke=function() PakettiEightOneTwentyLPD8Lightshow() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Blink",  invoke=function() PakettiEightOneTwentyLPD8Blink() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Stars (random twinkle)", invoke=function() PakettiEightOneTwentyLPD8Stars() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Scroll", invoke=function() PakettiEightOneTwentyLPD8Scroll() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Snake 1·2·3·4·8·7·6·5", invoke=function() PakettiEightOneTwentyLPD8Snake() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Snake 5·1·2·6·7·3·4·8", invoke=function() PakettiEightOneTwentyLPD8Snake2() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Snake 5·6·7·8·4·3·2·1", invoke=function() PakettiEightOneTwentyLPD8Snake3() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Stop Animation", invoke=function() PakettiEightOneTwentyLPD8AnimStop() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Next Page", invoke=function() PakettiEightOneTwentyLPD8NextPage() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Previous Page", invoke=function() PakettiEightOneTwentyLPD8PrevPage() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Toggle Follow-Page Mode", invoke=function() PakettiEightOneTwentyLPD8ToggleFollow() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Toggle 4Steps+4Probability Layout", invoke=function() PakettiEightOneTwentyLPD8ToggleProbMode() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Step Sequencer — Start", invoke=function() PakettiEightOneTwentyLPD8SeqStart() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Step Sequencer — Stop", invoke=function() PakettiEightOneTwentyLPD8SeqStop() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyLPD8ProbeOpen() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Probe — Test pad LEDs", invoke=function() PakettiEightOneTwentyLPD8TestLeds() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Probe — Close", invoke=function() PakettiEightOneTwentyLPD8ProbeClose() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Lights — Lightshow (all)", invoke=function() PakettiEightOneTwentyLPD8Lightshow() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Lights — Blink",  invoke=function() PakettiEightOneTwentyLPD8Blink() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Lights — Stars (random twinkle)", invoke=function() PakettiEightOneTwentyLPD8Stars() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Lights — Scroll", invoke=function() PakettiEightOneTwentyLPD8Scroll() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Lights — Snake 1·2·3·4·8·7·6·5", invoke=function() PakettiEightOneTwentyLPD8Snake() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Lights — Snake 5·1·2·6·7·3·4·8", invoke=function() PakettiEightOneTwentyLPD8Snake2() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Lights — Snake 5·6·7·8·4·3·2·1", invoke=function() PakettiEightOneTwentyLPD8Snake3() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:LPD8 Lights — Stop Animation", invoke=function() PakettiEightOneTwentyLPD8AnimStop() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Lightshow", invoke=function() PakettiEightOneTwentyLPD8Lightshow() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Lights Snake", invoke=function() PakettiEightOneTwentyLPD8Snake() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Lights Stop", invoke=function() PakettiEightOneTwentyLPD8AnimStop() end}
@@ -6813,11 +6803,6 @@ function PakettiEightOneTwentyToggleLPD8AutoStart()
 end
 PakettiAddMenuEntry{
   name = "Main Menu:Options:Auto-Start AKAI LPD8",
-  selected = function() return PakettiEightOneTwentyLPD8AutoStartEnabled() end,
-  invoke = function() PakettiEightOneTwentyToggleLPD8AutoStart() end
-}
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Groovebox:Auto-Start AKAI LPD8",
   selected = function() return PakettiEightOneTwentyLPD8AutoStartEnabled() end,
   invoke = function() PakettiEightOneTwentyToggleLPD8AutoStart() end
 }

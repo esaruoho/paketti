@@ -285,7 +285,7 @@ PakettiAddMenuEntry{
 }
 
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Debug:Trigger Sample Manual Test",
+  name = "Main Menu:Tools:Paketti:!Preferences:Debug:Trigger Sample Manual Test",
   invoke = function() PakettiTriggerOnInputManualTest() end
 }
 
