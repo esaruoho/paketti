@@ -3609,46 +3609,6 @@ function PakettiTogglerDialog()
     }
   end
 
-  local function create_category_checkbox(label, preference_key, update_function, width)
-    return vb:row{
-      vb:checkbox{
-        value = preferences.pakettiMenuConfig[preference_key].value,
-        notifier = function(value)
-          preferences.pakettiMenuConfig[preference_key].value = value
-          preferences:save_as("preferences.xml")
-          if update_function and type(update_function) == "function" then
-            update_function(value)
-          end
-        end
-      },
-      vb:text{text = label, width = width or 200}
-    }
-  end
-
-  local function enable_all_menus()
-    local category_keys = PakettiMenuConfigCategoryKeys()
-    for _, key in ipairs(category_keys) do
-      if preferences.pakettiMenuConfig[key] then
-        preferences.pakettiMenuConfig[key].value = true
-      end
-    end
-    preferences.pakettiMenuConfig.MasterMenusEnabled.value = true
-    preferences:save_as("preferences.xml")
-    renoise.app():show_status("All menus enabled. Restart Renoise for changes to take effect.")
-  end
-
-  local function disable_all_menus()
-    local category_keys = PakettiMenuConfigCategoryKeys()
-    for _, key in ipairs(category_keys) do
-      if preferences.pakettiMenuConfig[key] then
-        preferences.pakettiMenuConfig[key].value = false
-      end
-    end
-    preferences.pakettiMenuConfig.MasterMenusEnabled.value = false
-    preferences:save_as("preferences.xml")
-    renoise.app():show_status("All menus disabled. Restart Renoise for changes to take effect.")
-  end
-
   local function enable_all_registrations()
     preferences.pakettiMenuConfig.MasterMenusEnabled.value = true
     preferences.pakettiMenuConfig.MasterKeybindingsEnabled.value = true
@@ -3739,63 +3699,28 @@ function PakettiTogglerDialog()
     
     vb:space{height = 10},
     
-    -- Menu categories section
+    -- Per-context menu category toggles live in the dedicated "Paketti Menu
+    -- Configuration" dialog (Main Menu -> Options) — they used to be duplicated
+    -- here, but that one owns the per-context menu on/off now. This Toggler keeps
+    -- the cross-cutting master toggles + import hooks. Link across to it so both
+    -- are reachable from one place.
     vb:column{
       style = "group",
       margin = 5,
-      
-      vb:text{text = "Menu Categories (require Renoise restart):", font = "bold"},
-      vb:space{height = 5},
 
-      -- Generated straight from PakettiMenuConfigCategoryList so EVERY context
-      -- toggle is shown (no hand-maintained subset that silently drops new
-      -- categories like Track Automation List), in the list's alphabetical order,
-      -- balanced across three columns. Each checkbox persists its preference and
-      -- the registration gate honors it on the next restart; categories with an
-      -- `apply` function additionally take effect live.
-      (function()
-        -- Copy + sort by label so the dialog is always alphabetical, even if the
-        -- canonical list is appended to out of order later.
-        local cats = {}
-        for _, c in ipairs(PakettiMenuConfigCategoryList) do cats[#cats + 1] = c end
-        table.sort(cats, function(a, b) return a.label:lower() < b.label:lower() end)
-        local total = #cats
-        local per_col = math.ceil(total / 3)
-        local columns = vb:row{ spacing = 20 }
-        for c = 0, 2 do
-          local col = vb:column{}
-          for r = 1, per_col do
-            local idx = c * per_col + r
-            local cat = cats[idx]
-            if cat then
-              local apply_fn = cat.apply and _G[cat.apply] or nil
-              col:add_child(create_category_checkbox(cat.label, cat.key, apply_fn, 220))
-            end
-          end
-          columns:add_child(col)
-        end
-        return columns
-      end)(),
-      
+      vb:text{text = "Menu Entry Categories:", font = "bold"},
+      vb:space{height = 3},
+      vb:text{text = "Per-context menu on/off lives in Paketti Menu Configuration (Main Menu -> Options)."},
       vb:space{height = 5},
-      
-      vb:horizontal_aligner{
-        mode = "justify",
-        vb:button{
-          text = "Enable All Menus",
-          width = 120,
-          notifier = enable_all_menus
-        },
-        vb:button{
-          text = "Disable All Menus",
-          width = 120,
-          notifier = disable_all_menus
-        }
+      vb:button{
+        text = "Open Paketti Menu Configuration...",
+        width = 250,
+        notifier = function() pakettiMenuConfigDialog() end
       }
     },
-    
+
     vb:space{height = 10},
-    
+
     -- Import Hooks section
     vb:column{
       style = "group",

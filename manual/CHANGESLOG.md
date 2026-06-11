@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Cleanup: Paketti Toggler no longer duplicates the per-context menu toggles (now owned by Paketti Menu Configuration)
+
+The "Menu Categories" checkbox grid was duplicated in both the Paketti Toggler and the Paketti Menu Configuration dialogs. Now that Menu Configuration (Main Menu -> Options) owns the per-context menu on/off — alphabetical, all contexts — the duplicate is removed from the Toggler. The Toggler keeps what only it does: registration counts, the master Enable/Disable ALL toggles for Menu Entries + Keybindings + MIDI Mappings, the Enable/Disable All Registrations buttons, and the per-format Import Hooks toggles. In place of the removed grid, the Toggler now shows a one-line note plus an "Open Paketti Menu Configuration..." button, so both halves of the same enable/disable area are reachable from one place. No preferences changed — the master toggles still flip every menu category, so nothing is lost.
+
 ### 2026-06-11 - Fix: Scala Tuning Map and Phi Interval Circle used the wrong canvas redraw call (crashed)
 
 The Scala Tuning Map crashed on open with `unknown property or function 'invalidate' for an object of type 'Canvas'`. The Renoise 3.5 Canvas redraw method is `:update()`, not `:invalidate()`. Fixed every canvas redraw in the Scala Tuning Map, and the same latent crash in the Microtonal Tunings "Phi Interval Circle" dialog (its tuning/compare popups and the compare checkbox).
