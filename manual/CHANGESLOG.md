@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Feature: Auto-Start PakettiMCP — keep the MCP server alive across reloads and song loads
+
+Added a `Main Menu:Options:Auto-Start PakettiMCP` toggle (checkmarked, persisted in preferences as `PakettiMCPAutoStart`). When ON, the PakettiMCP HTTP server (localhost:19714) is kept running: a slow keepalive timer re-starts it whenever it's found not running, an `app_new_document` notifier re-ensures it on every song load, and a one-shot boot timer brings it up shortly after the tool loads. This fixes the problem where the server's socket was torn down on tool code-reload / song-load and never came back, dropping external MCP clients (and the local-LLM MLX bridge). Toggling the menu entry ON also starts the server immediately. No keybindings or MIDI mappings added; menu entry only: `Main Menu:Options:Auto-Start PakettiMCP`.
+
 ### 2026-06-11 - Improvement: blocky retro monospace canvas font + wider Scala Tuning Map number columns
 
 Redrew the monospace canvas font in a blocky, right-angle "terminal/VGA" style (square bowls, no curves, uniform width) — keeping the rectilinear retro feel of the 8bit font while staying clearly distinct from it. Also widened the Scala Tuning Map's RATIO / CENTS-P / CENTS-R columns, redistributing the spare width so the numbers aren't bunched up.

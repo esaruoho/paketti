@@ -251,6 +251,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiEightOneTwentyAPCAutoStart=false,  -- auto-arm the Akai APC Key 25 step sequencer at startup so it works headlessly
   PakettiEightOneTwentyLPD8AutoStart=false,  -- auto-arm the Akai LPD8 step sequencer at startup (pages over the current step mode)
   pakettiGroovebox8120Follow=false,  -- "Follow with controller": the armed controller (APC/MidiMix/LPD8) pages its step view to track the playhead
+  PakettiMCPAutoStart=false,  -- keep the PakettiMCP HTTP server (localhost:19714) running: re-start it on tool reload / song load / if it goes down, so external MCP clients (and the MLX bridge) stay connected
   pakettiDefaultXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni"),
   pakettiDefaultDrumkitXRNI = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni"),
   pakettiDefaultMidiMappingPath = "",
