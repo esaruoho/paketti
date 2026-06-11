@@ -351,65 +351,65 @@ PakettiAddMenuEntry{
 
 -- Menu entries - Instrument Box
 PakettiAddMenuEntry{
-  name = "Instrument Box:Paketti:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Instrument Box:Paketti:Track/Instrument Organization:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 PakettiAddMenuEntry{
-  name = "Instrument Box:Paketti:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Instrument Box:Paketti:Track/Instrument Organization:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 PakettiAddMenuEntry{
-  name = "Instrument Box:Paketti:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Instrument Box:Paketti:Track/Instrument Organization:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 
 -- Menu entries - Pattern Editor
 PakettiAddMenuEntry{
-  name = "Pattern Editor:Paketti:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Pattern Editor:Paketti:Track/Instrument Organization:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 PakettiAddMenuEntry{
-  name = "Pattern Editor:Paketti:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Pattern Editor:Paketti:Track/Instrument Organization:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 PakettiAddMenuEntry{
-  name = "Pattern Editor:Paketti:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Pattern Editor:Paketti:Track/Instrument Organization:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 
 -- Menu entries - Mixer
 PakettiAddMenuEntry{
-  name = "Mixer:Paketti:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Mixer:Paketti:Track/Instrument Organization:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 PakettiAddMenuEntry{
-  name = "Mixer:Paketti:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Mixer:Paketti:Track/Instrument Organization:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 PakettiAddMenuEntry{
-  name = "Mixer:Paketti:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Mixer:Paketti:Track/Instrument Organization:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 
 -- Menu entries - Pattern Matrix
 PakettiAddMenuEntry{
-  name = "Pattern Matrix:Paketti:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Pattern Matrix:Paketti:Track/Instrument Organization:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 PakettiAddMenuEntry{
-  name = "Pattern Matrix:Paketti:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Pattern Matrix:Paketti:Track/Instrument Organization:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 PakettiAddMenuEntry{
-  name = "Pattern Matrix:Paketti:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Pattern Matrix:Paketti:Track/Instrument Organization:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 

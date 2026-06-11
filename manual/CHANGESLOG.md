@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Dropped the last dotted submenu — `Track/Instrument Organization..` → `Track/Instrument Organization`
+
+Cleanup sweep for any remaining `..:` submenu names. The `Track/Instrument Organization..` subcategory still carried trailing dots in its right-click context-menu copies (Instrument Box, Mixer, Pattern Editor, Pattern Matrix — 12 entries), even though the Tools-menu copy had already dropped them. All now read `Track/Instrument Organization` with no dots, consistent everywhere. After this there are zero `..:`-style submenu names left anywhere in the codebase. No keybindings or MIDI mappings changed — menu paths only.
+
 ### 2026-06-11 - Feature: Follow-page mode for the AKAI APC Key 25 and MidiMix step sequencers (32-step patterns)
 
 Both controllers can now follow the playhead through a 32-step pattern, matching what the LPD8 already does. **MidiMix:** it has only 16 LEDs, so at 32 steps it previously showed steps 1–16 only and the playhead vanished past step 16. New Next/Previous Page windows the 16 LEDs over steps 1–16 ↔ 17–32, and Follow-Page mode auto-snaps that window to the playhead. **APC Key 25:** at 32 steps it previously filled all 32 pads with steps and dropped the probability row entirely. New Follow-Page mode switches it to a 16-steps + 16-probability layout that pages with the playhead — so you get probability editing back at 32 steps *and* the page tracks playback; Next/Previous Page move the window manually. At 8/16 steps there is a single page, so the toggles are harmless no-ops. New keybindings (`Global:Paketti:Paketti Groovebox 8120 APC Next Page`, `APC Previous Page`, `APC Toggle Follow Page`, and the three `MidiMix` equivalents), MIDI mappings (`Paketti:Paketti Groovebox 8120:APC Next Page [Trigger]` etc. and the MidiMix equivalents), and menu entries under `Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers` (APC/MidiMix Next Page, Previous Page, Toggle Follow-Page Mode).
