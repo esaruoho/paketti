@@ -1,5 +1,5 @@
 -- PakettiCanvasFontMono.lua
--- A clean MONOSPACE canvas font, offered alongside the existing 8bit "tDR"
+-- A clean MONOSPACE canvas font, offered alongside the existing 8bit
 -- (Asteroids-style) font. Selected globally via the Paketti preference
 -- preferences.pakettiCanvasFontStyle ("8bit" | "monospace"); the dispatcher in
 -- PakettiCanvasFont.lua routes every canvas dialog's PakettiCanvasFontDrawText
@@ -149,7 +149,7 @@ local PCFD_SAMPLE = {
 }
 
 local function PCFD_render_column(ctx, style, x0, w)
-  local title = (style == "monospace") and "MONOSPACE" or "8BIT (TDR)"
+  local title = (style == "monospace") and "MONOSPACE" or "8BIT"
   -- panel
   ctx.fill_color = {16, 16, 22, 255}
   ctx:fill_rect(x0, 0, w, DEMO_H)
@@ -224,7 +224,7 @@ function PakettiCanvasFontDemoShow()
       },
     },
     vb:text{
-      text = "Left = 8bit (tDR / Asteroids). Right = monospace. The switch sets the Paketti preference\n"
+      text = "Left = 8bit (Asteroids-style). Right = monospace. The switch sets the Paketti preference\n"
         .. "that every canvas dialog reads, so changing it restyles them all. The two panels above\n"
         .. "always show both styles regardless of the setting, for comparison.",
       font = "italic",

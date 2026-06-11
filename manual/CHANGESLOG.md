@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Canvas font selector added to Paketti Preferences (8bit / Monospace)
+
+The 8bit-vs-Monospace canvas font switch now lives directly in the Paketti Preferences dialog (`Main Menu:Tools:Paketti:!Preferences:Paketti Preferences...`), not just in the Canvas Font Demo — a "Canvas Dialog Font" row that sets the same persisted preference every canvas dialog reads. Also stopped calling the 8bit font "tDR" anywhere (that was just an internal nickname); it's referred to as "8bit (Asteroids-style)".
+
 ### 2026-06-11 - Fix: Paketti Preferences "Pattern Editor" section — third column was clipped, hiding two settings
 
 The Pattern Editor block in Paketti Preferences laid two of its rows out as three columns, but that section lives in the dialog's first column (fixed width, sized for two text+checkbox columns). The third column overflowed the fixed width and was clipped, so **Trigger on Input** and **SBx Pattern Loop Follow** (and their checkboxes) never rendered. Regrouped the eight settings into four two-per-row lines so every one is visible and clickable: Exploded Track Naming / Wipe Exploded Track · Pattern Status Monitor / Audition on Line Change · Trigger on Input / Automatic Rename Track · Select Used Instrument / SBx Pattern Loop Follow.
@@ -37,9 +41,9 @@ The first monospace draft looked almost identical to the 8bit font (same thin, a
 
 The Paketti Menu Configuration dialog (Main Menu -> Options) now shows how many menu entries each context contributes — every checkbox reads e.g. "Instrument Box Menus (118)", with a header line giving the grand total across all categories. The count is scanned from source (counting both raw `add_menu_entry` and `PakettiAddMenuEntry` wrapper calls — the old total-only counter missed the wrapper) and memoized. Added **Enable All Menus** and **Disable All Menus** buttons (each labelled with the total), moved here from the Paketti Toggler so the per-context list and the bulk on/off live in one place; the dialog refreshes itself after a bulk toggle so the checkboxes update. Entries whose name is built by string concatenation (no literal `name="..."`) can't be attributed to a context and are not counted per-category.
 
-### 2026-06-11 - Feature: choose the canvas font — 8bit (tDR) or Monospace — one preference, every canvas dialog
+### 2026-06-11 - Feature: choose the canvas font — 8bit or Monospace — one preference, every canvas dialog
 
-Paketti's canvas dialogs have always drawn text in the 8bit "tDR" (Asteroids-style) vector font. There's now a **Monospace** font too, and a single Paketti preference picks which one every canvas dialog uses — the setting mirrors to all of them at once (DRY: they all draw through one routed `PakettiCanvasFontDrawText`). Default is **8bit**. A new **Canvas Font Demo** dialog renders the same sample text in both fonts side by side (with the switch built in) so you can compare and screenshot. The monospace set covers A–Z, 0–9 and common punctuation; any character it doesn't define falls back to the 8bit glyph, so nothing ever disappears, and both fonts use the same character advance so existing dialog layouts stay aligned when you switch.
+Paketti's canvas dialogs have always drawn text in the 8bit (Asteroids-style) vector font. There's now a **Monospace** font too, and a single Paketti preference picks which one every canvas dialog uses — the setting mirrors to all of them at once (DRY: they all draw through one routed `PakettiCanvasFontDrawText`). Default is **8bit**. A new **Canvas Font Demo** dialog renders the same sample text in both fonts side by side (with the switch built in) so you can compare and screenshot. The monospace set covers A–Z, 0–9 and common punctuation; any character it doesn't define falls back to the 8bit glyph, so nothing ever disappears, and both fonts use the same character advance so existing dialog layouts stay aligned when you switch.
 
 - Menu: `Main Menu:Tools:Paketti:Canvas Font Demo (8bit vs Monospace)...`
 - Keybinding: `Global:Paketti:Canvas Font Demo`

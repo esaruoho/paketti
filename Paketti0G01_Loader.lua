@@ -88,7 +88,7 @@ end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   singlewaveformwriterhex=true,
-  pakettiCanvasFontStyle="8bit",  -- "8bit" (tDR/Asteroids) or "monospace"; mirrors to every canvas dialog
+  pakettiCanvasFontStyle="8bit",  -- "8bit" (Asteroids-style) or "monospace"; mirrors to every canvas dialog
   paketti_auto_disk_browser_mode = 0,  -- 0=Do Nothing, 1=Hide, 2=Show
   pakettiRePitchEnhanced = false,
   PakettiSteppersGlobalStepCount="16",
@@ -3319,9 +3319,24 @@ vb:row{
 
 
       
+      vb:row{
+        vb:text{text="Canvas Dialog Font", width=180, style="strong"},
+        vb:switch{
+          width=220,
+          items={"8bit", "Monospace"},
+          value=(preferences.pakettiCanvasFontStyle.value=="monospace") and 2 or 1,
+          notifier=function(idx)
+            preferences.pakettiCanvasFontStyle.value=(idx==2) and "monospace" or "8bit"
+            preferences:save_as("preferences.xml")
+            renoise.app():show_status("Canvas font set to: "..preferences.pakettiCanvasFontStyle.value.." (reopen canvas dialogs to see it)")
+          end
+        },
+        vb:text{text="(applies to every Paketti canvas dialog)"},
+      },
+
       vb:horizontal_aligner{mode="distribute",
-        vb:button{text="Open Dialog of Dialogs",width="33%",notifier=function() 
-          pakettiDialogOfDialogsToggle() 
+        vb:button{text="Open Dialog of Dialogs",width="33%",notifier=function()
+          pakettiDialogOfDialogsToggle()
         end},
         vb:button{text="OK",width="33%",notifier=function() 
           preferences:save_as("preferences.xml")

@@ -819,7 +819,7 @@ function PakettiCanvasFontGetLetterFunctions()
 end
 
 -- TEXT ---------------------------------------------------------------
--- Two styles share one renderer: the original "8bit" (tDR / Asteroids-style)
+-- Two styles share one renderer: the original "8bit" (Asteroids-style)
 -- glyph table above, and an optional "monospace" table provided by
 -- PakettiCanvasFontMono.lua. A single Paketti preference
 -- (preferences.pakettiCanvasFontStyle = "8bit" | "monospace") decides which
