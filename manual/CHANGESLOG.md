@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Feature: LPD8 pages, follow mode, 4+4 probability layout, and 3× row-select knobs
+
+Big LPD8 expansion for the Groovebox 8120, all headless-safe. **Pages:** since the LPD8 has only 8 pads, a page offset windows them over a 16/32-step pattern — Next/Previous Page (or an absolute "Select Page" knob) flips steps 1-8 → 9-16 → 17-24 → 25-32. **Follow-page mode:** the LPD8 auto-flips its page to track the playhead, so the 8 pads follow the sequence through any step count. **4 Steps + 4 Probability layout:** the top 4 pads edit 4 steps and the bottom 4 pads edit those steps' probability, paging 4 at a time. **Row select:** three independently-bindable copies each of the `01-08` and reversed `08-01` single-knob row selectors (bind LPD8 knobs or any knobs/faders). The 8 `Disabled LPD8 01..08` do-nothing absorbers (already present) let the pads sequence without triggering samples.
+
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:LPD8 Next Page / Previous Page [Trigger]`, `LPD8 Select Page (Knob)`, `LPD8 Toggle Follow-Page Mode [Trigger]`, `LPD8 Toggle 4Steps+4Probability Layout [Trigger]`
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Select Row (Knob 01-08) 1st/2nd/3rd Bind` and `... (Knob 08-01) 1st/2nd/3rd Bind`
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Disabled LPD8 01..08` (do-nothing pad absorbers)
+- Menu: `Main Menu:Tools:Paketti:Groovebox:LPD8 Next Page / Previous Page / Toggle Follow-Page Mode / Toggle 4Steps+4Probability Layout`
+- Keybindings: `Global:Paketti:Paketti Groovebox 8120 LPD8 Next Page / Previous Page / Toggle Follow Page / Toggle 4Steps 4Probability`
+
 ### 2026-06-11 - Fix: Monospace canvas font is now visually distinct from 8bit (was too similar)
 
 The first monospace draft looked almost identical to the 8bit font (same thin, angular, pointed letterforms), so the Canvas Font Demo's two panels appeared the same. Redrawn the monospace as a genuinely different typewriter/terminal face: round bowls (arc-generated curves) on C G O Q S U B D P R J and all the digits, and slab serifs (feet) on the vertical stems of A E F H I K L M N T V Y. Side by side it now clearly reads as a separate monospace.

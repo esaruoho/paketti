@@ -5155,6 +5155,36 @@ renoise.tool():add_midi_mapping{
   end
 }
 
+-- Shared row-selector: 0..127 -> row 1..8 (or 8..1 reversed), set track +
+-- instrument + focus. Headless-safe. Used by the extra LPD8-friendly copies below
+-- so you can bind up to three knobs/faders to row selection at once.
+function PakettiEightOneTwentySelectRowByValue(v, reversed)
+  local row = reversed and (8 - math.floor(v / 16)) or (math.floor(v / 16) + 1)
+  if row < 1 then row = 1 elseif row > 8 then row = 8 end
+  local song = renoise.song()
+  if not song then return end
+  if row <= #song.tracks and song:track(row).type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    song.selected_track_index = row
+  end
+  if row <= #song.instruments then song.selected_instrument_index = row end
+  PakettiEightOneTwentyFocusedRow = row
+  if PakettiEightOneTwentyHighlightRow then PakettiEightOneTwentyHighlightRow(row) end
+  if PakettiEightOneTwentyMidiMixRefreshLedsSilent then PakettiEightOneTwentyMidiMixRefreshLedsSilent() end
+  renoise.app():show_status(string.format("Groovebox 8120: knob selected row %02d (track + instrument)", row))
+end
+-- Three independently-bindable copies each (1st/2nd/3rd Bind) of the 01-08 and the
+-- reversed 08-01 row selector — bind LPD8 knobs (or any knobs/faders) to them.
+for bind = 1, 3 do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Paketti Groovebox 8120:Select Row (Knob 01-08) %d%s Bind", bind, (bind==1 and "st" or bind==2 and "nd" or "rd")),
+    invoke = function(message) if message:is_abs_value() then PakettiEightOneTwentySelectRowByValue(message.int_value or 0, false) end end
+  }
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Paketti Groovebox 8120:Select Row (Knob 08-01) %d%s Bind", bind, (bind==1 and "st" or bind==2 and "nd" or "rd")),
+    invoke = function(message) if message:is_abs_value() then PakettiEightOneTwentySelectRowByValue(message.int_value or 0, true) end end
+  }
+end
+
 -- ============================================================================
 -- Master Low-Cut (High-Pass) 200Hz punch toggle
 -- ----------------------------------------------------------------------------
@@ -6555,21 +6585,64 @@ function PakettiEightOneTwentyLPD8Lightshow()
 end
 
 -- Sequencer: pad press toggles steps 1..8 of the focused row; timer redraws LEDs.
+-- PAGES: the LPD8 has only 8 pads but the groovebox can be 8/16/32 steps. A page
+-- offset lets the 8 pads show a window of the steps. Two layouts:
+--   mode "steps"      -> 8 steps per page (page 0 = steps 1-8, page 1 = 9-16, ...)
+--   mode "stepsprob"  -> 4 steps (top row) + their 4 probabilities (bottom row)
+--                        per page, so a page covers 4 steps.
+-- FOLLOW: auto-flip the page to wherever playback is, so the 8 pads track the
+-- playhead through a 16- or 32-step pattern. All headless (reads/writes pattern).
+paketti_lpd8_page = 0
+paketti_lpd8_mode = "steps"      -- "steps" | "stepsprob"
+paketti_lpd8_follow = false
+
+function paketti_lpd8_steps_per_page()
+  return (paketti_lpd8_mode == "stepsprob") and 4 or 8
+end
+function paketti_lpd8_max_page()
+  return math.max(0, math.ceil(MAX_STEPS / paketti_lpd8_steps_per_page()) - 1)
+end
+function paketti_lpd8_clamp_page()
+  local mp = paketti_lpd8_max_page()
+  if paketti_lpd8_page < 0 then paketti_lpd8_page = 0 elseif paketti_lpd8_page > mp then paketti_lpd8_page = mp end
+end
+-- pad 1..8 -> ("step"|"prob", step index) for the current page+mode.
+function paketti_lpd8_pad_target(pad)
+  if paketti_lpd8_mode == "stepsprob" then
+    local base = paketti_lpd8_page * 4
+    if pad <= 4 then return "step", base + pad else return "prob", base + (pad - 4) end
+  end
+  return "step", paketti_lpd8_page * 8 + pad
+end
+
 function paketti_lpd8_seq_refresh()
   if not (paketti_lpd8_seq_active and paketti_lpd8_out) then return end
   local row = paketti_8120_selected_row()
-  local playing_step = nil
+  local playstep = nil
   local song = renoise.song()
   if song and song.transport.playing then
     local pos = song.transport.playback_pos
-    if pos and pos.line then playing_step = ((pos.line - 1) % 8) + 1 end
+    if pos and pos.line then playstep = ((pos.line - 1) % MAX_STEPS) + 1 end
   end
-  for s = 1, 8 do
-    local on = PakettiEightOneTwentyGetStepState(row, s)
-    if playing_step == s then on = not on end  -- highlight the playhead
-    if paketti_lpd8_prev[s] ~= on then
-      paketti_lpd8_set_led(s, on)
-      paketti_lpd8_prev[s] = on
+  -- follow mode: snap the page to the playhead
+  if paketti_lpd8_follow and playstep then
+    paketti_lpd8_page = math.floor((playstep - 1) / paketti_lpd8_steps_per_page())
+    paketti_lpd8_clamp_page()
+  end
+  for pad = 1, 8 do
+    local kind, idx = paketti_lpd8_pad_target(pad)
+    local on = false
+    if idx and idx <= MAX_STEPS then
+      if kind == "step" then
+        on = PakettiEightOneTwentyGetStepState(row, idx)
+        if playstep == idx then on = not on end       -- invert on the playhead
+      else
+        on = PakettiEightOneTwentyGetStepYxx(row, idx)
+      end
+    end
+    if paketti_lpd8_prev[pad] ~= on then
+      paketti_lpd8_set_led(pad, on)
+      paketti_lpd8_prev[pad] = on
     end
   end
 end
@@ -6579,11 +6652,56 @@ function paketti_lpd8_seq_on_midi(message)
   if type(message) ~= "table" or #message < 3 then return end
   local status, d1, d2 = message[1], message[2], message[3]
   if math.floor(status / 16) * 16 ~= 0x90 or d2 <= 0 then return end
-  local step = paketti_lpd8_step_for_note(d1)
-  if step then
-    PakettiEightOneTwentyToggleStepState(paketti_8120_selected_row(), step)
+  local pad = paketti_lpd8_step_for_note(d1)
+  if not pad then return end
+  local kind, idx = paketti_lpd8_pad_target(pad)
+  if idx and idx <= MAX_STEPS then
+    local row = paketti_8120_selected_row()
+    if kind == "step" then PakettiEightOneTwentyToggleStepState(row, idx)
+    else PakettiEightOneTwentyToggleStepYxx(row, idx) end
     paketti_lpd8_seq_refresh()
   end
+end
+
+-- Page / mode / follow controls (all headless-safe).
+function PakettiEightOneTwentyLPD8NextPage()
+  paketti_lpd8_follow = false
+  paketti_lpd8_page = paketti_lpd8_page + 1
+  if paketti_lpd8_page > paketti_lpd8_max_page() then paketti_lpd8_page = 0 end
+  paketti_lpd8_prev = {}
+  paketti_lpd8_seq_refresh()
+  local spp = paketti_lpd8_steps_per_page()
+  renoise.app():show_status(string.format("LPD8 page %d/%d — steps %d-%d", paketti_lpd8_page + 1, paketti_lpd8_max_page() + 1, paketti_lpd8_page * spp + 1, paketti_lpd8_page * spp + spp))
+end
+function PakettiEightOneTwentyLPD8PrevPage()
+  paketti_lpd8_follow = false
+  paketti_lpd8_page = paketti_lpd8_page - 1
+  if paketti_lpd8_page < 0 then paketti_lpd8_page = paketti_lpd8_max_page() end
+  paketti_lpd8_prev = {}
+  paketti_lpd8_seq_refresh()
+  local spp = paketti_lpd8_steps_per_page()
+  renoise.app():show_status(string.format("LPD8 page %d/%d — steps %d-%d", paketti_lpd8_page + 1, paketti_lpd8_max_page() + 1, paketti_lpd8_page * spp + 1, paketti_lpd8_page * spp + spp))
+end
+function PakettiEightOneTwentyLPD8SelectPage(v)  -- absolute 0..127 -> page
+  paketti_lpd8_follow = false
+  local mp = paketti_lpd8_max_page()
+  paketti_lpd8_page = math.floor(v / 128 * (mp + 1))
+  paketti_lpd8_clamp_page()
+  paketti_lpd8_prev = {}
+  paketti_lpd8_seq_refresh()
+end
+function PakettiEightOneTwentyLPD8ToggleFollow()
+  paketti_lpd8_follow = not paketti_lpd8_follow
+  paketti_lpd8_prev = {}
+  paketti_lpd8_seq_refresh()
+  renoise.app():show_status("LPD8 follow-page mode: " .. (paketti_lpd8_follow and "ON — page tracks the playhead" or "OFF"))
+end
+function PakettiEightOneTwentyLPD8ToggleProbMode()
+  paketti_lpd8_mode = (paketti_lpd8_mode == "stepsprob") and "steps" or "stepsprob"
+  paketti_lpd8_page = 0
+  paketti_lpd8_prev = {}
+  paketti_lpd8_seq_refresh()
+  renoise.app():show_status("LPD8 layout: " .. (paketti_lpd8_mode == "stepsprob" and "4 steps (top) + 4 probability (bottom) per page" or "8 steps per page"))
 end
 
 function PakettiEightOneTwentyLPD8SeqStop()
@@ -6625,6 +6743,8 @@ function PakettiEightOneTwentyLPD8SeqStart()
     if ok and dev then paketti_lpd8_out = dev else print("LPD8 seq: output open failed: " .. tostring(dev)) end
   end
   paketti_lpd8_seq_active = true
+  paketti_lpd8_page = 0
+  paketti_lpd8_clamp_page()
   paketti_lpd8_prev = {}
   if not paketti_lpd8_seq_timer_fn then
     paketti_lpd8_seq_timer_fn = function() paketti_lpd8_seq_refresh() end
@@ -6640,6 +6760,21 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Step Sequencer Toggle", invoke=function() PakettiEightOneTwentyLPD8SeqToggle() end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:LPD8 Step Sequencer Toggle [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyLPD8SeqToggle() end end}
+-- Page flipping: advance the 8-pad window through 16/32-step patterns (steps 1-8
+-- -> 9-16 -> 17-24 -> 25-32), plus follow mode + the 4-steps/4-probability layout.
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:LPD8 Next Page [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyLPD8NextPage() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:LPD8 Previous Page [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyLPD8PrevPage() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:LPD8 Select Page (Knob)", invoke=function(message) if message:is_abs_value() then PakettiEightOneTwentyLPD8SelectPage(message.int_value or 0) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:LPD8 Toggle Follow-Page Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyLPD8ToggleFollow() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:LPD8 Toggle 4Steps+4Probability Layout [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyLPD8ToggleProbMode() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Next Page", invoke=function() PakettiEightOneTwentyLPD8NextPage() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Previous Page", invoke=function() PakettiEightOneTwentyLPD8PrevPage() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Toggle Follow Page", invoke=function() PakettiEightOneTwentyLPD8ToggleFollow() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Toggle 4Steps 4Probability", invoke=function() PakettiEightOneTwentyLPD8ToggleProbMode() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Next Page", invoke=function() PakettiEightOneTwentyLPD8NextPage() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Previous Page", invoke=function() PakettiEightOneTwentyLPD8PrevPage() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Toggle Follow-Page Mode", invoke=function() PakettiEightOneTwentyLPD8ToggleFollow() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Toggle 4Steps+4Probability Layout", invoke=function() PakettiEightOneTwentyLPD8ToggleProbMode() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Start (8 steps)", invoke=function() PakettiEightOneTwentyLPD8SeqStart() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Stop", invoke=function() PakettiEightOneTwentyLPD8SeqStop() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyLPD8ProbeOpen() end}
