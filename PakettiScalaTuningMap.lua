@@ -27,7 +27,7 @@
 PakettiScalaTuningMapDialog = nil
 
 local CANVAS_ID = "paketti_scala_tuning_map_canvas"
-local CANVAS_W = 560
+local CANVAS_W = 620
 local CANVAS_H = 470
 local HEADER_H = 76
 local ROW_H = 16
@@ -37,15 +37,9 @@ local ROOT_NOTE = 48                              -- Renoise C-4 = tuning root (
 local C4_HZ = 440 * 2 ^ ((ROOT_NOTE - 57) / 12)  -- middle C in standard A4=440 (~261.63 Hz)
 local NOTE_NAMES = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
 
--- column x positions (canvas pixels)
+-- column layout (x positions computed dynamically from enabled columns)
 local SW_X    = 6     -- colour swatch
-local NAME_X  = 30    -- note name
-local DEG_X   = 96    -- degree d/n
-local RATIO_X = 158   -- within-period ratio
-local CENTS_X = 226   -- within-period cents
-local HZ_X    = 300   -- absolute frequency
-local BAR_X   = 378   -- within-period position bar
-local BAR_W   = 174
+local NAME_X  = 30    -- first text column starts here
 local ROW_SIZE = 7
 
 local PSTM_vb = nil
@@ -53,6 +47,8 @@ local PSTM_canvas = nil
 local PSTM_view_start = 36
 local PSTM_highlight_note = -1
 local PSTM_follow = true
+local PSTM_show_cents_period = true   -- "CENTS-P": cents within the period (interval-table style)
+local PSTM_show_cents_root = true     -- "CENTS-R": cents from the absolute root (C-4 = 0)
 local PSTM_playing = nil          -- {i=instr_idx, t=track_idx, n=note}
 local PSTM_release_installed = false
 
@@ -168,24 +164,40 @@ function PakettiScalaTuningMapRender(ctx)
   draw_text(ctx, info, 6, 22, 6, {150, 150, 165, 255})
   draw_text(ctx, "INSTR: " .. tun.instr_name, 6, 34, 6, {150, 150, 165, 255})
 
-  -- current-note readout
+  -- build the enabled-column layout (left to right), then the bar fills the rest
+  local cols = {}
+  cols[#cols + 1] = {h = "NOTE",  w = 42, get = function(note) return note_name(note) end}
+  cols[#cols + 1] = {h = "DEG",   w = 56, get = function(_, deg) return deg .. "/" .. n end}
+  cols[#cols + 1] = {h = "RATIO", w = 56, get = function(_, _, ri) return string.format("%.3f", ri) end}
+  if PSTM_show_cents_period then
+    cols[#cols + 1] = {h = "CENTS-P", w = 66, get = function(_, _, ri) return string.format("%.1f", ratio_to_cents(ri)) end}
+  end
+  if PSTM_show_cents_root then
+    cols[#cols + 1] = {h = "CENTS-R", w = 76, get = function(_, _, _, tot) return string.format("%.1f", ratio_to_cents(tot)) end}
+  end
+  cols[#cols + 1] = {h = "HZ", w = 76, get = function(_, _, _, tot) return string.format("%.1f", C4_HZ * tot) end}
+  local x = NAME_X
+  for _, c in ipairs(cols) do c.x = x; x = x + c.w end
+  local bar_x = x + 8
+  local bar_w = math.max(20, CANVAS_W - 8 - bar_x)
+
+  -- current-note readout (communicates whichever columns are enabled)
   if PSTM_highlight_note >= 0 and PSTM_highlight_note <= 119 then
     local d, ri, tot = note_info(PSTM_highlight_note, ratios)
     local line = note_name(PSTM_highlight_note) .. "   DEG " .. d .. "/" .. n
       .. "   " .. string.format("%.3f", ri)
-      .. "   " .. string.format("%.1f", ratio_to_cents(ri)) .. "C"
-      .. "   " .. string.format("%.1f", C4_HZ * tot) .. " HZ"
+    if PSTM_show_cents_period then line = line .. "   " .. string.format("%.1f", ratio_to_cents(ri)) .. "C-P" end
+    if PSTM_show_cents_root then line = line .. "   " .. string.format("%.1f", ratio_to_cents(tot)) .. "C-R" end
+    line = line .. "   " .. string.format("%.1f", C4_HZ * tot) .. " HZ"
     draw_text(ctx, line, 6, 46, 8, {255, 245, 150, 255})
   else
     draw_text(ctx, "PLAY OR SELECT A NOTE TO SEE ITS PITCH", 6, 46, 6, {120, 120, 135, 255})
   end
 
   -- column headers
-  draw_text(ctx, "NOTE", NAME_X, 62, 6, {120, 120, 140, 255})
-  draw_text(ctx, "DEG",  DEG_X, 62, 6, {120, 120, 140, 255})
-  draw_text(ctx, "RATIO", RATIO_X, 62, 6, {120, 120, 140, 255})
-  draw_text(ctx, "CENTS", CENTS_X, 62, 6, {120, 120, 140, 255})
-  draw_text(ctx, "HZ", HZ_X, 62, 6, {120, 120, 140, 255})
+  for _, c in ipairs(cols) do
+    draw_text(ctx, c.h, c.x, 62, 6, {120, 120, 140, 255})
+  end
 
   -- rows
   for i = 0, ROWS - 1 do
@@ -199,8 +211,7 @@ function PakettiScalaTuningMapRender(ctx)
       if is_hl then
         ctx.fill_color = {70, 95, 130, 255}
       else
-        local c = degree_color(degree, n, 40)
-        ctx.fill_color = c
+        ctx.fill_color = degree_color(degree, n, 40)
       end
       ctx:fill_rect(0, y, CANVAS_W, ROW_H - 1)
 
@@ -218,21 +229,18 @@ function PakettiScalaTuningMapRender(ctx)
       ctx.fill_color = degree_color(degree, n, 255)
       ctx:fill_rect(SW_X, y + 3, 16, ROW_H - 6)
 
-      -- text
+      -- text columns
       local txt_col = is_hl and {255, 255, 255, 255} or {210, 210, 222, 255}
-      draw_text(ctx, note_name(note), NAME_X, y + 4, ROW_SIZE, txt_col)
-      draw_text(ctx, degree .. "/" .. n, DEG_X, y + 4, ROW_SIZE, txt_col)
-      draw_text(ctx, string.format("%.3f", ratio_in), RATIO_X, y + 4, ROW_SIZE, txt_col)
-      draw_text(ctx, string.format("%.1f", ratio_to_cents(ratio_in)), CENTS_X, y + 4, ROW_SIZE, txt_col)
-      draw_text(ctx, string.format("%.1f", C4_HZ * total), HZ_X, y + 4, ROW_SIZE, txt_col)
+      for _, c in ipairs(cols) do
+        draw_text(ctx, c.get(note, degree, ratio_in, total), c.x, y + 4, ROW_SIZE, txt_col)
+      end
 
       -- within-period position bar (log-pitch ladder)
       local frac = (period_cents > 0) and (ratio_to_cents(ratio_in) / period_cents) or 0
       ctx.fill_color = {40, 40, 52, 255}
-      ctx:fill_rect(BAR_X, y + 5, BAR_W, ROW_H - 10)
-      local c = degree_color(degree, n, 230)
-      ctx.fill_color = c
-      ctx:fill_rect(BAR_X, y + 5, math.max(1, frac * BAR_W), ROW_H - 10)
+      ctx:fill_rect(bar_x, y + 5, bar_w, ROW_H - 10)
+      ctx.fill_color = degree_color(degree, n, 230)
+      ctx:fill_rect(bar_x, y + 5, math.max(1, frac * bar_w), ROW_H - 10)
     end
   end
 end
@@ -539,11 +547,25 @@ function PakettiScalaTuningMapShow()
     },
     vb:row{
       spacing = 4,
+      vb:checkbox{value = PSTM_show_cents_period, notifier = function(v)
+        PSTM_show_cents_period = v
+        if PSTM_canvas then PSTM_canvas:invalidate() end
+      end},
+      vb:text{text = "Cents within period (CENTS-P)"},
+      vb:checkbox{value = PSTM_show_cents_root, notifier = function(v)
+        PSTM_show_cents_root = v
+        if PSTM_canvas then PSTM_canvas:invalidate() end
+      end},
+      vb:text{text = "Cents from root (CENTS-R)"},
+    },
+    vb:row{
+      spacing = 4,
       vb:button{text = "Load Scala (.scl) onto Instrument...", width = 230, notifier = load_scala},
       vb:button{text = "Reset to 12-TET", width = 120, notifier = reset_12tet},
     },
     vb:text{
       text = "Same colour = octave-equivalent (same scale degree). Off-white rows are period roots.\n"
+        .. "CENTS-P = cents within the period (resets each octave). CENTS-R = cents from the absolute root (C-4 = 0).\n"
         .. "Click a row to preview the note. The row under the pattern cursor is highlighted live.",
       font = "italic",
     },

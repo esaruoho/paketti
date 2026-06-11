@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Scala Tuning Map shows both cents-from-root and cents-within-period, each toggleable
+
+The map now has two cents columns: **CENTS-P** (cents within the period — resets at each octave/period root, interval-table style) and **CENTS-R** (cents from the absolute root, C-4 = 0). Each has its own checkbox in the dialog to turn the column on or off, and the focused-note readout line adds/removes them to match. Columns lay out dynamically and the within-period bar fills the remaining width, so the table stays tidy whichever combination is shown.
+
 ### 2026-06-10 - Fix: PCM Writer "Export A/B to Sample Slot" pakettifies an empty instrument
 
 When exporting Wave A or Wave B from the Single Cycle Waveform Writer into an **empty** instrument, the instrument wasn't being pakettified first — it just dropped the sample into a bare instrument. (The main "Export to Sample Slot" already handled this; the A/B variants were missing the empty-instrument branch.) Both `Export A` and `Export B` now apply the Paketti default instrument chassis (pitch-bend modulation + *Instr. Macros) before writing the sample, matching the main export.
