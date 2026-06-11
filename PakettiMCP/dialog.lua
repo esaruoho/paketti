@@ -1,5 +1,5 @@
--- ui/dialog.lua
--- Main control panel for ReMCP.
+-- PakettiMCP/dialog.lua
+-- Main control panel for PakettiMCP.
 -- Shows server status, start/stop, port picker, live log, and Claude config.
 
 local server = require("PakettiMCP.server")
@@ -89,7 +89,7 @@ local function do_start(port)
   local ok, e = server.start(port, add_log)
   if not ok then
     add_log("ERROR: " .. tostring(e))
-    renoise.app():show_warning("ReMCP: Could not start server.\n" .. tostring(e))
+    renoise.app():show_warning("PakettiMCP: Could not start server.\n" .. tostring(e))
   end
   update_ui()
 end
@@ -107,12 +107,14 @@ local function do_reload()
     server.stop()
   end
 
-  -- Clear cached MCP/tool modules so files on disk are re-read
-  package.loaded["mcp.server"] = nil
-  package.loaded["mcp.router"] = nil
-  package.loaded["mcp.json"]   = nil
+  -- Clear cached MCP/tool modules so files on disk are re-read.
+  -- NOTE: these are the PakettiMCP.* namespace keys (the ReMCP port used mcp.*),
+  -- so reload actually re-reads the files now.
+  package.loaded["PakettiMCP.server"] = nil
+  package.loaded["PakettiMCP.router"] = nil
+  package.loaded["PakettiMCP.json"]   = nil
   for k in pairs(package.loaded) do
-    if k:match("^tools%.") then package.loaded[k] = nil end
+    if k:match("^PakettiMCP%.tools%.") then package.loaded[k] = nil end
   end
 
   router = require("PakettiMCP.router")
@@ -126,7 +128,7 @@ local function do_reload()
     local ok, e = server.start(active_port, add_log)
     if not ok then
       add_log("ERROR: " .. tostring(e))
-      renoise.app():show_warning("ReMCP: Could not restart server.\n" .. tostring(e))
+      renoise.app():show_warning("PakettiMCP: Could not restart server.\n" .. tostring(e))
     end
   end
 
@@ -146,7 +148,7 @@ local function build_dialog(port)
   local header = vb:row {
     margin  = 4,
     spacing = 6,
-    vb:text { text = "Renoise MCP Server", font = "bold", width = 200 },
+    vb:text { text = "PakettiMCP Server", font = "bold", width = 200 },
     vb:text { id = "tool_count", text = "0 tools", width = 120, align = "right" },
   }
 
@@ -274,8 +276,8 @@ function M.show()
 
   local content = build_dialog(port)
   update_ui()
-  dlg = renoise.app():show_custom_dialog("Renoise MCP", content)
-  add_log("ReMCP ready. Click 'Start Server' to begin.")
+  dlg = renoise.app():show_custom_dialog("PakettiMCP", content)
+  add_log("PakettiMCP ready. Server auto-starts on open; use Stop/Start to toggle.")
 
   if not server.running then
     do_start(port)

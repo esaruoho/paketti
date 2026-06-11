@@ -126,7 +126,7 @@ function M.handle(body)
       result = {
         protocolVersion = protocol,
         capabilities    = { tools = { listChanged = false } },
-        serverInfo      = { name = "renoise-mcp", version = "1.0.0" },
+        serverInfo      = { name = "PakettiMCP", version = "1.0.0" },
       }
     })
 

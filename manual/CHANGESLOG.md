@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Rebranded PakettiMCP dialog/server from "Renoise MCP"/"ReMCP" to PakettiMCP
+
+The in-Renoise MCP server (`PakettiMCP/`, an embedded port of kraken's ReMCP exposing 79 JSON-RPC tools on `localhost:19714/mcp`) was still showing its upstream branding. The control panel header now reads "PakettiMCP Server", the dialog title is "PakettiMCP", the ready-log line and the could-not-start/restart warnings now say PakettiMCP, and the wire identity in `GET /health` and `initialize`→`serverInfo` is now `"PakettiMCP"` (was `"renoise-mcp"`). Also fixed the **Reload Tools** button: it was clearing stale `mcp.*` / `tools.*` Lua module-cache keys that never matched the actual `PakettiMCP.*` namespace, so reload didn't re-read files from disk — it now clears `PakettiMCP.server`/`router`/`json` and `PakettiMCP.tools.*` correctly. The dialog auto-starts the server on open (which is why its toggle button reads "Stop Server" while running). No menu entries, keybindings, or MIDI mappings changed. Menu: `Main Menu:Tools:Paketti:!Preferences:MCP Server Dialog...` / `MCP Server Start` / `MCP Server Stop`; keybindings `Global:Paketti:MCP Server Dialog` / `MCP Server Start` / `MCP Server Stop`. Also added two Gherkin feature cards under `features/`: `mcp-claude-bridge.feature` (the three Renoise↔Claude bridges — MCP server, Claude Probe, Claude Chat) and `device-hotswap-missing-to-actual.feature` (designed-stage idea for swapping missing VST/AU devices to installed equivalents and injecting saved parameters by name).
+
 ### 2026-06-11 - Improvement: Capitalized "Auto-Samplify" in menu entries and status text
 
 The two `Main Menu:Options` toggles now read `Auto-Samplify Enable Monitoring Toggle` and `Auto-Samplify Pakettify Toggle` (was lowercase "Auto-samplify"), and the matching status message uses the same capitalization. Cosmetic only — no behavior, keybindings, or MIDI mappings changed.

@@ -3,19 +3,23 @@ Context: Global
 
   # WHAT THIS IS / THE GIST
   # -----------------------
-  # Paketti ships FOUR distinct Renoise↔Claude bridges, not one. They differ on
+  # Paketti ships THREE distinct Renoise↔Claude bridges, not one. They differ on
   # two axes: direction (read / write / both) and transport (HTTP / file / OSC).
   # Together they are the "MCP bridge" — yes, it exists, and one leg of it (the
   # MCP server) is fully bidirectional and live, so Claude CAN watch the song
   # change while Renoise renders. Grades below are honest: code is @built and
-  # git-tracked + wired into main.lua (timed_require lines 1318-1320, 1229), but
-  # the live Claude round-trips are @untested-here because they need a running
-  # Renoise + a Claude /loop session.
+  # git-tracked + wired into main.lua (timed_require lines 1318-1320), and the
+  # MCP server leg is HARDWARE-VERIFIED (curl'd live: 79 tools, /health ok on
+  # 2026-06-11). The Probe and Chat legs are @untested-here because they need a
+  # running Renoise + a Claude /loop session.
   #
   #   1. PakettiMCP        — HTTP MCP server, 79 tools, READ+WRITE, bidirectional
   #   2. PakettiClaudeProbe— one-shot Lua eval in TOOL context → /tmp file, READ
   #   3. PakettiClaudeChat — in-Renoise chat dialog, file-in / OSC-out, BOTH
-  #   4. PakettiXRNSProbe  — offline .xrns binary analyzer (JUCE ioz/LZF/plist)
+  #
+  # NOT IN SCOPE HERE: PakettiXRNSProbe (offline .xrns binary analyzer) is a
+  # SEPARATE project — see features/device-hotswap-missing-to-actual.feature,
+  # where the XRNS dissection feeds the missing-device hotswap idea.
   #
   # ATTRIBUTION: the MCP core (PakettiMCP/json.lua, router.lua, server.lua,
   # dialog.lua, tools/{song,transport,tracks,patterns,sequencer,instruments,
@@ -31,21 +35,22 @@ Context: Global
   # PakettiMCPMain.lua + PakettiMCP/{server,router,json,dialog}.lua + tools/*.lua
   # =====================================================================
 
-  @built @untested
+  @built @hw-verified
   Scenario: Start the MCP server
     Given Renoise is running with Paketti loaded
-    When the user triggers "Main Menu:Tools:Paketti:!Preferences:MCP Server Start"
-      # or keybinding "Global:Paketti:MCP Server Start", or the dialog's Start button
+    When the user opens the MCP Server Dialog (auto-starts), or triggers
+         "Main Menu:Tools:Paketti:!Preferences:MCP Server Start"
+      # the dialog auto-starts on open, so its toggle reads "Stop Server" while up
     Then PakettiMCP/server.lua opens an HTTP listener on localhost:19714
     And router.load_tools_dir auto-loads every PakettiMCP/tools/*.lua (79 tools)
-    And the status bar shows "server started on :19714, N tools loaded"
+    And the dialog shows "PakettiMCP Server", "79 tools loaded", "Running on port 19714"
 
-  @built @untested
+  @built @hw-verified
   Scenario: Any MCP client / curl discovers the tool surface
     Given the MCP server is running
     When a client POSTs {"method":"tools/list"} to http://localhost:19714/mcp
     Then the server returns 79 JSON-RPC tool definitions
-    And GET http://localhost:19714/health returns {"status":"ok","server":"renoise-mcp"}
+    And GET http://localhost:19714/health returns {"status":"ok","server":"PakettiMCP"}
 
   @built @untested
   Scenario: Claude READS live song state (the "watch it render" half)
@@ -143,21 +148,11 @@ Context: Global
         _PakettiClaudeReply(text), which appends to the dialog's response area
     And a transcript is logged to /tmp/claude-chat-log.txt
 
-  # =====================================================================
-  # LEG 4 — PakettiXRNSProbe: offline .xrns binary analyzer
-  # PakettiXRNSProbe.lua  (not a live bridge — static file dissection)
-  # =====================================================================
-
-  @built
-  Scenario: Analyze a saved .xrns without opening it as the active song
-    Given an .xrns file on disk (JUCE "ioz" container, XOR-LCG + LZF + plist)
-    When the user opens the XRNS Probe dialog and browses to the file
-    Then Paketti decrypts and decompresses it in pure Lua and reports its
-         tracks, instruments and devices in a results textfield
-
   # WHICH LEG WHEN
   # --------------
   #   Read live state + write back, real-time, scriptable from curl/bash  → LEG 1 (MCP)
   #   One-shot "what's selected right now" snapshot, no server            → LEG 2 (Probe)
   #   Conversational, type-in-Renoise, Claude replies in the dialog       → LEG 3 (Chat)
-  #   Inspect a song FILE on disk without loading it                      → LEG 4 (XRNS)
+  #
+  # (Inspecting a song FILE on disk lives in its own project — see
+  #  features/device-hotswap-missing-to-actual.feature.)

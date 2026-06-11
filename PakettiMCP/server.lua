@@ -118,7 +118,7 @@ end
 local function dispatch(sock, method, path, body)
   if method == "OPTIONS" then sock:send(http_cors()) return end
   if method == "GET" and path == "/health" then
-    sock:send(http_ok("application/json", '{"status":"ok","server":"renoise-mcp"}'))
+    sock:send(http_ok("application/json", '{"status":"ok","server":"PakettiMCP"}'))
     return
   end
   if method == "POST" and path:match("^/mcp") then
