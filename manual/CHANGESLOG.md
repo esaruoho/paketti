@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Fix: Scala Tuning Map and Phi Interval Circle used the wrong canvas redraw call (crashed)
+
+The Scala Tuning Map crashed on open with `unknown property or function 'invalidate' for an object of type 'Canvas'`. The Renoise 3.5 Canvas redraw method is `:update()`, not `:invalidate()`. Fixed every canvas redraw in the Scala Tuning Map, and the same latent crash in the Microtonal Tunings "Phi Interval Circle" dialog (its tuning/compare popups and the compare checkbox).
+
 ### 2026-06-11 - Fix: 8120 Canvas View no longer crashes when a row's step count exceeds the active step mode
 
 Opening the Groovebox 8120 Canvas View while any lane held a step count higher than the current step mode (e.g. a row set to 32 steps, then the dialog rebuilt in 16-step mode) threw `ViewBuilder: invalid value for valuebox: '32'. value must be [1 - 16]` and the whole Canvas View failed to open. The per-lane step count is now clamped to the live `[1, MAX_STEPS]` range when read, so the valuebox always gets a valid initial value. The clamp is read-only — the lane's underlying step count is preserved (the classic dialog's box accepts up to 512), so nothing is lost; the Canvas View just displays it capped to the current mode until you change it there.

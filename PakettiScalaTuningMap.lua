@@ -303,7 +303,7 @@ function PakettiScalaTuningMapMouse(ev)
     if note < 0 or note > 119 then return end
     PSTM_highlight_note = note
     preview_on(note)
-    if PSTM_canvas then PSTM_canvas:invalidate() end
+    if PSTM_canvas then PSTM_canvas:update() end
   end
 end
 
@@ -339,7 +339,7 @@ local function shift_view(delta)
   PSTM_view_start = PSTM_view_start + delta
   clamp_view()
   sync_scrollbar()
-  if PSTM_canvas then PSTM_canvas:invalidate() end
+  if PSTM_canvas then PSTM_canvas:update() end
 end
 
 -- ===========================================================================
@@ -347,7 +347,7 @@ end
 -- ===========================================================================
 
 local function refresh_now()
-  if PSTM_canvas then pcall(function() PSTM_canvas:invalidate() end) end
+  if PSTM_canvas then pcall(function() PSTM_canvas:update() end) end
 end
 
 local function unbind_tuning_obs()
@@ -438,7 +438,7 @@ function PakettiScalaTuningMapTick()
     end
 
     -- backstop: always reflect current instrument/tuning state
-    if PSTM_canvas then PSTM_canvas:invalidate() end
+    if PSTM_canvas then PSTM_canvas:update() end
   end)
 end
 
@@ -500,7 +500,7 @@ local function load_scala()
   else
     renoise.app():show_status("Paketti Scala Tuning Map: failed to load " .. fn)
   end
-  if PSTM_canvas then PSTM_canvas:invalidate() end
+  if PSTM_canvas then PSTM_canvas:update() end
 end
 
 local function reset_12tet()
@@ -511,7 +511,7 @@ local function reset_12tet()
   instr.trigger_options.tuning = {}        -- empty disables custom tuning
   instr.trigger_options.tuning_name = ""
   renoise.app():show_status("Tuning reset to 12-TET on selected instrument")
-  if PSTM_canvas then PSTM_canvas:invalidate() end
+  if PSTM_canvas then PSTM_canvas:update() end
 end
 
 -- ===========================================================================
@@ -561,7 +561,7 @@ function PakettiScalaTuningMapShow()
         notifier = function(v)
           if PSTM_suppress_scroll then return end
           PSTM_view_start = v
-          if PSTM_canvas then PSTM_canvas:invalidate() end
+          if PSTM_canvas then PSTM_canvas:update() end
         end,
       },
     },
@@ -573,7 +573,7 @@ function PakettiScalaTuningMapShow()
       vb:button{text = "Note \226\150\182", width = 60, notifier = function() shift_view(1) end},
       vb:button{text = "Jump to Current", width = 110, notifier = function()
         follow_to_note(true)
-        if PSTM_canvas then PSTM_canvas:invalidate() end
+        if PSTM_canvas then PSTM_canvas:update() end
       end},
       vb:checkbox{value = PSTM_follow, notifier = function(v) PSTM_follow = v end},
       vb:text{text = "Follow note input"},
@@ -582,12 +582,12 @@ function PakettiScalaTuningMapShow()
       spacing = 4,
       vb:checkbox{value = PSTM_show_cents_period, notifier = function(v)
         PSTM_show_cents_period = v
-        if PSTM_canvas then PSTM_canvas:invalidate() end
+        if PSTM_canvas then PSTM_canvas:update() end
       end},
       vb:text{text = "Cents within period (CENTS-P)"},
       vb:checkbox{value = PSTM_show_cents_root, notifier = function(v)
         PSTM_show_cents_root = v
-        if PSTM_canvas then PSTM_canvas:invalidate() end
+        if PSTM_canvas then PSTM_canvas:update() end
       end},
       vb:text{text = "Cents from root (CENTS-R)"},
     },
@@ -617,7 +617,7 @@ function PakettiScalaTuningMapShow()
 
   -- restore pattern editor focus so note input keeps flowing while the map is open
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
-  if PSTM_canvas then PSTM_canvas:invalidate() end
+  if PSTM_canvas then PSTM_canvas:update() end
 end
 
 -- ===========================================================================

@@ -1439,7 +1439,7 @@ local function show_phi_interval_circle()
       vb:popup{id = "circle_preset", items = popup_items, value = 2, width = 250,
         notifier = function(idx)
           current_preset_idx = idx
-          vb.views.interval_canvas:invalidate()
+          vb.views.interval_canvas:update()
         end},
     },
     vb:row{
@@ -1447,13 +1447,13 @@ local function show_phi_interval_circle()
       vb:checkbox{id = "circle_compare", value = false,
         notifier = function(v)
           show_comparison = v
-          vb.views.interval_canvas:invalidate()
+          vb.views.interval_canvas:update()
         end},
       vb:text{text = "Compare with:", width = 80},
       vb:popup{id = "circle_compare_preset", items = popup_items, value = 1, width = 210,
         notifier = function(idx)
           compare_preset_idx = idx
-          if show_comparison then vb.views.interval_canvas:invalidate() end
+          if show_comparison then vb.views.interval_canvas:update() end
         end},
     },
     vb:canvas{
