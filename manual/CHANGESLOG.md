@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Scala Tuning Map gets a vertical scrollbar for the full note range
+
+Added a vertical scrollbar beside the canvas so you can scroll smoothly through all 120 notes (C-0…B-9) instead of relying only on the Period/Note buttons. The thumb size reflects how much of the range is visible, and it stays in sync when you use the Period/Note/Jump-to-Current buttons or "Follow note input". Built with the Renoise 3.5 `vb:scrollbar` view (offset-into-content with `pagestep` = visible rows).
+
 ### 2026-06-11 - Improvement: Paketti Menu Configuration is alphabetical, covers every menu context, and now actually hides "Track Automation List" entries
 
 The **Paketti Menu Configuration** dialog (Options menu, or `Main Menu:Tools:Paketti:!Preferences:Paketti Menu Configuration...`) now lists every toggle in alphabetical order across two columns, and the list has grown from 16 toggles to 24 so you can switch each Renoise menu context on or off individually. New per-context toggles: **Track Automation List**, **DSP Chain**, **DSP Device Automation**, **Sample Editor Ruler**, **Sample FX Mixer**, **Sample Modulation Matrix**, **Phrase Mappings** and **Phrase Grid** — previously these either had no toggle or were lumped under a broader context. Fixed a bug where the **Track Automation List** right-click menu kept showing Paketti entries even when Automation menus were disabled: the context-matcher checked `Track Automation:` but never `Track Automation List:`, so those entries fell through and were never gated. As before, changes take effect after restarting Renoise.

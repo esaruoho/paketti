@@ -27,6 +27,7 @@
 PakettiScalaTuningMapDialog = nil
 
 local CANVAS_ID = "paketti_scala_tuning_map_canvas"
+local SCROLL_ID = "paketti_scala_tuning_map_scroll"
 local CANVAS_W = 620
 local CANVAS_H = 470
 local HEADER_H = 76
@@ -44,6 +45,8 @@ local ROW_SIZE = 7
 
 local PSTM_vb = nil
 local PSTM_canvas = nil
+local PSTM_scrollbar = nil
+local PSTM_suppress_scroll = false   -- guard against scrollbar<->view_start feedback
 local PSTM_view_start = 36
 local PSTM_highlight_note = -1
 local PSTM_follow = true
@@ -314,18 +317,28 @@ local function clamp_view()
   if PSTM_view_start > maxstart then PSTM_view_start = maxstart end
 end
 
+-- push the current view_start into the scrollbar thumb (suppress its notifier)
+local function sync_scrollbar()
+  if not PSTM_scrollbar then return end
+  PSTM_suppress_scroll = true
+  pcall(function() PSTM_scrollbar.value = PSTM_view_start end)
+  PSTM_suppress_scroll = false
+end
+
 local function follow_to_note(force)
   if PSTM_highlight_note < 0 then return end
   if force or PSTM_highlight_note < PSTM_view_start
      or PSTM_highlight_note > PSTM_view_start + ROWS - 1 then
     PSTM_view_start = PSTM_highlight_note - math.floor(ROWS / 2)
     clamp_view()
+    sync_scrollbar()
   end
 end
 
 local function shift_view(delta)
   PSTM_view_start = PSTM_view_start + delta
   clamp_view()
+  sync_scrollbar()
   if PSTM_canvas then PSTM_canvas:invalidate() end
 end
 
@@ -440,6 +453,7 @@ function PakettiScalaTuningMapCleanup()
   unbind_observers()
   preview_off()
   PSTM_canvas = nil
+  PSTM_scrollbar = nil
 end
 
 -- Detach + close on document release so a left-open canvas/timer cannot crash
@@ -523,14 +537,33 @@ function PakettiScalaTuningMapShow()
 
   local content = vb:column{
     margin = 8, spacing = 6,
-    vb:canvas{
-      id = CANVAS_ID,
-      width = CANVAS_W,
-      height = CANVAS_H,
-      mode = "plain",
-      render = PakettiScalaTuningMapRender,
-      mouse_events = {"down", "up", "exit"},
-      mouse_handler = PakettiScalaTuningMapMouse,
+    vb:row{
+      spacing = 2,
+      vb:canvas{
+        id = CANVAS_ID,
+        width = CANVAS_W,
+        height = CANVAS_H,
+        mode = "plain",
+        render = PakettiScalaTuningMapRender,
+        mouse_events = {"down", "up", "exit"},
+        mouse_handler = PakettiScalaTuningMapMouse,
+      },
+      vb:scrollbar{
+        id = SCROLL_ID,
+        min = 0,
+        max = 120,                  -- 120 notes (0..119)
+        value = PSTM_view_start,
+        step = 1,
+        pagestep = ROWS,            -- visible window = number of rows
+        autohide = false,
+        width = 18,
+        height = CANVAS_H,
+        notifier = function(v)
+          if PSTM_suppress_scroll then return end
+          PSTM_view_start = v
+          if PSTM_canvas then PSTM_canvas:invalidate() end
+        end,
+      },
     },
     vb:row{
       spacing = 4,
@@ -574,6 +607,7 @@ function PakettiScalaTuningMapShow()
   PakettiScalaTuningMapDialog = renoise.app():show_custom_dialog(
     "Paketti Scala Tuning Map", content, key_handler)
   PSTM_canvas = vb.views[CANVAS_ID]
+  PSTM_scrollbar = vb.views[SCROLL_ID]
 
   if not renoise.tool():has_timer(PakettiScalaTuningMapTick) then
     renoise.tool():add_timer(PakettiScalaTuningMapTick, 120)
