@@ -7500,6 +7500,18 @@ PakettiEightOneTwentyKitCategories = {
   { name = "Other",   keywords = {"TOM","CRASH","CYMBAL","CYM","OPENHAT","OPEN HAT","COWBELL","SHAKER","TAMB","CLAVE","SHKR"} },
 }
 
+-- Widest category name, so the "[name]" field can be space-padded to a fixed
+-- width and every status line's "Loading/Queued ..." starts at the same column.
+PakettiEightOneTwentyKitCatNameWidth = 0
+for _, c in ipairs(PakettiEightOneTwentyKitCategories) do
+  if #c.name > PakettiEightOneTwentyKitCatNameWidth then PakettiEightOneTwentyKitCatNameWidth = #c.name end
+end
+
+-- Returns "[Kick]   " / "[Rimshot]" — bracketed name padded to a fixed width.
+function PakettiEightOneTwentyKitCatLabel(name)
+  return "[" .. name .. "]" .. string.rep(" ", PakettiEightOneTwentyKitCatNameWidth - #name)
+end
+
 -- True if name_upper contains any keyword at a leading token boundary.
 function PakettiEightOneTwentyCleverNameMatches(name_upper, keywords)
   for _, kw in ipairs(keywords) do
@@ -7621,7 +7633,7 @@ function loadSequentialKitAll()
 
     if #pool == 0 then
       if dialog and dialog.visible then
-        status_labels[instrument_index].text = string.format("Part %d/8 [%s]: no matching samples found", instrument_index, category_name)
+        status_labels[instrument_index].text = string.format("Part %d/8 %s: no matching samples found", instrument_index, PakettiEightOneTwentyKitCatLabel(category_name))
         status_labels[instrument_index].font = "bold"
         pakettiSetViewStyle(status_labels[instrument_index], "strong")
       end
@@ -7689,8 +7701,8 @@ function loadSequentialKitAll()
 
       if dialog and dialog.visible then
         local display_name = capFilename(getFilename(selected_file))
-        status_labels[instrument_index].text = string.format("Part %d/8 [%s]: Loading %03d/%03d: %s",
-          instrument_index, category_name, i, num_samples_to_load, display_name)
+        status_labels[instrument_index].text = string.format("Part %d/8 %s: Loading %03d/%03d: %s",
+          instrument_index, PakettiEightOneTwentyKitCatLabel(category_name), i, num_samples_to_load, display_name)
         status_labels[instrument_index].font = "bold"
         pakettiSetViewStyle(status_labels[instrument_index], "strong")
       end
@@ -7714,7 +7726,7 @@ function loadSequentialKitAll()
       end
 
       for j = i + 1, 8 do
-        status_labels[j].text = string.format("Part %d/8 [%s]: Queued (%d matches)", j, cats[j].name, #buckets[j])
+        status_labels[j].text = string.format("Part %d/8 %s: Queued (%d matches)", j, PakettiEightOneTwentyKitCatLabel(cats[j].name), #buckets[j])
         status_labels[j].font = "bold"
         pakettiSetViewStyle(status_labels[j], "strong")
       end
@@ -7763,7 +7775,7 @@ function loadSequentialKitAll()
 
     local dialog_content = vb:column{margin=DEFAULT_MARGIN, spacing=DEFAULT_SPACING}
     for i = 1, 8 do
-      local status_label = vb:text{ text = string.format("Part %d/8 [%s]: Queued (%d matches)", i, cats[i].name, #buckets[i]), font = "bold", style = "strong" }
+      local status_label = vb:text{ text = string.format("Part %d/8 %s: Queued (%d matches)", i, PakettiEightOneTwentyKitCatLabel(cats[i].name), #buckets[i]), font = "bold", style = "strong" }
       status_labels[i] = status_label
       dialog_content:add_child(status_label)
     end

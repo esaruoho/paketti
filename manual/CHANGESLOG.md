@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Kit loader status lines align the per-part columns
+
+In the Kit (8120) loader progress dialog, the bracketed category name (`[Kick]`, `[Snare]`, … `[Rimshot]`) is now space-padded to a fixed width, so the "Loading …" / "Queued …" text on every Part line starts at the same column instead of jittering left and right with the name length.
+
 ### 2026-06-11 - Improvement: Scala Tuning Map shows both cents-from-root and cents-within-period, each toggleable
 
 The map now has two cents columns: **CENTS-P** (cents within the period — resets at each octave/period root, interval-table style) and **CENTS-R** (cents from the absolute root, C-4 = 0). Each has its own checkbox in the dialog to turn the column on or off, and the focused-note readout line adds/removes them to match. Columns lay out dynamically and the within-period bar fills the remaining width, so the table stays tidy whichever combination is shown.
