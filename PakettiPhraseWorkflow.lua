@@ -7823,34 +7823,34 @@ renoise.tool():add_midi_mapping{name="Paketti:PhraseGrid Performance Hub [Trigge
 -- 17. MENU ENTRIES
 --------------------------------------------------------------------------------
 
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Show PhraseGrid Dialog", invoke=PakettiPhraseGridShowDialog}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Show Performance Hub", invoke=PakettiPhraseGridShowPerformanceDialog}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Show Quick Popup", invoke=PakettiPhraseGridShowPopup}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Toggle Phrase Transport", invoke=PakettiPhraseTransportToggle}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Toggle Auto-Spawn on Selection", invoke=PakettiPhraseVoiceToggleAutoSpawn}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Empty Phrase (16 lines)", invoke=function() PakettiPhraseTemplateCreate("empty", {length = 16}) end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Phrase From Slices", invoke=PakettiPhraseTemplateFromSlices}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Drum Pattern (Basic)", invoke=function() PakettiPhraseTemplateDrum("basic") end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Drum Pattern (Four Floor)", invoke=function() PakettiPhraseTemplateDrum("four_floor") end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Arp Pattern (Ascending)", invoke=function() PakettiPhraseTemplateArp("ascending", 12) end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Templates:Create Arp Pattern (Descending)", invoke=function() PakettiPhraseTemplateArp("descending", 12) end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Auto-Fill Pattern with Phrase", invoke=function() PakettiPhraseAutoFillPattern() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Auto-Fill with Variations", invoke=PakettiPhraseAutoFillWithVariation}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Convert Phrase to Pattern", invoke=function() PakettiPhraseToPattern() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Dump Phrase to Pattern at Cursor", invoke=PakettiDumpPhraseToPattern}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Convert Pattern to Phrase", invoke=PakettiPatternToPhrase}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Selection to Phrase", invoke=PakettiSelectionToPhrase}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Pattern Integration:Replace Selection with Phrase", invoke=PakettiReplaceSelectionWithPhrase}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Show Quick Flicks Dialog", invoke=PakettiQuickFlicksShowDialog}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Volume Ramp Up", invoke=function() PakettiQuickFlickVolumeRampUp() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Volume Ramp Down", invoke=function() PakettiQuickFlickVolumeRampDown() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Gate Pattern 1010", invoke=function() PakettiQuickFlickVolumeGate(nil, nil, "1010") end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Gate Pattern 1100", invoke=function() PakettiQuickFlickVolumeGate(nil, nil, "1100") end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Cut 0C00 (Instant)", invoke=function() PakettiQuickFlickCutPattern(nil, nil, 0x00) end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Cut 0C80 (Half)", invoke=function() PakettiQuickFlickCutPattern(nil, nil, 0x80) end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Retrig R04", invoke=function() PakettiQuickFlickRetrig(nil, nil, 4, "flat") end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Slice Sequential", invoke=function() PakettiQuickFlickSliceSequential() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Quick Flicks:Slice Random", invoke=function() PakettiQuickFlickSliceRandom() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Show PhraseGrid Dialog", invoke=PakettiPhraseGridShowDialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Show Performance Hub", invoke=PakettiPhraseGridShowPerformanceDialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Show Quick Popup", invoke=PakettiPhraseGridShowPopup}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Toggle Phrase Transport", invoke=PakettiPhraseTransportToggle}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Toggle Auto-Spawn on Selection", invoke=PakettiPhraseVoiceToggleAutoSpawn}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Templates:Create Empty Phrase (16 lines)", invoke=function() PakettiPhraseTemplateCreate("empty", {length = 16}) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Templates:Create Phrase From Slices", invoke=PakettiPhraseTemplateFromSlices}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Templates:Create Drum Pattern (Basic)", invoke=function() PakettiPhraseTemplateDrum("basic") end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Templates:Create Drum Pattern (Four Floor)", invoke=function() PakettiPhraseTemplateDrum("four_floor") end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Templates:Create Arp Pattern (Ascending)", invoke=function() PakettiPhraseTemplateArp("ascending", 12) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Templates:Create Arp Pattern (Descending)", invoke=function() PakettiPhraseTemplateArp("descending", 12) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Pattern Integration:Auto-Fill Pattern with Phrase", invoke=function() PakettiPhraseAutoFillPattern() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Pattern Integration:Auto-Fill with Variations", invoke=PakettiPhraseAutoFillWithVariation}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Pattern Integration:Convert Phrase to Pattern", invoke=function() PakettiPhraseToPattern() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Pattern Integration:Dump Phrase to Pattern at Cursor", invoke=PakettiDumpPhraseToPattern}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Pattern Integration:Convert Pattern to Phrase", invoke=PakettiPatternToPhrase}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Pattern Integration:Selection to Phrase", invoke=PakettiSelectionToPhrase}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Pattern Integration:Replace Selection with Phrase", invoke=PakettiReplaceSelectionWithPhrase}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Show Quick Flicks Dialog", invoke=PakettiQuickFlicksShowDialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Volume Ramp Up", invoke=function() PakettiQuickFlickVolumeRampUp() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Volume Ramp Down", invoke=function() PakettiQuickFlickVolumeRampDown() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Gate Pattern 1010", invoke=function() PakettiQuickFlickVolumeGate(nil, nil, "1010") end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Gate Pattern 1100", invoke=function() PakettiQuickFlickVolumeGate(nil, nil, "1100") end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Cut 0C00 (Instant)", invoke=function() PakettiQuickFlickCutPattern(nil, nil, 0x00) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Cut 0C80 (Half)", invoke=function() PakettiQuickFlickCutPattern(nil, nil, 0x80) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Retrig R04", invoke=function() PakettiQuickFlickRetrig(nil, nil, 4, "flat") end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Slice Sequential", invoke=function() PakettiQuickFlickSliceSequential() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Quick Flicks:Slice Random", invoke=function() PakettiQuickFlickSliceRandom() end}
 
 -- Pattern Matrix context menus
 PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Store as PhraseGrid State", invoke=PakettiPhraseGridStoreFromPatternMatrix}
@@ -8835,19 +8835,19 @@ renoise.tool():add_midi_mapping{name="Paketti:Rearrange Slices [Trigger]", invok
 renoise.tool():add_midi_mapping{name="Paketti:Render Current State [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPhraseGridRenderCurrentState() end end}
 
 -- Menu entries for render integration
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Render Integration:Render Pattern to Phrases", invoke=function() PakettiRenderPatternToPhrase() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Render Integration:Render Pattern (8 slices)", invoke=function() PakettiRenderPatternToPhrase({slice_count = 8}) end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Render Integration:Render Pattern (16 slices)", invoke=function() PakettiRenderPatternToPhrase({slice_count = 16}) end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Render Integration:Render Phrase to Sample", invoke=function() PakettiRenderPhraseToSample() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Render Integration:Render and Reverse", invoke=function() PakettiRenderAndReverse() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Render Integration:Render and Auto-Slice", invoke=function() PakettiRenderAndAutoSlice() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Slice to Phrase:Convert Slices to Phrase Bank", invoke=function() PakettiSlicesToPhraseBank() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Slice to Phrase:Auto-Slice and Create Phrases", invoke=function() PakettiAutoSliceAndPhraseCreate() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Slice to Phrase:Rearrange Slices on New Track", invoke=function() PakettiRearrangeTrackFromSlices() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Slice to Phrase:Rearrange Slices (Random)", invoke=function() PakettiRearrangeTrackFromSlices({randomize = true}) end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Stacker Integration:Full Render-Stack Workflow", invoke=function() PakettiFullRenderStackWorkflow() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:Stacker Integration:Stack from Rendered Slices", invoke=function() PakettiStackerFromRenderedSlices() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:PhraseGrid:PhraseGrid Render:Render Current State", invoke=function() PakettiPhraseGridRenderCurrentState() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Render Integration:Render Pattern to Phrases", invoke=function() PakettiRenderPatternToPhrase() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Render Integration:Render Pattern (8 slices)", invoke=function() PakettiRenderPatternToPhrase({slice_count = 8}) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Render Integration:Render Pattern (16 slices)", invoke=function() PakettiRenderPatternToPhrase({slice_count = 16}) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Render Integration:Render Phrase to Sample", invoke=function() PakettiRenderPhraseToSample() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Render Integration:Render and Reverse", invoke=function() PakettiRenderAndReverse() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Render Integration:Render and Auto-Slice", invoke=function() PakettiRenderAndAutoSlice() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Slice to Phrase:Convert Slices to Phrase Bank", invoke=function() PakettiSlicesToPhraseBank() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Slice to Phrase:Auto-Slice and Create Phrases", invoke=function() PakettiAutoSliceAndPhraseCreate() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Slice to Phrase:Rearrange Slices on New Track", invoke=function() PakettiRearrangeTrackFromSlices() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Slice to Phrase:Rearrange Slices (Random)", invoke=function() PakettiRearrangeTrackFromSlices({randomize = true}) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Stacker Integration:Full Render-Stack Workflow", invoke=function() PakettiFullRenderStackWorkflow() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:Stacker Integration:Stack from Rendered Slices", invoke=function() PakettiStackerFromRenderedSlices() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:PhraseGrid:PhraseGrid Render:Render Current State", invoke=function() PakettiPhraseGridRenderCurrentState() end}
 
 -- Pattern Editor context menu for render integration
 PakettiAddMenuEntry{name="Pattern Editor:Paketti:PhraseGrid:Selection to Phrase", invoke=PakettiSelectionToPhrase}

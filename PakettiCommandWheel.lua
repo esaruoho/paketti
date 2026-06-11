@@ -1696,7 +1696,7 @@ renoise.tool():add_keybinding{
 -- MENU ENTRIES
 --------------------------------------------------------------------------------
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti..:Instruments..:Command Wheel...",
+  name = "Main Menu:Tools:Paketti:Instruments:Command Wheel...",
   invoke = function() PakettiCommandWheelShowDialog() end
 }
 

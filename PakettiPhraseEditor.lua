@@ -3055,12 +3055,12 @@ renoise.tool():add_keybinding{
 }
 
 PakettiAddMenuEntry{
-  name="Main Menu:Tools:Paketti..:Phrases:Select Next Phrase",
+  name="Main Menu:Tools:Paketti:Phrases:Select Next Phrase",
   invoke=function() PakettiSelectNextPhrase() end
 }
 
 PakettiAddMenuEntry{
-  name="Main Menu:Tools:Paketti..:Phrases:Select Previous Phrase",
+  name="Main Menu:Tools:Paketti:Phrases:Select Previous Phrase",
   invoke=function() PakettiSelectPreviousPhrase() end
 }
 
@@ -3076,12 +3076,12 @@ renoise.tool():add_keybinding{
 }
 
 PakettiAddMenuEntry{
-  name="Main Menu:Tools:Paketti..:Phrases:Select Next Phrase (Phrase Editor)",
+  name="Main Menu:Tools:Paketti:Phrases:Select Next Phrase (Phrase Editor)",
   invoke=function() PakettiSelectNextPhraseEditor() end
 }
 
 PakettiAddMenuEntry{
-  name="Main Menu:Tools:Paketti..:Phrases:Select Previous Phrase (Phrase Editor)",
+  name="Main Menu:Tools:Paketti:Phrases:Select Previous Phrase (Phrase Editor)",
   invoke=function() PakettiSelectPreviousPhraseEditor() end
 }
 
@@ -3106,7 +3106,7 @@ for i = 1, 16 do
   }
   
   PakettiAddMenuEntry{
-    name=string.format("Main Menu:Tools:Paketti..:Phrases:Select Phrase:Select Phrase %02d", i),
+    name=string.format("Main Menu:Tools:Paketti:Phrases:Select Phrase:Select Phrase %02d", i),
     invoke=function() PakettiSelectPhrase(i) end
   }
 end
@@ -3119,7 +3119,7 @@ for i = 1, 16 do
   }
   
   PakettiAddMenuEntry{
-    name=string.format("Main Menu:Tools:Paketti..:Phrases:Select Phrase (Phrase Editor):Select Phrase %02d (Phrase Editor)", i),
+    name=string.format("Main Menu:Tools:Paketti:Phrases:Select Phrase (Phrase Editor):Select Phrase %02d (Phrase Editor)", i),
     invoke=function() PakettiSelectPhraseEditor(i) end
   }
 end

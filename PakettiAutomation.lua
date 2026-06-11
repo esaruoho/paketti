@@ -4362,7 +4362,7 @@ function PakettiAutomationCurveFillApply()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti..:Automation..:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Automation:Automation Curve Fill", invoke = PakettiAutomationCurveFill}
 renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Fill", invoke = function(message) if message:is_trigger() then PakettiAutomationCurveFill() end end}
 
 ----------------------------------------------------------------------------

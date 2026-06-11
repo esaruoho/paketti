@@ -264,12 +264,12 @@ PakettiAddMenuEntry{
 
 -- Experimental entries for manual control
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Experimental:Block Loop Snap to Cursor (Manual)",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Block Loop Snap to Cursor (Manual)",
   invoke = snap_block_loop_to_cursor
 }
 
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Experimental:Block Loop Toggle & Snap to Cursor",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Block Loop Toggle & Snap to Cursor",
   invoke = toggle_and_snap_block_loop
 }
 

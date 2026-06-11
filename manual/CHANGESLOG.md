@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Folded the `Paketti..` Tools submenu back into the main `Paketti` menu
+
+The second `Main Menu:Tools:Paketti..` submenu is gone — its 70 entries now live in the single `Main Menu:Tools:Paketti` menu, so there is one Paketti menu instead of two. Each moved subcategory dropped its trailing dots and merged into the existing folder where one already existed: `Paketti..:Automation..` → `Paketti:Automation`, `Paketti..:Instruments..` → `Paketti:Instruments`, `Paketti..:MPC Cycler..` → `Paketti:MPC Cycler`, `Paketti..:Track/Instrument Organization..` → `Paketti:Track/Instrument Organization`, `Paketti..:Phrase Recording` → `Paketti:Phrase Recording`, `Paketti..:PhraseGrid` → `Paketti:PhraseGrid`, `Paketti..:Phrases` → `Paketti:Phrases`. The `Paketti..:Experimental/WIP:Multitap Experiment` entry moved into the canonical `Paketti:Xperimental/WIP` folder. Separately, the old `Paketti:Experimental` submenu (Block Loop Snap to Cursor (Manual); Block Loop Toggle & Snap to Cursor) was also folded into `Paketti:Xperimental/WIP` so all experimental entries share one folder. No keybindings or MIDI mappings changed — menu paths only.
+
 ### 2026-06-11 - Feature: Scala Tuning Map gets a microtonal notation column (ups-and-downs)
 
 New **MICRO** column (between NOTE and DEG, toggleable) that shows each note's microtonal spelling in universal ups-and-downs notation — the nearest 12TET note plus ↑/↓ arrows for the steps in between, so you can read at a glance how a 12TET name re-notates in the loaded tuning. For example in 22EDO the degrees spell C, ↑C, ↓C#, C#, D, ↑D, … and in 36EDO C, ↑C, ↓C#, C#, ↑C#, ↓D, …. The anchors are the 12 chromatic notes placed by the tuning's own circle of fifths, so the spelling is correct per-EDO (12-EDO stays plain C/C#/D…). Applies to equal divisions of the octave; non-EDO tunings (just intonation, non-octave) show an em dash. The focused-note readout shows it too (e.g. "C#4 = ↓C#").

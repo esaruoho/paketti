@@ -335,17 +335,17 @@ end
 
 -- Menu entries - Main Menu
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti..:Track/Instrument Organization..:Organize Instruments by Track Use",
+  name = "Main Menu:Tools:Paketti:Track/Instrument Organization:Organize Instruments by Track Use",
   invoke = PakettiOrganizeInstrumentsByTrackUse
 }
 
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti..:Track/Instrument Organization..:Organize Tracks by Instrument Box",
+  name = "Main Menu:Tools:Paketti:Track/Instrument Organization:Organize Tracks by Instrument Box",
   invoke = PakettiOrganizeTracksByInstrumentBox
 }
 
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti..:Track/Instrument Organization..:Show Analysis (Terminal)",
+  name = "Main Menu:Tools:Paketti:Track/Instrument Organization:Show Analysis (Terminal)",
   invoke = PakettiOrganizeShowAnalysis
 }
 
