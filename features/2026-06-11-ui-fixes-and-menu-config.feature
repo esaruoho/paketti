@@ -114,8 +114,12 @@ Feature: Preferences "Pattern Editor" section shows all eight settings
 #   4675249  Paketti Toggler: remove duplicated menu-category grid; link across
 #   0f506fd  Menu Configuration: per-category counts + Enable/Disable All Menus
 #   f9472bd  Preferences: Pattern Editor section to 2-per-row
+#   cc0f5ab  Menu Config: tally counts at the registration gate (counts
+#            concatenated/loop names, live per boot, frozen post-flush) +
+#            rename Paketti Toggler -> Paketti Deactivator (incl. keybinding presets)
 #   Files: PakettiEightOneTwenty.lua, PakettiRequests.lua, Paketti0G01_Loader.lua,
-#          manual/CHANGESLOG.md (entry per change). Card-authoring commit: this file.
+#          PakettiMainMenuEntries.lua, PakettiImport.lua, KeyBindings/*.xml,
+#          manual/CHANGESLOG.md (entry per change). Card commits: f.. + cc0f5ab + b5765cb.
 #   Verification performed: luac -p syntax-clean on every edit; hand-math on the
 #   step-repeat remainder; git push confirmed; AND live Renoise confirmation by the
 #   user — Esa confirmed all 8 done on 2026-06-11.
