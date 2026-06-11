@@ -5458,6 +5458,18 @@ local paketti_midimix_idle_attached = false
 -- When true, stop auto-opening the bridge: either no MidiMix was detected (don't
 -- retry-spam) or the user explicitly closed it. Reset by the explicit toggle.
 local paketti_midimix_autoopen_blocked = false
+-- Follow-page state: the MidiMix has only 16 LEDs, so a 32-step pattern needs two
+-- pages (steps 1-16 / 17-32). page = 0-based window; follow auto-snaps it to the
+-- playhead during playback. At 8/16 steps there is only one page (no-op).
+local paketti_midimix_page = 0
+local paketti_midimix_follow = false
+local function paketti_midimix_max_page()
+  return math.max(0, math.ceil(MAX_STEPS / 16) - 1)
+end
+local function paketti_midimix_clamp_page()
+  local mp = paketti_midimix_max_page()
+  if paketti_midimix_page < 0 then paketti_midimix_page = 0 elseif paketti_midimix_page > mp then paketti_midimix_page = mp end
+end
 
 local function paketti_midimix_find_device()
   -- Match common name variants across OSes: "MIDI Mix", "MIDI Mix 1",
@@ -5501,8 +5513,10 @@ end
 local function paketti_midimix_redraw_all_leds()
   if not paketti_midimix_out then return end
   local row = paketti_8120_selected_row()
-  for step = 1, 16 do
-    paketti_midimix_set_led(step, PakettiEightOneTwentyGetStepState(row, step))
+  local base = paketti_midimix_page * 16
+  for i = 1, 16 do
+    local gstep = base + i
+    paketti_midimix_set_led(i, (gstep <= MAX_STEPS) and PakettiEightOneTwentyGetStepState(row, gstep) or false)
   end
 end
 
@@ -5567,17 +5581,22 @@ local function paketti_midimix_idle_handler()
     local song = renoise.song()
     if song and song.transport.playing then
       local pos = song.transport.playback_pos
-      if pos and pos.line then
-        local s = ((pos.line - 1) % MAX_STEPS) + 1
-        if s >= 1 and s <= 16 then playing_step = s end
-      end
+      if pos and pos.line then playing_step = ((pos.line - 1) % MAX_STEPS) + 1 end
     end
 
-    for step = 1, 16 do
-      local led = PakettiEightOneTwentyGetStepState(row, step)
-      if playing_step == step then led = not led end  -- highlight the playhead step
-      if paketti_midimix_last_led[step] ~= led then
-        paketti_midimix_set_led(step, led)
+    -- follow mode: snap the 16-LED window to the playhead (32-step patterns page)
+    if paketti_midimix_follow and playing_step then
+      paketti_midimix_page = math.floor((playing_step - 1) / 16)
+      paketti_midimix_clamp_page()
+    end
+
+    local base = paketti_midimix_page * 16
+    for i = 1, 16 do
+      local gstep = base + i
+      local led = (gstep <= MAX_STEPS) and PakettiEightOneTwentyGetStepState(row, gstep) or false
+      if playing_step == gstep then led = not led end  -- highlight the playhead step
+      if paketti_midimix_last_led[i] ~= led then
+        paketti_midimix_set_led(i, led)
       end
     end
   end)
@@ -5620,8 +5639,11 @@ local function paketti_midimix_on_midi(message)
     local step = paketti_midimix_step_for_note(data1)
     if step then
       local row = paketti_8120_selected_row()
-      PakettiEightOneTwentyToggleStepState(row, step)
-      paketti_midimix_set_led(step, PakettiEightOneTwentyGetStepState(row, step))
+      local gstep = paketti_midimix_page * 16 + step
+      if gstep <= MAX_STEPS then
+        PakettiEightOneTwentyToggleStepState(row, gstep)
+        paketti_midimix_set_led(step, PakettiEightOneTwentyGetStepState(row, gstep))
+      end
     end
   end
 end
@@ -5698,6 +5720,43 @@ function PakettiEightOneTwentyMidiMixBridgeToggle()
     renoise.app():show_status("Groovebox 8120: " .. msg)
   end
 end
+
+-- Follow-page controls. The MidiMix's 16 LEDs window over the pattern; at 32 steps
+-- this is the only way to reach steps 17-32. Follow auto-tracks the playhead; the
+-- manual Next/Previous Page turn follow off so the window stays put.
+function PakettiEightOneTwentyMidiMixNextPage()
+  paketti_midimix_follow = false
+  paketti_midimix_page = paketti_midimix_page + 1
+  if paketti_midimix_page > paketti_midimix_max_page() then paketti_midimix_page = 0 end
+  paketti_midimix_last_led = {}
+  paketti_midimix_redraw_all_leds()
+  renoise.app():show_status(string.format("MidiMix page %d/%d — steps %d-%d", paketti_midimix_page + 1, paketti_midimix_max_page() + 1, paketti_midimix_page * 16 + 1, math.min(MAX_STEPS, paketti_midimix_page * 16 + 16)))
+end
+function PakettiEightOneTwentyMidiMixPrevPage()
+  paketti_midimix_follow = false
+  paketti_midimix_page = paketti_midimix_page - 1
+  if paketti_midimix_page < 0 then paketti_midimix_page = paketti_midimix_max_page() end
+  paketti_midimix_last_led = {}
+  paketti_midimix_redraw_all_leds()
+  renoise.app():show_status(string.format("MidiMix page %d/%d — steps %d-%d", paketti_midimix_page + 1, paketti_midimix_max_page() + 1, paketti_midimix_page * 16 + 1, math.min(MAX_STEPS, paketti_midimix_page * 16 + 16)))
+end
+function PakettiEightOneTwentyMidiMixToggleFollow()
+  paketti_midimix_follow = not paketti_midimix_follow
+  paketti_midimix_page = 0
+  paketti_midimix_last_led = {}
+  paketti_midimix_redraw_all_leds()
+  renoise.app():show_status("MidiMix follow-page mode: " .. (paketti_midimix_follow and "ON — 16 LEDs track the playhead (steps 1-16 / 17-32)" or "OFF"))
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Next Page", invoke=function() PakettiEightOneTwentyMidiMixNextPage() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Previous Page", invoke=function() PakettiEightOneTwentyMidiMixPrevPage() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Toggle Follow Page", invoke=function() PakettiEightOneTwentyMidiMixToggleFollow() end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:MidiMix Next Page [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyMidiMixNextPage() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:MidiMix Previous Page [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyMidiMixPrevPage() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:MidiMix Toggle Follow-Page Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyMidiMixToggleFollow() end end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:MidiMix Next Page", invoke=function() PakettiEightOneTwentyMidiMixNextPage() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:MidiMix Previous Page", invoke=function() PakettiEightOneTwentyMidiMixPrevPage() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:MidiMix Toggle Follow-Page Mode", invoke=function() PakettiEightOneTwentyMidiMixToggleFollow() end}
 
 renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:MidiMix Bridge Toggle [Trigger]",
@@ -6166,11 +6225,26 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControl
 -- redraws so the playhead moves. Start/stop from menu, keybinding or MIDI.
 local paketti_apc_seq_active = false
 local paketti_apc_seq_timer_fn = nil
+-- Follow-page state for the APC. The non-paged layout uses all 32 step pads, which
+-- means at 32 steps the probability row is dropped. Paged mode shows 16 steps +
+-- 16 probability for the current page, so a 32-step pattern pages across two
+-- windows; follow auto-snaps the page to the playhead during playback.
+local paketti_apc_paged  = false
+local paketti_apc_follow = false
+local paketti_apc_page   = 0
+local function paketti_apc_max_page()
+  return math.max(0, math.ceil(MAX_STEPS / 16) - 1)
+end
 
 local function paketti_apc_seq_zone(note)
   local top = 4 - math.floor(note / 8)   -- 0 = top row, 4 = bottom row
   local col = note % 8
   if top == 4 then return "select", col + 1 end           -- bottom row: rows 1..8
+  if paketti_apc_paged then
+    local base = paketti_apc_page * 16
+    if top <= 1 then return "step", base + top * 8 + col + 1 end   -- rows 0-1: 16 steps of the page
+    return "prob", base + (top - 2) * 8 + col + 1                  -- rows 2-3: 16 probability of the page
+  end
   if MAX_STEPS >= 32 then
     return "step", top * 8 + col + 1                       -- top 4 rows: steps 1..32
   end
@@ -6186,6 +6260,12 @@ local function paketti_apc_seq_refresh()
   if song and song.transport.playing then
     local pos = song.transport.playback_pos
     if pos and pos.line then playing_step = ((pos.line - 1) % MAX_STEPS) + 1 end
+  end
+  -- follow mode: snap the page to the playhead
+  if paketti_apc_follow and playing_step then
+    local p = math.floor((playing_step - 1) / 16)
+    local mp = paketti_apc_max_page()
+    paketti_apc_page = (p > mp) and mp or p
   end
   local buf = {}
   for note = 0, 39 do
@@ -6278,6 +6358,47 @@ end
 function PakettiEightOneTwentyAPCSeqToggle()
   if paketti_apc_seq_active then PakettiEightOneTwentyAPCSeqStop() else PakettiEightOneTwentyAPCSeqStart() end
 end
+
+-- Follow-page controls. Paged mode shows 16 steps + 16 probability for the current
+-- page (so probability is editable even at 32 steps); follow auto-tracks the
+-- playhead. Next/Previous Page enable the paged layout and turn follow off so the
+-- window stays where you put it.
+function PakettiEightOneTwentyAPCNextPage()
+  paketti_apc_paged = true
+  paketti_apc_follow = false
+  paketti_apc_page = paketti_apc_page + 1
+  if paketti_apc_page > paketti_apc_max_page() then paketti_apc_page = 0 end
+  paketti_apc_prev = {}
+  paketti_apc_seq_refresh()
+  renoise.app():show_status(string.format("APC page %d/%d — steps %d-%d (+probability)", paketti_apc_page + 1, paketti_apc_max_page() + 1, paketti_apc_page * 16 + 1, math.min(MAX_STEPS, paketti_apc_page * 16 + 16)))
+end
+function PakettiEightOneTwentyAPCPrevPage()
+  paketti_apc_paged = true
+  paketti_apc_follow = false
+  paketti_apc_page = paketti_apc_page - 1
+  if paketti_apc_page < 0 then paketti_apc_page = paketti_apc_max_page() end
+  paketti_apc_prev = {}
+  paketti_apc_seq_refresh()
+  renoise.app():show_status(string.format("APC page %d/%d — steps %d-%d (+probability)", paketti_apc_page + 1, paketti_apc_max_page() + 1, paketti_apc_page * 16 + 1, math.min(MAX_STEPS, paketti_apc_page * 16 + 16)))
+end
+function PakettiEightOneTwentyAPCToggleFollow()
+  paketti_apc_follow = not paketti_apc_follow
+  paketti_apc_paged = paketti_apc_follow
+  paketti_apc_page = 0
+  paketti_apc_prev = {}
+  paketti_apc_seq_refresh()
+  renoise.app():show_status("APC follow-page mode: " .. (paketti_apc_follow and "ON — 16 steps + 16 probability, page tracks the playhead" or "OFF — all steps shown (no probability at 32 steps)"))
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Next Page", invoke=function() PakettiEightOneTwentyAPCNextPage() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Previous Page", invoke=function() PakettiEightOneTwentyAPCPrevPage() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Toggle Follow Page", invoke=function() PakettiEightOneTwentyAPCToggleFollow() end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:APC Next Page [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAPCNextPage() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:APC Previous Page [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAPCPrevPage() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:APC Toggle Follow-Page Mode [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAPCToggleFollow() end end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Next Page", invoke=function() PakettiEightOneTwentyAPCNextPage() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Previous Page", invoke=function() PakettiEightOneTwentyAPCPrevPage() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Toggle Follow-Page Mode", invoke=function() PakettiEightOneTwentyAPCToggleFollow() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Step Sequencer Toggle", invoke=function() PakettiEightOneTwentyAPCSeqToggle() end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:APC Step Sequencer Toggle [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyAPCSeqToggle() end end}
