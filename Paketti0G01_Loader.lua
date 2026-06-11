@@ -3418,30 +3418,35 @@ end
 -- prefix to one of these keys for the toggle to actually gate registration.
 -- Add a new entry here AND a matching branch in PakettiMenuContextPrefKey() AND a
 -- default in the pakettiMenuConfig preferences block to expose a new context toggle.
+-- `apply` (optional) is the NAME of a global PakettiMenuApply* function, resolved
+-- via _G[...] at dialog-build time (these functions live in PakettiMenuConfig.lua,
+-- which loads AFTER this file, so they can't be referenced directly here). When
+-- present it lets the checkbox apply live; when absent the toggle takes effect on
+-- the next Renoise restart (which the registration gate honors regardless).
 PakettiMenuConfigCategoryList = {
-  {label = "Automation Menus (Track Automation)", key = "Automation"},
-  {label = "Disk Browser Files Menus",            key = "DiskBrowserFiles"},
+  {label = "Automation Menus (Track Automation)", key = "Automation",             apply = "PakettiMenuApplyAutomationMenus"},
+  {label = "Disk Browser Files Menus",            key = "DiskBrowserFiles",        apply = "PakettiMenuApplyDiskBrowserFilesMenus"},
   {label = "DSP Chain Menus",                     key = "TrackDSPChain"},
-  {label = "DSP Device Menus",                    key = "TrackDSPDevice"},
+  {label = "DSP Device Menus",                    key = "TrackDSPDevice",          apply = "PakettiMenuApplyTrackDSPDeviceMenus"},
   {label = "DSP Device Automation Menus",         key = "DSPDeviceAutomation"},
-  {label = "Instrument Box Menus",                key = "InstrumentBox"},
+  {label = "Instrument Box Menus",                key = "InstrumentBox",           apply = "PakettiMenuApplyInstrumentBoxMenus"},
   {label = "Main Menu: File",                     key = "MainMenuFile"},
   {label = "Main Menu: Tools",                    key = "MainMenuTools"},
   {label = "Main Menu: View",                     key = "MainMenuView"},
-  {label = "Mixer Menus",                         key = "Mixer"},
+  {label = "Mixer Menus",                         key = "Mixer",                   apply = "PakettiMenuApplyMixerMenus"},
   {label = "Paketti Gadgets Menus",               key = "PakettiGadgets"},
-  {label = "Pattern Editor Menus",                key = "PatternEditor"},
-  {label = "Pattern Matrix Menus",                key = "PatternMatrix"},
-  {label = "Pattern Sequencer Menus",             key = "PatternSequencer"},
-  {label = "Phrase Editor Menus",                 key = "PhraseEditor"},
+  {label = "Pattern Editor Menus",                key = "PatternEditor",           apply = "PakettiMenuApplyPatternEditorMenus"},
+  {label = "Pattern Matrix Menus",                key = "PatternMatrix",           apply = "PakettiMenuApplyPatternMatrixMenus"},
+  {label = "Pattern Sequencer Menus",             key = "PatternSequencer",        apply = "PakettiMenuApplyPatternSequencerMenus"},
+  {label = "Phrase Editor Menus",                 key = "PhraseEditor",            apply = "PakettiMenuApplyPhraseEditorMenus"},
   {label = "Phrase Grid Menus",                   key = "PhraseGrid"},
   {label = "Phrase Mappings Menus",               key = "PhraseMappings"},
-  {label = "Sample Editor Menus",                 key = "SampleEditor"},
+  {label = "Sample Editor Menus",                 key = "SampleEditor",            apply = "PakettiMenuApplySampleEditorMenus"},
   {label = "Sample Editor Ruler Menus",           key = "SampleEditorRuler"},
   {label = "Sample FX Mixer Menus",               key = "SampleFXMixer"},
-  {label = "Sample Keyzone Menus",                key = "SampleKeyzone"},
+  {label = "Sample Keyzone Menus",                key = "SampleKeyzone",           apply = "PakettiMenuApplySampleKeyzoneMenus"},
   {label = "Sample Modulation Matrix Menus",      key = "SampleModulationMatrix"},
-  {label = "Sample Navigator Menus",              key = "SampleNavigator"},
+  {label = "Sample Navigator Menus",              key = "SampleNavigator",         apply = "PakettiMenuApplySampleNavigatorMenus"},
   {label = "Track Automation List Menus",         key = "TrackAutomationList"},
 }
 
@@ -3741,39 +3746,36 @@ function PakettiTogglerDialog()
       
       vb:text{text = "Menu Categories (require Renoise restart):", font = "bold"},
       vb:space{height = 5},
-      
-      vb:row{
-        spacing = 20,
-        
-        -- Column 1
-        vb:column{
-          create_category_checkbox("Instrument Box", "InstrumentBox", PakettiMenuApplyInstrumentBoxMenus, 150),
-          create_category_checkbox("Sample Editor", "SampleEditor", PakettiMenuApplySampleEditorMenus, 150),
-          create_category_checkbox("Sample Navigator", "SampleNavigator", PakettiMenuApplySampleNavigatorMenus, 150),
-          create_category_checkbox("Sample Keyzone", "SampleKeyzone", PakettiMenuApplySampleKeyzoneMenus, 150),
-          create_category_checkbox("Mixer", "Mixer", PakettiMenuApplyMixerMenus, 150),
-          create_category_checkbox("Pattern Editor", "PatternEditor", PakettiMenuApplyPatternEditorMenus, 150)
-        },
-        
-        -- Column 2
-        vb:column{
-          create_category_checkbox("Main Menu: Tools", "MainMenuTools", nil, 150),
-          create_category_checkbox("Main Menu: View", "MainMenuView", nil, 150),
-          create_category_checkbox("Main Menu: File", "MainMenuFile", nil, 150),
-          create_category_checkbox("Pattern Matrix", "PatternMatrix", PakettiMenuApplyPatternMatrixMenus, 150),
-          create_category_checkbox("Pattern Sequencer", "PatternSequencer", PakettiMenuApplyPatternSequencerMenus, 150),
-          create_category_checkbox("Phrase Editor", "PhraseEditor", PakettiMenuApplyPhraseEditorMenus, 150)
-        },
-        
-        -- Column 3
-        vb:column{
-          create_category_checkbox("Paketti Gadgets", "PakettiGadgets", nil, 150),
-          create_category_checkbox("Track DSP Device", "TrackDSPDevice", PakettiMenuApplyTrackDSPDeviceMenus, 150),
-          create_category_checkbox("Track DSP Chain", "TrackDSPChain", nil, 150),
-          create_category_checkbox("Automation", "Automation", PakettiMenuApplyAutomationMenus, 150),
-          create_category_checkbox("Disk Browser Files", "DiskBrowserFiles", PakettiMenuApplyDiskBrowserFilesMenus, 150)
-        }
-      },
+
+      -- Generated straight from PakettiMenuConfigCategoryList so EVERY context
+      -- toggle is shown (no hand-maintained subset that silently drops new
+      -- categories like Track Automation List), in the list's alphabetical order,
+      -- balanced across three columns. Each checkbox persists its preference and
+      -- the registration gate honors it on the next restart; categories with an
+      -- `apply` function additionally take effect live.
+      (function()
+        -- Copy + sort by label so the dialog is always alphabetical, even if the
+        -- canonical list is appended to out of order later.
+        local cats = {}
+        for _, c in ipairs(PakettiMenuConfigCategoryList) do cats[#cats + 1] = c end
+        table.sort(cats, function(a, b) return a.label:lower() < b.label:lower() end)
+        local total = #cats
+        local per_col = math.ceil(total / 3)
+        local columns = vb:row{ spacing = 20 }
+        for c = 0, 2 do
+          local col = vb:column{}
+          for r = 1, per_col do
+            local idx = c * per_col + r
+            local cat = cats[idx]
+            if cat then
+              local apply_fn = cat.apply and _G[cat.apply] or nil
+              col:add_child(create_category_checkbox(cat.label, cat.key, apply_fn, 220))
+            end
+          end
+          columns:add_child(col)
+        end
+        return columns
+      end)(),
       
       vb:space{height = 5},
       

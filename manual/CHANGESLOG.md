@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Fix: Paketti Toggler dialog shows every menu category (incl. Track Automation List), alphabetically
+
+The "Paketti Toggler" dialog's per-context checkboxes were hand-maintained and only listed 17 of the 24 menu categories — so **Track Automation List** (and DSP Device Automation, Phrase Grid, Phrase Mappings, Sample Editor Ruler, Sample FX Mixer, Sample Modulation Matrix) had a working preference and registration gate but **no checkbox to toggle them** from this dialog. The checkboxes are now generated straight from the canonical category list, sorted alphabetically and balanced across three columns, so every context — including Track Automation List — can be turned on/off here, persists to `preferences.xml`, and is honored on the next Renoise restart. (The separately-titled "Paketti Menu Configuration" dialog was already brought in line in an earlier commit; this matches the Toggler to it.)
+
 ### 2026-06-11 - Cleanup: Groovebox 8120 controller integration confirmed working — diagnostics removed, APC arm no longer churns
 
 The MidiMix + APC Key 25 step sequencer integration is confirmed working on hardware (step toggling, headless per-step probability, the Master Low-Cut high-pass, and live two-way sync between both controllers). Removed the temporary terminal diagnostics (the per-toggle `YXX HEADLESS` print, the per-knob-move MidiMix refresh print, and the APC auto-arm reminder print). The APC step sequencer no longer closes-and-reopens its MIDI device when it's re-armed (which happened on every 8120 dialog open and every 16/32 step-mode toggle) — if it's already armed it just repaints, removing a brief LED flicker. Feature cards added for the grid controllers and the master low-cut.
