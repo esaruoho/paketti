@@ -4650,8 +4650,8 @@ function pakettiEightSlotsByOneTwentyDialog()
   if PakettiEightOneTwentyAPCAutoArm then
     PakettiEightOneTwentyAPCAutoArm()
   end
-  -- Auto-arm the LPD8 8-step sequencer ONLY if its setting is on (it forces
-  -- 8-step mode, so it's opt-in rather than automatic like the APC).
+  -- Auto-arm the LPD8 step sequencer only if its setting is on (opt-in; it grabs
+  -- the LPD8 device, and pages over the current 8/16/32-step mode).
   if PakettiEightOneTwentyLPD8AutoStartEnabled and PakettiEightOneTwentyLPD8AutoStartEnabled() then
     if PakettiEightOneTwentyLPD8AutoArm then PakettiEightOneTwentyLPD8AutoArm() end
   end
@@ -6711,22 +6711,14 @@ function PakettiEightOneTwentyLPD8SeqStop()
   end
   paketti_lpd8_seq_timer_fn = nil
   PakettiEightOneTwentyLPD8ProbeClose()
-  renoise.app():show_status("LPD8 8-step sequencer: OFF")
+  renoise.app():show_status("LPD8 step sequencer: OFF")
 end
 
 function PakettiEightOneTwentyLPD8SeqStart()
   if paketti_lpd8_anim_fn then PakettiEightOneTwentyLPD8AnimStop() end  -- stop any LED animation
-  -- Force the whole groovebox to 8-step mode so the 8 pads == the 8 steps.
-  if MAX_STEPS ~= 8 then
-    MAX_STEPS = 8
-    if dialog and dialog.visible then
-      cleanup_bpm_observable()
-      dialog:close()
-      dialog = nil
-      rows = {}
-      pakettiEightSlotsByOneTwentyDialog()
-    end
-  end
+  -- NOTE: the LPD8 no longer forces 8-step mode. It pages its 8 pads over whatever
+  -- the groovebox step count is (8/16/32), so you can stay in 16- or 32-step mode
+  -- and flip pages (or use follow mode to track the playhead).
   if paketti_lpd8_seq_active and paketti_lpd8_in then paketti_lpd8_seq_refresh() return end
   PakettiEightOneTwentyLPD8ProbeClose()
   local in_name, out_name = paketti_lpd8_find_device()
@@ -6751,7 +6743,7 @@ function PakettiEightOneTwentyLPD8SeqStart()
     renoise.tool():add_timer(paketti_lpd8_seq_timer_fn, 50)
   end
   paketti_lpd8_seq_refresh()
-  renoise.app():show_status("LPD8 8-step sequencer: ON (8-step mode) — pads toggle the selected row's steps 1..8")
+  renoise.app():show_status("LPD8 step sequencer: ON — 8 pads page over the current step mode (Next/Prev Page or Follow)")
 end
 
 function PakettiEightOneTwentyLPD8SeqToggle()
@@ -6775,7 +6767,7 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Next Page", inv
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Previous Page", invoke=function() PakettiEightOneTwentyLPD8PrevPage() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Toggle Follow-Page Mode", invoke=function() PakettiEightOneTwentyLPD8ToggleFollow() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Toggle 4Steps+4Probability Layout", invoke=function() PakettiEightOneTwentyLPD8ToggleProbMode() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Start (8 steps)", invoke=function() PakettiEightOneTwentyLPD8SeqStart() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Start", invoke=function() PakettiEightOneTwentyLPD8SeqStart() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Stop", invoke=function() PakettiEightOneTwentyLPD8SeqStop() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyLPD8ProbeOpen() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Test pad LEDs", invoke=function() PakettiEightOneTwentyLPD8TestLeds() end}
@@ -6816,7 +6808,7 @@ function PakettiEightOneTwentyToggleLPD8AutoStart()
     end
   else
     PakettiEightOneTwentyLPD8SeqStop()
-    renoise.app():show_status("Auto-Start AKAI LPD8: OFF — 8-step sequencer stopped")
+    renoise.app():show_status("Auto-Start AKAI LPD8: OFF — step sequencer stopped")
   end
 end
 PakettiAddMenuEntry{

@@ -34,11 +34,13 @@ Context: Global
   #   (Main Menu:Options) arms it at launch (headless). Disabled APC 01..40 absorb
   #   the pad notes.
   #
-  # AKAI LPD8 SEQUENCER (paketti_lpd8_*): the 8 pads as an 8-step sequencer for the
-  #   focused row. Starting it forces MAX_STEPS=8 so the 8 pads == steps 1..8; press
-  #   toggles, LED highlights on + inverts on the playhead. Pad notes vary by the
-  #   LPD8's program — PAKETTI_LPD8_PAD_NOTES is editable (default 36..43) and there
-  #   is an LPD8 probe (read notes + test LEDs). Disabled LPD8 01..08 absorb the pads.
+  # AKAI LPD8 SEQUENCER (paketti_lpd8_*): the 8 pads sequence the focused row. It
+  #   does NOT force a step mode — its 8 pads PAGE over the current 8/16/32-step
+  #   pattern (Next/Prev Page, an absolute Select-Page knob, or Follow mode that
+  #   tracks the playhead). A 4-steps+4-probability layout puts steps on the top row
+  #   and their yxx on the bottom row. Pad notes editable (PAKETTI_LPD8_PAD_NOTES,
+  #   default 36..43 top-first); LPD8 probe confirms. Disabled LPD8 01..08 absorb the
+  #   pads. Full detail in features/groovebox-8120-lpd8.feature.
   #
   # TWO-WAY SYNC: all bridges write the same pattern and re-read it on their own
   # refresh loop (MidiMix idle poller / APC + LPD8 50ms timers), so a press on one
