@@ -3508,6 +3508,47 @@ function PakettiCalculateEnabledCounts()
   return PakettiRegistrationCounts
 end
 
+-- Per-category menu-entry counts for the Paketti Menu Configuration dialog so you
+-- can see how many entries each context contributes before enabling it. Scans every
+-- Paketti .lua source once, pulls each entry's name=, maps it to its context pref
+-- key via PakettiMenuContextPrefKey, and tallies. Counts BOTH the raw
+-- renoise.tool():add_menu_entry calls AND the PakettiAddMenuEntry wrapper (the old
+-- total-only counter missed the wrapper entirely). Memoized — the source, and thus
+-- the counts, can't change at runtime. Entries built from a concatenated name (no
+-- literal name="...") aren't attributable to a context and land in __uncategorized.
+PakettiMenuEntryCategoryCounts = nil
+function PakettiCountMenuEntriesByCategory()
+  if PakettiMenuEntryCategoryCounts then return PakettiMenuEntryCategoryCounts end
+  local bundle_path = renoise.tool().bundle_path
+  local by_key = { __total = 0, __uncategorized = 0 }
+  for _, cat in ipairs(PakettiMenuConfigCategoryList) do by_key[cat.key] = 0 end
+  local lua_files = PakettiGetAllLuaFiles()
+  for _, lua_file in ipairs(lua_files) do
+    local file = io.open(bundle_path .. lua_file .. ".lua", "r")
+    if file then
+      for line in file:lines() do
+        local trimmed = line:match("^%s*(.-)%s*$")
+        local is_commented = trimmed:match("^%-%-") ~= nil
+        if not is_commented and (line:match("add_menu_entry") or line:match("PakettiAddMenuEntry")) then
+          local nm = line:match("name%s*=%s*\"(.-)\"") or line:match("name%s*=%s*'(.-)'")
+          if nm then
+            by_key.__total = by_key.__total + 1
+            local key = PakettiMenuContextPrefKey(nm)
+            if key and by_key[key] ~= nil then
+              by_key[key] = by_key[key] + 1
+            else
+              by_key.__uncategorized = by_key.__uncategorized + 1
+            end
+          end
+        end
+      end
+      file:close()
+    end
+  end
+  PakettiMenuEntryCategoryCounts = by_key
+  return by_key
+end
+
 local menu_config_dialog = nil
 local menu_config_dialog_content = nil
 
@@ -3518,7 +3559,13 @@ function pakettiMenuConfigDialog()
     return
   end
 
-  local function create_menu_checkbox(label, preference_key, width)
+  -- Per-context entry counts (memoized scan of source) so each row shows how many
+  -- menu entries that context contributes.
+  local cat_counts = PakettiCountMenuEntriesByCategory()
+
+  -- label carries the count; status uses the bare label so messages stay clean.
+  local function create_menu_checkbox(label, preference_key, width, count)
+    local shown = string.format("%s (%d)", label, count or 0)
     return vb:row{
       vb:checkbox{
         value = preferences.pakettiMenuConfig[preference_key].value,
@@ -3529,8 +3576,38 @@ function pakettiMenuConfigDialog()
             " - restart Renoise for the change to take effect.")
         end
       },
-      vb:text{text = label, width = width or 250}
+      vb:text{text = shown, width = width or 280}
     }
+  end
+
+  -- Close + reopen so checkbox states and the header total reflect a bulk change.
+  local function refresh_menu_config_dialog()
+    if menu_config_dialog and menu_config_dialog.visible then
+      menu_config_dialog_content = nil
+      menu_config_dialog:close()
+      menu_config_dialog = nil
+    end
+    pakettiMenuConfigDialog()
+  end
+
+  local function enable_all_menus()
+    for _, key in ipairs(PakettiMenuConfigCategoryKeys()) do
+      if preferences.pakettiMenuConfig[key] then preferences.pakettiMenuConfig[key].value = true end
+    end
+    preferences.pakettiMenuConfig.MasterMenusEnabled.value = true
+    preferences:save_as("preferences.xml")
+    renoise.app():show_status(string.format("All %d menu entries enabled. Restart Renoise for changes to take effect.", cat_counts.__total))
+    refresh_menu_config_dialog()
+  end
+
+  local function disable_all_menus()
+    for _, key in ipairs(PakettiMenuConfigCategoryKeys()) do
+      if preferences.pakettiMenuConfig[key] then preferences.pakettiMenuConfig[key].value = false end
+    end
+    preferences.pakettiMenuConfig.MasterMenusEnabled.value = false
+    preferences:save_as("preferences.xml")
+    renoise.app():show_status(string.format("All %d menu entries disabled. Restart Renoise for changes to take effect.", cat_counts.__total))
+    refresh_menu_config_dialog()
   end
 
   -- Build the checkbox rows from the canonical category list, sorted alphabetically.
@@ -3546,8 +3623,12 @@ function pakettiMenuConfigDialog()
     margin = 10,
     spacing = 5,
     vb:text{
-      text = "Note: Changes will only take effect after Renoise has been restarted.",
+      text = string.format("Menu Entries: %d total across %d categories (counted from source).",
+        cat_counts.__total, #sorted_categories),
       font = "bold"
+    },
+    vb:text{
+      text = "Tick a category to register its entries; untick to leave them out. Takes effect after a Renoise restart.",
     },
     vb:space{height = 5}
   }
@@ -3558,14 +3639,29 @@ function pakettiMenuConfigDialog()
   local col2 = vb:column{spacing = 4}
   for i, cat in ipairs(sorted_categories) do
     local target = (i <= half) and col1 or col2
-    target:add_child(create_menu_checkbox(cat.label, cat.key, 250))
+    target:add_child(create_menu_checkbox(cat.label, cat.key, 280, cat_counts[cat.key] or 0))
   end
   menu_config_dialog_content:add_child(vb:row{spacing = 20, col1, col2})
 
   menu_config_dialog_content:add_child(vb:space{height = 5})
+  menu_config_dialog_content:add_child(vb:horizontal_aligner{
+    mode = "justify",
+    vb:button{
+      text = string.format("Enable All Menus (%d)", cat_counts.__total),
+      width = 200,
+      notifier = enable_all_menus
+    },
+    vb:button{
+      text = string.format("Disable All Menus (%d)", cat_counts.__total),
+      width = 200,
+      notifier = disable_all_menus
+    }
+  })
+
+  menu_config_dialog_content:add_child(vb:space{height = 5})
   menu_config_dialog_content:add_child(vb:button{
     text = "Remember to Restart Renoise!",
-    width = 270,
+    width = 410,
     height = 30,
     pressed = function()
       if menu_config_dialog and menu_config_dialog.visible then

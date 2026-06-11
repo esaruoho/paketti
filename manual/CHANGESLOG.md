@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Paketti Menu Configuration shows per-category entry counts + Enable/Disable All Menus
+
+The Paketti Menu Configuration dialog (Main Menu -> Options) now shows how many menu entries each context contributes — every checkbox reads e.g. "Instrument Box Menus (118)", with a header line giving the grand total across all categories. The count is scanned from source (counting both raw `add_menu_entry` and `PakettiAddMenuEntry` wrapper calls — the old total-only counter missed the wrapper) and memoized. Added **Enable All Menus** and **Disable All Menus** buttons (each labelled with the total), moved here from the Paketti Toggler so the per-context list and the bulk on/off live in one place; the dialog refreshes itself after a bulk toggle so the checkboxes update. Entries whose name is built by string concatenation (no literal `name="..."`) can't be attributed to a context and are not counted per-category.
+
 ### 2026-06-11 - Feature: choose the canvas font — 8bit (tDR) or Monospace — one preference, every canvas dialog
 
 Paketti's canvas dialogs have always drawn text in the 8bit "tDR" (Asteroids-style) vector font. There's now a **Monospace** font too, and a single Paketti preference picks which one every canvas dialog uses — the setting mirrors to all of them at once (DRY: they all draw through one routed `PakettiCanvasFontDrawText`). Default is **8bit**. A new **Canvas Font Demo** dialog renders the same sample text in both fonts side by side (with the switch built in) so you can compare and screenshot. The monospace set covers A–Z, 0–9 and common punctuation; any character it doesn't define falls back to the 8bit glyph, so nothing ever disappears, and both fonts use the same character advance so existing dialog layouts stay aligned when you switch.
