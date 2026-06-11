@@ -52,13 +52,15 @@ Context: Global
     Then the server returns 79 JSON-RPC tool definitions
     And GET http://localhost:19714/health returns {"status":"ok","server":"PakettiMCP"}
 
-  @built @untested
+  @built @hw-verified
   Scenario: Claude READS live song state (the "watch it render" half)
     Given the MCP server is running and a song is loaded
     When Claude calls tool "song_get_info" (or transport_get_position / pattern_get_notes)
     Then the server returns the CURRENT bpm, lpb, track/instrument/pattern counts,
          playhead position, and actual note data — read live, not cached
     # This is the answer to "no way to watch something render alive": there is.
+    # VERIFIED 2026-06-11 via curl: song_get_info returned the live open song
+    # (bpm 137, 11 tracks, 27 instruments); transport_get_bpm returned "137.00".
 
   @built @untested
   Scenario: Claude WRITES into the song (the bidirectional half)
