@@ -10243,6 +10243,23 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Automation i
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
+
+-- Make "wipe/clear/delete all automation" discoverable straight from the
+-- Automation List (and the Automation editor lane), the same way Pattern Matrix
+-- already exposes it. "Wipe", "Clear" and "Delete" are synonyms, so register
+-- the user-facing "Clear..." names alongside the "Wipe..." set for searchability.
+for _, ctx in ipairs({"Track Automation List", "Track Automation"}) do
+  PakettiAddMenuEntry{name=ctx..":Paketti:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
+  PakettiAddMenuEntry{name=ctx..":Paketti:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
+  PakettiAddMenuEntry{name=ctx..":Paketti:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
+  PakettiAddMenuEntry{name=ctx..":Paketti:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
+  PakettiAddMenuEntry{name=ctx..":Paketti:Clear All Automation in Current Track",invoke=function() delete_automation(false, false) end}
+  PakettiAddMenuEntry{name=ctx..":Paketti:Clear All Automation in Current Track for All Patterns",invoke=function() delete_automation(false, true) end}
+end
+
+-- Keybindings for the "Clear..." synonyms so they show up in keybinding search too.
+renoise.tool():add_keybinding{name="Global:Paketti:Clear All Automation in Current Track",invoke=function() delete_automation(false, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Clear All Automation in Current Track for All Patterns",invoke=function() delete_automation(false, true) end}
 -------
 function wipe_effect_columns(all_tracks, whole_song)
   local song=renoise.song()

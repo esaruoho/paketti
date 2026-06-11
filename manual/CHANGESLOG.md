@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Wipe/Clear All Automation now discoverable from the Automation List
+
+The "wipe all automation" commands are now exposed straight from the **Track Automation List** (the right-click parameter list) and the **Track Automation** editor lane, the same way the Pattern Matrix already offers them — so you no longer have to leave the automation view to clear a track. Added the user-facing **Clear** synonyms alongside the existing **Wipe** names for searchability. All point at the same `delete_automation` engine; "Wipe", "Clear" and "Delete" mean the same thing here.
+- Menu: `Track Automation List:Paketti:Clear All Automation in Current Track`
+- Menu: `Track Automation List:Paketti:Clear All Automation in Current Track for All Patterns`
+- Menu: `Track Automation List:Paketti:Wipe All Automation in Track on Current Pattern` (also: in Track on Whole Song; in All Tracks on Current Pattern; in All Tracks on Whole Song)
+- Menu: `Track Automation:Paketti:Clear All Automation in Current Track` (plus the full Wipe set, same as the Automation List)
+- Keybinding: `Global:Paketti:Clear All Automation in Current Track`
+- Keybinding: `Global:Paketti:Clear All Automation in Current Track for All Patterns`
+
 ### 2026-06-11 - Fix: 8120 step-repeat fills the trailing partial block (last pattern row)
 
 When a row's step count doesn't divide the pattern length evenly (e.g. 3 steps in a 64-row pattern), the repeat logic stopped after the last complete block and left the leftover rows at the end of the pattern empty — the final row (row 63 in a 64-row pattern) never got its trigger. The writer now fills the trailing partial block by copying as many leading steps of the cycle as fit, so the repeat continues right to the last pattern row. Applies to both note-trigger and phrase-trigger pattern writes.
