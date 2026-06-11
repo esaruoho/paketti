@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Fix: Three malformed menu paths that put entries in wrong/duplicate locations
+
+Cleanup of menu-path typos surfaced while folding the `Paketti..` submenus. (1) "Create MIDI Control from Text File" was registered under `Paketti:Xperimental` (missing `/WIP`), landing in a separate folder from the canonical `Xperimental/WIP` — now corrected. (2) Five entries used `Main  Menu` with a double space, which Renoise treats as a different root menu so they never appeared under the normal Tools menu — Paketti EQ30, Change Fonts (classic/default/Agave), Visualize Sample (Canvas), Wacky Filter; all now `Main Menu`. (3) The Polyend "Pattern Browser" entry had a double colon (`Main Menu:Tools::Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser`), creating an empty menu segment — now a single colon. Most of the double-space entries were commented-out lines; they were fixed too so re-enabling them won't reintroduce the typo. No keybindings or MIDI mappings changed.
+
 ### 2026-06-11 - Improvement: Menu Configuration counts now include concatenated/loop-generated entries; "Paketti Toggler" renamed "Paketti Deactivator"
 
 The per-category menu-entry counts in Paketti Menu Configuration are now tallied at startup as each entry passes the registration gate, instead of by scanning source text. Because the gate sees each entry once with a fully-resolved name, entries whose name is built by string concatenation (`name=var.."..."`) or generated inside a for-loop — which the text scanner couldn't attribute to a context — are now counted correctly against their real category. The tally is frozen after the boot flush so live re-registration can't inflate it. Also renamed the **Paketti Toggler** dialog to **Paketti Deactivator** throughout (window title, menu entry, keybinding, main-menu button, keybinding presets).

@@ -595,7 +595,7 @@ function PakettiCreateMIDIControlFromTextFile()
 
    --[[
    -- Menu entries for the new function
-   PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    PakettiAddMenuEntry{name="DSP Device:Paketti:Xperimental/WIP:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Xperimental/WIP:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    PakettiAddMenuEntry{name="Mixer:Paketti:Xperimental/WIP:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}

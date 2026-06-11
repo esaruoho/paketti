@@ -629,5 +629,5 @@ local function show_dialog()
   }, keyhandler)
 end
 
-PakettiAddMenuEntry{name="Main  Menu:Tools:Paketti:Xperimental/WIP:Wacky Filter",invoke=show_dialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Wacky Filter",invoke=show_dialog}
 ]]--

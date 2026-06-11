@@ -2351,7 +2351,7 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Polyend Project", invoke=PakettiExportPolyendProject}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
 --[[
-PakettiAddMenuEntry{name="Main Menu:Tools::Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
