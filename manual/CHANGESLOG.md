@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-12 - Change: "Follow with controller" is now per-controller (independent), not one global master
+
+Reworked the earlier single "Ctrl Follow" master toggle into three independent per-controller follow settings, so you can leave the APC Key 25 non-rotating (showing all 32 steps) while the MidiMix and/or LPD8 page to track the playhead — or any mix. The 8120 dialog now shows three checkboxes under a "Ctrl Follow:" label — **APC**, **MM**, **LPD8** — each backed by its own persisted preference (`pakettiGroovebox8120FollowAPC`, `pakettiGroovebox8120FollowMidiMix`, `pakettiGroovebox8120FollowLPD8`, all off by default). Each controller's follow keybinding (`Global:Paketti:Paketti Groovebox 8120 APC/MidiMix/LPD8 Toggle Follow Page`), `[Trigger]` MIDI mapping, and `!Preferences:Debug:MidiControllers` menu entry now toggles only that controller and stays in sync with its own checkbox. Arming a controller reads its own saved setting, so each follows (or not) headlessly after a restart.
+
 ### 2026-06-11 - Feature: Auto-Start PakettiMCP — keep the MCP server alive across reloads and song loads
 
 Added a `Main Menu:Options:Auto-Start PakettiMCP` toggle (checkmarked, persisted in preferences as `PakettiMCPAutoStart`). When ON, the PakettiMCP HTTP server (localhost:19714) is kept running: a slow keepalive timer re-starts it whenever it's found not running, an `app_new_document` notifier re-ensures it on every song load, and a one-shot boot timer brings it up shortly after the tool loads. This fixes the problem where the server's socket was torn down on tool code-reload / song-load and never came back, dropping external MCP clients (and the local-LLM MLX bridge). Toggling the menu entry ON also starts the server immediately. No keybindings or MIDI mappings added; menu entry only: `Main Menu:Options:Auto-Start PakettiMCP`.
