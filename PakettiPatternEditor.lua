@@ -11085,7 +11085,7 @@ function PakettiEffectColumnCurveFillApply()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
-PakettiAddMenuEntry{name="Pattern Editor:Paketti..:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Effect Column Curve Fill", invoke = PakettiEffectColumnCurveFill}
 renoise.tool():add_midi_mapping{name="Paketti:Effect Column Curve Fill", invoke = function(message) if message:is_trigger() then PakettiEffectColumnCurveFill() end end}
 
 ---------------------------------------------------------------------------

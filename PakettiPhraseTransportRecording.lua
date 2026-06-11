@@ -1363,12 +1363,12 @@ PakettiAddMenuEntry{
 }
 
 PakettiAddMenuEntry{
-  name = "Instrument Phrases:Paketti..:Phrase Recording:Show Recording Dialog",
+  name = "Instrument Phrases:Paketti:Phrase Recording:Show Recording Dialog",
   invoke = PakettiPhraseRec_ShowDialog
 }
 
 PakettiAddMenuEntry{
-  name = "Instrument Phrases:Paketti..:Phrase Recording:Arm Recording",
+  name = "Instrument Phrases:Paketti:Phrase Recording:Arm Recording",
   invoke = function()
     if PakettiPhraseRec_CurrentState == PakettiPhraseRec_STATE_IDLE then
       PakettiPhraseRec_Arm()
@@ -1379,12 +1379,12 @@ PakettiAddMenuEntry{
 }
 
 PakettiAddMenuEntry{
-  name = "Instrument Phrases:Paketti..:Phrase Recording:Quantize Selection",
+  name = "Instrument Phrases:Paketti:Phrase Recording:Quantize Selection",
   invoke = PakettiPhraseRec_QuantizeSelection
 }
 
 PakettiAddMenuEntry{
-  name = "Instrument Phrases:Paketti..:Phrase Recording:Quantize Phrase",
+  name = "Instrument Phrases:Paketti:Phrase Recording:Quantize Phrase",
   invoke = PakettiPhraseRec_QuantizePhrase
 }
 

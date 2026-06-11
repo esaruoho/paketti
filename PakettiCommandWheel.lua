@@ -1701,12 +1701,12 @@ PakettiAddMenuEntry{
 }
 
 PakettiAddMenuEntry{
-  name = "Pattern Editor:Paketti..:Command Wheel...",
+  name = "Pattern Editor:Paketti:Command Wheel...",
   invoke = function() PakettiCommandWheelShowDialog() end
 }
 
 PakettiAddMenuEntry{
-  name = "Phrase Editor:Paketti..:Command Wheel...",
+  name = "Phrase Editor:Paketti:Command Wheel...",
   invoke = function() PakettiCommandWheelShowDialog() end
 }
 

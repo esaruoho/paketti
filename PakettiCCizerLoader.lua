@@ -596,9 +596,9 @@ function PakettiCreateMIDIControlFromTextFile()
    --[[
    -- Menu entries for the new function
    PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   PakettiAddMenuEntry{name="DSP Device:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   PakettiAddMenuEntry{name="Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   PakettiAddMenuEntry{name="DSP Device:Paketti:Xperimental/WIP:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Xperimental/WIP:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   PakettiAddMenuEntry{name="Mixer:Paketti:Xperimental/WIP:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    renoise.tool():add_keybinding{name="Global:Paketti:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
 ]]--
 -- Function to apply CCizer mappings to the currently selected device (or create new one if needed)

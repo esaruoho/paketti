@@ -4549,10 +4549,10 @@ function PakettiEqualSliceDistribution()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Slice Distribution",invoke=function() PakettiRandomSliceDistribution() end}
-PakettiAddMenuEntry{name="Pattern Editor:Paketti..:Slices..:Random Slice Distribution",invoke=function() PakettiRandomSliceDistribution() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Slices:Random Slice Distribution",invoke=function() PakettiRandomSliceDistribution() end}
 renoise.tool():add_midi_mapping{name="Paketti:Random Slice Distribution",invoke=function(message) if message:is_trigger() then PakettiRandomSliceDistribution() end end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Equal Slice Distribution",invoke=function() PakettiEqualSliceDistribution() end}
-PakettiAddMenuEntry{name="Pattern Editor:Paketti..:Slices..:Equal Slice Distribution",invoke=function() PakettiEqualSliceDistribution() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Slices:Equal Slice Distribution",invoke=function() PakettiEqualSliceDistribution() end}
 renoise.tool():add_midi_mapping{name="Paketti:Equal Slice Distribution",invoke=function(message) if message:is_trigger() then PakettiEqualSliceDistribution() end end}
 
 ------------------------------------------------------------------------
@@ -4810,5 +4810,5 @@ function PakettiCurvedSliceApply()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Curved Slice Creator", invoke = PakettiCurvedSliceCreator}
-PakettiAddMenuEntry{name="Sample Editor:Paketti..:Slices..:Curved Slice Creator", invoke = PakettiCurvedSliceCreator}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:Curved Slice Creator", invoke = PakettiCurvedSliceCreator}
 renoise.tool():add_midi_mapping{name="Paketti:Curved Slice Creator", invoke = function(message) if message:is_trigger() then PakettiCurvedSliceCreator() end end}
