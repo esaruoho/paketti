@@ -28,7 +28,7 @@ PakettiScalaTuningMapDialog = nil
 
 local CANVAS_ID = "paketti_scala_tuning_map_canvas"
 local SCROLL_ID = "paketti_scala_tuning_map_scroll"
-local CANVAS_W = 620
+local CANVAS_W = 680
 local CANVAS_H = 470
 local HEADER_H = 76
 local ROW_H = 16
@@ -50,6 +50,7 @@ local PSTM_suppress_scroll = false   -- guard against scrollbar<->view_start fee
 local PSTM_view_start = 36
 local PSTM_highlight_note = -1
 local PSTM_follow = true
+local PSTM_show_notation = true       -- "MICRO": ups-and-downs microtonal notation (EDO tunings)
 local PSTM_show_cents_period = true   -- "CENTS-P": cents within the period (interval-table style)
 local PSTM_show_cents_root = true     -- "CENTS-R": cents from the absolute root (C-4 = 0)
 local PSTM_playing = nil          -- {i=instr_idx, t=track_idx, n=note}
@@ -138,6 +139,78 @@ local function note_info(note, ratios)
   return degree, ratio_in, total
 end
 
+-- ---------------------------------------------------------------------------
+-- Ups-and-downs microtonal notation (for equal divisions of the octave).
+-- Spells each EDO degree as the nearest 12-tone note (the anchors ARE the 12TET
+-- notes, placed by the EDO's native circle of fifths) plus up/down arrows for
+-- the steps in between. e.g. in 22EDO: 0=C, 1=^C, 2=vC#, 3=C#, 4=D ...
+-- This is the universal up/down notation; it only applies to octave EDOs.
+-- ---------------------------------------------------------------------------
+local NOTATE_PC = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+
+-- is this tuning an equal division of the (2/1) octave? returns N or nil
+local function detect_edo(ratios)
+  local n = #ratios
+  if n < 2 then return nil end
+  if math.abs(ratios[n] - 2.0) > 0.0015 then return nil end   -- octave period only
+  for i = 1, n do
+    local expected = 2 ^ (i / n)
+    if math.abs(ratios[i] - expected) > expected * 0.003 then return nil end
+  end
+  return n
+end
+
+-- the 12 chromatic anchors of an N-EDO as {pc=0..11, step=0..N-1}
+local function edo_anchors(n)
+  local fifth = math.floor(n * (math.log(1.5) / math.log(2)) + 0.5)
+  local apotome = 7 * fifth - 4 * n
+  -- chain-of-fifths index per natural nominal: F=-1 C=0 G=1 D=2 A=3 E=4 B=5
+  local nat = {C = 0, G = 1, D = 2, A = 3, E = 4, B = 5, F = -1}
+  local function step_of(letter) return (nat[letter] * fifth) % n end
+  local naturals = {C = step_of("C"), D = step_of("D"), E = step_of("E"),
+                    F = step_of("F"), G = step_of("G"), A = step_of("A"), B = step_of("B")}
+  local anchors = {
+    {pc = 0,  step = naturals.C},
+    {pc = 1,  step = (naturals.C + apotome) % n},
+    {pc = 2,  step = naturals.D},
+    {pc = 3,  step = (naturals.D + apotome) % n},
+    {pc = 4,  step = naturals.E},
+    {pc = 5,  step = naturals.F},
+    {pc = 6,  step = (naturals.F + apotome) % n},
+    {pc = 7,  step = naturals.G},
+    {pc = 8,  step = (naturals.G + apotome) % n},
+    {pc = 9,  step = naturals.A},
+    {pc = 10, step = (naturals.A + apotome) % n},
+    {pc = 11, step = naturals.B},
+  }
+  return anchors
+end
+
+local function ups_downs(u)
+  if u == 0 then return "" end
+  local sym = (u > 0) and "\226\134\145" or "\226\134\147"   -- ↑ / ↓
+  local mag = math.abs(u)
+  if mag <= 3 then return string.rep(sym, mag) end
+  return sym .. tostring(mag)
+end
+
+-- ups-and-downs spelling for degree d of an N-EDO (anchors precomputed)
+local function edo_notation(d, n, anchors)
+  local best_u, best_pc, best_abs = 0, 0, 1e9
+  for _, a in ipairs(anchors) do
+    local u = (d - a.step) % n
+    if u > n / 2 then u = u - n end            -- signed nearest (-n/2 .. n/2]
+    local au = math.abs(u)
+    -- prefer smallest |u|; on tie prefer up-spelling (u>0); then lower pc
+    if au < best_abs
+       or (au == best_abs and u > best_u)
+       or (au == best_abs and u == best_u and a.pc < best_pc) then
+      best_u, best_pc, best_abs = u, a.pc, au
+    end
+  end
+  return ups_downs(best_u) .. NOTATE_PC[best_pc + 1]
+end
+
 -- ===========================================================================
 -- Canvas render
 -- ===========================================================================
@@ -167,9 +240,18 @@ function PakettiScalaTuningMapRender(ctx)
   draw_text(ctx, info, 6, 22, 6, {150, 150, 165, 255})
   draw_text(ctx, "INSTR: " .. tun.instr_name, 6, 34, 6, {150, 150, 165, 255})
 
+  -- microtonal (ups-and-downs) notation only applies to equal octave divisions
+  local edoN = detect_edo(ratios)
+  local anchors = edoN and edo_anchors(edoN) or nil
+
   -- build the enabled-column layout (left to right), then the bar fills the rest
   local cols = {}
   cols[#cols + 1] = {h = "NOTE",  w = 42, get = function(note) return note_name(note) end}
+  if PSTM_show_notation then
+    cols[#cols + 1] = {h = "MICRO", w = 58, get = function(_, deg)
+      if edoN then return edo_notation(deg, edoN, anchors) else return "\226\128\148" end  -- em dash
+    end}
+  end
   cols[#cols + 1] = {h = "DEG",   w = 56, get = function(_, deg) return deg .. "/" .. n end}
   cols[#cols + 1] = {h = "RATIO", w = 56, get = function(_, _, ri) return string.format("%.3f", ri) end}
   if PSTM_show_cents_period then
@@ -187,7 +269,9 @@ function PakettiScalaTuningMapRender(ctx)
   -- current-note readout (communicates whichever columns are enabled)
   if PSTM_highlight_note >= 0 and PSTM_highlight_note <= 119 then
     local d, ri, tot = note_info(PSTM_highlight_note, ratios)
-    local line = note_name(PSTM_highlight_note) .. "   DEG " .. d .. "/" .. n
+    local line = note_name(PSTM_highlight_note)
+    if PSTM_show_notation and edoN then line = line .. " = " .. edo_notation(d, edoN, anchors) end
+    line = line .. "   DEG " .. d .. "/" .. n
       .. "   " .. string.format("%.3f", ri)
     if PSTM_show_cents_period then line = line .. "   " .. string.format("%.1f", ratio_to_cents(ri)) .. "C-P" end
     if PSTM_show_cents_root then line = line .. "   " .. string.format("%.1f", ratio_to_cents(tot)) .. "C-R" end
@@ -580,6 +664,11 @@ function PakettiScalaTuningMapShow()
     },
     vb:row{
       spacing = 4,
+      vb:checkbox{value = PSTM_show_notation, notifier = function(v)
+        PSTM_show_notation = v
+        if PSTM_canvas then PSTM_canvas:update() end
+      end},
+      vb:text{text = "Microtonal notation (MICRO)"},
       vb:checkbox{value = PSTM_show_cents_period, notifier = function(v)
         PSTM_show_cents_period = v
         if PSTM_canvas then PSTM_canvas:update() end
@@ -598,6 +687,7 @@ function PakettiScalaTuningMapShow()
     },
     vb:text{
       text = "Same colour = octave-equivalent (same scale degree). Off-white rows are period roots.\n"
+        .. "MICRO = ups-and-downs notation: the 12TET note plus up/down arrows for the steps between (EDO tunings only).\n"
         .. "CENTS-P = cents within the period (resets each octave). CENTS-R = cents from the absolute root (C-4 = 0).\n"
         .. "Click a row to preview the note. The row under the pattern cursor is highlighted live.",
       font = "italic",
