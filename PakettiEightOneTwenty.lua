@@ -2221,11 +2221,9 @@ function row_elements.print_to_pattern()
 
   -- Only write notes to the first MAX_STEPS steps
   local notes_written = 0
-  print("8120 PATTERN DEBUG: Starting pattern write for track " .. track_index .. ", steps=" .. steps)
   for line = 1, block do
     local note_checkbox_value = row_elements.checkboxes[line].value
     local yxx_checkbox_value = row_elements.yxx_checkboxes[line].value
-    print("8120 PATTERN DEBUG: Line " .. line .. " checkbox=" .. tostring(note_checkbox_value))
     local note_line = track_in_pattern:line(line).note_columns[1]
     local effect_column = track_in_pattern:line(line).effect_columns[1]
 
@@ -2241,7 +2239,6 @@ function row_elements.print_to_pattern()
         note_line.volume_value = v
       end
       notes_written = notes_written + 1
-      print("8120 PATTERN DEBUG: Wrote note at line " .. line)
 
       if yxx_checkbox_value then
         effect_column.number_string = "0Y"
@@ -2251,7 +2248,6 @@ function row_elements.print_to_pattern()
       end
     end
   end
-  print("8120 PATTERN DEBUG: Total notes written: " .. notes_written)
 
   -- Repeat the pattern if needed
   if pattern_length > block then
