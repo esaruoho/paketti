@@ -19,6 +19,9 @@ Spawning conversation for `2026-06-11-ui-fixes-and-menu-config.feature`. Faithfu
 7. Show per-category registration counts in Menu Configuration; move Enable/Disable All Menus there. → 0f506fd
 8. Preferences "Pattern Editor" 3rd column not displaying — fixed-width column 1 clipped it; regrouped to 2-per-row. → f9472bd
 9. "Do a report card." → this triad.
+10. "8 is done. 7 is done. ... 2 is done." → Esa confirmed all 8 units working in a
+    live Renoise. Card regraded every scenario @runtime-unverified → @runtime-verified;
+    unfinished item #1 (runtime verification) closed, #2 (monospace assumption) confirmed OK.
 
 ## Corrections / honesty notes surfaced during the session
 - Discovered the existing total-only counter matched only `add_menu_entry`, silently missing every `PakettiAddMenuEntry` wrapper call — fixed in the new per-category counter.

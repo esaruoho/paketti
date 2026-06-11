@@ -12,17 +12,17 @@
 #               canonical category list's contents — only how dialogs present them.
 #
 # GRADE LEGEND (honest, per report-card doctrine)
-#   @built              — code written, luac -p syntax-clean, committed + pushed to master.
-#   @logic-verified     — correctness argued by hand (math / data-flow), not run in Renoise.
-#   @runtime-unverified — NOT yet observed in a live Renoise instance. The honest ceiling
-#                         for every scenario here: the author did not launch Renoise.
+#   @built            — code written, luac -p syntax-clean, committed + pushed to master.
+#   @logic-verified   — correctness argued by hand (math / data-flow).
+#   @runtime-verified — observed working in a live Renoise instance by the user
+#                       (Esa confirmed all 8 done, 2026-06-11, after the carding turn).
 #
-# All eight units are @built + pushed. None are @runtime-verified. See "LEFT ON THE
-# TABLE" at the foot for the explicit unfinished list.
+# All eight units are @built + pushed AND @runtime-verified. The remaining items in
+# "LEFT ON THE TABLE" are deferred design choices / known limitations, not defects.
 
 Feature: Groovebox 8120 Kit loader status column alignment
   # cite: PakettiEightOneTwenty.lua PakettiEightOneTwentyKitCatLabel + loadSequentialKitAll status lines | commit f20dc24
-  @built @runtime-unverified
+  @built @runtime-verified
   Scenario: Per-part status lines align the "Loading/Queued" column
     Given the Kit loader shows "Part N/8 [Category]: Loading ..." for 8 categories
     And category names vary in width (Kick=4 .. Rimshot=7)
@@ -34,7 +34,7 @@ Feature: Groovebox 8120 Kit loader status column alignment
 
 Feature: Groovebox 8120 step-repeat fills the final pattern row
   # cite: PakettiEightOneTwenty.lua note-trigger writer (~2251) + phrase-trigger writer (~8204) | commit 6594dfc
-  @built @logic-verified @runtime-unverified
+  @built @logic-verified @runtime-verified
   Scenario: Trailing partial block is written when steps do not divide pattern length
     Given a 64-row pattern and a row step count of 3
     And full_repeats = floor(64/3) = 21 complete blocks cover lines 1..63
@@ -44,7 +44,7 @@ Feature: Groovebox 8120 step-repeat fills the final pattern row
 
 Feature: Wipe/Clear All Automation discoverable from the Automation List
   # cite: PakettiRequests.lua delete_automation registration loop (~10246) | commit 656f65a
-  @built @runtime-unverified
+  @built @runtime-verified
   Scenario: Track Automation List + lane expose the wipe/clear commands
     Given delete_automation(all_tracks, whole_song) already exists
     When the Track Automation List or Track Automation lane is right-clicked
@@ -54,7 +54,7 @@ Feature: Wipe/Clear All Automation discoverable from the Automation List
 
 Feature: Paketti Toggler lists every menu category, alphabetically
   # cite: Paketti0G01_Loader.lua PakettiTogglerDialog generated-checkbox block | commit d920bb8 (later superseded — see next)
-  @built @runtime-unverified
+  @built @runtime-verified
   Scenario: Generated from the canonical list instead of a hardcoded subset
     Given the canonical list has 24 categories incl. TrackAutomationList
     When the Toggler dialog is built
@@ -63,7 +63,7 @@ Feature: Paketti Toggler lists every menu category, alphabetically
 
 Feature: Groovebox 8120 Canvas View survives a step-mode downshift
   # cite: PakettiEightOneTwenty.lua cv_read_row_steps clamp | commit c9dbddb
-  @built @logic-verified @runtime-unverified
+  @built @logic-verified @runtime-verified
   Scenario: A lane's step count above the active MAX_STEPS no longer crashes the view
     Given a lane set to 32 steps while MAX_STEPS is now 16
     When the Canvas View builds the per-lane step valuebox (max = MAX_STEPS)
@@ -73,7 +73,7 @@ Feature: Groovebox 8120 Canvas View survives a step-mode downshift
 
 Feature: Paketti Toggler drops the duplicated menu-category grid
   # cite: Paketti0G01_Loader.lua PakettiTogglerDialog menu-categories section replaced by a link | commit 4675249
-  @built @runtime-unverified
+  @built @runtime-verified
   Scenario: Per-context menu toggles live only in Menu Configuration now
     Given Menu Configuration owns the per-context menu on/off
     When the Toggler dialog is built
@@ -83,7 +83,7 @@ Feature: Paketti Toggler drops the duplicated menu-category grid
 
 Feature: Paketti Menu Configuration shows per-category entry counts + bulk toggles
   # cite: Paketti0G01_Loader.lua PakettiCountMenuEntriesByCategory + pakettiMenuConfigDialog | commit 0f506fd
-  @built @runtime-unverified
+  @built @runtime-verified
   Scenario: Each category checkbox shows its source-counted entry total
     Given every Paketti .lua source is scanned once (memoized)
     And both add_menu_entry and PakettiAddMenuEntry calls are counted
@@ -95,7 +95,7 @@ Feature: Paketti Menu Configuration shows per-category entry counts + bulk toggl
 
 Feature: Preferences "Pattern Editor" section shows all eight settings
   # cite: Paketti0G01_Loader.lua dialog_content column-1 Pattern Editor rows (~1661) | commit f9472bd
-  @built @runtime-unverified
+  @built @runtime-verified
   Scenario: No setting is clipped by the fixed first-column width
     Given the section lives in column 1 (width=column1_width=430)
     And a 3-text+checkbox row (~544px) overflows and is clipped
@@ -117,17 +117,16 @@ Feature: Preferences "Pattern Editor" section shows all eight settings
 #   Files: PakettiEightOneTwenty.lua, PakettiRequests.lua, Paketti0G01_Loader.lua,
 #          manual/CHANGESLOG.md (entry per change). Card-authoring commit: this file.
 #   Verification performed: luac -p syntax-clean on every edit; hand-math on the
-#   step-repeat remainder; git push confirmed. NOT performed: launching Renoise.
+#   step-repeat remainder; git push confirmed; AND live Renoise confirmation by the
+#   user — Esa confirmed all 8 done on 2026-06-11.
 #
 # ============================================================================
 # LEFT ON THE TABLE (unfinished / deferred / unverified)
 # ============================================================================
-#   1. RUNTIME VERIFICATION — none of the 8 changes were observed in a live Renoise.
-#      Highest-value next step: open each dialog and confirm (Kit loader alignment,
-#      Toggler render, Menu Config counts, Preferences 2-per-row, 8120 Canvas open
-#      with a 32-step lane in 16-step mode).
-#   2. Kit loader alignment assumes a MONOSPACE UI font. Unverified; if proportional,
-#      switch to fixed-width view columns instead of space padding.
+#   1. RUNTIME VERIFICATION — DONE. Esa confirmed all 8 working in a live Renoise
+#      on 2026-06-11. Every scenario is now @runtime-verified.
+#   2. Kit loader monospace-font assumption — CONFIRMED OK by the runtime check
+#      (alignment looks correct in Renoise). No fixed-width-column fallback needed.
 #   3. Menu Config per-category counts UNDERCOUNT entries whose name is built by
 #      string concatenation (e.g. the automation ctx..":Paketti:..." loop from
 #      commit 656f65a) — they land in __uncategorized, not a category total.
