@@ -240,7 +240,7 @@ renoise.tool():add_midi_mapping{name = "Paketti:Multi-File Raw Loader (8-bit)", 
 -- CENTRALIZED FILE IMPORT HOOK REGISTRATION
 -- ============================================================================
 -- All file import hooks are registered here with preference checks.
--- This allows users to enable/disable individual format imports via Paketti Toggler.
+-- This allows users to enable/disable individual format imports via Paketti Deactivator.
 -- The master toggle (pakettiImportHooksEnabled) must be true AND the individual
 -- format toggle must be true for the hook to be registered.
 -- ============================================================================

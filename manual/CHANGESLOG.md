@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Menu Configuration counts now include concatenated/loop-generated entries; "Paketti Toggler" renamed "Paketti Deactivator"
+
+The per-category menu-entry counts in Paketti Menu Configuration are now tallied at startup as each entry passes the registration gate, instead of by scanning source text. Because the gate sees each entry once with a fully-resolved name, entries whose name is built by string concatenation (`name=var.."..."`) or generated inside a for-loop — which the text scanner couldn't attribute to a context — are now counted correctly against their real category. The tally is frozen after the boot flush so live re-registration can't inflate it. Also renamed the **Paketti Toggler** dialog to **Paketti Deactivator** throughout (window title, menu entry, keybinding, main-menu button, keybinding presets).
+- Menu: `Main Menu:Tools:Paketti:!Preferences:Paketti Deactivator...` (was "Paketti Toggler...")
+- Keybinding: `Global:Paketti:Paketti Deactivator...` (was "Paketti Toggler...")
+
 ### 2026-06-11 - Improvement: Dropped the last dotted submenu — `Track/Instrument Organization..` → `Track/Instrument Organization`
 
 Cleanup sweep for any remaining `..:` submenu names. The `Track/Instrument Organization..` subcategory still carried trailing dots in its right-click context-menu copies (Instrument Box, Mixer, Pattern Editor, Pattern Matrix — 12 entries), even though the Tools-menu copy had already dropped them. All now read `Track/Instrument Organization` with no dots, consistent everywhere. After this there are zero `..:`-style submenu names left anywhere in the codebase. No keybindings or MIDI mappings changed — menu paths only.

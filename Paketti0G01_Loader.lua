@@ -3528,47 +3528,6 @@ function PakettiCalculateEnabledCounts()
   return PakettiRegistrationCounts
 end
 
--- Per-category menu-entry counts for the Paketti Menu Configuration dialog so you
--- can see how many entries each context contributes before enabling it. Scans every
--- Paketti .lua source once, pulls each entry's name=, maps it to its context pref
--- key via PakettiMenuContextPrefKey, and tallies. Counts BOTH the raw
--- renoise.tool():add_menu_entry calls AND the PakettiAddMenuEntry wrapper (the old
--- total-only counter missed the wrapper entirely). Memoized — the source, and thus
--- the counts, can't change at runtime. Entries built from a concatenated name (no
--- literal name="...") aren't attributable to a context and land in __uncategorized.
-PakettiMenuEntryCategoryCounts = nil
-function PakettiCountMenuEntriesByCategory()
-  if PakettiMenuEntryCategoryCounts then return PakettiMenuEntryCategoryCounts end
-  local bundle_path = renoise.tool().bundle_path
-  local by_key = { __total = 0, __uncategorized = 0 }
-  for _, cat in ipairs(PakettiMenuConfigCategoryList) do by_key[cat.key] = 0 end
-  local lua_files = PakettiGetAllLuaFiles()
-  for _, lua_file in ipairs(lua_files) do
-    local file = io.open(bundle_path .. lua_file .. ".lua", "r")
-    if file then
-      for line in file:lines() do
-        local trimmed = line:match("^%s*(.-)%s*$")
-        local is_commented = trimmed:match("^%-%-") ~= nil
-        if not is_commented and (line:match("add_menu_entry") or line:match("PakettiAddMenuEntry")) then
-          local nm = line:match("name%s*=%s*\"(.-)\"") or line:match("name%s*=%s*'(.-)'")
-          if nm then
-            by_key.__total = by_key.__total + 1
-            local key = PakettiMenuContextPrefKey(nm)
-            if key and by_key[key] ~= nil then
-              by_key[key] = by_key[key] + 1
-            else
-              by_key.__uncategorized = by_key.__uncategorized + 1
-            end
-          end
-        end
-      end
-      file:close()
-    end
-  end
-  PakettiMenuEntryCategoryCounts = by_key
-  return by_key
-end
-
 local menu_config_dialog = nil
 local menu_config_dialog_content = nil
 
@@ -3579,9 +3538,10 @@ function pakettiMenuConfigDialog()
     return
   end
 
-  -- Per-context entry counts (memoized scan of source) so each row shows how many
-  -- menu entries that context contributes.
-  local cat_counts = PakettiCountMenuEntriesByCategory()
+  -- Per-context entry counts tallied at startup as entries passed the registration
+  -- gate (PakettiShouldRegisterMenuEntry), so concatenated/loop-generated names are
+  -- counted with their real resolved context, not missed like a text scan would.
+  local cat_counts = PakettiMenuEntryContextTally or { __total = 0, __uncategorized = 0 }
 
   -- label carries the count; status uses the bare label so messages stay clean.
   local function create_menu_checkbox(label, preference_key, width, count)
@@ -3643,7 +3603,7 @@ function pakettiMenuConfigDialog()
     margin = 10,
     spacing = 5,
     vb:text{
-      text = string.format("Menu Entries: %d total across %d categories (counted from source).",
+      text = string.format("Menu Entries: %d total across %d categories (counted at startup).",
         cat_counts.__total, #sorted_categories),
       font = "bold"
     },
@@ -3698,15 +3658,15 @@ function pakettiMenuConfigDialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
--- Paketti Toggler Dialog - comprehensive registration management
-local paketti_toggler_dialog = nil
-local paketti_toggler_dialog_content = nil
+-- Paketti Deactivator Dialog - comprehensive registration management
+local paketti_deactivator_dialog = nil
+local paketti_deactivator_dialog_content = nil
 
-function PakettiTogglerDialog()
-  if paketti_toggler_dialog and paketti_toggler_dialog.visible then
-    paketti_toggler_dialog_content = nil
-    paketti_toggler_dialog:close()
-    paketti_toggler_dialog = nil
+function PakettiDeactivatorDialog()
+  if paketti_deactivator_dialog and paketti_deactivator_dialog.visible then
+    paketti_deactivator_dialog_content = nil
+    paketti_deactivator_dialog:close()
+    paketti_deactivator_dialog = nil
     return
   end
 
@@ -3755,13 +3715,13 @@ function PakettiTogglerDialog()
     renoise.app():show_status("All registrations disabled. Restart Renoise for changes to take effect.")
   end
 
-  paketti_toggler_dialog_content = vb:column{
+  paketti_deactivator_dialog_content = vb:column{
     margin = 10,
     spacing = 5,
     
     -- Header
     vb:text{
-      text = "Paketti Registration Manager",
+      text = "Paketti Deactivator",
       font = "big",
       style = "strong"
     },
@@ -3819,7 +3779,7 @@ function PakettiTogglerDialog()
     
     -- Per-context menu category toggles live in the dedicated "Paketti Menu
     -- Configuration" dialog (Main Menu -> Options) — they used to be duplicated
-    -- here, but that one owns the per-context menu on/off now. This Toggler keeps
+    -- here, but that one owns the per-context menu on/off now. This Deactivator keeps
     -- the cross-cutting master toggles + import hooks. Link across to it so both
     -- are reachable from one place.
     vb:column{
@@ -3916,12 +3876,12 @@ function PakettiTogglerDialog()
             preferences:save_as("preferences.xml")
             renoise.app():show_status("All import hooks enabled. Restart Renoise for changes to take effect.")
             -- Refresh dialog
-            if paketti_toggler_dialog then
-              paketti_toggler_dialog:close()
-              paketti_toggler_dialog = nil
-              paketti_toggler_dialog_content = nil
+            if paketti_deactivator_dialog then
+              paketti_deactivator_dialog:close()
+              paketti_deactivator_dialog = nil
+              paketti_deactivator_dialog_content = nil
             end
-            PakettiTogglerDialog()
+            PakettiDeactivatorDialog()
           end
         },
         vb:button{
@@ -3947,12 +3907,12 @@ function PakettiTogglerDialog()
             preferences:save_as("preferences.xml")
             renoise.app():show_status("All import hooks disabled. Restart Renoise for changes to take effect.")
             -- Refresh dialog
-            if paketti_toggler_dialog then
-              paketti_toggler_dialog:close()
-              paketti_toggler_dialog = nil
-              paketti_toggler_dialog_content = nil
+            if paketti_deactivator_dialog then
+              paketti_deactivator_dialog:close()
+              paketti_deactivator_dialog = nil
+              paketti_deactivator_dialog_content = nil
             end
-            PakettiTogglerDialog()
+            PakettiDeactivatorDialog()
           end
         }
       }
@@ -3978,12 +3938,12 @@ function PakettiTogglerDialog()
         width = 100,
         notifier = function()
           -- Close and reopen dialog to refresh
-          if paketti_toggler_dialog then
-            paketti_toggler_dialog:close()
-            paketti_toggler_dialog = nil
-            paketti_toggler_dialog_content = nil
+          if paketti_deactivator_dialog then
+            paketti_deactivator_dialog:close()
+            paketti_deactivator_dialog = nil
+            paketti_deactivator_dialog_content = nil
           end
-          PakettiTogglerDialog()
+          PakettiDeactivatorDialog()
         end
       },
       
@@ -3991,10 +3951,10 @@ function PakettiTogglerDialog()
         text = "Close",
         width = 100,
         notifier = function()
-          if paketti_toggler_dialog then
-            paketti_toggler_dialog:close()
-            paketti_toggler_dialog = nil
-            paketti_toggler_dialog_content = nil
+          if paketti_deactivator_dialog then
+            paketti_deactivator_dialog:close()
+            paketti_deactivator_dialog = nil
+            paketti_deactivator_dialog_content = nil
           end
         end
       }
@@ -4006,21 +3966,21 @@ function PakettiTogglerDialog()
     local closer = preferences.pakettiDialogClose.value
     if key.modifiers == "" and key.name == closer then
       dialog:close()
-      paketti_toggler_dialog = nil
-      paketti_toggler_dialog_content = nil
+      paketti_deactivator_dialog = nil
+      paketti_deactivator_dialog_content = nil
       return nil
     end
     return key
   end
 
-  paketti_toggler_dialog = renoise.app():show_custom_dialog("Paketti Toggler", paketti_toggler_dialog_content, keyhandler)
+  paketti_deactivator_dialog = renoise.app():show_custom_dialog("Paketti Deactivator", paketti_deactivator_dialog_content, keyhandler)
   
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
--- Add menu entries and keybindings for Paketti Toggler
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Paketti Toggler...", invoke = PakettiTogglerDialog}
-renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Toggler...", invoke = PakettiTogglerDialog}
+-- Add menu entries and keybindings for Paketti Deactivator
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Paketti Deactivator...", invoke = PakettiDeactivatorDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Deactivator...", invoke = PakettiDeactivatorDialog}
 
 function on_sample_count_change()
     if not preferences._0G01_Loader.value then return end
@@ -4274,21 +4234,40 @@ end
 PakettiPendingMenuEntries = {}
 PakettiFlushingInProgress = false  -- bypass flag for proxy during flush
 
+-- Live per-context menu-entry tally, populated as entries pass the gate below at
+-- startup. Because the gate sees each entry exactly once with a FULLY-RESOLVED name
+-- (concatenation done, for-loops expanded), this counts entries a text scanner can't:
+-- name=var.."..." and loop-generated ones. Frozen after the boot flush so runtime
+-- re-registration (e.g. a live category re-toggle) can't inflate it. The Menu
+-- Configuration dialog reads this for its per-category counts.
+PakettiMenuEntryContextTally = { __total = 0, __uncategorized = 0 }
+PakettiMenuTallyFrozen = false
+
 -- Single decision point: should a menu entry with this name be registered at all?
 -- Honors the master toggle AND the per-context preference. Called by both the
 -- PakettiAddMenuEntry helper AND the proxy_add_menu_entry interceptor in main.lua,
 -- so direct renoise.tool():add_menu_entry{...} calls also short-circuit when their
 -- context is disabled in the Menu Configuration dialog.
 function PakettiShouldRegisterMenuEntry(name)
+  local pref_key = name and PakettiMenuContextPrefKey(name) or nil
+
+  -- Tally first, before any early return, so the count is the POTENTIAL total per
+  -- context — independent of whether master menus or this category are enabled.
+  if not PakettiMenuTallyFrozen then
+    PakettiMenuEntryContextTally.__total = PakettiMenuEntryContextTally.__total + 1
+    if pref_key then
+      PakettiMenuEntryContextTally[pref_key] = (PakettiMenuEntryContextTally[pref_key] or 0) + 1
+    else
+      PakettiMenuEntryContextTally.__uncategorized = PakettiMenuEntryContextTally.__uncategorized + 1
+    end
+  end
+
   if not PakettiShouldRegisterMenus() then
     return false
   end
-  if name and preferences and preferences.pakettiMenuConfig then
-    local pref_key = PakettiMenuContextPrefKey(name)
-    if pref_key and preferences.pakettiMenuConfig[pref_key] then
-      if not preferences.pakettiMenuConfig[pref_key].value then
-        return false
-      end
+  if pref_key and preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig[pref_key] then
+    if not preferences.pakettiMenuConfig[pref_key].value then
+      return false
     end
   end
   return true
@@ -4324,6 +4303,9 @@ function PakettiFlushMenuEntries()
   PakettiFlushingInProgress = false
   local count = #PakettiPendingMenuEntries
   PakettiPendingMenuEntries = {}
+  -- All boot-time registrations have now passed the gate; freeze the per-context
+  -- tally so later live re-registrations don't inflate the Menu Configuration counts.
+  PakettiMenuTallyFrozen = true
   print(string.format("PakettiFlushMenuEntries: Registered %d menu entries (sorted)", count))
 end
 

@@ -888,7 +888,7 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Toggler...</Binding>
+          <Binding>∿ Paketti Deactivator...</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
