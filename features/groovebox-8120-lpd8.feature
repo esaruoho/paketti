@@ -31,7 +31,7 @@ Context: Global
     Given the LPD8 step sequencer is started
     When the user presses a pad
     Then the corresponding step toggles on the selected row and the pad LED follows
-    # @built @untested-in-renoise
+    # @hw-verified 2026-06-11
 
   Scenario: Do-nothing absorbers keep the pads from triggering samples
     Given the 8 "Disabled LPD8 01".."Disabled LPD8 08" MIDI mappings exist
@@ -43,13 +43,13 @@ Context: Global
     Given the groovebox is in 16- or 32-step mode and the LPD8 sequencer is on
     When the user triggers "LPD8 Next Page"
     Then the 8 pads show the next 8 steps (1-8 -> 9-16 -> 17-24 -> 25-32, wrapping)
-    # @built @untested-in-renoise
+    # @hw-verified 2026-06-11
 
   Scenario: Follow mode tracks the playhead across pages
     Given the LPD8 follow-page mode is ON
     When playback crosses from steps 1-8 into 9-16
     Then the LPD8 auto-flips to the page showing 9-16, then back for 1-8
-    # @built @untested-in-renoise
+    # @hw-verified 2026-06-11
 
   Scenario: 4 steps + 4 probability layout
     Given the user triggers "LPD8 Toggle 4Steps+4Probability Layout"
