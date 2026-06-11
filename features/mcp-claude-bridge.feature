@@ -62,13 +62,15 @@ Context: Global
     # VERIFIED 2026-06-11 via curl: song_get_info returned the live open song
     # (bpm 137, 11 tracks, 27 instruments); transport_get_bpm returned "137.00".
 
-  @built @untested
+  @built @hw-verified
   Scenario: Claude WRITES into the song (the bidirectional half)
     Given the MCP server is running
     When Claude calls "transport_set_bpm" {"bpm":174}, then "pattern_set_note",
          then "transport_play"
     Then the song BPM changes to 174, the note lands in the pattern,
          and playback starts — all observable in Renoise in real time
+    # VERIFIED 2026-06-11 via curl: read 137 -> set 174 -> read 174 -> restore 137.
+    # The BPM field flipped live in Renoise. (set returns "BPM set to 174.00".)
 
   @built @untested
   Scenario Outline: The 79 tools span the whole Renoise object model
