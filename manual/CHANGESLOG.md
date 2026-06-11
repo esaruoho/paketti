@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Fix: 8120 Canvas View no longer crashes when a row's step count exceeds the active step mode
+
+Opening the Groovebox 8120 Canvas View while any lane held a step count higher than the current step mode (e.g. a row set to 32 steps, then the dialog rebuilt in 16-step mode) threw `ViewBuilder: invalid value for valuebox: '32'. value must be [1 - 16]` and the whole Canvas View failed to open. The per-lane step count is now clamped to the live `[1, MAX_STEPS]` range when read, so the valuebox always gets a valid initial value. The clamp is read-only — the lane's underlying step count is preserved (the classic dialog's box accepts up to 512), so nothing is lost; the Canvas View just displays it capped to the current mode until you change it there.
+
 ### 2026-06-11 - Feature: AKAI LPD8 as a Groovebox 8120 8-step sequencer
 
 A third controller for the 8120: the LPD8's 8 pads as an 8-step sequencer for the selected row. Starting it forces the groovebox into **8-step mode** so the 8 pads map 1:1 to steps 1–8; press a pad to write/clear that step, and the pad LED highlights when the step is on (and inverts on the playhead). It reads/writes the pattern directly via the same shared step engine as the MidiMix and APC, so it works headless and cross-syncs with the other controllers. The LPD8 pad note-numbers vary by the unit's selected program, so there's a probe (read pads to terminal + test LEDs) to confirm them, and an editable `PAKETTI_LPD8_PAD_NOTES` table (default 36–43). Eight `Disabled LPD8 01–08` do-nothing absorbers are included to stop the pads also triggering samples.

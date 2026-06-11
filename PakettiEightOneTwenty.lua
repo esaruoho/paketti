@@ -8747,10 +8747,18 @@ local function cv_random_for_row(r)
 end
 
 local function cv_read_row_steps(r)
+  local n = MAX_STEPS
   if rows and rows[r] and rows[r].valuebox then
-    return rows[r].valuebox.value or MAX_STEPS
+    n = rows[r].valuebox.value or MAX_STEPS
   end
-  return MAX_STEPS
+  -- Clamp to the CURRENT step mode. A row can carry a higher count than the
+  -- active MAX_STEPS — e.g. set to 32 in 32-step mode, then the dialog is rebuilt
+  -- in 16-step (MK2) mode. Feeding 32 into a valuebox whose max is now 16 throws
+  -- "invalid value for valuebox: '32'. value must be [1 - 16]" and the whole
+  -- canvas view fails to open, so clamp every read into the live [1, MAX_STEPS].
+  if n < 1 then n = 1 end
+  if n > MAX_STEPS then n = MAX_STEPS end
+  return n
 end
 
 local function cv_set_row_steps(r, n)
