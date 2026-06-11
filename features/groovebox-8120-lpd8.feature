@@ -18,7 +18,12 @@ Context: Global
   #     probability (0Y Maybe); a page covers 4 steps.
   #   • paketti_lpd8_seq_refresh / _on_midi — LED highlight + pad-press toggle via the
   #     shared PakettiEightOneTwentyGet/ToggleStepState + Get/ToggleStepYxx engine.
-  #   • Follow: refresh snaps paketti_lpd8_page to the playhead's page each tick.
+  #   • Follow: refresh snaps paketti_lpd8_page to the playhead's page each tick. As
+  #     of 2026-06-11 follow is the SHARED "Follow with controller" master (the 8120
+  #     dialog's "Ctrl Follow" checkbox / preference pakettiGroovebox8120Follow):
+  #     LPD8 Toggle Follow Page now delegates to PakettiEightOneTwentySetControllerFollow,
+  #     so it toggles follow for the APC/MidiMix too and stays in sync with the
+  #     checkbox. See features/groovebox-8120-grid-controllers.feature.
   #   • PakettiEightOneTwentySelectRowByValue(v, reversed) — 0..127 -> row 1..8, with
   #     three independently-bindable copies each of 01-08 and 08-01.
   #

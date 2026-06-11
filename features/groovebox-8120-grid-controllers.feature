@@ -29,10 +29,26 @@ Context: Global
   # AKAI APC KEY 25 SEQUENCER (paketti_apc_seq_*): 8x5 pad grid (note = row*8+col,
   #   note 0 = bottom-left; LED velocity 1 green / 3 red / 5 yellow). 16-step mode:
   #   top 2 rows = steps 1..16, next 2 rows = per-step probability, bottom row =
-  #   select instrument/row 1..8. 32-step mode: top 4 rows = steps 1..32, bottom row
-  #   selects the row. Auto-arms when the 8120 opens; "Auto-Start AKAI APC Key 25"
-  #   (Main Menu:Options) arms it at launch (headless). Disabled APC 01..40 absorb
-  #   the pad notes.
+  #   select instrument/row 1..8. 32-step mode (follow OFF): top 4 rows = steps 1..32,
+  #   bottom row selects the row. 32-step mode (follow ON): the paged 16-steps +
+  #   16-probability layout returns and pages across the pattern (page 0 = 1..16,
+  #   page 1 = 17..32), so probability is editable at 32 steps too. Auto-arms when
+  #   the 8120 opens; "Auto-Start AKAI APC Key 25" (Main Menu:Options) arms it at
+  #   launch (headless). Disabled APC 01..40 absorb the pad notes.
+  #
+  # FOLLOW WITH CONTROLLER (one master toggle): the "Ctrl Follow" checkbox in the
+  #   8120 dialog (top row, next to Play/Follow) + persisted preference
+  #   pakettiGroovebox8120Follow. When ON, whichever controller is armed pages its
+  #   step view to track the playhead through a 32-step pattern — MidiMix's 16 LEDs
+  #   window steps 1-16 / 17-32, the APC switches to its paged 16+16 layout, the
+  #   LPD8 snaps its page. ONE source of truth: PakettiEightOneTwentySetControllerFollow
+  #   writes the pref and syncs all three controllers' follow flags + resets their
+  #   pages; paketti_8120_follow_enabled() is read live by every refresh loop. The
+  #   three per-controller "Toggle Follow Page" keybindings/MIDI/menu entries now all
+  #   delegate to this one setter and stay in sync with the checkbox. Arming a
+  #   controller reads the saved pref, so follow survives a restart headlessly. Off
+  #   by default. Manual Next/Previous Page still browses; while following + playing,
+  #   the window re-snaps on the next refresh. @built 2026-06-11 (not yet hw-verified).
   #
   # AKAI LPD8 SEQUENCER (paketti_lpd8_*): the 8 pads sequence the focused row. It
   #   does NOT force a step mode — its 8 pads PAGE over the current 8/16/32-step
@@ -47,7 +63,7 @@ Context: Global
   # controller lights up on the others, and the row selector on any follows on all.
   # Hardware-verified with MidiMix + APC plugged in together, 2026-06-11.
   #
-  # WATCH: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState PakettiEightOneTwentyGetStepYxx PakettiEightOneTwentyToggleStepYxx PakettiEightOneTwentyAPCSeqStart PakettiEightOneTwentyMidiMixOpen PakettiEightOneTwentyAPCAutoArm
+  # WATCH: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState PakettiEightOneTwentyGetStepYxx PakettiEightOneTwentyToggleStepYxx PakettiEightOneTwentyAPCSeqStart PakettiEightOneTwentyMidiMixOpen PakettiEightOneTwentyAPCAutoArm PakettiEightOneTwentySetControllerFollow paketti_8120_follow_enabled PakettiEightOneTwentyMidiMixNextPage PakettiEightOneTwentyAPCNextPage
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
 #   2026-06-11  direct-commit  touched: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState
 #   2026-06-11  direct-commit  touched: PakettiEightOneTwentyAPCSeqStart
@@ -94,3 +110,37 @@ Context: Global
     Then that step toggles on the selected row and the pad LED highlights it
     # Detail (pages, follow, 4+4, row-select): features/groovebox-8120-lpd8.feature
     # @hw-verified 2026-06-11
+
+  Scenario: "Ctrl Follow" checkbox is one persisted master follow toggle
+    Given the 8120 dialog is open
+    When the user ticks the "Ctrl Follow" checkbox
+    Then preference pakettiGroovebox8120Follow is set true and saved
+    And the APC, MidiMix, and LPD8 follow flags are all turned on
+    And any armed controller begins tracking the playhead
+    # @built 2026-06-11  # code-complete; not yet hardware-verified
+
+  Scenario: The setting persists and applies headlessly on the next session
+    Given pakettiGroovebox8120Follow was left on in a previous session
+    When a controller arms (dialog open, or via its Auto-Start setting)
+    Then it reads the saved preference and follows the playhead without any dialog action
+    # @built 2026-06-11  # code-complete; not yet hardware-verified
+
+  Scenario: APC follow restores the 16+16 paged layout at 32 steps
+    Given the 8120 is in 32-step mode and the APC sequencer is armed
+    When "Ctrl Follow" is on
+    Then the APC shows 16 steps + 16 probability for the current page (not all 32 steps)
+    And the page snaps to the playhead during playback (page 0 = 1..16, page 1 = 17..32)
+    # @built 2026-06-11  # code-complete; not yet hardware-verified
+
+  Scenario: MidiMix follow windows its 16 LEDs over a 32-step pattern
+    Given the 8120 is in 32-step mode and the MidiMix bridge is open
+    When "Ctrl Follow" is on and the transport is playing
+    Then the 16 LEDs page between steps 1-16 and 17-32 to keep the playhead visible
+    # @built 2026-06-11  # code-complete; not yet hardware-verified
+
+  Scenario: Per-controller follow keybindings stay in sync with the checkbox
+    Given the 8120 dialog is open with "Ctrl Follow" off
+    When the user triggers "Global:Paketti:Paketti Groovebox 8120 LPD8 Toggle Follow Page"
+    Then the master follow turns on for all controllers
+    And the "Ctrl Follow" checkbox updates to checked
+    # @built 2026-06-11  # code-complete; not yet hardware-verified
