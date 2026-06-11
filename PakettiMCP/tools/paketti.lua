@@ -45,6 +45,26 @@ return {
     handler = function(_) return call_global("GrooveboxShowClose") end,
   },
   {
+    name = "paketti_open_scala_tuning_map",
+    description = "Open (or close) the Paketti Scala Tuning Map dialog.",
+    inputSchema = { type = "object", properties = {}, required = {} },
+    handler = function(_) return call_global("PakettiScalaTuningMapShow") end,
+  },
+  {
+    name = "paketti_eval",
+    description = "Evaluate a Lua string in Renoise's context (localhost dev tool only). Returns tostring of the return value, or the error.",
+    inputSchema = { type = "object", properties = { code = { type = "string", description = "Lua code to run" } }, required = {"code"} },
+    handler = function(args)
+      local code = args and args.code
+      if type(code) ~= "string" then return err("missing 'code' string") end
+      local chunk, cerr = loadstring(code)
+      if not chunk then return err("compile error: " .. tostring(cerr)) end
+      local ok, ret = pcall(chunk)
+      if not ok then return err("runtime error: " .. tostring(ret)) end
+      return text("ok: " .. tostring(ret))
+    end,
+  },
+  {
     name = "paketti_pattern_shrink",
     description = "Shrink the selected pattern to half length (dBlue Pattern Shrink).",
     inputSchema = { type = "object", properties = {}, required = {} },
