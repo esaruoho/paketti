@@ -87,9 +87,9 @@ Context: Global
     And selecting a different row on either controller updates both
     # @hw-verified 2026-06-11
 
-  Scenario: LPD8 8 pads sequence the focused row's first 8 steps
-    Given the LPD8 step sequencer is started
-    Then the groovebox is forced to 8-step mode
+  Scenario: LPD8 pages its 8 pads over the focused row (no forced step mode)
+    Given the LPD8 step sequencer is started in any step mode
     When the user presses a pad
     Then that step toggles on the selected row and the pad LED highlights it
-    # @built @untested-in-renoise
+    # Detail (pages, follow, 4+4, row-select): features/groovebox-8120-lpd8.feature
+    # @hw-verified 2026-06-11
