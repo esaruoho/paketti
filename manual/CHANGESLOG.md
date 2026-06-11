@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: Paketti Menu Configuration is alphabetical, covers every menu context, and now actually hides "Track Automation List" entries
+
+The **Paketti Menu Configuration** dialog (Options menu, or `Main Menu:Tools:Paketti:!Preferences:Paketti Menu Configuration...`) now lists every toggle in alphabetical order across two columns, and the list has grown from 16 toggles to 24 so you can switch each Renoise menu context on or off individually. New per-context toggles: **Track Automation List**, **DSP Chain**, **DSP Device Automation**, **Sample Editor Ruler**, **Sample FX Mixer**, **Sample Modulation Matrix**, **Phrase Mappings** and **Phrase Grid** — previously these either had no toggle or were lumped under a broader context. Fixed a bug where the **Track Automation List** right-click menu kept showing Paketti entries even when Automation menus were disabled: the context-matcher checked `Track Automation:` but never `Track Automation List:`, so those entries fell through and were never gated. As before, changes take effect after restarting Renoise.
+- Menu: `Main Menu:Options:Paketti Menu Configuration...`
+- Menu: `Main Menu:Tools:Paketti:!Preferences:Paketti Menu Configuration...`
+
 ### 2026-06-11 - Improvement: Wipe/Clear All Automation now discoverable from the Automation List
 
 The "wipe all automation" commands are now exposed straight from the **Track Automation List** (the right-click parameter list) and the **Track Automation** editor lane, the same way the Pattern Matrix already offers them — so you no longer have to leave the automation view to clear a track. Added the user-facing **Clear** synonyms alongside the existing **Wipe** names for searchability. All point at the same `delete_automation` engine; "Wipe", "Clear" and "Delete" mean the same thing here.

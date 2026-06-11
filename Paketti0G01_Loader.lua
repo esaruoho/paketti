@@ -813,8 +813,15 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     PakettiGadgets = true,
     TrackDSPChain = true,
     TrackDSPDevice = true,
+    DSPDeviceAutomation = true,
     Automation = true,
+    TrackAutomationList = true,
     DiskBrowserFiles = true,
+    SampleEditorRuler = true,
+    SampleFXMixer = true,
+    SampleModulationMatrix = true,
+    PhraseMappings = true,
+    PhraseGrid = true,
     -- Master toggles (require Renoise restart to take effect)
     MasterMenusEnabled = true,
     MasterKeybindingsEnabled = true,
@@ -3405,20 +3412,56 @@ function PakettiCountRegistrations()
 end
 
 -- Function to calculate enabled/disabled counts based on preferences
+-- Canonical list of menu-context categories shown in the Paketti Menu Configuration
+-- dialog. Each maps a user-facing label to its pakettiMenuConfig preference key.
+-- PakettiMenuContextPrefKey() in this file must map every Renoise menu-context
+-- prefix to one of these keys for the toggle to actually gate registration.
+-- Add a new entry here AND a matching branch in PakettiMenuContextPrefKey() AND a
+-- default in the pakettiMenuConfig preferences block to expose a new context toggle.
+PakettiMenuConfigCategoryList = {
+  {label = "Automation Menus (Track Automation)", key = "Automation"},
+  {label = "Disk Browser Files Menus",            key = "DiskBrowserFiles"},
+  {label = "DSP Chain Menus",                     key = "TrackDSPChain"},
+  {label = "DSP Device Menus",                    key = "TrackDSPDevice"},
+  {label = "DSP Device Automation Menus",         key = "DSPDeviceAutomation"},
+  {label = "Instrument Box Menus",                key = "InstrumentBox"},
+  {label = "Main Menu: File",                     key = "MainMenuFile"},
+  {label = "Main Menu: Tools",                    key = "MainMenuTools"},
+  {label = "Main Menu: View",                     key = "MainMenuView"},
+  {label = "Mixer Menus",                         key = "Mixer"},
+  {label = "Paketti Gadgets Menus",               key = "PakettiGadgets"},
+  {label = "Pattern Editor Menus",                key = "PatternEditor"},
+  {label = "Pattern Matrix Menus",                key = "PatternMatrix"},
+  {label = "Pattern Sequencer Menus",             key = "PatternSequencer"},
+  {label = "Phrase Editor Menus",                 key = "PhraseEditor"},
+  {label = "Phrase Grid Menus",                   key = "PhraseGrid"},
+  {label = "Phrase Mappings Menus",               key = "PhraseMappings"},
+  {label = "Sample Editor Menus",                 key = "SampleEditor"},
+  {label = "Sample Editor Ruler Menus",           key = "SampleEditorRuler"},
+  {label = "Sample FX Mixer Menus",               key = "SampleFXMixer"},
+  {label = "Sample Keyzone Menus",                key = "SampleKeyzone"},
+  {label = "Sample Modulation Matrix Menus",      key = "SampleModulationMatrix"},
+  {label = "Sample Navigator Menus",              key = "SampleNavigator"},
+  {label = "Track Automation List Menus",         key = "TrackAutomationList"},
+}
+
+-- Returns a flat array of every menu-context preference key from the canonical list.
+function PakettiMenuConfigCategoryKeys()
+  local keys = {}
+  for _, cat in ipairs(PakettiMenuConfigCategoryList) do
+    keys[#keys + 1] = cat.key
+  end
+  return keys
+end
+
 function PakettiCalculateEnabledCounts()
   local counts = PakettiCountRegistrations()
-  
+
   -- Calculate enabled menus based on category preferences
   local menu_categories_enabled = 0
-  local menu_categories_total = 17 -- Total number of menu categories
-  
-  local category_keys = {
-    "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
-    "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
-    "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
-    "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
-  }
-  
+  local category_keys = PakettiMenuConfigCategoryKeys()
+  local menu_categories_total = #category_keys -- Total number of menu categories
+
   for _, key in ipairs(category_keys) do
     if preferences.pakettiMenuConfig[key] and preferences.pakettiMenuConfig[key].value then
       menu_categories_enabled = menu_categories_enabled + 1
@@ -3468,21 +3511,29 @@ function pakettiMenuConfigDialog()
     return
   end
 
-  local function create_menu_checkbox(label, preference_key, update_function, width)
+  local function create_menu_checkbox(label, preference_key, width)
     return vb:row{
       vb:checkbox{
         value = preferences.pakettiMenuConfig[preference_key].value,
         notifier = function(value)
           preferences.pakettiMenuConfig[preference_key].value = value
           preferences:save_as("preferences.xml")
-          if update_function and type(update_function) == "function" then
-            update_function(value)
-          end
+          renoise.app():show_status(label .. (value and " enabled" or " disabled") ..
+            " - restart Renoise for the change to take effect.")
         end
       },
-      vb:text{text = label, width = width or 200}
+      vb:text{text = label, width = width or 250}
     }
   end
+
+  -- Build the checkbox rows from the canonical category list, sorted alphabetically.
+  local sorted_categories = {}
+  for _, cat in ipairs(PakettiMenuConfigCategoryList) do
+    sorted_categories[#sorted_categories + 1] = cat
+  end
+  table.sort(sorted_categories, function(a, b)
+    return a.label:lower() < b.label:lower()
+  end)
 
   menu_config_dialog_content = vb:column{
     margin = 10,
@@ -3491,38 +3542,33 @@ function pakettiMenuConfigDialog()
       text = "Note: Changes will only take effect after Renoise has been restarted.",
       font = "bold"
     },
-    vb:space{height = 5},
-    create_menu_checkbox("Instrument Box Menus", "InstrumentBox", PakettiMenuApplyInstrumentBoxMenus, 250),
-    create_menu_checkbox("Sample Editor Menus", "SampleEditor", PakettiMenuApplySampleEditorMenus, 250),
-    create_menu_checkbox("Sample Navigator Menus", "SampleNavigator", PakettiMenuApplySampleNavigatorMenus, 250),
-    create_menu_checkbox("Sample Keyzone Menus", "SampleKeyzone", PakettiMenuApplySampleKeyzoneMenus, 250),
-    create_menu_checkbox("Mixer Menus", "Mixer", PakettiMenuApplyMixerMenus, 250),
-    create_menu_checkbox("Pattern Editor Menus", "PatternEditor", PakettiMenuApplyPatternEditorMenus, 250),
-    create_menu_checkbox("Main Menu: Tools", "MainMenuTools", nil, 250),
-    create_menu_checkbox("Main Menu: View", "MainMenuView", nil, 250),
-    create_menu_checkbox("Main Menu: File", "MainMenuFile", nil, 250),
-    create_menu_checkbox("Pattern Matrix Menus", "PatternMatrix", PakettiMenuApplyPatternMatrixMenus, 250),
-    create_menu_checkbox("Pattern Sequencer Menus", "PatternSequencer", PakettiMenuApplyPatternSequencerMenus, 250),
-    create_menu_checkbox("Phrase Editor Menus", "PhraseEditor", PakettiMenuApplyPhraseEditorMenus, 250),
-    create_menu_checkbox("Paketti Gadgets Menus", "PakettiGadgets", nil, 250),
-    create_menu_checkbox("Track DSP Device Menus", "TrackDSPDevice", PakettiMenuApplyTrackDSPDeviceMenus, 250),
-    create_menu_checkbox("Automation Menus", "Automation", PakettiMenuApplyAutomationMenus, 250),
-    create_menu_checkbox("Disk Browser Files Menus", "DiskBrowserFiles", PakettiMenuApplyDiskBrowserFilesMenus, 250),
-    vb:space{height = 5},
-    vb:button{
-      text = "Remember to Restart Renoise!",
-      width = 270,
-      height = 30,
-      pressed = function()
-        if menu_config_dialog and menu_config_dialog.visible then
-          menu_config_dialog_content = nil
-          menu_config_dialog:close()
-          menu_config_dialog = nil
-        end
-        renoise.app():show_status("Remember to restart Renoise for menu changes to take effect!")
-      end
-    }
+    vb:space{height = 5}
   }
+
+  -- Two-column layout so the (now larger) list stays a reasonable height.
+  local half = math.ceil(#sorted_categories / 2)
+  local col1 = vb:column{spacing = 4}
+  local col2 = vb:column{spacing = 4}
+  for i, cat in ipairs(sorted_categories) do
+    local target = (i <= half) and col1 or col2
+    target:add_child(create_menu_checkbox(cat.label, cat.key, 250))
+  end
+  menu_config_dialog_content:add_child(vb:row{spacing = 20, col1, col2})
+
+  menu_config_dialog_content:add_child(vb:space{height = 5})
+  menu_config_dialog_content:add_child(vb:button{
+    text = "Remember to Restart Renoise!",
+    width = 270,
+    height = 30,
+    pressed = function()
+      if menu_config_dialog and menu_config_dialog.visible then
+        menu_config_dialog_content = nil
+        menu_config_dialog:close()
+        menu_config_dialog = nil
+      end
+      renoise.app():show_status("Remember to restart Renoise for menu changes to take effect!")
+    end
+  })
 
   menu_config_dialog = renoise.app():show_custom_dialog("Paketti Menu Configuration",menu_config_dialog_content,my_keyhandler_func)
   
@@ -3575,12 +3621,7 @@ function PakettiTogglerDialog()
   end
 
   local function enable_all_menus()
-    local category_keys = {
-      "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
-      "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
-      "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
-      "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
-    }
+    local category_keys = PakettiMenuConfigCategoryKeys()
     for _, key in ipairs(category_keys) do
       if preferences.pakettiMenuConfig[key] then
         preferences.pakettiMenuConfig[key].value = true
@@ -3592,12 +3633,7 @@ function PakettiTogglerDialog()
   end
 
   local function disable_all_menus()
-    local category_keys = {
-      "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
-      "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
-      "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
-      "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
-    }
+    local category_keys = PakettiMenuConfigCategoryKeys()
     for _, key in ipairs(category_keys) do
       if preferences.pakettiMenuConfig[key] then
         preferences.pakettiMenuConfig[key].value = false
@@ -3612,12 +3648,7 @@ function PakettiTogglerDialog()
     preferences.pakettiMenuConfig.MasterMenusEnabled.value = true
     preferences.pakettiMenuConfig.MasterKeybindingsEnabled.value = true
     preferences.pakettiMenuConfig.MasterMidiMappingsEnabled.value = true
-    local category_keys = {
-      "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
-      "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
-      "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
-      "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
-    }
+    local category_keys = PakettiMenuConfigCategoryKeys()
     for _, key in ipairs(category_keys) do
       if preferences.pakettiMenuConfig[key] then
         preferences.pakettiMenuConfig[key].value = true
@@ -3631,12 +3662,7 @@ function PakettiTogglerDialog()
     preferences.pakettiMenuConfig.MasterMenusEnabled.value = false
     preferences.pakettiMenuConfig.MasterKeybindingsEnabled.value = false
     preferences.pakettiMenuConfig.MasterMidiMappingsEnabled.value = false
-    local category_keys = {
-      "InstrumentBox", "SampleEditor", "SampleNavigator", "SampleKeyzone",
-      "Mixer", "PatternEditor", "MainMenuTools", "MainMenuView", "MainMenuFile",
-      "PatternMatrix", "PatternSequencer", "PhraseEditor", "PakettiGadgets",
-      "TrackDSPChain", "TrackDSPDevice", "Automation", "DiskBrowserFiles"
-    }
+    local category_keys = PakettiMenuConfigCategoryKeys()
     for _, key in ipairs(category_keys) do
       if preferences.pakettiMenuConfig[key] then
         preferences.pakettiMenuConfig[key].value = false
@@ -4160,19 +4186,31 @@ function PakettiMenuContextPrefKey(name)
   elseif clean:match("^Main Menu:View:") or clean:match("^Main Menu:Options:") then return "MainMenuView"
   elseif clean:match("^Main Menu:") then return "MainMenuTools"
   elseif clean:match("^Instrument Box:") then return "InstrumentBox"
+  -- Sample Editor sub-contexts: match the specific ones BEFORE the generic "Sample Editor"
+  elseif clean:match("^Sample Editor Ruler:") then return "SampleEditorRuler"
+  elseif clean:match("^Sample Editor Slice Markers:") then return "SampleEditorRuler"
   elseif clean:match("^Sample Editor") then return "SampleEditor"
   elseif clean:match("^Sample Navigator:") then return "SampleNavigator"
   elseif clean:match("^Sample Keyzones:") or clean:match("^Sample Mappings:") then return "SampleKeyzone"
-  elseif clean:match("^Sample FX Mixer:") then return "SampleEditor"
-  elseif clean:match("^Sample Modulation") then return "SampleEditor"
+  elseif clean:match("^Sample FX Mixer:") then return "SampleFXMixer"
+  elseif clean:match("^Sample Modulation") then return "SampleModulationMatrix"
   elseif clean:match("^Instrument Modulation:") then return "SampleEditor"
   elseif clean:match("^Mixer:") then return "Mixer"
   elseif clean:match("^Pattern Editor:") then return "PatternEditor"
   elseif clean:match("^Pattern Matrix:") then return "PatternMatrix"
   elseif clean:match("^Pattern Sequencer:") then return "PatternSequencer"
+  -- Phrase sub-contexts: specific ones BEFORE the generic "Phrase"
+  elseif clean:match("^Phrase Mappings:") then return "PhraseMappings"
+  elseif clean:match("^Phrase Grid:") then return "PhraseGrid"
   elseif clean:match("^Phrase") then return "PhraseEditor"
+  -- DSP Device sub-contexts: specific ones BEFORE the generic "DSP Device"
+  elseif clean:match("^DSP Device Automation:") then return "DSPDeviceAutomation"
   elseif clean:match("^DSP Device:") then return "TrackDSPDevice"
   elseif clean:match("^DSP Chain:") then return "TrackDSPChain"
+  -- Track Automation List MUST be matched before Track Automation (the " List"
+  -- breaks the "^Track Automation:" colon match, so without this the List entries
+  -- fall through to nil and are never gated by the Menu Configuration toggle).
+  elseif clean:match("^Track Automation List:") then return "TrackAutomationList"
   elseif clean:match("^Track Automation:") then return "Automation"
   elseif clean:match("^Disk Browser") then return "DiskBrowserFiles"
   else return nil
