@@ -1,4 +1,4 @@
-Feature: Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25)
+Feature: Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8)
 Context: Global
 
   # WHAT THIS SPAWNS / RESULT
@@ -34,10 +34,16 @@ Context: Global
   #   (Main Menu:Options) arms it at launch (headless). Disabled APC 01..40 absorb
   #   the pad notes.
   #
-  # TWO-WAY SYNC: both bridges write the same pattern and re-read it on their own
-  # refresh loop (MidiMix idle poller / APC 50ms timer), so a press on the MidiMix
-  # lights up on the APC and vice-versa, and the row selector on either follows on
-  # both. Hardware-verified with both controllers plugged in, 2026-06-11.
+  # AKAI LPD8 SEQUENCER (paketti_lpd8_*): the 8 pads as an 8-step sequencer for the
+  #   focused row. Starting it forces MAX_STEPS=8 so the 8 pads == steps 1..8; press
+  #   toggles, LED highlights on + inverts on the playhead. Pad notes vary by the
+  #   LPD8's program — PAKETTI_LPD8_PAD_NOTES is editable (default 36..43) and there
+  #   is an LPD8 probe (read notes + test LEDs). Disabled LPD8 01..08 absorb the pads.
+  #
+  # TWO-WAY SYNC: all bridges write the same pattern and re-read it on their own
+  # refresh loop (MidiMix idle poller / APC + LPD8 50ms timers), so a press on one
+  # controller lights up on the others, and the row selector on any follows on all.
+  # Hardware-verified with MidiMix + APC plugged in together, 2026-06-11.
   #
   # WATCH: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState PakettiEightOneTwentyGetStepYxx PakettiEightOneTwentyToggleStepYxx PakettiEightOneTwentyAPCSeqStart PakettiEightOneTwentyMidiMixOpen PakettiEightOneTwentyAPCAutoArm
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
@@ -76,3 +82,10 @@ Context: Global
     Then the same step lights up on the APC grid
     And selecting a different row on either controller updates both
     # @hw-verified 2026-06-11
+
+  Scenario: LPD8 8 pads sequence the focused row's first 8 steps
+    Given the LPD8 step sequencer is started
+    Then the groovebox is forced to 8-step mode
+    When the user presses a pad
+    Then that step toggles on the selected row and the pad LED highlights it
+    # @built @untested-in-renoise
