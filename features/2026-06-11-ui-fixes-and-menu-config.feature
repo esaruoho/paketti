@@ -127,17 +127,20 @@ Feature: Preferences "Pattern Editor" section shows all eight settings
 #      on 2026-06-11. Every scenario is now @runtime-verified.
 #   2. Kit loader monospace-font assumption — CONFIRMED OK by the runtime check
 #      (alignment looks correct in Renoise). No fixed-width-column fallback needed.
-#   3. Menu Config per-category counts UNDERCOUNT entries whose name is built by
-#      string concatenation (e.g. the automation ctx..":Paketti:..." loop from
-#      commit 656f65a) — they land in __uncategorized, not a category total.
+#   3. Menu Config per-category counts — DONE (commit cc0f5ab). Counting moved from
+#      a source-text scan to a startup tally at the registration gate
+#      (PakettiShouldRegisterMenuEntry), which sees each entry once with a resolved
+#      name — so concatenated (name=var.."...") and for-loop-generated entries are
+#      now counted against their real context. Frozen after the boot flush.
 #   4. Keybindings and MIDI Mappings remain MASTER-ONLY (all-or-nothing). No
 #      per-context granularity mirroring the menu side. Larger build if wanted.
 #   5. Literal "Delete" synonym NOT added as separate automation menu entries
 #      (only Wipe + Clear shipped). Changelog mentions Delete; menu does not.
 #   6. PakettiAddMenuEntry alphabetical sort means the new "Clear..." automation
 #      entries do NOT sit adjacent to the "Wipe..." ones in the right-click menu.
-#   7. Paketti Toggler NOT renamed and NOT lifted into Main Menu -> Options next to
-#      Menu Configuration (still "Paketti Toggler" / header "Registration Manager").
+#   7. Paketti Toggler RENAMED to "Paketti Deactivator" (commit cc0f5ab) — window
+#      title, header, menu entry, keybinding, main-menu button, keybinding presets.
+#      Still NOT lifted into Main Menu -> Options next to Menu Configuration.
 #   8. PRE-EXISTING, UNTOUCHED: PakettiEightOneTwenty.lua:9594 diagnostic "Only 200
 #      active local variables can exist" — luac -p compiles the file fine, so not
 #      currently breaking, but flagged. Not investigated this session.
