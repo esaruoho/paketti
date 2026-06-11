@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: LPD8 8-step sequencer — confirmed pad map, auto-opening Test, LED animations, auto-start
+
+Follow-up to the LPD8 support after a hardware probe. The pad notes are confirmed (36–43); they're now mapped **top-row-first** (steps 1–4 top row, 5–8 bottom row). **Test pad LEDs** now auto-opens the device if it isn't open (no need to "Open" first). New **LED animations** — Blink, Scroll, and a Snake (a 3-pad worm that slithers across the pads) — plus a Stop. And an **Auto-Start AKAI LPD8** setting (Options menu, like the MidiMix/APC ones) that arms the 8-step sequencer at launch / on song load; because it forces 8-step mode it's opt-in (default off), so it only auto-arms on 8120 open when the setting is enabled.
+
+- Menu: `Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Blink / Scroll / Snake / Stop Animation`
+- Menu: `Main Menu:Options:Auto-Start AKAI LPD8` (checkable)
+- Keybinding: `Global:Paketti:Paketti Groovebox 8120 LPD8 Lights Snake` / `... LPD8 Lights Stop`
+- Preference: `PakettiEightOneTwentyLPD8AutoStart` (default OFF)
+
 ### 2026-06-11 - Cleanup: Paketti Toggler no longer duplicates the per-context menu toggles (now owned by Paketti Menu Configuration)
 
 The "Menu Categories" checkbox grid was duplicated in both the Paketti Toggler and the Paketti Menu Configuration dialogs. Now that Menu Configuration (Main Menu -> Options) owns the per-context menu on/off — alphabetical, all contexts — the duplicate is removed from the Toggler. The Toggler keeps what only it does: registration counts, the master Enable/Disable ALL toggles for Menu Entries + Keybindings + MIDI Mappings, the Enable/Disable All Registrations buttons, and the per-format Import Hooks toggles. In place of the removed grid, the Toggler now shows a one-line note plus an "Open Paketti Menu Configuration..." button, so both halves of the same enable/disable area are reachable from one place. No preferences changed — the master toggles still flip every menu category, so nothing is lost.
