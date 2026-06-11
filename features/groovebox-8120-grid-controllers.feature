@@ -41,6 +41,7 @@ Context: Global
   #
   # WATCH: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState PakettiEightOneTwentyGetStepYxx PakettiEightOneTwentyToggleStepYxx PakettiEightOneTwentyAPCSeqStart PakettiEightOneTwentyMidiMixOpen PakettiEightOneTwentyAPCAutoArm
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+#   2026-06-11  direct-commit  touched: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState
 
   Scenario: APC pad toggles a step on the selected row (headless)
     Given the APC Key 25 step sequencer is armed and the 8120 dialog is closed

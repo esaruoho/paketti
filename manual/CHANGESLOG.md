@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Feature: AKAI LPD8 as a Groovebox 8120 8-step sequencer
+
+A third controller for the 8120: the LPD8's 8 pads as an 8-step sequencer for the selected row. Starting it forces the groovebox into **8-step mode** so the 8 pads map 1:1 to steps 1–8; press a pad to write/clear that step, and the pad LED highlights when the step is on (and inverts on the playhead). It reads/writes the pattern directly via the same shared step engine as the MidiMix and APC, so it works headless and cross-syncs with the other controllers. The LPD8 pad note-numbers vary by the unit's selected program, so there's a probe (read pads to terminal + test LEDs) to confirm them, and an editable `PAKETTI_LPD8_PAD_NOTES` table (default 36–43). Eight `Disabled LPD8 01–08` do-nothing absorbers are included to stop the pads also triggering samples.
+
+- Menu: `Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Start (8 steps) / Stop`
+- Menu: `Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Open / Test pad LEDs / Close`
+- Keybinding: `Global:Paketti:Paketti Groovebox 8120 LPD8 Step Sequencer Toggle`
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:LPD8 Step Sequencer Toggle [Trigger]` + `Disabled LPD8 01..08`
+
 ### 2026-06-11 - Fix: Paketti Toggler dialog shows every menu category (incl. Track Automation List), alphabetically
 
 The "Paketti Toggler" dialog's per-context checkboxes were hand-maintained and only listed 17 of the 24 menu categories — so **Track Automation List** (and DSP Device Automation, Phrase Grid, Phrase Mappings, Sample Editor Ruler, Sample FX Mixer, Sample Modulation Matrix) had a working preference and registration gate but **no checkbox to toggle them** from this dialog. The checkboxes are now generated straight from the canonical category list, sorted alphabetically and balanced across three columns, so every context — including Track Automation List — can be turned on/off here, persists to `preferences.xml`, and is honored on the next Renoise restart. (The separately-titled "Paketti Menu Configuration" dialog was already brought in line in an earlier commit; this matches the Toggler to it.)

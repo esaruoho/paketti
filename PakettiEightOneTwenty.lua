@@ -6325,6 +6325,189 @@ if PakettiEightOneTwentyAPCAutoStartEnabled() then
 end
 
 -- Add MIDI mapping for step mode switch
+-- ============================================================================
+-- AKAI LPD8 — 8 pads as an 8-step sequencer for the focused 8120 row
+-- ----------------------------------------------------------------------------
+-- Starting it forces the groovebox into 8-step mode (MAX_STEPS=8): the LPD8's 8
+-- pads become steps 1..8 of the SELECTED row. Press a pad to write/clear that
+-- step; the pad LED highlights when the step is on (+ inverts on the playhead),
+-- read live from the pattern so it works headless. Same shared step engine as
+-- the MidiMix/APC, so it cross-syncs with them too.
+--
+-- Pad note numbers vary by the LPD8's selected PROGRAM; the default below is a
+-- common factory map (notes 36..43 = pads 1..8). Run "LPD8 Probe — Open" and edit
+-- PAKETTI_LPD8_PAD_NOTES if your unit sends different notes. LED control: mk2
+-- RGB pads light from host MIDI; mk1 pads may not — the probe's Test LEDs tells.
+PAKETTI_LPD8_PAD_NOTES = {36, 37, 38, 39, 40, 41, 42, 43}  -- pad 1..8 -> MIDI note
+local paketti_lpd8_in = nil
+local paketti_lpd8_out = nil
+local paketti_lpd8_seq_active = false
+local paketti_lpd8_seq_timer_fn = nil
+local paketti_lpd8_prev = {}
+
+local function paketti_lpd8_find_device()
+  local function match(name) local l = name:lower() return l:find("lpd8") or l:find("lpd 8") end
+  local i, o
+  for _, n in ipairs(renoise.Midi.available_input_devices()  or {}) do if match(n) then i = n break end end
+  for _, n in ipairs(renoise.Midi.available_output_devices() or {}) do if match(n) then o = n break end end
+  return i, o
+end
+
+local function paketti_lpd8_step_for_note(note)
+  for s, n in ipairs(PAKETTI_LPD8_PAD_NOTES) do if n == note then return s end end
+  return nil
+end
+
+local function paketti_lpd8_set_led(step, on)
+  if not paketti_lpd8_out then return end
+  local note = PAKETTI_LPD8_PAD_NOTES[step]
+  if not note then return end
+  paketti_lpd8_out:send({0x90, note, on and 127 or 0})
+end
+
+local function paketti_lpd8_clear_all()
+  if not paketti_lpd8_out then return end
+  for s = 1, 8 do paketti_lpd8_set_led(s, false) end
+  paketti_lpd8_prev = {}
+end
+
+-- Probe: print every incoming message so the pad notes can be confirmed.
+local function paketti_lpd8_probe_on_midi(message)
+  if type(message) ~= "table" or #message < 3 then return end
+  print(string.format("LPD8 IN: status=0x%02X type=0x%02X ch=%d data1=%d data2=%d",
+    message[1], math.floor(message[1] / 16) * 16, (message[1] % 16) + 1, message[2], message[3]))
+end
+
+function PakettiEightOneTwentyLPD8ProbeOpen()
+  if paketti_lpd8_in then renoise.app():show_status("LPD8 probe already open") return end
+  local in_name, out_name = paketti_lpd8_find_device()
+  print("LPD8 PROBE: in_name=" .. tostring(in_name) .. " out_name=" .. tostring(out_name))
+  if not in_name then
+    print("LPD8 PROBE: available inputs = " .. table.concat(renoise.Midi.available_input_devices() or {}, " | "))
+    renoise.app():show_status("LPD8: no device with 'LPD8' in the name — see terminal")
+    return
+  end
+  local ok, dev = pcall(renoise.Midi.create_input_device, in_name, paketti_lpd8_probe_on_midi)
+  if ok and dev then paketti_lpd8_in = dev else print("LPD8: input open failed: " .. tostring(dev)) end
+  if out_name then
+    local ok2, dev2 = pcall(renoise.Midi.create_output_device, out_name)
+    if ok2 and dev2 then paketti_lpd8_out = dev2 end
+  end
+  renoise.app():show_status("LPD8 probe OPEN — press pads; watch the terminal for 'LPD8 IN:' lines")
+end
+
+function PakettiEightOneTwentyLPD8ProbeClose()
+  if paketti_lpd8_out then paketti_lpd8_clear_all() pcall(function() paketti_lpd8_out:close() end) paketti_lpd8_out = nil end
+  if paketti_lpd8_in then pcall(function() paketti_lpd8_in:close() end) paketti_lpd8_in = nil end
+  renoise.app():show_status("LPD8 probe closed")
+end
+
+function PakettiEightOneTwentyLPD8TestLeds()
+  if not paketti_lpd8_out then renoise.app():show_status("LPD8: output not open — run 'LPD8 Probe — Open' first") return end
+  for s = 1, 8 do paketti_lpd8_set_led(s, true) end
+  print("LPD8 TEST: sent Note On vel 127 to the 8 pad notes — note which pads light.")
+  renoise.app():show_status("LPD8: lit all 8 pads — tell me if they light (mk2 RGB will; mk1 may not)")
+end
+
+-- Sequencer: pad press toggles steps 1..8 of the focused row; timer redraws LEDs.
+local function paketti_lpd8_seq_refresh()
+  if not (paketti_lpd8_seq_active and paketti_lpd8_out) then return end
+  local row = paketti_8120_selected_row()
+  local playing_step = nil
+  local song = renoise.song()
+  if song and song.transport.playing then
+    local pos = song.transport.playback_pos
+    if pos and pos.line then playing_step = ((pos.line - 1) % 8) + 1 end
+  end
+  for s = 1, 8 do
+    local on = PakettiEightOneTwentyGetStepState(row, s)
+    if playing_step == s then on = not on end  -- highlight the playhead
+    if paketti_lpd8_prev[s] ~= on then
+      paketti_lpd8_set_led(s, on)
+      paketti_lpd8_prev[s] = on
+    end
+  end
+end
+
+local function paketti_lpd8_seq_on_midi(message)
+  if not paketti_lpd8_seq_active then return end
+  if type(message) ~= "table" or #message < 3 then return end
+  local status, d1, d2 = message[1], message[2], message[3]
+  if math.floor(status / 16) * 16 ~= 0x90 or d2 <= 0 then return end
+  local step = paketti_lpd8_step_for_note(d1)
+  if step then
+    PakettiEightOneTwentyToggleStepState(paketti_8120_selected_row(), step)
+    paketti_lpd8_seq_refresh()
+  end
+end
+
+function PakettiEightOneTwentyLPD8SeqStop()
+  paketti_lpd8_seq_active = false
+  if paketti_lpd8_seq_timer_fn and renoise.tool():has_timer(paketti_lpd8_seq_timer_fn) then
+    renoise.tool():remove_timer(paketti_lpd8_seq_timer_fn)
+  end
+  paketti_lpd8_seq_timer_fn = nil
+  PakettiEightOneTwentyLPD8ProbeClose()
+  renoise.app():show_status("LPD8 8-step sequencer: OFF")
+end
+
+function PakettiEightOneTwentyLPD8SeqStart()
+  -- Force the whole groovebox to 8-step mode so the 8 pads == the 8 steps.
+  if MAX_STEPS ~= 8 then
+    MAX_STEPS = 8
+    if dialog and dialog.visible then
+      cleanup_bpm_observable()
+      dialog:close()
+      dialog = nil
+      rows = {}
+      pakettiEightSlotsByOneTwentyDialog()
+    end
+  end
+  if paketti_lpd8_seq_active and paketti_lpd8_in then paketti_lpd8_seq_refresh() return end
+  PakettiEightOneTwentyLPD8ProbeClose()
+  local in_name, out_name = paketti_lpd8_find_device()
+  if not in_name and not out_name then
+    renoise.app():show_status("LPD8: not detected — run 'LPD8 Probe — Open' to see the device list")
+    return
+  end
+  if in_name then
+    local ok, dev = pcall(renoise.Midi.create_input_device, in_name, paketti_lpd8_seq_on_midi)
+    if ok and dev then paketti_lpd8_in = dev else print("LPD8 seq: input open failed: " .. tostring(dev)) end
+  end
+  if out_name then
+    local ok, dev = pcall(renoise.Midi.create_output_device, out_name)
+    if ok and dev then paketti_lpd8_out = dev else print("LPD8 seq: output open failed: " .. tostring(dev)) end
+  end
+  paketti_lpd8_seq_active = true
+  paketti_lpd8_prev = {}
+  if not paketti_lpd8_seq_timer_fn then
+    paketti_lpd8_seq_timer_fn = function() paketti_lpd8_seq_refresh() end
+    renoise.tool():add_timer(paketti_lpd8_seq_timer_fn, 50)
+  end
+  paketti_lpd8_seq_refresh()
+  renoise.app():show_status("LPD8 8-step sequencer: ON (8-step mode) — pads toggle the selected row's steps 1..8")
+end
+
+function PakettiEightOneTwentyLPD8SeqToggle()
+  if paketti_lpd8_seq_active then PakettiEightOneTwentyLPD8SeqStop() else PakettiEightOneTwentyLPD8SeqStart() end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Step Sequencer Toggle", invoke=function() PakettiEightOneTwentyLPD8SeqToggle() end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:LPD8 Step Sequencer Toggle [Trigger]", invoke=function(message) if message:is_trigger() then PakettiEightOneTwentyLPD8SeqToggle() end end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Start (8 steps)", invoke=function() PakettiEightOneTwentyLPD8SeqStart() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer — Stop", invoke=function() PakettiEightOneTwentyLPD8SeqStop() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyLPD8ProbeOpen() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Test pad LEDs", invoke=function() PakettiEightOneTwentyLPD8TestLeds() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Close", invoke=function() PakettiEightOneTwentyLPD8ProbeClose() end}
+
+-- 8 do-nothing absorbers for the LPD8 pads (like Disabled 01..16 / Disabled APC).
+for i = 1, 8 do
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Paketti Groovebox 8120:Disabled LPD8 %02d", i),
+    invoke = function(message) end
+  }
+end
+
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
   if message:is_trigger() then
     -- Toggle between 16 and 32 steps
