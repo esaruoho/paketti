@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Fix: Paketti Preferences "Pattern Editor" section — third column was clipped, hiding two settings
+
+The Pattern Editor block in Paketti Preferences laid two of its rows out as three columns, but that section lives in the dialog's first column (fixed width, sized for two text+checkbox columns). The third column overflowed the fixed width and was clipped, so **Trigger on Input** and **SBx Pattern Loop Follow** (and their checkboxes) never rendered. Regrouped the eight settings into four two-per-row lines so every one is visible and clickable: Exploded Track Naming / Wipe Exploded Track · Pattern Status Monitor / Audition on Line Change · Trigger on Input / Automatic Rename Track · Select Used Instrument / SBx Pattern Loop Follow.
+
 ### 2026-06-11 - Feature: LPD8 pages, follow mode, 4+4 probability layout, and 3× row-select knobs
 
 Big LPD8 expansion for the Groovebox 8120, all headless-safe. **Pages:** since the LPD8 has only 8 pads, a page offset windows them over a 16/32-step pattern — Next/Previous Page (or an absolute "Select Page" knob) flips steps 1-8 → 9-16 → 17-24 → 25-32. **Follow-page mode:** the LPD8 auto-flips its page to track the playhead, so the 8 pads follow the sequence through any step count. **4 Steps + 4 Probability layout:** the top 4 pads edit 4 steps and the bottom 4 pads edit those steps' probability, paging 4 at a time. **Row select:** three independently-bindable copies each of the `01-08` and reversed `08-01` single-knob row selectors (bind LPD8 knobs or any knobs/faders). The 8 `Disabled LPD8 01..08` do-nothing absorbers (already present) let the pads sequence without triggering samples.

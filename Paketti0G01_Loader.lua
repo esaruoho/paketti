@@ -1674,6 +1674,10 @@ vb:row{
                 notifier=function(value) preferences.pakettiWipeExplodedTrack.value=value end
               }
             },
+            -- Two settings per row: column 1 (width=column1_width) only fits two
+            -- text(150)+checkbox columns. A third column overflows the fixed width
+            -- and gets clipped (the old 3-per-row layout hid "Trigger on Input" and
+            -- "SBx Pattern Loop Follow" entirely).
             vb:row{
               vb:text{text="Pattern Status Monitor",width=150,tooltip="Show real-time effect/note column information in status bar"},
               vb:checkbox{
@@ -1687,8 +1691,9 @@ vb:row{
                 value=preferences.pakettiAuditionOnLineChangeEnabled.value,
                 tooltip="Automatically audition the current line when moving cursor (API 6.2+ only)",
                 notifier=function(value) preferences.pakettiAuditionOnLineChangeEnabled.value=value end
-              },
-              vb:space{width=checkbox_spacing},
+              }
+            },
+            vb:row{
               vb:text{text="Trigger on Input",width=150,tooltip="Trigger/audition note when typing into pattern during record mode (API 6.2+ only)"},
               vb:checkbox{
                 value=preferences.pakettiTriggerOnInputEnabled.value,
@@ -1701,14 +1706,13 @@ vb:row{
                     end
                   end
                 end
-              }
-            },
-            vb:row{
+              },
+              vb:space{width=checkbox_spacing},
               vb:text{text="Automatic Rename Track",width=150,tooltip="Automatically rename tracks based on played samples every 200ms"},
               vb:checkbox{
                 value=preferences.pakettiAutomaticRenameTrack.value,
                 tooltip="Automatically rename tracks based on played samples every 200ms",
-                notifier=function(value) 
+                notifier=function(value)
                   preferences.pakettiAutomaticRenameTrack.value=value
                   -- Update the automatic rename system immediately
                   if preferences.pakettiAutomaticRenameTrack.value then
@@ -1717,8 +1721,9 @@ vb:row{
                     pakettiStopAutomaticRenameTrack()
                   end
                 end
-              },
-              vb:space{width=checkbox_spacing},
+              }
+            },
+            vb:row{
               vb:text{text="Select Used Instrument",width=150,tooltip="When switching tracks, automatically select the instrument used in that track (like 'Capture Nearest Instrument')"},
               vb:checkbox{
                 value=preferences.PakettiSelectTrackSelectInstrument.value,
