@@ -4761,11 +4761,6 @@ function PakettiEightOneTwentyToggleStepYxx(row, step)
     end
     line = line + MAX_STEPS
   end
-  -- DIAGNOSTIC: read the write back so we can see if the effect column took it.
-  local check = pattern.tracks[row]:line(step).effect_columns[1]
-  print(string.format("YXX HEADLESS: row=%d step=%d turn_on=%s -> number_string='%s' amount=%d vis_fx_cols=%d note='%s'",
-    row, step, tostring(turn_on), tostring(check.number_string), tostring(check.amount_value),
-    track.visible_effect_columns, tostring(pattern.tracks[row]:line(step).note_columns[1].note_string)))
 end
 
 function assign_midi_mappings()
@@ -5486,8 +5481,6 @@ function PakettiEightOneTwentyMidiMixRefreshLedsSilent()
     local ok = PakettiEightOneTwentyMidiMixOpen()
     if not ok then paketti_midimix_autoopen_blocked = true end
   end
-  print(string.format("MIDIMIX REFRESH (knob): bridge_out=%s bridge_in=%s row=%02d",
-    tostring(paketti_midimix_out ~= nil), tostring(paketti_midimix_in ~= nil), paketti_8120_selected_row()))
   paketti_midimix_redraw_all_leds()
 end
 
@@ -6214,6 +6207,13 @@ function PakettiEightOneTwentyAPCSeqStop()
 end
 
 function PakettiEightOneTwentyAPCSeqStart()
+  -- Already armed and the device is open? Don't churn (close+reopen the MIDI
+  -- device) — this is called on every 8120 dialog open and 16/32 toggle. Just
+  -- repaint and bail.
+  if paketti_apc_seq_active and paketti_apc_in then
+    paketti_apc_seq_refresh()
+    return
+  end
   if PakettiEightOneTwentyAPCStop then PakettiEightOneTwentyAPCStop() end  -- stop animations/clear
   -- (Re)open the device with the SEQUENCER callback so pads drive the 8120.
   PakettiEightOneTwentyAPCProbeClose()
@@ -6267,7 +6267,6 @@ function PakettiEightOneTwentyAPCAutoArm()
   if not in_name then return false end
   PakettiEightOneTwentyAPCSeqStart()
   renoise.app():show_status("Groovebox 8120: APC Key 25 detected — step sequencer ARMED. Map pads to 'Disabled APC NN' (MIDI Map mode) so they stop triggering samples.")
-  print("APC AUTO-ARM: APC Key 25 detected, step sequencer armed. To stop pad notes also playing samples, MIDI-Map each pad to 'Paketti Groovebox 8120:Disabled APC 01..40'.")
   return true
 end
 

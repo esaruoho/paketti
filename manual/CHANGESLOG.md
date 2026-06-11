@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Cleanup: Groovebox 8120 controller integration confirmed working — diagnostics removed, APC arm no longer churns
+
+The MidiMix + APC Key 25 step sequencer integration is confirmed working on hardware (step toggling, headless per-step probability, the Master Low-Cut high-pass, and live two-way sync between both controllers). Removed the temporary terminal diagnostics (the per-toggle `YXX HEADLESS` print, the per-knob-move MidiMix refresh print, and the APC auto-arm reminder print). The APC step sequencer no longer closes-and-reopens its MIDI device when it's re-armed (which happened on every 8120 dialog open and every 16/32 step-mode toggle) — if it's already armed it just repaints, removing a brief LED flicker. Feature cards added for the grid controllers and the master low-cut.
+
 ### 2026-06-11 - Improvement: Scala Tuning Map gets a vertical scrollbar for the full note range
 
 Added a vertical scrollbar beside the canvas so you can scroll smoothly through all 120 notes (C-0…B-9) instead of relying only on the Period/Note buttons. The thumb size reflects how much of the range is visible, and it stays in sync when you use the Period/Note/Jump-to-Current buttons or "Follow note input". Built with the Renoise 3.5 `vb:scrollbar` view (offset-into-content with `pagestep` = visible rows).
