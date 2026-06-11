@@ -3,6 +3,13 @@
 -- Configuration: Maximum steps per row (16 or 32)
 
 local MAX_STEPS = 16  -- Can be changed dynamically via UI switch
+-- "Follow with controller": one persisted master toggle. When ON, whichever AKAI
+-- controller is armed (APC Key 25 / MidiMix / LPD8) pages its step view to track
+-- the playhead. Read live by every controller's refresh; written by the dialog
+-- checkbox and the per-controller follow keybindings/MIDI via the setter below.
+function paketti_8120_follow_enabled()
+  return preferences and preferences.pakettiGroovebox8120Follow and preferences.pakettiGroovebox8120Follow.value or false
+end
 -- Globals used across features (declare early, avoid overengineering)
 gbx_transpose_baseline = {nil,nil,nil,nil,nil,nil,nil,nil}
 gbx_global_pitch_ui_prev_value = 0
@@ -2976,6 +2983,11 @@ function create_global_controls()
     renoise.song().transport.follow_player = value
     PakettiEightOneTwentyReturnFocus()
   end}
+  controller_follow_checkbox = vb:checkbox{value = paketti_8120_follow_enabled(), tooltip="Follow with controller: the armed AKAI controller (APC Key 25 / MidiMix / LPD8) pages its step view to track the playhead (only matters at 32 steps, where the controller can't show every step at once).", notifier=function(value)
+    if initializing then return end
+    PakettiEightOneTwentySetControllerFollow(value)
+    PakettiEightOneTwentyReturnFocus()
+  end}
   groove_enabled_checkbox = vb:checkbox{value = renoise.song().transport.groove_enabled, notifier=function(value)
     if initializing then return end
     renoise.song().transport.groove_enabled = value
@@ -3076,6 +3088,7 @@ local randomize_all_yxx_button = vb:button{
       vb:text{text=" | ", font = "bold", style = "strong"},
       play_checkbox, vb:text{text="Play", font = "bold", style = "strong",width=30},
       follow_checkbox, vb:text{text="Follow", font = "bold", style = "strong",width=50},
+      controller_follow_checkbox, vb:text{text="Ctrl Follow", font = "bold", style = "strong",width=66},
       vb:button{text="/2", notifier = divide_bpm},
       vb:button{text="-", notifier = decrease_bpm},
       bpm_display,
@@ -5670,6 +5683,8 @@ function PakettiEightOneTwentyMidiMixOpen()
     else print("Groovebox 8120: failed to open MidiMix output: " .. tostring(dev)) end
   end
   paketti_midimix_last_led = {}
+  paketti_midimix_follow = paketti_8120_follow_enabled()  -- respect "Follow with controller"
+  paketti_midimix_page = 0
   paketti_midimix_install_idle()
   paketti_midimix_redraw_all_leds()
   renoise.app():show_status("Groovebox 8120: Akai MidiMix opened — buttons drive focused row, LEDs mirror it")
@@ -5718,10 +5733,10 @@ function PakettiEightOneTwentyMidiMixBridgeToggle()
 end
 
 -- Follow-page controls. The MidiMix's 16 LEDs window over the pattern; at 32 steps
--- this is the only way to reach steps 17-32. Follow auto-tracks the playhead; the
--- manual Next/Previous Page turn follow off so the window stays put.
+-- this is the only way to reach steps 17-32. Next/Previous Page browse manually;
+-- while "Follow with controller" is on and playing, the window re-snaps to the
+-- playhead on the next idle tick.
 function PakettiEightOneTwentyMidiMixNextPage()
-  paketti_midimix_follow = false
   paketti_midimix_page = paketti_midimix_page + 1
   if paketti_midimix_page > paketti_midimix_max_page() then paketti_midimix_page = 0 end
   paketti_midimix_last_led = {}
@@ -5729,7 +5744,6 @@ function PakettiEightOneTwentyMidiMixNextPage()
   renoise.app():show_status(string.format("MidiMix page %d/%d — steps %d-%d", paketti_midimix_page + 1, paketti_midimix_max_page() + 1, paketti_midimix_page * 16 + 1, math.min(MAX_STEPS, paketti_midimix_page * 16 + 16)))
 end
 function PakettiEightOneTwentyMidiMixPrevPage()
-  paketti_midimix_follow = false
   paketti_midimix_page = paketti_midimix_page - 1
   if paketti_midimix_page < 0 then paketti_midimix_page = paketti_midimix_max_page() end
   paketti_midimix_last_led = {}
@@ -5737,11 +5751,7 @@ function PakettiEightOneTwentyMidiMixPrevPage()
   renoise.app():show_status(string.format("MidiMix page %d/%d — steps %d-%d", paketti_midimix_page + 1, paketti_midimix_max_page() + 1, paketti_midimix_page * 16 + 1, math.min(MAX_STEPS, paketti_midimix_page * 16 + 16)))
 end
 function PakettiEightOneTwentyMidiMixToggleFollow()
-  paketti_midimix_follow = not paketti_midimix_follow
-  paketti_midimix_page = 0
-  paketti_midimix_last_led = {}
-  paketti_midimix_redraw_all_leds()
-  renoise.app():show_status("MidiMix follow-page mode: " .. (paketti_midimix_follow and "ON — 16 LEDs track the playhead (steps 1-16 / 17-32)" or "OFF"))
+  PakettiEightOneTwentySetControllerFollow(not paketti_8120_follow_enabled())
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Next Page", invoke=function() PakettiEightOneTwentyMidiMixNextPage() end}
@@ -6343,6 +6353,9 @@ function PakettiEightOneTwentyAPCSeqStart()
   end
   paketti_apc_seq_active = true
   paketti_apc_prev = {}
+  paketti_apc_follow = paketti_8120_follow_enabled()  -- respect "Follow with controller"
+  paketti_apc_paged = paketti_apc_follow
+  paketti_apc_page = 0
   if not paketti_apc_seq_timer_fn then
     paketti_apc_seq_timer_fn = function() paketti_apc_seq_refresh() end
     renoise.tool():add_timer(paketti_apc_seq_timer_fn, 50)
@@ -6356,12 +6369,11 @@ function PakettiEightOneTwentyAPCSeqToggle()
 end
 
 -- Follow-page controls. Paged mode shows 16 steps + 16 probability for the current
--- page (so probability is editable even at 32 steps); follow auto-tracks the
--- playhead. Next/Previous Page enable the paged layout and turn follow off so the
--- window stays where you put it.
+-- page (so probability is editable even at 32 steps). Next/Previous Page force the
+-- paged layout and browse manually; while "Follow with controller" is on and playing,
+-- the page re-snaps to the playhead on the next refresh.
 function PakettiEightOneTwentyAPCNextPage()
   paketti_apc_paged = true
-  paketti_apc_follow = false
   paketti_apc_page = paketti_apc_page + 1
   if paketti_apc_page > paketti_apc_max_page() then paketti_apc_page = 0 end
   paketti_apc_prev = {}
@@ -6370,7 +6382,6 @@ function PakettiEightOneTwentyAPCNextPage()
 end
 function PakettiEightOneTwentyAPCPrevPage()
   paketti_apc_paged = true
-  paketti_apc_follow = false
   paketti_apc_page = paketti_apc_page - 1
   if paketti_apc_page < 0 then paketti_apc_page = paketti_apc_max_page() end
   paketti_apc_prev = {}
@@ -6378,12 +6389,7 @@ function PakettiEightOneTwentyAPCPrevPage()
   renoise.app():show_status(string.format("APC page %d/%d — steps %d-%d (+probability)", paketti_apc_page + 1, paketti_apc_max_page() + 1, paketti_apc_page * 16 + 1, math.min(MAX_STEPS, paketti_apc_page * 16 + 16)))
 end
 function PakettiEightOneTwentyAPCToggleFollow()
-  paketti_apc_follow = not paketti_apc_follow
-  paketti_apc_paged = paketti_apc_follow
-  paketti_apc_page = 0
-  paketti_apc_prev = {}
-  paketti_apc_seq_refresh()
-  renoise.app():show_status("APC follow-page mode: " .. (paketti_apc_follow and "ON — 16 steps + 16 probability, page tracks the playhead" or "OFF — all steps shown (no probability at 32 steps)"))
+  PakettiEightOneTwentySetControllerFollow(not paketti_8120_follow_enabled())
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 APC Next Page", invoke=function() PakettiEightOneTwentyAPCNextPage() end}
@@ -6772,7 +6778,6 @@ end
 
 -- Page / mode / follow controls (all headless-safe).
 function PakettiEightOneTwentyLPD8NextPage()
-  paketti_lpd8_follow = false
   paketti_lpd8_page = paketti_lpd8_page + 1
   if paketti_lpd8_page > paketti_lpd8_max_page() then paketti_lpd8_page = 0 end
   paketti_lpd8_prev = {}
@@ -6781,7 +6786,6 @@ function PakettiEightOneTwentyLPD8NextPage()
   renoise.app():show_status(string.format("LPD8 page %d/%d — steps %d-%d", paketti_lpd8_page + 1, paketti_lpd8_max_page() + 1, paketti_lpd8_page * spp + 1, paketti_lpd8_page * spp + spp))
 end
 function PakettiEightOneTwentyLPD8PrevPage()
-  paketti_lpd8_follow = false
   paketti_lpd8_page = paketti_lpd8_page - 1
   if paketti_lpd8_page < 0 then paketti_lpd8_page = paketti_lpd8_max_page() end
   paketti_lpd8_prev = {}
@@ -6790,7 +6794,6 @@ function PakettiEightOneTwentyLPD8PrevPage()
   renoise.app():show_status(string.format("LPD8 page %d/%d — steps %d-%d", paketti_lpd8_page + 1, paketti_lpd8_max_page() + 1, paketti_lpd8_page * spp + 1, paketti_lpd8_page * spp + spp))
 end
 function PakettiEightOneTwentyLPD8SelectPage(v)  -- absolute 0..127 -> page
-  paketti_lpd8_follow = false
   local mp = paketti_lpd8_max_page()
   paketti_lpd8_page = math.floor(v / 128 * (mp + 1))
   paketti_lpd8_clamp_page()
@@ -6798,10 +6801,36 @@ function PakettiEightOneTwentyLPD8SelectPage(v)  -- absolute 0..127 -> page
   paketti_lpd8_seq_refresh()
 end
 function PakettiEightOneTwentyLPD8ToggleFollow()
-  paketti_lpd8_follow = not paketti_lpd8_follow
+  PakettiEightOneTwentySetControllerFollow(not paketti_8120_follow_enabled())
+end
+
+-- Master setter for the single "Follow with controller" preference. Persists it and
+-- syncs all three controllers' follow flags + resets their page windows, so whichever
+-- is armed tracks the playhead. Driven by the dialog checkbox and the per-controller
+-- follow keybindings/MIDI (which are now synonyms for this one mode).
+function PakettiEightOneTwentySetControllerFollow(on)
+  on = (on == true)
+  if preferences and preferences.pakettiGroovebox8120Follow then
+    preferences.pakettiGroovebox8120Follow.value = on
+    preferences:save_as("preferences.xml")
+  end
+  paketti_apc_follow = on
+  paketti_midimix_follow = on
+  paketti_lpd8_follow = on
+  paketti_apc_paged = on
+  paketti_apc_page = 0
+  paketti_lpd8_page = 0
+  paketti_midimix_page = 0
+  paketti_apc_prev = {}
   paketti_lpd8_prev = {}
-  paketti_lpd8_seq_refresh()
-  renoise.app():show_status("LPD8 follow-page mode: " .. (paketti_lpd8_follow and "ON — page tracks the playhead" or "OFF"))
+  paketti_midimix_last_led = {}
+  if paketti_apc_seq_active then paketti_apc_seq_refresh() end
+  if paketti_lpd8_seq_active then paketti_lpd8_seq_refresh() end
+  paketti_midimix_redraw_all_leds()
+  if controller_follow_checkbox then
+    pcall(function() controller_follow_checkbox.value = on end)
+  end
+  renoise.app():show_status("Groovebox 8120 — Follow with controller: " .. (on and "ON (armed controller tracks the playhead)" or "OFF"))
 end
 function PakettiEightOneTwentyLPD8ToggleProbMode()
   paketti_lpd8_mode = (paketti_lpd8_mode == "stepsprob") and "steps" or "stepsprob"
@@ -6842,6 +6871,7 @@ function PakettiEightOneTwentyLPD8SeqStart()
     if ok and dev then paketti_lpd8_out = dev else print("LPD8 seq: output open failed: " .. tostring(dev)) end
   end
   paketti_lpd8_seq_active = true
+  paketti_lpd8_follow = paketti_8120_follow_enabled()  -- respect "Follow with controller"
   paketti_lpd8_page = 0
   paketti_lpd8_clamp_page()
   paketti_lpd8_prev = {}
