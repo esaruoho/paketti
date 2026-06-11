@@ -252,13 +252,13 @@ function PakettiScalaTuningMapRender(ctx)
       if edoN then return edo_notation(deg, edoN, anchors) else return "\226\128\148" end  -- em dash
     end}
   end
-  cols[#cols + 1] = {h = "DEG",   w = 56, get = function(_, deg) return deg .. "/" .. n end}
-  cols[#cols + 1] = {h = "RATIO", w = 56, get = function(_, _, ri) return string.format("%.3f", ri) end}
+  cols[#cols + 1] = {h = "DEG",   w = 60, get = function(_, deg) return deg .. "/" .. n end}
+  cols[#cols + 1] = {h = "RATIO", w = 74, get = function(_, _, ri) return string.format("%.3f", ri) end}
   if PSTM_show_cents_period then
-    cols[#cols + 1] = {h = "CENTS-P", w = 66, get = function(_, _, ri) return string.format("%.1f", ratio_to_cents(ri)) end}
+    cols[#cols + 1] = {h = "CENTS-P", w = 82, get = function(_, _, ri) return string.format("%.1f", ratio_to_cents(ri)) end}
   end
   if PSTM_show_cents_root then
-    cols[#cols + 1] = {h = "CENTS-R", w = 76, get = function(_, _, _, tot) return string.format("%.1f", ratio_to_cents(tot)) end}
+    cols[#cols + 1] = {h = "CENTS-R", w = 90, get = function(_, _, _, tot) return string.format("%.1f", ratio_to_cents(tot)) end}
   end
   cols[#cols + 1] = {h = "HZ", w = 76, get = function(_, _, _, tot) return string.format("%.1f", C4_HZ * tot) end}
   local x = NAME_X

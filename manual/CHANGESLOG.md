@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Improvement: blocky retro monospace canvas font + wider Scala Tuning Map number columns
+
+Redrew the monospace canvas font in a blocky, right-angle "terminal/VGA" style (square bowls, no curves, uniform width) — keeping the rectilinear retro feel of the 8bit font while staying clearly distinct from it. Also widened the Scala Tuning Map's RATIO / CENTS-P / CENTS-R columns, redistributing the spare width so the numbers aren't bunched up.
+
 ### 2026-06-11 - Feature: "Follow with controller" checkbox in the Groovebox 8120 (one master follow toggle)
 
 Added a **Ctrl Follow** checkbox to the Groovebox 8120 dialog's top control row (next to Play / Follow). It is one persisted master setting (`Main Menu:Options` preference `pakettiGroovebox8120Follow`) that turns follow-page mode on for whichever AKAI controller is armed — APC Key 25, MidiMix, or LPD8 — so the controller's step view pages to track the playhead through a 32-step pattern. The three previously separate per-controller follow toggles (keybindings `Global:Paketti:Paketti Groovebox 8120 APC/MidiMix/LPD8 Toggle Follow Page`, their `[Trigger]` MIDI mappings, and the `!Preferences:Debug:MidiControllers` menu entries) now all drive this single mode and stay in sync with the checkbox. Arming any controller reads the saved setting, so follow "just works" headlessly after a restart. The setting is off by default. Manual Next/Previous Page still browses pages; while follow is on and playing, the window re-snaps to the playhead on the next refresh.
