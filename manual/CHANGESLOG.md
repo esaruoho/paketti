@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-11 - Fix: Monospace canvas font is now visually distinct from 8bit (was too similar)
+
+The first monospace draft looked almost identical to the 8bit font (same thin, angular, pointed letterforms), so the Canvas Font Demo's two panels appeared the same. Redrawn the monospace as a genuinely different typewriter/terminal face: round bowls (arc-generated curves) on C G O Q S U B D P R J and all the digits, and slab serifs (feet) on the vertical stems of A E F H I K L M N T V Y. Side by side it now clearly reads as a separate monospace.
+
 ### 2026-06-11 - Fix + Feature: Groovebox 8120 gets a real 8-step mode, and the LPD8 gets proper snakes + a lightshow
 
 **8-step mode** is now a first-class option: the top-left step switch reads **8 / 16 / 32** (was just 16/32). **Fix:** in 8-step mode the pattern now actually loops every 8 — previously, if a row's step count was still 16 after dropping to 8 steps, the pattern repeated every 16 (8 notes + an 8-row gap) instead of filling per 8. The repeat now uses the real written block (`min(grid width, row steps)`), so a 64-row pattern with 8 steps tiles cleanly 8×. **LPD8 LED art:** the snake now slithers along real serpentine paths — three of them: `1·2·3·4·8·7·6·5`, `5·1·2·6·7·3·4·8`, and `5·6·7·8·4·3·2·1`. New **Stars** mode twinkles a random pad on/off (never the same one twice running). New **Lightshow** cycles through every demo (blink → scroll → all three snakes → stars) on a loop.
