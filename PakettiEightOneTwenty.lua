@@ -2196,6 +2196,11 @@ function row_elements.print_to_pattern()
   local pattern = song.selected_pattern
   local pattern_length = pattern.number_of_lines
   local steps = valuebox.value
+  -- The loop period is the number of steps actually written = min(grid width,
+  -- row steps). If the row valuebox is larger than MAX_STEPS (e.g. it still says
+  -- 16 after switching to 8-step mode), we must still repeat every 8, not 16 —
+  -- otherwise the pattern gets 8 notes + an empty gap instead of looping per 8.
+  local block = math.min(MAX_STEPS, steps)
   local track_index = track_indices[track_popup.value]
   local instrument_index = instrument_popup.value
   local track_in_pattern = pattern.tracks[track_index]
@@ -2217,7 +2222,7 @@ function row_elements.print_to_pattern()
   -- Only write notes to the first MAX_STEPS steps
   local notes_written = 0
   print("8120 PATTERN DEBUG: Starting pattern write for track " .. track_index .. ", steps=" .. steps)
-  for line = 1, math.min(MAX_STEPS, steps) do
+  for line = 1, block do
     local note_checkbox_value = row_elements.checkboxes[line].value
     local yxx_checkbox_value = row_elements.yxx_checkboxes[line].value
     print("8120 PATTERN DEBUG: Line " .. line .. " checkbox=" .. tostring(note_checkbox_value))
@@ -2249,11 +2254,11 @@ function row_elements.print_to_pattern()
   print("8120 PATTERN DEBUG: Total notes written: " .. notes_written)
 
   -- Repeat the pattern if needed
-  if pattern_length > steps then
-    local full_repeats = math.floor(pattern_length / steps)
+  if pattern_length > block then
+    local full_repeats = math.floor(pattern_length / block)
     for repeat_num = 1, full_repeats - 1 do
-      local start_line = repeat_num * steps + 1
-      for line = 1, math.min(MAX_STEPS, steps) do
+      local start_line = repeat_num * block + 1
+      for line = 1, block do
         local source_line = track_in_pattern:line(line)
         local dest_line = track_in_pattern:line(start_line + line - 1)
         dest_line.note_columns[1]:copy_from(source_line.note_columns[1])
@@ -2261,13 +2266,13 @@ function row_elements.print_to_pattern()
       end
     end
     -- Fill the trailing partial block. full_repeats complete blocks cover
-    -- full_repeats*steps lines; the remaining lines (e.g. 64 lines / 3 steps =
+    -- full_repeats*block lines; the remaining lines (e.g. 64 lines / 3 steps =
     -- 21 full blocks + 1 leftover line at the very last row) still belong to the
     -- repeating cycle, so copy as many leading steps of the block as fit.
-    local remainder = pattern_length - full_repeats * steps
+    local remainder = pattern_length - full_repeats * block
     if remainder > 0 then
-      local start_line = full_repeats * steps + 1
-      for line = 1, math.min(remainder, MAX_STEPS) do
+      local start_line = full_repeats * block + 1
+      for line = 1, math.min(remainder, block) do
         local source_line = track_in_pattern:line(line)
         local dest_line = track_in_pattern:line(start_line + line - 1)
         dest_line.note_columns[1]:copy_from(source_line.note_columns[1])
@@ -3047,11 +3052,11 @@ local randomize_all_yxx_button = vb:button{
 
   -- Create step mode switch
   local step_mode_switch = vb:switch{
-    items = {"16", "32"},
-    width = 75,
-    value = (MAX_STEPS == 32) and 2 or 1,
+    items = {"8", "16", "32"},
+    width = 90,
+    value = (MAX_STEPS == 8) and 1 or (MAX_STEPS == 16) and 2 or 3,
     notifier = function(value)
-      local new_max_steps = (value == 2) and 32 or 16
+      local new_max_steps = (value == 1) and 8 or (value == 2) and 16 or 32
       if new_max_steps ~= MAX_STEPS then
         MAX_STEPS = new_max_steps
         -- Close and reopen dialog with new step count
@@ -6477,27 +6482,76 @@ function paketti_lpd8_run_anim(step_fn, interval)
   renoise.tool():add_timer(paketti_lpd8_anim_fn, interval or 120)
 end
 
+-- Reusable per-frame step builders: step(f, states) fills states[1..8] = bool.
+-- All globals (no locals) to respect this file's 200-local main-chunk limit.
+function paketti_lpd8_step_blink(f, states)
+  local on = (f % 2 == 0)
+  for s = 1, 8 do states[s] = on end
+end
+function paketti_lpd8_step_scroll(f, states)
+  states[(f % 8) + 1] = true              -- one lit pad sweeps 1..8, loops
+end
+
+-- Snake: a 2-pad worm slithers along a PATH (a permutation of pads 1..8). The
+-- path is how a real snake moves — down one row and back along the next, etc.
+PAKETTI_LPD8_SNAKE_A = {1, 2, 3, 4, 8, 7, 6, 5}  -- top L->R, bottom R->L
+PAKETTI_LPD8_SNAKE_B = {5, 1, 2, 6, 7, 3, 4, 8}  -- weaving zig-zag between rows
+PAKETTI_LPD8_SNAKE_C = {5, 6, 7, 8, 4, 3, 2, 1}  -- bottom L->R, top R->L
+function paketti_lpd8_step_snake(order, f, states)
+  for b = 0, 1 do states[order[((f - b) % 8) + 1]] = true end  -- 2-pad worm
+end
+
+-- Stars: one random pad twinkles on (even frames), never the same twice running.
+paketti_lpd8_star_last = 0
+function paketti_lpd8_step_stars(f, states)
+  if f % 2 == 0 then
+    local p = math.random(1, 8)
+    if p == paketti_lpd8_star_last then p = (p % 8) + 1 end
+    paketti_lpd8_star_last = p
+    states[p] = true
+  end
+end
+
+-- Lightshow: cycle every segment through blink, scroll, the 3 snakes, stars.
+function paketti_lpd8_step_lightshow(f, states)
+  local SEG = 28
+  local seg = math.floor(f / SEG) % 6
+  local lf = f % SEG
+  if     seg == 0 then paketti_lpd8_step_blink(lf, states)
+  elseif seg == 1 then paketti_lpd8_step_scroll(lf, states)
+  elseif seg == 2 then paketti_lpd8_step_snake(PAKETTI_LPD8_SNAKE_A, lf, states)
+  elseif seg == 3 then paketti_lpd8_step_snake(PAKETTI_LPD8_SNAKE_B, lf, states)
+  elseif seg == 4 then paketti_lpd8_step_snake(PAKETTI_LPD8_SNAKE_C, lf, states)
+  else                 paketti_lpd8_step_stars(lf, states) end
+end
+
 function PakettiEightOneTwentyLPD8Blink()
-  paketti_lpd8_run_anim(function(f, states)
-    local on = (f % 2 == 0)
-    for s = 1, 8 do states[s] = on end
-  end, 250)
-  renoise.app():show_status("LPD8: blink — 'LPD8 — Stop Animation' to clear")
+  paketti_lpd8_run_anim(paketti_lpd8_step_blink, 250)
+  renoise.app():show_status("LPD8: blink — 'LPD8 Lights — Stop Animation' to clear")
 end
-
 function PakettiEightOneTwentyLPD8Scroll()
-  paketti_lpd8_run_anim(function(f, states)
-    states[(f % 8) + 1] = true            -- one lit pad sweeps 1..8, loops
-  end, 120)
-  renoise.app():show_status("LPD8: scroll — 'LPD8 — Stop Animation' to clear")
+  paketti_lpd8_run_anim(paketti_lpd8_step_scroll, 120)
+  renoise.app():show_status("LPD8: scroll — 'LPD8 Lights — Stop Animation' to clear")
 end
-
 function PakettiEightOneTwentyLPD8Snake()
-  paketti_lpd8_run_anim(function(f, states)
-    local head = f % 8
-    for b = 0, 2 do states[((head - b) % 8) + 1] = true end  -- a 3-pad worm wraps across
-  end, 110)
-  renoise.app():show_status("LPD8: snake — 'LPD8 — Stop Animation' to clear")
+  paketti_lpd8_run_anim(function(f, states) paketti_lpd8_step_snake(PAKETTI_LPD8_SNAKE_A, f, states) end, 110)
+  renoise.app():show_status("LPD8: snake 1·2·3·4·8·7·6·5 — Stop to clear")
+end
+function PakettiEightOneTwentyLPD8Snake2()
+  paketti_lpd8_run_anim(function(f, states) paketti_lpd8_step_snake(PAKETTI_LPD8_SNAKE_B, f, states) end, 110)
+  renoise.app():show_status("LPD8: snake 5·1·2·6·7·3·4·8 — Stop to clear")
+end
+function PakettiEightOneTwentyLPD8Snake3()
+  paketti_lpd8_run_anim(function(f, states) paketti_lpd8_step_snake(PAKETTI_LPD8_SNAKE_C, f, states) end, 110)
+  renoise.app():show_status("LPD8: snake 5·6·7·8·4·3·2·1 — Stop to clear")
+end
+function PakettiEightOneTwentyLPD8Stars()
+  paketti_lpd8_run_anim(paketti_lpd8_step_stars, 160)
+  renoise.app():show_status("LPD8: stars blinking — Stop to clear")
+end
+function PakettiEightOneTwentyLPD8Lightshow()
+  paketti_lpd8_run_anim(paketti_lpd8_step_lightshow, 130)
+  renoise.app():show_status("LPD8: LIGHTSHOW — cycling all demos. Stop to clear")
 end
 
 -- Sequencer: pad press toggles steps 1..8 of the focused row; timer redraws LEDs.
@@ -6591,10 +6645,15 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Step Sequencer 
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyLPD8ProbeOpen() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Test pad LEDs", invoke=function() PakettiEightOneTwentyLPD8TestLeds() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Probe — Close", invoke=function() PakettiEightOneTwentyLPD8ProbeClose() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Lightshow (all)", invoke=function() PakettiEightOneTwentyLPD8Lightshow() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Blink",  invoke=function() PakettiEightOneTwentyLPD8Blink() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Stars (random twinkle)", invoke=function() PakettiEightOneTwentyLPD8Stars() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Scroll", invoke=function() PakettiEightOneTwentyLPD8Scroll() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Snake",  invoke=function() PakettiEightOneTwentyLPD8Snake() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Snake 1·2·3·4·8·7·6·5", invoke=function() PakettiEightOneTwentyLPD8Snake() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Snake 5·1·2·6·7·3·4·8", invoke=function() PakettiEightOneTwentyLPD8Snake2() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Snake 5·6·7·8·4·3·2·1", invoke=function() PakettiEightOneTwentyLPD8Snake3() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Groovebox:LPD8 Lights — Stop Animation", invoke=function() PakettiEightOneTwentyLPD8AnimStop() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Lightshow", invoke=function() PakettiEightOneTwentyLPD8Lightshow() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Lights Snake", invoke=function() PakettiEightOneTwentyLPD8Snake() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 LPD8 Lights Stop", invoke=function() PakettiEightOneTwentyLPD8AnimStop() end}
 
