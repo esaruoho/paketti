@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-12 - Feature: PakettiMCP "Reload Tools" menu entry + keybinding (headless)
+
+Added `Main Menu:Tools:Paketti:!Preferences:MCP Reload Tools` and the keybinding `Global:Paketti:MCP Reload Tools` (function `PakettiMCPReloadTools`) so you can re-scan `PakettiMCP/tools/*.lua` after adding or editing a tool file (e.g. `composition.lua`) without opening the MCP Server Dialog. It stops the server if running, clears the cached `PakettiMCP.*` tool modules, reloads them from disk, and restarts the server when it was running or when Auto-Start PakettiMCP is ON.
+
 ### 2026-06-12 - Feature: PakettiMCP composition generators — breakbeats, basslines, drum fills
 
 Added `PakettiMCP/tools/composition.lua` with three new MCP tools so an external MCP client (or the local-LLM bridge) can generate musical material, not just twiddle parameters: `generate_breakbeat` (styles: amen, think, funky_drummer, apache, straight, two_step — deterministic, recognizable 16-step grids written across 4 note columns using GM drum notes, tiled to fill the pattern; tempo unchanged so you pair it with `transport_set_bpm` — e.g. "amen break at 174"), `generate_bassline` (scale-aware: minor, minor_pentatonic, dorian, phrygian, major; root note configurable), and `add_drum_fill` (ascending-velocity snare roll over the last few lines). Inspired by the generators in zakhap/renoise-mcp's `pattern_gen.py` (MIT) but rewritten deterministic and writing straight into the Renoise pattern via the Lua API. These appear in `tools/list` after a PakettiMCP "Reload Tools" (or server restart). No menu/keybinding/MIDI changes — they are MCP tools.

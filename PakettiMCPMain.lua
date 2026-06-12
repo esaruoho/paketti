@@ -118,6 +118,39 @@ paketti_mcp_autostart_boot = function()
 end
 renoise.tool():add_timer(paketti_mcp_autostart_boot, 1200)
 
+-- Reload PakettiMCP tools from disk (re-scan PakettiMCP/tools/*.lua) without
+-- reopening the dialog — useful right after adding/editing a tool file such as
+-- composition.lua. Mirrors the dialog's "Reload Tools" but headless.
+function PakettiMCPReloadTools()
+  local ok_s, server = pcall(require, "PakettiMCP.server")
+  local was_running = ok_s and server and server.running
+  if was_running then server.stop() end
+  package.loaded["PakettiMCP.server"] = nil
+  package.loaded["PakettiMCP.router"] = nil
+  package.loaded["PakettiMCP.json"]   = nil
+  for k in pairs(package.loaded) do
+    if type(k) == "string" and k:match("^PakettiMCP%.tools%.") then package.loaded[k] = nil end
+  end
+  local ok_r, router  = pcall(require, "PakettiMCP.router")
+  local ok2, server2  = pcall(require, "PakettiMCP.server")
+  if not (ok_r and ok2) then
+    renoise.app():show_status("PakettiMCP: reload failed to load core")
+    return
+  end
+  local n = router.load_tools_dir(renoise.tool().bundle_path)
+  if was_running or PakettiMCPAutoStartEnabled() then server2.start() end
+  renoise.app():show_status(string.format("PakettiMCP: reloaded %d tools", n))
+end
+
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:!Preferences:MCP Reload Tools",
+  invoke = function() PakettiMCPReloadTools() end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:MCP Reload Tools",
+  invoke = function() PakettiMCPReloadTools() end
+}
+
 renoise.tool():add_keybinding{
   name = "Global:Paketti:MCP Server Dialog",
   invoke = show_dialog
