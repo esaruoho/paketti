@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-12 - Feature: Microtonal Tunings — Wendy Carlos Alpha/Beta/Gamma + Slendro/Pelog gamelan presets
+
+Five new presets in Microtonal Tunings (selectable in the Microtonal Tunings Dialog and via menu/keybinding, like the existing 36-EDO etc.). **Wendy Carlos Alpha (78c), Beta (63.8c), Gamma (35.1c)** — her famous non-octave scales, built exactly as equal divisions of the perfect fifth (3/2 into 9 / 11 / 20 steps), so they repeat every fifth rather than every octave and have no octaves at all. **Slendro and Pelog** — representative Indonesian gamelan example tunings (measured cents with the characteristic slightly-stretched octave: slendro ~1208c, pelog ~1206c); gamelan tunings vary per ensemble, so these are examples rather than a single canonical tuning. In the Scala Tuning Map, the new FRAC column gives a fraction reading for all of these, while the EDO-only MICRO (ups-and-downs) column shows an em dash for the non-octave ones (as expected).
+
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Wendy Carlos Alpha (78c)` … `Beta` … `Gamma` … `Apply Slendro (gamelan example)` … `Apply Pelog (gamelan example)` (also under Instrument Box:Paketti:Microtonal Tunings)
+
 ### 2026-06-12 - Improvement: Scala Tuning Map — DEG is now a plain number, plus a new FRAC (fraction) column
 
 Two fixes from microtonal-artist feedback. **(1)** The DEG column showed the scale degree as a fraction-looking "18/31", which read like a ratio; it's now just the integer degree (0 = unison), matching the xen wiki convention. **(2)** New **FRAC** column (between DEG and RATIO, toggleable) showing the within-period ratio as a fraction: exact for just-intonation .scl files (e.g. 3/2, 5/4, 81/64), and the nearest just-intonation reading for EDO/irrational steps via continued-fraction approximation, marked with "~" (e.g. 31EDO degree 18 → ~3/2, degree 10 → ~5/4, degree 1 → 45/44 — matching the xen wiki's approximate-ratios column). FRAC is universal — it works even for non-octave and non-Western tunings where the ups-and-downs MICRO notation doesn't apply.

@@ -421,6 +421,44 @@ local function generate_lange_phi_music_system()
   return ratios, "Lange Phi Music System (304.295 Hz)"
 end
 
+-- Wendy Carlos's non-octave scales: equal divisions of the perfect fifth (3/2),
+-- not the octave. The scale repeats every fifth (period = 3/2), so the equal
+-- step size is preserved across the whole keyboard. (No octaves at all.)
+local function generate_carlos_alpha()
+  local r = {}
+  for k = 1, 9 do r[k] = (3 / 2) ^ (k / 9) end    -- 9 steps of ~78.0 cents
+  return r, "Wendy Carlos Alpha (78c, fifth/9)"
+end
+local function generate_carlos_beta()
+  local r = {}
+  for k = 1, 11 do r[k] = (3 / 2) ^ (k / 11) end  -- 11 steps of ~63.8 cents
+  return r, "Wendy Carlos Beta (63.8c, fifth/11)"
+end
+local function generate_carlos_gamma()
+  local r = {}
+  for k = 1, 20 do r[k] = (3 / 2) ^ (k / 20) end  -- 20 steps of ~35.1 cents
+  return r, "Wendy Carlos Gamma (35.1c, fifth/20)"
+end
+
+-- Indonesian gamelan example tunings (measured cents, with the characteristic
+-- slightly stretched octave). Real gamelan tunings vary per ensemble; these are
+-- representative examples, not a single canonical tuning. The leading 1/1 is
+-- implicit, so only the steps are listed; the last value (stretched octave) is
+-- the repeat period.
+local function cents_to_ratios(cents_list)
+  local r = {}
+  for _, c in ipairs(cents_list) do r[#r + 1] = 2 ^ (c / 1200) end
+  return r
+end
+local function generate_slendro()
+  -- 5 near-equal tones; octave stretched to ~1208c (bonang inharmonicity)
+  return cents_to_ratios({231, 474, 717, 955, 1208}), "Slendro (gamelan example, 5-tone)"
+end
+local function generate_pelog()
+  -- 7 unequal tones; octave ~1206c
+  return cents_to_ratios({120, 258, 539, 675, 785, 943, 1206}), "Pelog (gamelan example, 7-tone)"
+end
+
 -- ========================================
 -- TUNING PRESET TABLE
 -- ========================================
@@ -460,6 +498,11 @@ local tuning_presets = {
   {name = "10-TET Decagono (Lange)", generator = generate_10_tet_decagono},
   {name = "Phi 7/10 Hybrid (Lange)", generator = generate_phi_7_10_hybrid},
   {name = "Lange Phi Music System (304.295 Hz)", generator = generate_lange_phi_music_system},
+  {name = "Wendy Carlos Alpha (78c)", generator = generate_carlos_alpha},
+  {name = "Wendy Carlos Beta (63.8c)", generator = generate_carlos_beta},
+  {name = "Wendy Carlos Gamma (35.1c)", generator = generate_carlos_gamma},
+  {name = "Slendro (gamelan example)", generator = generate_slendro},
+  {name = "Pelog (gamelan example)", generator = generate_pelog},
 }
 
 -- ========================================
@@ -2252,6 +2295,31 @@ local function apply_pythagorean()
     if preset.name == "Pythagorean (pure fifths)" then apply_tuning_to_instrument(i) return end
   end
 end
+local function apply_carlos_alpha()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Wendy Carlos Alpha (78c)" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_carlos_beta()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Wendy Carlos Beta (63.8c)" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_carlos_gamma()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Wendy Carlos Gamma (35.1c)" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_slendro()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Slendro (gamelan example)" then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_pelog()
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == "Pelog (gamelan example)" then apply_tuning_to_instrument(i) return end
+  end
+end
 local function reset_to_12tet()
   apply_tuning_to_instrument(1)
 end
@@ -2304,6 +2372,11 @@ for _, base in ipairs(menus) do
   PakettiAddMenuEntry{name = base..":Apply Colundi", invoke = apply_colundi}
   PakettiAddMenuEntry{name = base..":Apply Just Intonation (5-limit)", invoke = apply_just_intonation}
   PakettiAddMenuEntry{name = base..":Apply Pythagorean (pure fifths)", invoke = apply_pythagorean}
+  PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Alpha (78c)", invoke = apply_carlos_alpha}
+  PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Beta (63.8c)", invoke = apply_carlos_beta}
+  PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Gamma (35.1c)", invoke = apply_carlos_gamma}
+  PakettiAddMenuEntry{name = base..":Apply Slendro (gamelan example)", invoke = apply_slendro}
+  PakettiAddMenuEntry{name = base..":Apply Pelog (gamelan example)", invoke = apply_pelog}
   PakettiAddMenuEntry{name = base..":Apply Phi-9 (Lange)", invoke = apply_phi_9_lange}
   PakettiAddMenuEntry{name = base..":Apply Phi-7 (Lange)", invoke = apply_phi_7_lange}
   PakettiAddMenuEntry{name = base..":Apply Lange 36-note Phi Scale", invoke = apply_lange_phi_36}
