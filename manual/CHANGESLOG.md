@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-12 - Fix: more effect-column fills that never wrote — empty effect columns read as "00", not ".."
+
+Audit follow-up to the "Fill Effect Column (From Cursor)" fix below: the same wrong assumption (that an empty effect column or note-column effect reads back as `".."`, when it actually reads as `"00"` with value 0) was breaking several other fill/interpolate features. All now use a value/`is_empty` check. **Fill Sample Effects Between Notes** — only filled cells whose effect string equalled `".."`, which is never true, so it wrote nothing; now fills every empty cell between notes as intended. **Interpolate Sample Effects (linear and exponential / Multipliers)** — interpolating from an *empty* start cell into a populated end cell silently did nothing (the "start is empty, treat as 0" branch never triggered); now interpolates from 0 correctly. **Pattern Editor CheatSheet "Don't Overwrite" mode** — when enabled, it treated every column (even empty ones) as already-occupied and refused to write anything; now it correctly writes to empty columns and skips only ones that really have an effect. No menu/keybinding/MIDI names changed — these are behavioural fixes to existing features.
+
+- Keybinding: `Pattern Editor:Paketti:Fill Sample Effects Between Notes`
+- MIDI Mapping: `Paketti:Fill Sample Effects Between Notes`
+- Menu: Pattern Editor CheatSheet dialog — "Don't Overwrite" checkbox; Sample-FX interpolation (linear / Multipliers) actions
+
 ### 2026-06-12 - Fix: "Fill Effect Column with 0G01+0D00 (From Cursor)" was stuck wiping forever and never filled
 
 The "(From Cursor)" effect-column fillers (`0G01+0D00` / `0G01+0U00`) toggle between fill and wipe: press once to fill the column, press again to clear it. The fill side never worked — every press only ever cleared the column and showed "Cleared effect column rows 1-64. Run again to fill", and running again just cleared again. The cause: an *empty* Renoise effect column reads back as `number_string`/`amount_string` of `"00"` (with `is_empty=true`), never `".."`, so the "does this range already have content?" test was always true and the function took the wipe branch every time. Now it detects emptiness via `is_empty`, so the toggle fills → wipes → fills as intended. Same fix applied to the Command Wheel's "find first empty effect column" placement logic (Find Compatible / Create New policies), which had the identical `== ".."` mistake and so never recognised an empty column. The plain (non-cursor) `Fill Effect Column with 0G01+0D00` / `0G01+0U00` fillers were never affected.

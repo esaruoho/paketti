@@ -867,7 +867,10 @@ function PakettiFillSampleEffectsBetweenNotes()
         for fill_line = current_line + 1, next_line - 1 do
           if fill_line <= pattern.number_of_lines then
             local target_note = track:line(fill_line):note_column(col)
-            if target_note.effect_number_string == ".." then
+            -- only fill empty cells; an empty note-column effect reads as value 0
+            -- (string is "00", never "..") — the old "== '..'" never matched, so
+            -- this fill silently wrote nothing.
+            if target_note.effect_number_value == 0 then
               target_note.effect_number_value = fx_num
               target_note.effect_amount_value = fx_amt
             end

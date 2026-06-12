@@ -907,7 +907,7 @@ function sample_fx_write(effect, status, command, min_value, max_value)
               if only_modify_notes and not has_note(note_column) then
                 should_modify = false
               end
-              if dont_overwrite and note_column.effect_number_string ~= ".." then
+              if dont_overwrite and note_column.effect_number_value ~= 0 then
                 should_modify = false
               end
               if should_modify then
@@ -939,7 +939,7 @@ function sample_fx_write(effect, status, command, min_value, max_value)
                 if only_modify_notes and not has_note(note_column) then
                   should_modify = false
                 end
-                if dont_overwrite and note_column.effect_number_string ~= ".." then
+                if dont_overwrite and note_column.effect_number_value ~= 0 then
                   should_modify = false
                 end
                 if should_modify and should_apply() then
@@ -1002,7 +1002,7 @@ function sample_fx_write(effect, status, command, min_value, max_value)
                   if only_modify_notes and not has_note(note_column) then
                     should_modify = false
                   end
-                  if dont_overwrite and note_column.effect_number_string ~= ".." then
+                  if dont_overwrite and note_column.effect_number_value ~= 0 then
                     should_modify = false
                   end
                   if should_modify then
@@ -1041,7 +1041,7 @@ function sample_fx_write(effect, status, command, min_value, max_value)
                   if only_modify_notes and not has_note(note_column) then
                     should_modify = false
                   end
-                  if dont_overwrite and note_column.effect_number_string ~= ".." then
+                  if dont_overwrite and note_column.effect_number_value ~= 0 then
                     should_modify = false
                   end
                   if should_modify and should_apply() then

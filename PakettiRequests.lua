@@ -8426,9 +8426,11 @@ function samplefx_interpolation()
         local start_effect_amt = start_note.effect_amount_value
         local end_effect_amt = end_note.effect_amount_value
 
-        -- Check if effects are empty
-        local start_empty = start_note.effect_number_string == ".."
-        local end_empty = end_note.effect_number_string == ".."
+        -- Check if effects are empty. An empty note-column effect reads as value 0
+        -- (string is "00", never ".."), so the old "== '..'" was always false and
+        -- interpolating from an empty start cell silently did nothing.
+        local start_empty = start_note.effect_number_value == 0
+        local end_empty = end_note.effect_number_value == 0
 
         -- Only proceed if we have a valid end effect
         if not end_empty and not end_note.is_empty then
@@ -8756,8 +8758,9 @@ function samplefx_interpolation_exponential()
       for _, note_column_index in ipairs(track_info.note_columns) do
         local start_note = track:line(start_line):note_column(note_column_index)
         local end_note = track:line(end_line):note_column(note_column_index)
-        local start_empty = start_note.effect_number_string == ".."
-        local end_empty = end_note.effect_number_string == ".."
+        -- empty note-column effect reads as value 0 (string "00", never "..")
+        local start_empty = start_note.effect_number_value == 0
+        local end_empty = end_note.effect_number_value == 0
         if not end_empty and not end_note.is_empty then
           local start_effect_num = start_note.effect_number_value
           local end_effect_num = end_note.effect_number_value
