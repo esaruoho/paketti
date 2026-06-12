@@ -247,6 +247,124 @@ local hyperedit_suppress_stepper_write = false
 local row_steps = {}  -- [row] = step count for this row (individual per row)
 
 -- ============================================================================
+-- Cirklon-style Sculpt / Random (ported from the Cirklon sequencer)
+-- ----------------------------------------------------------------------------
+-- A second editing axis layered on top of the data-source axis (effect/stepper).
+-- While "sculpt" is engaged AND the pattern is playing, the value of each ARMED
+-- row's currently-playing step is transformed once per step-entry, according to
+-- the active mode and knobs A/B. Driven by four interchangeable triggers:
+--   * the HOLD SCULPT toolbar button (momentary, pressed/released)
+--   * holding the mouse on an armed row's canvas (momentary, mouse-Y = live knob A)
+--   * a keyboard shortcut (TOGGLE — Renoise gives no reliable key-up)
+--   * a MIDI button (momentary via note/CC release, or toggle for trigger mappings)
+-- Values are 0..1 internally (127 thought of as 1.0); knobs are -127..127.
+local SCULPT_MODES = {"Regular", "Sculpt ABS", "Sculpt REL", "Random ABS", "Random REL"}
+local sculpt_mode = 1            -- index into SCULPT_MODES (1 = Regular = off)
+local sculpt_knob_a = 0          -- -127..127
+local sculpt_knob_b = 0          -- -127..127
+local sculpt_active = false      -- the shared "SCULPT held/engaged" flag
+local sculpt_armed = {}          -- [row] = bool; only armed rows respond to sculpt
+local sculpt_canvas_live = {}    -- [row] = bool; canvas-hold is driving live knob A on this row
+local sculpt_live_a = nil        -- when set (0..1), overrides knob A from a live canvas-hold drag
+
+-- Transform one active step's stored value (0..1) in place, per the active mode.
+-- Inactive steps are skipped (they hold no automation point, matching WriteAutomationPattern).
+function PakettiHyperEditSculptStep(row, step)
+  if not step then return end
+  if not step_active[row] or not step_active[row][step] then return end
+  step_data[row] = step_data[row] or {}
+  local cur = step_data[row][step] or 0.5
+  -- A live canvas-hold drag overrides knob A (mouse-Y, already 0..1); otherwise knob A is -127..127.
+  local a = sculpt_live_a or ((sculpt_knob_a or 0) / 127)
+  local b = (sculpt_knob_b or 0) / 127
+  local v = cur
+  if sculpt_mode == 2 then        -- Sculpt ABS: overwrite with knob A
+    v = a
+  elseif sculpt_mode == 3 then    -- Sculpt REL: signed offset, cumulative per pass
+    v = cur + a
+  elseif sculpt_mode == 4 then    -- Random ABS: random value in [A,B]
+    local lo = math.min(a, b)
+    local hi = math.max(a, b)
+    v = lo + math.random() * (hi - lo)
+  elseif sculpt_mode == 5 then    -- Random REL: random offset in [A,B], cumulative
+    local lo = math.min(a, b)
+    local hi = math.max(a, b)
+    v = cur + (lo + math.random() * (hi - lo))
+  else
+    return                        -- Regular (1) or unknown: no-op
+  end
+  if v < 0 then v = 0 elseif v > 1 then v = 1 end
+  step_data[row][step] = v
+end
+
+-- Engine hook called from the playhead loop when an armed row crosses into a new
+-- step. Gated so it only fires while sculpt is engaged AND the pattern is playing.
+-- Mutates the step value, then pushes it live (WriteAutomationPattern handles both
+-- effect-automation and Stepper write paths). The caller already redraws the canvas.
+function PakettiHyperEditMaybeSculptStep(row, step_index)
+  if not sculpt_active then return end
+  if sculpt_mode <= 1 then return end
+  if not sculpt_armed[row] then return end
+  if not step_index then return end
+  if not row_parameters[row] then return end
+  local song = renoise.song()
+  if not song or not song.transport.playing then return end
+  PakettiHyperEditSculptStep(row, step_index)
+  PakettiHyperEditWriteAutomationPattern(row)
+end
+
+-- Recolor the HOLD button to reflect engaged state (orange) vs idle (grey).
+function PakettiHyperEditSculptUpdateHoldButton()
+  if dialog_vb and dialog_vb.views["sculpt_hold_btn"] then
+    dialog_vb.views["sculpt_hold_btn"].color = sculpt_active and {0xC0, 0x40, 0x00} or {0x40, 0x40, 0x40}
+  end
+end
+
+-- The shared engage/release entry point. All four triggers funnel through here.
+function PakettiHyperEditSculptSetActive(on)
+  on = on and true or false
+  if sculpt_active == on then return end
+  sculpt_active = on
+  if on then
+    renoise.app():show_status(string.format(
+      "HyperEdit Sculpt: %s ENGAGED (A=%d B=%d) — playing steps of armed rows are being shaped",
+      SCULPT_MODES[sculpt_mode] or "?", sculpt_knob_a, sculpt_knob_b))
+  else
+    renoise.app():show_status("HyperEdit Sculpt: released")
+  end
+  PakettiHyperEditSculptUpdateHoldButton()
+end
+
+-- Keyboard trigger = toggle (Renoise gives no reliable key-up to hold against).
+function PakettiHyperEditSculptToggle()
+  if not (hyperedit_dialog and hyperedit_dialog.visible) then
+    renoise.app():show_status("HyperEdit Sculpt: open HyperEdit first")
+    return
+  end
+  PakettiHyperEditSculptSetActive(not sculpt_active)
+end
+
+-- Arm/disarm every row at once, recoloring each row's "S" arm button.
+function PakettiHyperEditSculptArmAll(on)
+  on = on and true or false
+  for row = 1, NUM_ROWS do
+    sculpt_armed[row] = on
+    if dialog_vb and dialog_vb.views["sculpt_arm_" .. row] then
+      dialog_vb.views["sculpt_arm_" .. row].color = on and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40}
+    end
+  end
+  renoise.app():show_status("HyperEdit Sculpt: " .. (on and "all rows armed" or "all rows disarmed"))
+end
+
+-- Toggle one row's arm state (the per-row "S" button).
+function PakettiHyperEditSculptToggleArm(row)
+  sculpt_armed[row] = not sculpt_armed[row]
+  if dialog_vb and dialog_vb.views["sculpt_arm_" .. row] then
+    dialog_vb.views["sculpt_arm_" .. row].color = sculpt_armed[row] and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40}
+  end
+end
+
+-- ============================================================================
 -- Stepper mode engine
 -- ----------------------------------------------------------------------------
 -- Placed AFTER the local state declarations above (hyperedit_mode, NUM_ROWS,
@@ -758,6 +876,7 @@ function PakettiHyperEditUpdatePlayheadHighlights()
       end
       if playhead_step_indices[row] ~= step_index then
         playhead_step_indices[row] = step_index
+        PakettiHyperEditMaybeSculptStep(row, step_index)
         if row_canvases[row] then row_canvases[row]:update() end
       end
     end
@@ -780,6 +899,8 @@ function PakettiHyperEditUpdatePlayheadHighlights()
     if playhead_step_indices[row] ~= step_index then
       playhead_step_indices[row] = step_index
       needs_update = true
+
+      PakettiHyperEditMaybeSculptStep(row, step_index)
 
       -- Update the canvas for this row
       if row_canvases[row] then
@@ -1845,7 +1966,38 @@ function PakettiHyperEditHandleRowMouse(row)
     
     local x = ev.position.x
     local y = ev.position.y
-    
+
+    -- Sculpt live gesture: when a sculpt mode is engaged (not Regular), holding the
+    -- mouse on the canvas drives live sculpt (mouse-Y = knob A) instead of drawing.
+    -- Armed rows respond (the per-row "S" toggles decide which). Right-click /
+    -- Ctrl-click still falls through to the normal automation-delete path below.
+    if sculpt_mode > 1
+       and not (ev.button == "right" or (ev.button == "left" and ev.modifiers == "control")) then
+      local sc_margin = 3
+      local sc_height = canvas_height_per_row - (sc_margin * 2)
+      local ny = 1.0 - ((y - sc_margin) / sc_height)
+      if ny < 0 then ny = 0 elseif ny > 1 then ny = 1 end
+      if ev.type == "down" then
+        mouse_is_down = true
+        current_row_drawing = row
+        current_focused_row = row
+        sculpt_canvas_live[row] = true
+        sculpt_live_a = ny
+        PakettiHyperEditSculptSetActive(true)
+        return
+      elseif ev.type == "move" and sculpt_canvas_live[row] then
+        sculpt_live_a = ny
+        return
+      elseif ev.type == "up" then
+        mouse_is_down = false
+        current_row_drawing = 0
+        sculpt_canvas_live[row] = false
+        sculpt_live_a = nil
+        PakettiHyperEditSculptSetActive(false)
+        return
+      end
+    end
+
     if ev.type == "down" then
       mouse_is_down = true
       current_row_drawing = row
@@ -3703,6 +3855,10 @@ function PakettiHyperEditCleanup()
   mouse_is_down = false
   current_row_drawing = 0
   current_focused_row = 1
+  -- Sculpt is a live hold — never leave it engaged once the dialog is gone.
+  sculpt_active = false
+  sculpt_live_a = nil
+  sculpt_canvas_live = {}
 end
 
 -- Mouse state monitor to handle mouse releases outside canvas
@@ -3796,6 +3952,16 @@ function PakettiHyperEditCreateDialog()
   -- Sync the live MIDI Write toggle from preferences for this dialog session.
   hyperedit_midi_write_enabled = preferences.PakettiHyperEditMidiWrite.value
   hyperedit_midi_last = {}
+
+  -- Sync Cirklon-style sculpt state from preferences; arm all rows by default and
+  -- start disengaged (sculpt_active is never persisted — it is a live hold).
+  sculpt_mode = preferences.PakettiHyperEditSculptMode.value or 1
+  sculpt_knob_a = preferences.PakettiHyperEditSculptKnobA.value or 0
+  sculpt_knob_b = preferences.PakettiHyperEditSculptKnobB.value or 0
+  sculpt_active = false
+  sculpt_live_a = nil
+  sculpt_canvas_live = {}
+  for row = 1, NUM_ROWS do sculpt_armed[row] = true end
 
   local dialog_content = vb:column {
     -- Global controls
@@ -4005,7 +4171,77 @@ function PakettiHyperEditCreateDialog()
       }]]--
     },
   }
-  
+
+  -- Cirklon-style Sculpt / Random toolbar (sits above the rows). Picks the sculpt
+  -- mode, sets knobs A/B (-127..127, thinking of 127 as 1.0), and exposes the HOLD
+  -- button. The hold can also be driven by canvas-hold, a keyboard toggle, or MIDI.
+  dialog_content:add_child(vb:row {
+    vb:text { text = "Sculpt", style = "strong", font = "bold", width = 44 },
+    vb:popup {
+      id = "sculpt_mode_popup",
+      items = SCULPT_MODES,
+      value = sculpt_mode,
+      width = 110,
+      tooltip = "Cirklon-style sculpt mode (overlaid on Effect/Stepper). Regular = off. ABS overwrites the playing step with knob A; REL offsets it by knob A cumulatively each pass; Random picks/offsets within the A..B range.",
+      notifier = function(idx)
+        sculpt_mode = idx
+        if preferences and preferences.PakettiHyperEditSculptMode then
+          preferences.PakettiHyperEditSculptMode.value = idx
+          preferences:save_as("preferences.xml")
+        end
+        renoise.app():show_status("HyperEdit Sculpt mode: " .. (SCULPT_MODES[idx] or "?"))
+      end
+    },
+    vb:text { text = "A", style = "strong", font = "bold" },
+    vb:valuebox {
+      id = "sculpt_knob_a",
+      min = -127, max = 127, value = sculpt_knob_a, width = 60,
+      tooltip = "Knob A (-127..127, 127 = 1.0). Sculpt ABS: target value. Sculpt REL: signed per-pass offset (e.g. -3 ramps down to 0, +3 ramps up to full). Random: range low.",
+      notifier = function(v)
+        sculpt_knob_a = v
+        if preferences and preferences.PakettiHyperEditSculptKnobA then
+          preferences.PakettiHyperEditSculptKnobA.value = v
+          preferences:save_as("preferences.xml")
+        end
+      end
+    },
+    vb:text { text = "B", style = "strong", font = "bold" },
+    vb:valuebox {
+      id = "sculpt_knob_b",
+      min = -127, max = 127, value = sculpt_knob_b, width = 60,
+      tooltip = "Knob B (-127..127). Only used by the Random modes as the other end of the A..B range.",
+      notifier = function(v)
+        sculpt_knob_b = v
+        if preferences and preferences.PakettiHyperEditSculptKnobB then
+          preferences.PakettiHyperEditSculptKnobB.value = v
+          preferences:save_as("preferences.xml")
+        end
+      end
+    },
+    vb:text { text = "|", style = "strong", font = "bold" },
+    vb:button {
+      id = "sculpt_hold_btn",
+      text = "HOLD SCULPT",
+      width = 100,
+      color = {0x40, 0x40, 0x40},
+      tooltip = "Hold while the pattern plays to shape the playing step of every armed (S) row. Also: keyboard 'HyperEdit Toggle Sculpt Hold' (toggle), MIDI 'Paketti HyperEdit Sculpt Hold' (momentary), or hold the mouse on a row's canvas (mouse-Y = live knob A).",
+      pressed = function() PakettiHyperEditSculptSetActive(true) end,
+      released = function() PakettiHyperEditSculptSetActive(false) end
+    },
+    vb:button {
+      text = "Arm All",
+      width = 52,
+      tooltip = "Arm every row for sculpt.",
+      notifier = function() PakettiHyperEditSculptArmAll(true) end
+    },
+    vb:button {
+      text = "Arm None",
+      width = 58,
+      tooltip = "Disarm every row.",
+      notifier = function() PakettiHyperEditSculptArmAll(false) end
+    }
+  })
+
   -- Create 8 rows
   for row = 1, NUM_ROWS do
     local row_content = vb:column {
@@ -4223,6 +4459,17 @@ function PakettiHyperEditCreateDialog()
           tooltip = "Turn on Renoise's MIDI Map mode, then click this button and tweak a knob to bind it to this row. With 'MIDI Write' ON the knob then records into this row's playing/edit step.",
           notifier = function()
             renoise.app():show_status(string.format("HyperEdit: enable Renoise MIDI Map mode, click this 'MIDI' button (Row %02d), then move a knob to bind it.", row))
+          end
+        },
+        -- Sculpt arm toggle: only ARMED rows respond to the Sculpt/Random hold.
+        vb:button {
+          id = "sculpt_arm_" .. row,
+          text = "S",
+          width = 22,
+          color = sculpt_armed[row] and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
+          tooltip = "Arm this row for Sculpt/Random. When the Sculpt hold is engaged, only armed (green) rows have their playing step shaped.",
+          notifier = function()
+            PakettiHyperEditSculptToggleArm(row)
           end
         }
       },
@@ -4752,3 +4999,24 @@ for midi_write_row = 1, 16 do
     invoke = function(message) PakettiHyperEditMidiWriteRow(r, message) end
   }
 end
+
+-- Sculpt hold triggers. Keyboard = toggle (no reliable key-up to hold against);
+-- MIDI = momentary (a button/pad sends release; an absolute CC crosses the midpoint;
+-- a trigger mapping just flips). All no-op unless HyperEdit is open.
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:HyperEdit Toggle Sculpt Hold",
+  invoke = function() PakettiHyperEditSculptToggle() end
+}
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Paketti HyperEdit Sculpt Hold",
+  invoke = function(message)
+    if not (hyperedit_dialog and hyperedit_dialog.visible) then return end
+    if message:is_switch() then
+      PakettiHyperEditSculptSetActive(message.boolean_value)
+    elseif message:is_abs_value() then
+      PakettiHyperEditSculptSetActive((message.int_value or 0) > 63)
+    elseif message:is_trigger() then
+      PakettiHyperEditSculptSetActive(not sculpt_active)
+    end
+  end
+}

@@ -247,6 +247,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiHyperEditManualRows=8,
   PakettiHyperEditMidiWrite=false,  -- live MIDI-knob writing into the playing/edit step
   PakettiHyperEditMode="effect",  -- "effect" = track device params -> automation; "stepper" = instrument Stepper modulation devices
+  PakettiHyperEditSculptMode=1,  -- Cirklon-style sculpt: 1=Regular(off) 2=Sculpt ABS 3=Sculpt REL 4=Random ABS 5=Random REL
+  PakettiHyperEditSculptKnobA=0,  -- sculpt knob A (-127..127, 127 thought of as 1.0); ABS target/range-low, REL signed offset
+  PakettiHyperEditSculptKnobB=0,  -- sculpt knob B (-127..127); range-high for Random modes
   PakettiEightOneTwentyMidiMixAutoStart=false,  -- auto-open the Akai MidiMix bridge at startup so its step LEDs/buttons work headlessly
   PakettiEightOneTwentyAPCAutoStart=false,  -- auto-arm the Akai APC Key 25 step sequencer at startup so it works headlessly
   PakettiEightOneTwentyLPD8AutoStart=false,  -- auto-arm the Akai LPD8 step sequencer at startup (pages over the current step mode)
