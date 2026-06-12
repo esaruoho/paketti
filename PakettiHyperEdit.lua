@@ -320,6 +320,17 @@ function PakettiHyperEditSculptUpdateHoldButton()
   end
 end
 
+-- Show only the knobs the active mode uses: Regular = none; Sculpt ABS/REL = a
+-- single value (knob A); Random ABS/REL = two values (A <> B).
+function PakettiHyperEditSculptUpdateKnobVisibility()
+  if not dialog_vb then return end
+  local show_a = sculpt_mode > 1
+  local show_b = (sculpt_mode == 4 or sculpt_mode == 5)
+  if dialog_vb.views["sculpt_knob_a"] then dialog_vb.views["sculpt_knob_a"].visible = show_a end
+  if dialog_vb.views["sculpt_knob_sep"] then dialog_vb.views["sculpt_knob_sep"].visible = show_b end
+  if dialog_vb.views["sculpt_knob_b"] then dialog_vb.views["sculpt_knob_b"].visible = show_b end
+end
+
 -- The shared engage/release entry point. All four triggers funnel through here.
 function PakettiHyperEditSculptSetActive(on)
   on = on and true or false
@@ -4189,14 +4200,15 @@ function PakettiHyperEditCreateDialog()
           preferences.PakettiHyperEditSculptMode.value = idx
           preferences:save_as("preferences.xml")
         end
+        PakettiHyperEditSculptUpdateKnobVisibility()
         renoise.app():show_status("HyperEdit Sculpt mode: " .. (SCULPT_MODES[idx] or "?"))
       end
     },
-    vb:text { text = "A", style = "strong", font = "bold" },
     vb:valuebox {
       id = "sculpt_knob_a",
       min = -127, max = 127, value = sculpt_knob_a, width = 60,
-      tooltip = "Knob A (-127..127, 127 = 1.0). Sculpt ABS: target value. Sculpt REL: signed per-pass offset (e.g. -3 ramps down to 0, +3 ramps up to full). Random: range low.",
+      visible = (sculpt_mode > 1),
+      tooltip = "Sculpt ABS: target value. Sculpt REL: signed per-pass offset (e.g. -3 ramps down to 0, +3 ramps up to full). Random: range low. (-127..127, 127 = 1.0)",
       notifier = function(v)
         sculpt_knob_a = v
         if preferences and preferences.PakettiHyperEditSculptKnobA then
@@ -4205,11 +4217,12 @@ function PakettiHyperEditCreateDialog()
         end
       end
     },
-    vb:text { text = "B", style = "strong", font = "bold" },
+    vb:text { id = "sculpt_knob_sep", text = "<>", style = "strong", font = "bold", visible = (sculpt_mode == 4 or sculpt_mode == 5) },
     vb:valuebox {
       id = "sculpt_knob_b",
       min = -127, max = 127, value = sculpt_knob_b, width = 60,
-      tooltip = "Knob B (-127..127). Only used by the Random modes as the other end of the A..B range.",
+      visible = (sculpt_mode == 4 or sculpt_mode == 5),
+      tooltip = "Random modes only: the other end of the A..B range. (-127..127)",
       notifier = function(v)
         sculpt_knob_b = v
         if preferences and preferences.PakettiHyperEditSculptKnobB then
@@ -4527,6 +4540,9 @@ function PakettiHyperEditCreateDialog()
     end
   end
   
+  -- Match the sculpt knob visibility to the restored mode (single vs A<>B).
+  PakettiHyperEditSculptUpdateKnobVisibility()
+
   -- Setup observers and initialize
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   PakettiHyperEditSetupObservers()
