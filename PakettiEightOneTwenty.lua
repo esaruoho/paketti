@@ -3107,10 +3107,6 @@ local randomize_all_yxx_button = vb:button{
       vb:text{text=" | ", font = "bold", style = "strong"},
       play_checkbox, vb:text{text="Play", font = "bold", style = "strong",width=30},
       follow_checkbox, vb:text{text="Follow", font = "bold", style = "strong",width=50},
-      vb:text{text="Ctrl Follow:", font = "bold", style = "strong",width=68},
-      apc_follow_checkbox, vb:text{text="APC", font = "bold", style = "strong",width=30},
-      midimix_follow_checkbox, vb:text{text="MM", font = "bold", style = "strong",width=26},
-      lpd8_follow_checkbox, vb:text{text="LPD8", font = "bold", style = "strong",width=38},
       vb:button{text="/2", notifier = divide_bpm},
       vb:button{text="-", notifier = decrease_bpm},
       bpm_display,
@@ -3119,18 +3115,7 @@ local randomize_all_yxx_button = vb:button{
       random_gate_button,
       vb:button{text="Fetch", midi_mapping="Paketti:Paketti Groovebox 8120:Fetch Pattern", notifier = fetch_pattern},
       fill_empty_label,
-      fill_empty_slider,
-      vb:text{text=" | ", font = "bold", style = "strong"},
-      vb:button{
-        text = "MK1->MK2",
-        width = 70,
-        tooltip = "Open the canvas-rendered MK2 view of the same state. Both windows stay open and edit shared data; close the one you don't want via its X button.",
-        notifier = function()
-          if PakettiEightOneTwentyCanvasViewShow then
-            PakettiEightOneTwentyCanvasViewShow()
-          end
-        end
-      }}}
+      fill_empty_slider}}
 
   -- Function to check if groovebox tracks exist
   function PakettiGrooveboxCheckTracksExist()
@@ -4092,8 +4077,29 @@ function pakettiEightSlotsByOneTwentyDialog()
   local global_pitch_label = vb:text{text="Global Pitch", style="strong", font="bold"}
   local global_pitch_column = vb:row{global_pitch_rotary, global_pitch_label}
 
-  local top_row = vb:row{global_controls, vb:space{width=8}, init_eq30_button, vb:space{width=8}, global_pitch_column}
-  local dc = vb:column{top_row, global_groove_controls, global_buttons, global_step_buttons, vb:space{height=8}}
+  -- Second control row: per-controller follow checkboxes + MK1->MK2 + Initialize EQ30,
+  -- moved off the top row so the dialog isn't so wide.
+  local controller_follow_row = vb:row{
+    vb:text{text="Ctrl Follow:", font = "bold", style = "strong", width=68},
+    apc_follow_checkbox, vb:text{text="APC", font = "bold", style = "strong", width=30},
+    midimix_follow_checkbox, vb:text{text="MM", font = "bold", style = "strong", width=26},
+    lpd8_follow_checkbox, vb:text{text="LPD8", font = "bold", style = "strong", width=38},
+    vb:text{text=" | ", font = "bold", style = "strong"},
+    vb:button{
+      text = "MK1->MK2",
+      width = 70,
+      tooltip = "Open the canvas-rendered MK2 view of the same state. Both windows stay open and edit shared data; close the one you don't want via its X button.",
+      notifier = function()
+        if PakettiEightOneTwentyCanvasViewShow then
+          PakettiEightOneTwentyCanvasViewShow()
+        end
+      end
+    },
+    vb:space{width=8},
+    init_eq30_button
+  }
+  local top_row = vb:row{global_controls, vb:space{width=8}, global_pitch_column}
+  local dc = vb:column{top_row, controller_follow_row, global_groove_controls, global_buttons, global_step_buttons, vb:space{height=8}}
   -- Create and add rows with spacing between them
   for i = 1, 8 do
     if i > 1 then

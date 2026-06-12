@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-12 - Improvement: Groovebox 8120 top controls split across two rows (narrower dialog)
+
+Moved the per-controller "Ctrl Follow:" checkboxes (APC / MM / LPD8), the MK1->MK2 button, and the Initialize EQ30 button off the crowded top control row onto a new second row, so the dialog is much less wide. The first row now keeps step-mode / Play / Follow / BPM / Random Gate / Fetch / Fill; the second row holds the follow checkboxes + MK1->MK2 + Initialize EQ30. No behavior changed — layout only.
+
 ### 2026-06-12 - Change: "Follow with controller" is now per-controller (independent), not one global master
 
 Reworked the earlier single "Ctrl Follow" master toggle into three independent per-controller follow settings, so you can leave the APC Key 25 non-rotating (showing all 32 steps) while the MidiMix and/or LPD8 page to track the playhead — or any mix. The 8120 dialog now shows three checkboxes under a "Ctrl Follow:" label — **APC**, **MM**, **LPD8** — each backed by its own persisted preference (`pakettiGroovebox8120FollowAPC`, `pakettiGroovebox8120FollowMidiMix`, `pakettiGroovebox8120FollowLPD8`, all off by default). Each controller's follow keybinding (`Global:Paketti:Paketti Groovebox 8120 APC/MidiMix/LPD8 Toggle Follow Page`), `[Trigger]` MIDI mapping, and `!Preferences:Debug:MidiControllers` menu entry now toggles only that controller and stays in sync with its own checkbox. Arming a controller reads its own saved setting, so each follows (or not) headlessly after a restart.
