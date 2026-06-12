@@ -1217,10 +1217,12 @@ function PakettiCommandWheelGetTargetEffectColumn(track, line)
     return line:effect_column(1)
     
   elseif policy == PAKETTI_COMMAND_WHEEL_PLACEMENT_FIND_COMPATIBLE then
-    -- Find first empty or matching effect column
+    -- Find first empty or matching effect column.
+    -- (Empty effect columns report number_string="00"/is_empty=true, never "..",
+    -- so detect emptiness via is_empty rather than a string compare.)
     for i = 1, track.visible_effect_columns do
       local col = line:effect_column(i)
-      if col.number_string == ".." or col.number_string == "" then
+      if col.is_empty then
         return col
       end
     end
@@ -1235,7 +1237,7 @@ function PakettiCommandWheelGetTargetEffectColumn(track, line)
     local found_empty = false
     for i = 1, track.visible_effect_columns do
       local col = line:effect_column(i)
-      if col.number_string == ".." or col.number_string == "" then
+      if col.is_empty then
         found_empty = true
         return col
       end

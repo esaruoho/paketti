@@ -7124,10 +7124,14 @@ function writeEffectFromCursor(effect_string, first_row_effect)
   -- Next press fills. So a single shortcut cycles: fill -> wipe -> fill...
   -- (And if the user had different effects in there like U50, this still
   -- wipes first instead of silently overwriting with U00.)
+  -- NOTE: an EMPTY effect column reads back as number_string="00"/amount_string="00"
+  -- (with is_empty=true), NOT "..". Comparing against ".." here is always false, so
+  -- the old check treated every column as "has content" and the function was stuck
+  -- wiping forever and never filling. Use is_empty, which is the correct discriminator.
   local has_existing_content = false
   for line_index = wipe_from, num_lines do
     local ec = pattern.tracks[track_index].lines[line_index].effect_columns[1]
-    if ec.number_string ~= ".." or ec.amount_string ~= ".." then
+    if not ec.is_empty then
       has_existing_content = true
       break
     end

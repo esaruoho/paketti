@@ -8,6 +8,17 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-12 - Fix: "Fill Effect Column with 0G01+0D00 (From Cursor)" was stuck wiping forever and never filled
+
+The "(From Cursor)" effect-column fillers (`0G01+0D00` / `0G01+0U00`) toggle between fill and wipe: press once to fill the column, press again to clear it. The fill side never worked — every press only ever cleared the column and showed "Cleared effect column rows 1-64. Run again to fill", and running again just cleared again. The cause: an *empty* Renoise effect column reads back as `number_string`/`amount_string` of `"00"` (with `is_empty=true`), never `".."`, so the "does this range already have content?" test was always true and the function took the wipe branch every time. Now it detects emptiness via `is_empty`, so the toggle fills → wipes → fills as intended. Same fix applied to the Command Wheel's "find first empty effect column" placement logic (Find Compatible / Create New policies), which had the identical `== ".."` mistake and so never recognised an empty column. The plain (non-cursor) `Fill Effect Column with 0G01+0D00` / `0G01+0U00` fillers were never affected.
+
+- Keybinding: `Pattern Editor:Paketti:Fill Effect Column with 0G01+0D00 (From Cursor)`
+- Keybinding: `Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00 (From Cursor)`
+- MIDI Mapping: `Paketti:Fill Effect Column with 0G01+0D00 (From Cursor) [Trigger]`
+- MIDI Mapping: `Paketti:Fill Effect Column with 0G01+0U00 (From Cursor) [Trigger]`
+- Menu: `Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0D00 (From Cursor)`
+- Menu: `Pattern Editor:Paketti:Effect Columns:Fill Effect Column with 0G01+0U00 (From Cursor)`
+
 ### 2026-06-12 - Feature: Microtonal Tunings — Wendy Carlos Alpha/Beta/Gamma + Slendro/Pelog gamelan presets
 
 Five new presets in Microtonal Tunings (selectable in the Microtonal Tunings Dialog and via menu/keybinding, like the existing 36-EDO etc.). **Wendy Carlos Alpha (78c), Beta (63.8c), Gamma (35.1c)** — her famous non-octave scales, built exactly as equal divisions of the perfect fifth (3/2 into 9 / 11 / 20 steps), so they repeat every fifth rather than every octave and have no octaves at all. **Slendro and Pelog** — representative Indonesian gamelan example tunings (measured cents with the characteristic slightly-stretched octave: slendro ~1208c, pelog ~1206c); gamelan tunings vary per ensemble, so these are examples rather than a single canonical tuning. In the Scala Tuning Map, the new FRAC column gives a fraction reading for all of these, while the EDO-only MICRO (ups-and-downs) column shows an em dash for the non-octave ones (as expected).
