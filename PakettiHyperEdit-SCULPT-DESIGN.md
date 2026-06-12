@@ -89,8 +89,10 @@ write-through that row. Once-per-entry cadence is already there.
 - `@built` — code written; `luac` parses clean as Lua 5.1.
 - `@untested-live` — NOT yet verified in a running Renoise. The live instance still
   has the OLD code until Paketti is reloaded. Live test plan below.
-- Known v1 limits: sculpt only touches ACTIVE steps (inactive steps stay empty —
-  matches how WriteAutomationPattern writes points). Effect mode rewrites the whole
+- Sculpt writes into AND activates the playing step whether or not it had content
+  (empty step's current value counts as 0), so ABS/REL/Random fill silent steps.
+- Canvas: a plain drag draws normally; ALT+drag drives live sculpt (mouse-Y = A).
+- Known v1 limits: Effect mode rewrites the whole
   envelope per armed row per step-crossing while held (same cost as a MIDI-knob
   write); stepper mode is cheap. A single `sculpt_live_a` is global, so canvas-hold
   feeds the same live A to every armed row (arm one row for surgical use).

@@ -267,13 +267,15 @@ local sculpt_armed = {}          -- [row] = bool; only armed rows respond to scu
 local sculpt_canvas_live = {}    -- [row] = bool; canvas-hold is driving live knob A on this row
 local sculpt_live_a = nil        -- when set (0..1), overrides knob A from a live canvas-hold drag
 
--- Transform one active step's stored value (0..1) in place, per the active mode.
--- Inactive steps are skipped (they hold no automation point, matching WriteAutomationPattern).
+-- Transform one step's stored value (0..1) in place, per the active mode, and
+-- ACTIVATE it. Empty/inactive steps are written too (their "current" value counts
+-- as 0), so ABS/REL/Random shape silent steps instead of leaving them quiet.
 function PakettiHyperEditSculptStep(row, step)
   if not step then return end
-  if not step_active[row] or not step_active[row][step] then return end
+  step_active[row] = step_active[row] or {}
   step_data[row] = step_data[row] or {}
-  local cur = step_data[row][step] or 0.5
+  -- An inactive (empty) step holds no content, so it contributes 0 to relative math.
+  local cur = step_active[row][step] and (step_data[row][step] or 0.5) or 0.0
   -- A live canvas-hold drag overrides knob A (mouse-Y, already 0..1); otherwise knob A is -127..127.
   local a = sculpt_live_a or ((sculpt_knob_a or 0) / 127)
   local b = (sculpt_knob_b or 0) / 127
@@ -294,6 +296,7 @@ function PakettiHyperEditSculptStep(row, step)
     return                        -- Regular (1) or unknown: no-op
   end
   if v < 0 then v = 0 elseif v > 1 then v = 1 end
+  step_active[row][step] = true   -- writing content into the step (incl. previously-empty)
   step_data[row][step] = v
 end
 
@@ -1978,12 +1981,14 @@ function PakettiHyperEditHandleRowMouse(row)
     local x = ev.position.x
     local y = ev.position.y
 
-    -- Sculpt live gesture: when a sculpt mode is engaged (not Regular), holding the
-    -- mouse on the canvas drives live sculpt (mouse-Y = knob A) instead of drawing.
-    -- Armed rows respond (the per-row "S" toggles decide which). Right-click /
-    -- Ctrl-click still falls through to the normal automation-delete path below.
+    -- Sculpt live gesture: ALT+drag drives live sculpt (mouse-Y = live knob A) on
+    -- armed rows, while a sculpt mode is engaged. A PLAIN drag still draws normally,
+    -- so empty steps can be drawn. Right/Ctrl-click still deletes (falls through).
+    -- Once an Alt-drag starts, it continues through move/up even if Alt is released.
+    local sculpt_alt = (ev.modifiers and ev.modifiers:find("alt") ~= nil) or false
     if sculpt_mode > 1
-       and not (ev.button == "right" or (ev.button == "left" and ev.modifiers == "control")) then
+       and not (ev.button == "right" or (ev.button == "left" and ev.modifiers == "control"))
+       and (sculpt_canvas_live[row] or (ev.type == "down" and sculpt_alt)) then
       local sc_margin = 3
       local sc_height = canvas_height_per_row - (sc_margin * 2)
       local ny = 1.0 - ((y - sc_margin) / sc_height)
@@ -4237,7 +4242,7 @@ function PakettiHyperEditCreateDialog()
       text = "HOLD SCULPT",
       width = 100,
       color = {0x40, 0x40, 0x40},
-      tooltip = "Hold while the pattern plays to shape the playing step of every armed (S) row. Also: keyboard 'HyperEdit Toggle Sculpt Hold' (toggle), MIDI 'Paketti HyperEdit Sculpt Hold' (momentary), or hold the mouse on a row's canvas (mouse-Y = live knob A).",
+      tooltip = "Hold while the pattern plays to shape the playing step of every armed (S) row. Also: keyboard 'HyperEdit Toggle Sculpt Hold' (toggle), MIDI 'Paketti HyperEdit Sculpt Hold' (momentary), or ALT+drag on a row's canvas (mouse-Y = live knob A). A plain drag still draws normally.",
       pressed = function() PakettiHyperEditSculptSetActive(true) end,
       released = function() PakettiHyperEditSculptSetActive(false) end
     },
