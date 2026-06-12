@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-12 - Feature: PakettiMCP composition generators — breakbeats, basslines, drum fills
+
+Added `PakettiMCP/tools/composition.lua` with three new MCP tools so an external MCP client (or the local-LLM bridge) can generate musical material, not just twiddle parameters: `generate_breakbeat` (styles: amen, think, funky_drummer, apache, straight, two_step — deterministic, recognizable 16-step grids written across 4 note columns using GM drum notes, tiled to fill the pattern; tempo unchanged so you pair it with `transport_set_bpm` — e.g. "amen break at 174"), `generate_bassline` (scale-aware: minor, minor_pentatonic, dorian, phrygian, major; root note configurable), and `add_drum_fill` (ascending-velocity snare roll over the last few lines). Inspired by the generators in zakhap/renoise-mcp's `pattern_gen.py` (MIT) but rewritten deterministic and writing straight into the Renoise pattern via the Lua API. These appear in `tools/list` after a PakettiMCP "Reload Tools" (or server restart). No menu/keybinding/MIDI changes — they are MCP tools.
+
 ### 2026-06-12 - Improvement: Groovebox 8120 top controls split across two rows (narrower dialog)
 
 Moved the per-controller "Ctrl Follow:" checkboxes (APC / MM / LPD8), the MK1->MK2 button, and the Initialize EQ30 button off the crowded top control row onto a new second row, so the dialog is much less wide. The first row now keeps step-mode / Play / Follow / BPM / Random Gate / Fetch / Fill; the second row holds the follow checkboxes + MK1->MK2 + Initialize EQ30. No behavior changed — layout only.
