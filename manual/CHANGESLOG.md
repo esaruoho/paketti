@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-12 - Improvement: Scala Tuning Map — DEG is now a plain number, plus a new FRAC (fraction) column
+
+Two fixes from microtonal-artist feedback. **(1)** The DEG column showed the scale degree as a fraction-looking "18/31", which read like a ratio; it's now just the integer degree (0 = unison), matching the xen wiki convention. **(2)** New **FRAC** column (between DEG and RATIO, toggleable) showing the within-period ratio as a fraction: exact for just-intonation .scl files (e.g. 3/2, 5/4, 81/64), and the nearest just-intonation reading for EDO/irrational steps via continued-fraction approximation, marked with "~" (e.g. 31EDO degree 18 → ~3/2, degree 10 → ~5/4, degree 1 → 45/44 — matching the xen wiki's approximate-ratios column). FRAC is universal — it works even for non-octave and non-Western tunings where the ups-and-downs MICRO notation doesn't apply.
+
 ### 2026-06-12 - Feature: PakettiMCP "Reload Tools" menu entry + keybinding (headless)
 
 Added `Main Menu:Tools:Paketti:!Preferences:MCP Reload Tools` and the keybinding `Global:Paketti:MCP Reload Tools` (function `PakettiMCPReloadTools`) so you can re-scan `PakettiMCP/tools/*.lua` after adding or editing a tool file (e.g. `composition.lua`) without opening the MCP Server Dialog. It stops the server if running, clears the cached `PakettiMCP.*` tool modules, reloads them from disk, and restarts the server when it was running or when Auto-Start PakettiMCP is ON.

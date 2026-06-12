@@ -28,7 +28,7 @@ PakettiScalaTuningMapDialog = nil
 
 local CANVAS_ID = "paketti_scala_tuning_map_canvas"
 local SCROLL_ID = "paketti_scala_tuning_map_scroll"
-local CANVAS_W = 680
+local CANVAS_W = 700
 local CANVAS_H = 470
 local HEADER_H = 76
 local ROW_H = 16
@@ -51,6 +51,7 @@ local PSTM_view_start = 36
 local PSTM_highlight_note = -1
 local PSTM_follow = true
 local PSTM_show_notation = true       -- "MICRO": ups-and-downs microtonal notation (EDO tunings)
+local PSTM_show_fraction = true       -- "FRAC": within-period ratio as a fraction (JI / approximation)
 local PSTM_show_cents_period = true   -- "CENTS-P": cents within the period (interval-table style)
 local PSTM_show_cents_root = true     -- "CENTS-R": cents from the absolute root (C-4 = 0)
 local PSTM_playing = nil          -- {i=instr_idx, t=track_idx, n=note}
@@ -137,6 +138,45 @@ local function note_info(note, ratios)
   local ratio_in = (degree == 0) and 1.0 or ratios[degree]
   local total = ratio_in * (period ^ octrep)
   return degree, ratio_in, total
+end
+
+-- Best rational approximation p/q of a ratio, via continued-fraction convergents.
+-- Returns the simplest fraction within TOL cents; if none, the most accurate one
+-- under the denominator cap. Works for any ratio: exact for JI .scl files
+-- (3/2, 5/4 ...), and the nearest just-intonation reading for EDO/irrational
+-- steps (e.g. 31edo step 18 -> 3/2, step 1 -> 45/44). errcents flags how far off.
+local function ratio_to_fraction(r)
+  local DENOM_CAP, TOL = 128, 7.0
+  local function cents(p, q) return 1200 * math.log((p / q) / r) / math.log(2) end
+  local hm1, hm2 = 1, 0
+  local km1, km2 = 0, 1
+  local x = r
+  local best_p, best_q, best_err = 1, 1, math.abs(cents(1, 1))
+  local simple_p, simple_q, simple_err   -- simplest fraction within TOL cents
+  for _ = 1, 40 do
+    local a = math.floor(x + 1e-9)
+    local h = a * hm1 + hm2
+    local k = a * km1 + km2
+    if k > DENOM_CAP or k <= 0 then break end
+    local err = math.abs(cents(h, k))
+    if err < best_err then best_p, best_q, best_err = h, k, err end
+    if not simple_p and err < TOL then simple_p, simple_q, simple_err = h, k, err end
+    local frac = x - a
+    if frac < 1e-9 then return h, k, err end   -- CF terminated => exact rational (JI .scl)
+    hm2, hm1 = hm1, h
+    km2, km1 = km1, k
+    x = 1 / frac
+  end
+  if simple_p then return simple_p, simple_q, simple_err end   -- EDO: simplest close ratio
+  return best_p, best_q, best_err
+end
+
+-- "p/q" (exact) or "~p/q" (approximation, > 0.5 cents off)
+local function fraction_str(r)
+  local p, q, err = ratio_to_fraction(r)
+  local s = p .. "/" .. q
+  if err > 0.5 then s = "~" .. s end
+  return s
 end
 
 -- ---------------------------------------------------------------------------
@@ -252,15 +292,18 @@ function PakettiScalaTuningMapRender(ctx)
       if edoN then return edo_notation(deg, edoN, anchors) else return "\226\128\148" end  -- em dash
     end}
   end
-  cols[#cols + 1] = {h = "DEG",   w = 60, get = function(_, deg) return deg .. "/" .. n end}
-  cols[#cols + 1] = {h = "RATIO", w = 74, get = function(_, _, ri) return string.format("%.3f", ri) end}
+  cols[#cols + 1] = {h = "DEG",   w = 44, get = function(_, deg) return tostring(deg) end}
+  if PSTM_show_fraction then
+    cols[#cols + 1] = {h = "FRAC", w = 86, get = function(_, _, ri) return fraction_str(ri) end}
+  end
+  cols[#cols + 1] = {h = "RATIO", w = 64, get = function(_, _, ri) return string.format("%.3f", ri) end}
   if PSTM_show_cents_period then
-    cols[#cols + 1] = {h = "CENTS-P", w = 82, get = function(_, _, ri) return string.format("%.1f", ratio_to_cents(ri)) end}
+    cols[#cols + 1] = {h = "CENTS-P", w = 74, get = function(_, _, ri) return string.format("%.1f", ratio_to_cents(ri)) end}
   end
   if PSTM_show_cents_root then
-    cols[#cols + 1] = {h = "CENTS-R", w = 90, get = function(_, _, _, tot) return string.format("%.1f", ratio_to_cents(tot)) end}
+    cols[#cols + 1] = {h = "CENTS-R", w = 80, get = function(_, _, _, tot) return string.format("%.1f", ratio_to_cents(tot)) end}
   end
-  cols[#cols + 1] = {h = "HZ", w = 76, get = function(_, _, _, tot) return string.format("%.1f", C4_HZ * tot) end}
+  cols[#cols + 1] = {h = "HZ", w = 70, get = function(_, _, _, tot) return string.format("%.1f", C4_HZ * tot) end}
   local x = NAME_X
   for _, c in ipairs(cols) do c.x = x; x = x + c.w end
   local bar_x = x + 8
@@ -271,8 +314,9 @@ function PakettiScalaTuningMapRender(ctx)
     local d, ri, tot = note_info(PSTM_highlight_note, ratios)
     local line = note_name(PSTM_highlight_note)
     if PSTM_show_notation and edoN then line = line .. " = " .. edo_notation(d, edoN, anchors) end
-    line = line .. "   DEG " .. d .. "/" .. n
-      .. "   " .. string.format("%.3f", ri)
+    line = line .. "   DEG " .. d .. " OF " .. n
+    if PSTM_show_fraction then line = line .. "   " .. fraction_str(ri) end
+    line = line .. "   " .. string.format("%.3f", ri)
     if PSTM_show_cents_period then line = line .. "   " .. string.format("%.1f", ratio_to_cents(ri)) .. "C-P" end
     if PSTM_show_cents_root then line = line .. "   " .. string.format("%.1f", ratio_to_cents(tot)) .. "C-R" end
     line = line .. "   " .. string.format("%.1f", C4_HZ * tot) .. " HZ"
@@ -669,6 +713,11 @@ function PakettiScalaTuningMapShow()
         if PSTM_canvas then PSTM_canvas:update() end
       end},
       vb:text{text = "Microtonal notation (MICRO)"},
+      vb:checkbox{value = PSTM_show_fraction, notifier = function(v)
+        PSTM_show_fraction = v
+        if PSTM_canvas then PSTM_canvas:update() end
+      end},
+      vb:text{text = "Fraction (FRAC)"},
       vb:checkbox{value = PSTM_show_cents_period, notifier = function(v)
         PSTM_show_cents_period = v
         if PSTM_canvas then PSTM_canvas:update() end
@@ -687,7 +736,8 @@ function PakettiScalaTuningMapShow()
     },
     vb:text{
       text = "Same colour = octave-equivalent (same scale degree). Off-white rows are period roots.\n"
-        .. "MICRO = ups-and-downs notation: the 12TET note plus up/down arrows for the steps between (EDO tunings only).\n"
+        .. "DEG = scale-degree number within the period. MICRO = ups-and-downs notation (EDO tunings only).\n"
+        .. "FRAC = ratio as a fraction (exact for JI tunings; nearest just-intonation reading for EDO, marked ~).\n"
         .. "CENTS-P = cents within the period (resets each octave). CENTS-R = cents from the absolute root (C-4 = 0).\n"
         .. "Click a row to preview the note. The row under the pattern cursor is highlighted live.",
       font = "italic",
