@@ -90,13 +90,23 @@ Context: Global
          message and exits 1 — no Python traceback
     # VERIFIED 2026-06-11.
 
-  @built @untested
+  @built @hw-verified
   Scenario: pakettimcp drives Renoise from this Mac with a fractional tempo
     Given the PakettiMCP server is running
     When the user runs `pakettimcp "set the tempo to 155.2 bpm"`
     Then the Mini's Qwen emits transport_set_bpm{bpm:155.2} and Renoise's tempo
          becomes 155.2 — shown as the step it took
-    # PENDING: needs Auto-Start enabled (server up) to run end-to-end.
+    # VERIFIED 2026-06-12: read back 155.20, fractional preserved.
+
+  @built @hw-verified
+  Scenario: "give me an amen break at 174" chains tempo + a composition generator
+    Given the PakettiMCP server is running with the composition tools loaded
+      # PakettiMCP/tools/composition.lua: generate_breakbeat (amen/think/funky_drummer/
+      # apache/straight/two_step), generate_bassline (5 scales), add_drum_fill
+    When the user runs `pakettimcp "give me an amen break at 174"`
+    Then the Mini's Qwen calls transport_set_bpm{bpm:174}, then
+         generate_breakbeat{style:amen}, writing the break into the pattern
+    # VERIFIED 2026-06-12 by the user; BPM read back 174.00, 84 tools live.
 
   @built
   Scenario: Multi-step chaining and graceful failure
