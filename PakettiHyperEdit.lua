@@ -301,8 +301,9 @@ function PakettiHyperEditSculptStep(row, step)
 end
 
 -- Engine hook called from the playhead loop when an armed row crosses into a new
--- step. Gated so it only fires while sculpt is engaged AND the pattern is playing.
--- Mutates the step value, then pushes it live (WriteAutomationPattern handles both
+-- step. Fires while sculpt is engaged, whether the pattern is PLAYING (playhead
+-- crossing) or STOPPED (moving the edit cursor lands on a new step). Mutates the
+-- step value, then pushes it live (WriteAutomationPattern handles both
 -- effect-automation and Stepper write paths). The caller already redraws the canvas.
 function PakettiHyperEditMaybeSculptStep(row, step_index)
   if not sculpt_active then return end
@@ -311,9 +312,27 @@ function PakettiHyperEditMaybeSculptStep(row, step_index)
   if not step_index then return end
   if not row_parameters[row] then return end
   local song = renoise.song()
-  if not song or not song.transport.playing then return end
+  if not song then return end
   PakettiHyperEditSculptStep(row, step_index)
   PakettiHyperEditWriteAutomationPattern(row)
+end
+
+-- Apply sculpt once to the CURRENT edit-row step of every armed row. Used when
+-- SCULPT is engaged while the transport is stopped, so a hold acts immediately on
+-- the step under the edit cursor instead of waiting for a playhead crossing.
+function PakettiHyperEditSculptApplyCurrentStep()
+  if sculpt_mode <= 1 then return end
+  for row = 1, NUM_ROWS do
+    if sculpt_armed[row] and row_parameters[row] then
+      local step = PakettiHyperEditCurrentStepForRow(row)
+      if step then
+        PakettiHyperEditSculptStep(row, step)
+        PakettiHyperEditWriteAutomationPattern(row)
+        playhead_step_indices[row] = step      -- so the playhead loop won't re-apply this step
+        if row_canvases[row] then row_canvases[row]:update() end
+      end
+    end
+  end
 end
 
 -- Recolor the HOLD button to reflect engaged state (orange) vs idle (grey).
@@ -341,8 +360,14 @@ function PakettiHyperEditSculptSetActive(on)
   sculpt_active = on
   if on then
     renoise.app():show_status(string.format(
-      "HyperEdit Sculpt: %s ENGAGED (A=%d B=%d) — playing steps of armed rows are being shaped",
-      SCULPT_MODES[sculpt_mode] or "?", sculpt_knob_a, sculpt_knob_b))
+      "HyperEdit Sculpt: %s ENGAGED (A=%d B=%d) — shaping armed rows%s",
+      SCULPT_MODES[sculpt_mode] or "?", sculpt_knob_a, sculpt_knob_b,
+      (renoise.song() and renoise.song().transport.playing) and " as it plays" or " at the edit step"))
+    -- Stopped: act immediately on the edit-cursor step (no playhead to wait for).
+    -- Playing: let the playhead crossings drive it, so per-pass REL stays exact.
+    if renoise.song() and not renoise.song().transport.playing then
+      PakettiHyperEditSculptApplyCurrentStep()
+    end
   else
     renoise.app():show_status("HyperEdit Sculpt: released")
   end
