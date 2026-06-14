@@ -250,6 +250,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiHyperEditSculptMode=1,  -- Cirklon-style sculpt: 1=Regular(off) 2=Sculpt ABS 3=Sculpt REL 4=Random ABS 5=Random REL
   PakettiHyperEditSculptKnobA=0,  -- sculpt knob A (-127..127, 127 thought of as 1.0); ABS target/range-low, REL signed offset
   PakettiHyperEditSculptKnobB=0,  -- sculpt knob B (-127..127); range-high for Random modes
+  PakettiHyperEditGangEnabled=false,  -- Cirklon-style Gang: shape every Nth step at once instead of just the playing/edit step
+  PakettiHyperEditGangEvery=1,  -- gang interval N (1 = every step, 3 = every 3rd step)
+  PakettiHyperEditGangOffset=0,  -- gang offset (shifts which steps are ganged)
   PakettiEightOneTwentyMidiMixAutoStart=false,  -- auto-open the Akai MidiMix bridge at startup so its step LEDs/buttons work headlessly
   PakettiEightOneTwentyAPCAutoStart=false,  -- auto-arm the Akai APC Key 25 step sequencer at startup so it works headlessly
   PakettiEightOneTwentyLPD8AutoStart=false,  -- auto-arm the Akai LPD8 step sequencer at startup (pages over the current step mode)

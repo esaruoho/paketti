@@ -107,4 +107,25 @@ write-through that row. Once-per-entry cadence is already there.
 5. Verify keyboard toggle engages/disengages; MIDI pad does momentary; canvas-hold
    sweeps live with mouse-Y.
 
-## STATUS: @built, @untested-live
+## Gang (2026-06-14) — shape every Nth step at once
+
+Cirklon "GANG by step/row" → HyperEdit step-selection mask. Decisions (Esa):
+Every-N interval (+offset), live-while-HOLD-held, row-step-cycle scope.
+
+- State: `gang_enabled`, `gang_every` (1=whole row), `gang_offset`, `gang_base`
+  ([row][step] = value snapshot at engage, the REL reference). Prefs:
+  `PakettiHyperEditGangEnabled/Every/Offset`.
+- Membership: `PakettiHyperEditIsGanged(step)` = `((step-1-offset) % every) == 0`.
+- `PakettiHyperEditSculptValue(cur)` extracted from SculptStep — pure transform,
+  reused by single-step sculpt AND gang (gang passes each step's base as `cur`).
+- `PakettiHyperEditGangApply()` shapes every ganged step of every armed row from
+  its base, then WriteAutomationPattern + canvas update. Driven on: engage
+  (SetActive), knob A/B notifiers, Alt-drag move, and the gang controls.
+- Gang suppresses the single-step playhead path (`MaybeSculptStep` returns early
+  when `gang_enabled`), so the value knob drives the whole set instead.
+- Canvas: ganged columns get a translucent gold tint (`{255,200,0,40}`).
+- v1 cadence: gang recomputes on VALUE-CHANGE events (engage / knob / Alt-drag),
+  not on a playback timer — so Random doesn't flicker and REL doesn't run away.
+  If per-pass re-randomization while held is wanted later, add a timer hook.
+
+## STATUS: @built, @untested-live (Sculpt + stopped-mode + Gang)

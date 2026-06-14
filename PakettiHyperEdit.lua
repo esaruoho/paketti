@@ -267,37 +267,101 @@ local sculpt_armed = {}          -- [row] = bool; only armed rows respond to scu
 local sculpt_canvas_live = {}    -- [row] = bool; canvas-hold is driving live knob A on this row
 local sculpt_live_a = nil        -- when set (0..1), overrides knob A from a live canvas-hold drag
 
--- Transform one step's stored value (0..1) in place, per the active mode, and
--- ACTIVATE it. Empty/inactive steps are written too (their "current" value counts
--- as 0), so ABS/REL/Random shape silent steps instead of leaving them quiet.
-function PakettiHyperEditSculptStep(row, step)
-  if not step then return end
-  step_active[row] = step_active[row] or {}
-  step_data[row] = step_data[row] or {}
-  -- An inactive (empty) step holds no content, so it contributes 0 to relative math.
-  local cur = step_active[row][step] and (step_data[row][step] or 0.5) or 0.0
+-- Gang (Cirklon "GANG by step/row"): instead of shaping only the playing/edit step,
+-- gang shapes EVERY Nth step (every gang_every steps, shifted by gang_offset) of every
+-- armed row at once, live as you move the value. Scope = each row's own step cycle.
+local gang_enabled = false
+local gang_every = 1             -- 1 = every step (whole row), 3 = every 3rd step, ...
+local gang_offset = 0            -- shifts which steps are ganged
+local gang_base = {}             -- [row][step] = value captured at engage (REL reference)
+
+-- Pure transform: given a current value (0..1), return the sculpted value for the
+-- active mode and knobs. Used both for single-step sculpt and for gang (where the
+-- "current" is each ganged step's captured base, so REL offsets from the base).
+function PakettiHyperEditSculptValue(cur)
   -- A live canvas-hold drag overrides knob A (mouse-Y, already 0..1); otherwise knob A is -127..127.
   local a = sculpt_live_a or ((sculpt_knob_a or 0) / 127)
   local b = (sculpt_knob_b or 0) / 127
   local v = cur
   if sculpt_mode == 2 then        -- Sculpt ABS: overwrite with knob A
     v = a
-  elseif sculpt_mode == 3 then    -- Sculpt REL: signed offset, cumulative per pass
+  elseif sculpt_mode == 3 then    -- Sculpt REL: signed offset
     v = cur + a
   elseif sculpt_mode == 4 then    -- Random ABS: random value in [A,B]
     local lo = math.min(a, b)
     local hi = math.max(a, b)
     v = lo + math.random() * (hi - lo)
-  elseif sculpt_mode == 5 then    -- Random REL: random offset in [A,B], cumulative
+  elseif sculpt_mode == 5 then    -- Random REL: random offset in [A,B]
     local lo = math.min(a, b)
     local hi = math.max(a, b)
     v = cur + (lo + math.random() * (hi - lo))
   else
-    return                        -- Regular (1) or unknown: no-op
+    return cur                    -- Regular (1) or unknown: no-op
   end
   if v < 0 then v = 0 elseif v > 1 then v = 1 end
+  return v
+end
+
+-- Transform one step's stored value (0..1) in place, per the active mode, and
+-- ACTIVATE it. Empty/inactive steps are written too (their "current" value counts
+-- as 0), so ABS/REL/Random shape silent steps instead of leaving them quiet.
+function PakettiHyperEditSculptStep(row, step)
+  if not step then return end
+  if sculpt_mode <= 1 then return end
+  step_active[row] = step_active[row] or {}
+  step_data[row] = step_data[row] or {}
+  -- An inactive (empty) step holds no content, so it contributes 0 to relative math.
+  local cur = step_active[row][step] and (step_data[row][step] or 0.5) or 0.0
   step_active[row][step] = true   -- writing content into the step (incl. previously-empty)
-  step_data[row][step] = v
+  step_data[row][step] = PakettiHyperEditSculptValue(cur)
+end
+
+-- A step is ganged when it falls on the gang_every grid (shifted by gang_offset).
+function PakettiHyperEditIsGanged(step)
+  local n = gang_every
+  if n < 1 then n = 1 end
+  return ((step - 1 - gang_offset) % n) == 0
+end
+
+-- Snapshot every ganged step's current value as the REL base, captured when sculpt
+-- engages so moving the value offsets from the base instead of accumulating per tick.
+function PakettiHyperEditGangCaptureBase()
+  gang_base = {}
+  for row = 1, NUM_ROWS do
+    if sculpt_armed[row] then
+      gang_base[row] = {}
+      local len = row_steps[row] or 16
+      for s = 1, len do
+        if PakettiHyperEditIsGanged(s) then
+          gang_base[row][s] = (step_active[row] and step_active[row][s]) and (step_data[row][s] or 0.5) or 0.0
+        end
+      end
+    end
+  end
+end
+
+-- Shape EVERY ganged step of every armed row from its captured base. Called on
+-- engage and on every value change (knob A/B, Alt-drag) so the whole highlighted
+-- set moves together, live. Only runs while gang is on and sculpt is engaged.
+function PakettiHyperEditGangApply()
+  if not gang_enabled or sculpt_mode <= 1 or not sculpt_active then return end
+  for row = 1, NUM_ROWS do
+    if sculpt_armed[row] and row_parameters[row] then
+      local len = row_steps[row] or 16
+      step_active[row] = step_active[row] or {}
+      step_data[row] = step_data[row] or {}
+      for s = 1, len do
+        if PakettiHyperEditIsGanged(s) then
+          local base = gang_base[row] and gang_base[row][s]
+          if base == nil then base = step_active[row][s] and (step_data[row][s] or 0.5) or 0.0 end
+          step_active[row][s] = true
+          step_data[row][s] = PakettiHyperEditSculptValue(base)
+        end
+      end
+      PakettiHyperEditWriteAutomationPattern(row)
+      if row_canvases[row] then row_canvases[row]:update() end
+    end
+  end
 end
 
 -- Engine hook called from the playhead loop when an armed row crosses into a new
@@ -308,6 +372,7 @@ end
 function PakettiHyperEditMaybeSculptStep(row, step_index)
   if not sculpt_active then return end
   if sculpt_mode <= 1 then return end
+  if gang_enabled then return end   -- gang shapes the whole ganged set on value change, not per-step
   if not sculpt_armed[row] then return end
   if not step_index then return end
   if not row_parameters[row] then return end
@@ -359,16 +424,22 @@ function PakettiHyperEditSculptSetActive(on)
   if sculpt_active == on then return end
   sculpt_active = on
   if on then
+    local scope = gang_enabled and (" — ganging every " .. gang_every .. " step(s)")
+      or ((renoise.song() and renoise.song().transport.playing) and " as it plays" or " at the edit step")
     renoise.app():show_status(string.format(
-      "HyperEdit Sculpt: %s ENGAGED (A=%d B=%d) — shaping armed rows%s",
-      SCULPT_MODES[sculpt_mode] or "?", sculpt_knob_a, sculpt_knob_b,
-      (renoise.song() and renoise.song().transport.playing) and " as it plays" or " at the edit step"))
-    -- Stopped: act immediately on the edit-cursor step (no playhead to wait for).
-    -- Playing: let the playhead crossings drive it, so per-pass REL stays exact.
-    if renoise.song() and not renoise.song().transport.playing then
+      "HyperEdit Sculpt: %s ENGAGED (A=%d B=%d)%s", SCULPT_MODES[sculpt_mode] or "?",
+      sculpt_knob_a, sculpt_knob_b, scope))
+    if gang_enabled then
+      -- Gang: snapshot the ganged steps' base values, then shape the whole set now.
+      PakettiHyperEditGangCaptureBase()
+      PakettiHyperEditGangApply()
+    elseif renoise.song() and not renoise.song().transport.playing then
+      -- Stopped, no gang: act immediately on the edit-cursor step (no playhead to wait for).
+      -- Playing: let the playhead crossings drive it, so per-pass REL stays exact.
       PakettiHyperEditSculptApplyCurrentStep()
     end
   else
+    gang_base = {}   -- drop the REL base reference when released
     renoise.app():show_status("HyperEdit Sculpt: released")
   end
   PakettiHyperEditSculptUpdateHoldButton()
@@ -2028,6 +2099,7 @@ function PakettiHyperEditHandleRowMouse(row)
         return
       elseif ev.type == "move" and sculpt_canvas_live[row] then
         sculpt_live_a = ny
+        if gang_enabled then PakettiHyperEditGangApply() end   -- live: drag moves the whole ganged set
         return
       elseif ev.type == "up" then
         mouse_is_down = false
@@ -3134,10 +3206,20 @@ function PakettiHyperEditDrawRowCanvas(row)
     
     -- Use ROW-SPECIFIC step count
     local row_step_count = row_steps[row] or 16
-    
+
     -- Calculate step width for later use
     local step_width = content_width / row_step_count
-    
+
+    -- Gang highlight: tint the ganged step columns so the selection is visible.
+    if gang_enabled then
+      ctx.fill_color = {255, 200, 0, 40}
+      for step = 1, row_step_count do
+        if PakettiHyperEditIsGanged(step) then
+          ctx:fill_rect(content_x + ((step - 1) * step_width), content_y, step_width, content_height)
+        end
+      end
+    end
+
     -- Draw steps using FULL content height (matching mouse handling)
     for step = 1, row_step_count do
       if step_active[row] and step_active[row][step] then
@@ -4002,6 +4084,10 @@ function PakettiHyperEditCreateDialog()
   sculpt_active = false
   sculpt_live_a = nil
   sculpt_canvas_live = {}
+  gang_enabled = preferences.PakettiHyperEditGangEnabled.value or false
+  gang_every = preferences.PakettiHyperEditGangEvery.value or 1
+  gang_offset = preferences.PakettiHyperEditGangOffset.value or 0
+  gang_base = {}
   for row = 1, NUM_ROWS do sculpt_armed[row] = true end
 
   local dialog_content = vb:column {
@@ -4245,6 +4331,7 @@ function PakettiHyperEditCreateDialog()
           preferences.PakettiHyperEditSculptKnobA.value = v
           preferences:save_as("preferences.xml")
         end
+        PakettiHyperEditGangApply()   -- live: move the whole ganged set when gang is engaged
       end
     },
     vb:text { id = "sculpt_knob_sep", text = "<>", style = "strong", font = "bold", visible = (sculpt_mode == 4 or sculpt_mode == 5) },
@@ -4259,6 +4346,7 @@ function PakettiHyperEditCreateDialog()
           preferences.PakettiHyperEditSculptKnobB.value = v
           preferences:save_as("preferences.xml")
         end
+        PakettiHyperEditGangApply()   -- live: move the whole ganged set when gang is engaged
       end
     },
     vb:text { text = "|", style = "strong", font = "bold" },
@@ -4282,6 +4370,53 @@ function PakettiHyperEditCreateDialog()
       width = 58,
       tooltip = "Disarm every row.",
       notifier = function() PakettiHyperEditSculptArmAll(false) end
+    },
+    vb:text { text = "|", style = "strong", font = "bold" },
+    vb:checkbox {
+      id = "gang_enabled",
+      value = gang_enabled,
+      tooltip = "Gang (Cirklon): shape EVERY Nth step of all armed rows at once, live as you move the value — instead of just the one playing/edit step.",
+      notifier = function(v)
+        gang_enabled = v
+        if preferences and preferences.PakettiHyperEditGangEnabled then
+          preferences.PakettiHyperEditGangEnabled.value = v
+          preferences:save_as("preferences.xml")
+        end
+        if gang_enabled and sculpt_active then
+          PakettiHyperEditGangCaptureBase(); PakettiHyperEditGangApply()
+        end
+        for r = 1, NUM_ROWS do if row_canvases[r] then row_canvases[r]:update() end end
+      end
+    },
+    vb:text { text = "Gang every", style = "strong", font = "bold" },
+    vb:valuebox {
+      id = "gang_every",
+      min = 1, max = 64, value = gang_every, width = 50,
+      tooltip = "Gang interval: 1 = every step (whole row), 3 = every 3rd step, ...",
+      notifier = function(v)
+        gang_every = v
+        if preferences and preferences.PakettiHyperEditGangEvery then
+          preferences.PakettiHyperEditGangEvery.value = v
+          preferences:save_as("preferences.xml")
+        end
+        if gang_enabled and sculpt_active then PakettiHyperEditGangCaptureBase(); PakettiHyperEditGangApply() end
+        for r = 1, NUM_ROWS do if row_canvases[r] then row_canvases[r]:update() end end
+      end
+    },
+    vb:text { text = "offset", style = "strong", font = "bold" },
+    vb:valuebox {
+      id = "gang_offset",
+      min = 0, max = 63, value = gang_offset, width = 44,
+      tooltip = "Shifts which steps are ganged (offset 1 turns 'every 3rd' from steps 1,4,7 into 2,5,8).",
+      notifier = function(v)
+        gang_offset = v
+        if preferences and preferences.PakettiHyperEditGangOffset then
+          preferences.PakettiHyperEditGangOffset.value = v
+          preferences:save_as("preferences.xml")
+        end
+        if gang_enabled and sculpt_active then PakettiHyperEditGangCaptureBase(); PakettiHyperEditGangApply() end
+        for r = 1, NUM_ROWS do if row_canvases[r] then row_canvases[r]:update() end end
+      end
     }
   })
 
