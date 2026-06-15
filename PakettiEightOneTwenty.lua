@@ -27,6 +27,60 @@ gbx_global_pitch_midi_prev_abs = nil
 -- phrase = write to phrase (creates phrases per row)
 -- phrase_trigger = write phrase triggers (Zxx commands per row)
 PakettiEightOneTwentyOutputMode = "pattern"
+
+-- Step Mode (the per-row "Mode" button toggles this for ALL rows at once):
+--   "single"  = MODE1 (original): one sample per row, chosen by the row slider.
+--               Every ON step triggers that one sample. The MODE1 control strip
+--               (< > Clear, Random Steps, instrument popup, Load, RandomLoad,
+--               slider, Random, Show) is visible.
+--   "perstep" = MODE2: under every step checkbox sits a numbervaluebox (1-120)
+--               choosing WHICH sample triggers on that step, so each step can fire
+--               a different sample from the row's 120-sample kit.
+-- Per-step selection is impossible with the legacy velocity-range choke (that is
+-- static, whole-instrument state). So the FIRST time you enter "perstep" the row
+-- instruments are remapped to one-note-per-sample (sample i -> note i-1, a 1:1 fit
+-- over Renoise's 120 notes). From then on BOTH modes write a note number per step
+-- (single = the slider's sample on every step; perstep = step_samples[i]). The
+-- remap only fires when you opt into MODE2 — existing songs are untouched until then.
+PakettiEightOneTwentyStepMode = "single"
+-- Becomes true once a session has remapped its kits to note-per-sample. While true,
+-- the slider must NOT re-choke (that would silence all but one sample again).
+PakettiEightOneTwentyNotePerSampleActive = false
+
+-- Remap one instrument's samples to one-note-per-sample so the NOTE value selects
+-- the sample: sample i -> base_note (i-1), note_range {i-1,i-1}, velocity {0,127}.
+-- This is what makes per-step sample selection possible (and is how a native
+-- Renoise/Redux drumkit already works). Caps at 120 (Renoise has 120 notes).
+-- Returns count of samples remapped (0 if nothing happened), so callers can
+-- report success/failure to the user.
+function PakettiEightOneTwentyRemapInstrumentNotePerSample(instrument)
+  if not instrument or #instrument.samples == 0 then return 0 end
+  local n = math.min(#instrument.samples, 120)
+  local remapped = 0
+  for i = 1, n do
+    local sample = instrument.samples[i]
+    -- Use the per-sample mapping accessor (the path this file's loaders already
+    -- use for base_note/note_range). Sliced instruments are read_only — skip.
+    local mapping = sample and sample.sample_mapping
+    if mapping and not mapping.read_only then
+      local note = i - 1
+      mapping.note_range = {note, note}
+      mapping.base_note = note
+      mapping.velocity_range = {0, 127}
+      remapped = remapped + 1
+    end
+  end
+  return remapped
+end
+
+-- Returns the note value (0-119) the given row should write for a given sample
+-- number (1-120) under note-per-sample mapping.
+function PakettiEightOneTwentySampleNumberToNote(sample_number)
+  local note = math.floor(sample_number) - 1
+  if note < 0 then note = 0 end
+  if note > 119 then note = 119 end
+  return note
+end
 --
 -- NOTE: Step mode can be changed dynamically:
 -- 1. Use the "16 Steps / 32 Steps" switch in the groovebox interface
@@ -438,6 +492,7 @@ track_names = {}  -- Initialize as empty table to avoid nil errors
 track_indices = {}  -- Initialize as empty table to avoid nil errors
 instrument_names = {}  -- Initialize as empty table to avoid nil errors
 local play_checkbox, follow_checkbox, bpm_display, groove_enabled_checkbox, random_gate_button, fill_empty_label, fill_empty_slider, global_step_buttons, global_controls
+local mode_button  -- the "Mode" button that flips StepMode single<->perstep for all rows
 local local_groove_sliders, local_groove_labels
 local number_buttons_row
 local number_buttons
@@ -1613,6 +1668,47 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     table.insert(checkbox_row_elements, checkboxes[i])
   end
 
+  -- MODE2 (per-step sample) row: one numbervaluebox (1-120) under each step
+  -- checkbox, choosing WHICH sample triggers on that step. Built always; shown
+  -- only while PakettiEightOneTwentyStepMode == "perstep" (toggled via the Mode
+  -- button). step_samples[i] defaults to 1 and is edited here; print_to_pattern
+  -- reads it to write a per-step note when in perstep mode.
+  local sample_valueboxes = {}
+  local sample_valuebox_row_elements = {}
+  row_elements.step_samples = {}
+  for i = 1, MAX_STEPS do
+    row_elements.step_samples[i] = 1
+    -- Plain textfield (no valuebox arrow chrome) so the 1-120 number is readable
+    -- at 30px and stays column-aligned under the step checkbox. Type a number and
+    -- commit; out-of-range input snaps back to 1-120.
+    sample_valueboxes[i] = vb:textfield{
+      value = "1",
+      width = 30,
+      tooltip = "Step " .. i .. ": which sample (1-120) triggers on this step",
+      notifier = function(value)
+        if row_elements.updating_step_samples then return end
+        local n = tonumber(value)
+        if not n then n = row_elements.step_samples[i] or 1 end
+        n = math.floor(n)
+        if n < 1 then n = 1 end
+        if n > 120 then n = 120 end
+        row_elements.step_samples[i] = n
+        -- Snap the field back to the canonical (clamped/parsed) value
+        row_elements.updating_step_samples = true
+        sample_valueboxes[i].value = tostring(n)
+        row_elements.updating_step_samples = false
+        if initializing then return end
+        PakettiEightOneTwentyHighlightRow(row_index)
+        if PakettiEightOneTwentyStepMode == "perstep" then
+          row_elements.print_to_pattern()
+        end
+        PakettiEightOneTwentyReturnFocus()
+      end
+    }
+    table.insert(sample_valuebox_row_elements, sample_valueboxes[i])
+  end
+  row_elements.sample_valueboxes = sample_valueboxes
+
   -- Valuebox for Steps
   local valuebox = vb:valuebox{
     min = 1,
@@ -2010,7 +2106,17 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       renoise.song().selected_track_index = track_index
       if instrument and #instrument.samples > 0 then
         value = math.min(value, #instrument.samples)
-        pakettiSampleVelocityRangeChoke(value)
+        if PakettiEightOneTwentyNotePerSampleActive then
+          -- Note-per-sample mapping is live: choking would silence all but one
+          -- sample and break per-step triggering. Just select the sample for
+          -- display, and re-print so single-mode's note follows the slider.
+          renoise.song().selected_sample_index = value
+          if PakettiEightOneTwentyStepMode == "single" then
+            row_elements.print_to_pattern()
+          end
+        else
+          pakettiSampleVelocityRangeChoke(value)
+        end
         -- Switch to Sample Editor when the sample slider is moved
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
         -- Switched to Sample Editor silently
@@ -2181,7 +2287,17 @@ function row_elements.write_to_phrase()
     local note_col = phrase_line:note_column(1)
     
     if note_checkbox_value then
-      note_col.note_value = 48  -- C-4
+      if PakettiEightOneTwentyNotePerSampleActive then
+        local sample_number
+        if PakettiEightOneTwentyStepMode == "perstep" then
+          sample_number = row_elements.step_samples[line] or 1
+        else
+          sample_number = math.floor(row_elements.slider.value)
+        end
+        note_col.note_value = PakettiEightOneTwentySampleNumberToNote(sample_number)
+      else
+        note_col.note_value = 48  -- C-4
+      end
       note_col.instrument_value = instrument_index - 1
       
       if yxx_checkbox_value and row_elements.yxx_valuebox then
@@ -2242,7 +2358,21 @@ function row_elements.print_to_pattern()
     local effect_column = track_in_pattern:line(line).effect_columns[1]
 
     if note_checkbox_value then
-      note_line.note_string = "C-4"
+      -- Note-per-sample mapping (active once you've entered MODE2 this session)
+      -- makes the NOTE pick the sample. In "perstep" each step uses its own
+      -- step_samples number; in "single" every step uses the slider's sample.
+      -- Legacy (never entered MODE2): keep the original C-4.
+      if PakettiEightOneTwentyNotePerSampleActive then
+        local sample_number
+        if PakettiEightOneTwentyStepMode == "perstep" then
+          sample_number = row_elements.step_samples[line] or 1
+        else
+          sample_number = math.floor(row_elements.slider.value)
+        end
+        note_line.note_value = PakettiEightOneTwentySampleNumberToNote(sample_number)
+      else
+        note_line.note_string = "C-4"
+      end
       note_line.instrument_value = instrument_index - 1
       -- Per-cell velocity: only set the volume column when explicitly chosen.
       -- nil = leave the volume column empty so Renoise uses default (full).
@@ -2804,14 +2934,15 @@ end
 
   local left_controls = vb:column{labels_row, rotaries_row, toggles_labels_row, toggles_row}
 
-  local row = vb:row{
-    style = "body",
-    left_controls,
-    vb:column{
-    vb:row{number_buttons_row},
-    vb:row(checkbox_row_elements),
-    vb:row(yxx_checkbox_row_elements),
-    vb:row{
+  -- MODE2 per-step sample row (hidden unless StepMode == "perstep")
+  local perstep_row = vb:row(sample_valuebox_row_elements)
+  perstep_row.visible = (PakettiEightOneTwentyStepMode == "perstep")
+  row_elements.perstep_row = perstep_row
+
+  -- MODE1 control strip (< > Clear, Random Steps, instrument, Load, RandomLoad,
+  -- slider, Random, Show, ...). Extracted to a local so its visibility can be
+  -- toggled by the Mode button; hidden while StepMode == "perstep".
+  local single_strip = vb:row{
       vb:button{
         text="<",
     notifier=function()
@@ -2943,7 +3074,19 @@ end
       --      vb:button{text="Macros", notifier=row_elements.show_macros},
       reverse_button, eq30_button, steppers_button, gater_button, record_button, hyper_edit_button,
 
-  },
+  }
+  single_strip.visible = (PakettiEightOneTwentyStepMode == "single")
+  row_elements.single_strip = single_strip
+
+  local row = vb:row{
+    style = "body",
+    left_controls,
+    vb:column{
+      vb:row{number_buttons_row},
+      vb:row(checkbox_row_elements),
+      perstep_row,
+      vb:row(yxx_checkbox_row_elements),
+      single_strip,
     },
   }
 
@@ -2972,6 +3115,69 @@ end
   -- Keep beatsync UI in sync when instrument popup changes is handled in the popup's constructor notifier
 
   return row, row_elements
+end
+
+-- Apply the current StepMode to every row: show the per-step valuebox row in
+-- "perstep", show the MODE1 control strip in "single", and re-print so the
+-- pattern reflects the active mode. Safe to call any time after rows are built.
+function PakettiEightOneTwentyApplyStepMode()
+  local perstep = (PakettiEightOneTwentyStepMode == "perstep")
+  for _, re in ipairs(rows) do
+    if re.perstep_row then re.perstep_row.visible = perstep end
+    if re.single_strip then re.single_strip.visible = not perstep end
+  end
+  if mode_button then
+    mode_button.text = perstep and "Mode: Per-Step" or "Mode: Single"
+  end
+  -- Re-print all rows so notes match the active mode.
+  for _, re in ipairs(rows) do
+    if re.print_to_pattern then re.print_to_pattern() end
+  end
+end
+
+-- Toggle StepMode for all 8 rows. The FIRST time we enter "perstep" we remap
+-- each row's instrument to one-note-per-sample (so the NOTE selects the sample)
+-- and latch PakettiEightOneTwentyNotePerSampleActive — from then on both modes
+-- write note numbers. Existing songs are untouched until you opt in here.
+function PakettiEightOneTwentyToggleStepMode()
+  if PakettiEightOneTwentyStepMode == "single" then
+    PakettiEightOneTwentyStepMode = "perstep"
+    if not PakettiEightOneTwentyNotePerSampleActive then
+      local song = renoise.song()
+      local total_remapped = 0
+      local insts_done = 0
+      for _, re in ipairs(rows) do
+        local inst_idx = re.instrument_popup.value
+        local inst = song.instruments[inst_idx]
+        local count = PakettiEightOneTwentyRemapInstrumentNotePerSample(inst)
+        total_remapped = total_remapped + count
+        if count > 0 then insts_done = insts_done + 1 end
+        print(string.format("8120 PERSTEP: row instrument #%d remapped %d samples", inst_idx, count))
+        -- Seed each step's sample number from the row's current slider sample so
+        -- entering MODE2 starts "flat" (every step = the sample you had selected).
+        local seed = math.floor(re.slider and re.slider.value or 1)
+        if re.sample_valueboxes then
+          re.updating_step_samples = true
+          for i = 1, #re.sample_valueboxes do
+            re.step_samples[i] = seed
+            re.sample_valueboxes[i].value = tostring(seed)
+          end
+          re.updating_step_samples = false
+        end
+      end
+      PakettiEightOneTwentyNotePerSampleActive = true
+      renoise.app():show_status(string.format(
+        "8120: Per-Step mode — remapped %d samples across %d instruments to one-note-per-sample.",
+        total_remapped, insts_done))
+    else
+      renoise.app():show_status("8120: Per-Step Sample mode.")
+    end
+  else
+    PakettiEightOneTwentyStepMode = "single"
+    renoise.app():show_status("8120: Single Sample mode.")
+  end
+  PakettiEightOneTwentyApplyStepMode()
+  PakettiEightOneTwentyReturnFocus()
 end
 
 -- Function to create global controls
@@ -3101,9 +3307,19 @@ local randomize_all_yxx_button = vb:button{
     end
   }
 
+  mode_button = vb:button{
+    text = (PakettiEightOneTwentyStepMode == "perstep") and "Mode: Per-Step" or "Mode: Single",
+    width = 110,
+    tooltip = "Toggle all rows between Single Sample mode (MODE1: the control strip, one sample per row) and Per-Step Sample mode (MODE2: a 1-120 valuebox under every step). Entering Per-Step the first time remaps the row instruments to one-note-per-sample.",
+    midi_mapping = "Paketti:Paketti Groovebox 8120:Toggle Step Mode",
+    notifier = PakettiEightOneTwentyToggleStepMode
+  }
+
   global_controls = vb:column{
     vb:row{
       step_mode_switch,
+      vb:text{text=" | ", font = "bold", style = "strong"},
+      mode_button,
       vb:text{text=" | ", font = "bold", style = "strong"},
       play_checkbox, vb:text{text="Play", font = "bold", style = "strong",width=30},
       follow_checkbox, vb:text{text="Follow", font = "bold", style = "strong",width=50},
@@ -3439,8 +3655,25 @@ function fetch_pattern()
     for line = 1, math.min(line_count, MAX_STEPS) do
       local note_line = track_in_pattern:line(line).note_columns[1]
       local effect_column = track_in_pattern:line(line).effect_columns[1]
-      if note_line and note_line.note_string == "C-4" then
+      -- Legacy single mode marks steps with C-4. Note-per-sample mode marks them
+      -- with any real note (0-119), where note+1 is the sample number.
+      local is_step
+      if PakettiEightOneTwentyNotePerSampleActive then
+        is_step = note_line and (not note_line.is_empty) and note_line.note_value < 120
+      else
+        is_step = note_line and note_line.note_string == "C-4"
+      end
+      if is_step then
         row_elements.checkboxes[line].value = true
+        if PakettiEightOneTwentyNotePerSampleActive and row_elements.step_samples then
+          local sn = note_line.note_value + 1
+          row_elements.step_samples[line] = sn
+          if row_elements.sample_valueboxes and row_elements.sample_valueboxes[line] then
+            row_elements.updating_step_samples = true
+            row_elements.sample_valueboxes[line].value = tostring(sn)
+            row_elements.updating_step_samples = false
+          end
+        end
         if effect_column and effect_column.number_string == "0Y" then
           row_elements.yxx_checkboxes[line].value = true
           row_elements.yxx_valuebox.value = effect_column.amount_value
@@ -4542,6 +4775,31 @@ function pakettiEightSlotsByOneTwentyDialog()
   end
   -- Debug output removed
   local keyhandler = function(dialog_obj, key)
+    -- Up/Down arrows nudge the focused per-step sample field by +/-1 (MODE2).
+    -- We find the focused field via its edit_mode flag (true when focused).
+    if key.modifiers == "" and (key.name == "up" or key.name == "down") then
+      local delta = (key.name == "up") and 1 or -1
+      for _, re in ipairs(rows) do
+        if re.sample_valueboxes then
+          for i, tf in ipairs(re.sample_valueboxes) do
+            if tf.edit_mode then
+              local n = (re.step_samples[i] or 1) + delta
+              if n < 1 then n = 1 end
+              if n > 120 then n = 120 end
+              re.step_samples[i] = n
+              re.updating_step_samples = true
+              tf.value = tostring(n)
+              re.updating_step_samples = false
+              if PakettiEightOneTwentyStepMode == "perstep" and re.print_to_pattern then
+                re.print_to_pattern()
+              end
+              return nil
+            end
+          end
+        end
+      end
+    end
+
     -- Handle Space key to toggle playback
     if key.modifiers == "" and key.name == "space" then
       if play_checkbox then
@@ -4549,7 +4807,7 @@ function pakettiEightSlotsByOneTwentyDialog()
       end
       return nil
     end
-    
+
     -- Handle dialog close key
     local closer = preferences.pakettiDialogClose.value
     if key.modifiers == "" and key.name == closer then
@@ -4828,6 +5086,9 @@ function assign_midi_mappings()
   end}
   renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Fetch Pattern",invoke=function(message)
     if message:is_trigger() then fetch_pattern() end
+  end}
+  renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode",invoke=function(message)
+    if message:is_trigger() then PakettiEightOneTwentyToggleStepMode() end
   end}
   renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Fill Empty Steps Slider",invoke=function(message)
     if message:is_abs_value() then
@@ -5795,6 +6056,7 @@ function PakettiEightOneTwentyMidiMixToggleFollow()
   PakettiEightOneTwentyMidiMixSetFollow(not paketti_midimix_follow_enabled())
 end
 
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 Toggle Step Mode", invoke=function() PakettiEightOneTwentyToggleStepMode() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Next Page", invoke=function() PakettiEightOneTwentyMidiMixNextPage() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Previous Page", invoke=function() PakettiEightOneTwentyMidiMixPrevPage() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Toggle Follow Page", invoke=function() PakettiEightOneTwentyMidiMixToggleFollow() end}
@@ -8792,7 +9054,17 @@ function PakettiEightOneTwentyRowToPhrase(row_index)
     local note_col = phrase_line:note_column(1)
     
     if note_checkbox_value then
-      note_col.note_value = 48  -- C-4
+      if PakettiEightOneTwentyNotePerSampleActive then
+        local sample_number
+        if PakettiEightOneTwentyStepMode == "perstep" then
+          sample_number = row_elements.step_samples[line] or 1
+        else
+          sample_number = math.floor(row_elements.slider.value)
+        end
+        note_col.note_value = PakettiEightOneTwentySampleNumberToNote(sample_number)
+      else
+        note_col.note_value = 48  -- C-4
+      end
       note_col.instrument_value = instrument_index - 1
       
       if yxx_checkbox_value and row_elements.yxx_valuebox then
