@@ -4391,7 +4391,7 @@ function PakettiHyperEditCreateDialog()
     vb:text { text = "Gang every", style = "strong", font = "bold" },
     vb:valuebox {
       id = "gang_every",
-      min = 1, max = 64, value = gang_every, width = 50,
+      min = 1, max = 64, value = gang_every, width = 72,
       tooltip = "Gang interval: 1 = every step (whole row), 3 = every 3rd step, ...",
       notifier = function(v)
         gang_every = v
@@ -4406,7 +4406,7 @@ function PakettiHyperEditCreateDialog()
     vb:text { text = "offset", style = "strong", font = "bold" },
     vb:valuebox {
       id = "gang_offset",
-      min = 0, max = 63, value = gang_offset, width = 44,
+      min = 0, max = 63, value = gang_offset, width = 72,
       tooltip = "Shifts which steps are ganged (offset 1 turns 'every 3rd' from steps 1,4,7 into 2,5,8).",
       notifier = function(v)
         gang_offset = v
