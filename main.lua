@@ -1310,6 +1310,7 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiNotepadRun")
   timed_require("PakettiEQ30")
   timed_require("PakettiHyperEdit")
+  timed_require("PakettiFileWarehouse")
   timed_require("PakettiEquationCalculator")
   timed_require("PakettiMultitapExperiment")
   timed_require("PakettiPlayerProWaveformViewer")
@@ -1338,6 +1339,8 @@ end
 -- PakettiImport MUST be loaded after all other modules so their loader functions are available
 -- This centralizes all file import hook registrations with preference checks
 timed_require("PakettiImport")
+
+timed_require("PakettiMusicMouse")
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")

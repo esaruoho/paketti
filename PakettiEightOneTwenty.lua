@@ -2611,7 +2611,14 @@ end
     update_instrument_list_and_popups()
     slider.value = 1
 
+    -- In Per-Step mode the kit must be one-note-per-sample so each step's note
+    -- selects its sample; choking would silence all but one. Otherwise keep the
+    -- classic single-sample choke.
+    if PakettiEightOneTwentyNotePerSampleActive then
+      PakettiEightOneTwentyRemapInstrumentNotePerSample(instrument)
+    else
       pakettiSampleVelocityRangeChoke(1)
+    end
 
     update_instrument_list_and_popups()
     row_elements.random_button_pressed = row_elements.random_button_pressed
@@ -3062,7 +3069,13 @@ end
       
         update_instrument_list_and_popups()
         row_elements.slider.value = 1
-        pakettiSampleVelocityRangeChoke(1)
+        -- Per-Step mode: remap the freshly loaded kit to one-note-per-sample so
+        -- each step's note picks its sample; else keep the classic choke.
+        if PakettiEightOneTwentyNotePerSampleActive then
+          PakettiEightOneTwentyRemapInstrumentNotePerSample(instrument)
+        else
+          pakettiSampleVelocityRangeChoke(1)
+        end
         row_elements.update_sample_name_label()
         --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
       end},
@@ -4775,6 +4788,15 @@ function pakettiEightSlotsByOneTwentyDialog()
   end
   -- Debug output removed
   local keyhandler = function(dialog_obj, key)
+    -- TEMP DEBUG (up/down diagnosis): log every key + whether a per-step field is focused
+    do
+      local focused = "none"
+      if rows then for r,re in ipairs(rows) do if re.sample_valueboxes then
+        for i,tf in ipairs(re.sample_valueboxes) do if tf.edit_mode then focused = "row"..r.."step"..i end end
+      end end end
+      print(string.format("8120 KEY: name='%s' mod='%s' repeated=%s focusedField=%s",
+        tostring(key.name), tostring(key.modifiers), tostring(key.repeated), focused))
+    end
     -- Up/Down arrows nudge the focused per-step sample field by +/-1 (MODE2).
     -- We find the focused field via its edit_mode flag (true when focused).
     if key.modifiers == "" and (key.name == "up" or key.name == "down") then
@@ -10263,9 +10285,16 @@ local function cv_lane_strip_left(row)
     tooltip = "Per-row details: shift, clear, randomize, load, show, automation, reverse, output delay, Yxx",
     notifier = function() cv_show_row_details(row) end
   }
-  -- Per-row step count valuebox — same widget the classic 8120 uses.
+  -- Per-row step count valuebox — same widget the classic 8120 uses (max 512).
+  -- Must NOT cap at MAX_STEPS: a track named e.g. "8120_01[032]" while MAX_STEPS
+  -- is 16 would feed value 32 into a max-16 valuebox and crash the whole view
+  -- ("invalid value for valuebox: '32'. value must be [1 - 16]"). Clamp the value
+  -- and use the full 1-512 range the classic dialog's step valuebox uses.
+  local steps_initial = cv_read_row_steps(row) or MAX_STEPS
+  if steps_initial < 1 then steps_initial = 1 end
+  if steps_initial > 512 then steps_initial = 512 end
   local steps_box = vb:valuebox{
-    min = 1, max = MAX_STEPS, value = cv_read_row_steps(row), width = 42,
+    min = 1, max = 512, value = steps_initial, width = 42,
     tooltip = "Steps for this lane (per-row step count)",
     notifier = function(v) cv_set_row_steps(row, v); cv_refresh() end
   }

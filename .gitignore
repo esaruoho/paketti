@@ -12,6 +12,10 @@ Research/ptlib
 # Cursor IDE rules (local AI context)
 .cursor/
 
+# gumroad-paketti sync state (local tooling, not part of the tool)
+.gumroad-sync.log
+.last-gumroad-sync
+
 # Paketti manual - local-only folders
 manual/_todo/
 manual/_paketti-skill/
