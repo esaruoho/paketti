@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-16 - Feature: Microtonal Tunings — eight Wendy Carlos scales from the Scala archive
+The Microtonal Tunings system gains the canonical, full-range Wendy Carlos scales as ready-to-apply presets, taken from the standard Scala (`.scl`) archive. These complement the existing compact Carlos generators (which list only one fifth's worth of steps) by providing the complete published scales. **Carlos Alpha (78c step, fifth/9, 18 notes)**, **Carlos Alpha Prime (39c step, fifth/18, 36 notes)**, **Carlos Alpha Benson-optimized (18 notes)**, **Carlos Beta (63.8c step, fifth/11, 22 notes)**, **Carlos Beta Prime (31.9c step, fifth/22, 44 notes)** and **Carlos Gamma (35.1c step, fifth/20, 35 notes)** are the famous non-octave-repeating Carlos scales — their period of repetition is the perfect fifth rather than the octave, applied to the selected instrument via Renoise's native Scala tuning. **Carlos Harmonic (12-note)** and **Carlos Super Just (12-note)** are octave-repeating just-intonation scales. All eight appear automatically in the Microtonal Tunings dialog popup (and its A/B comparison) alongside the rest, and each also has its own Apply menu entry. Use the existing **Reset to 12-TET** to return to standard tuning.
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Carlos Alpha (Scala, 18-note)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Carlos Alpha Prime (Scala, 36-note)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Carlos Alpha Benson-optimized (Scala, 18-note)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Carlos Beta (Scala, 22-note)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Carlos Beta Prime (Scala, 44-note)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Carlos Gamma (Scala, 35-note)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Carlos Harmonic (Scala, 12-note JI)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Carlos Super Just (Scala, 12-note JI)`
+- Menu: same eight entries also under `Instrument Box:Paketti:Microtonal Tunings`
+
 ### 2026-06-14 - Feature: HyperEdit — Gang (shape every Nth step at once)
 The Sculpt toolbar gains **Gang**, ported from the Cirklon "GANG by step/row" idea. Turn on the **Gang** checkbox and set **Gang every** N (with an **offset**): the matching steps — every step when N=1 (the whole row), every 3rd step when N=3, etc. — are **highlighted** on every armed row's canvas. While Gang is on, engaging the Sculpt hold shapes that **whole ganged set at once, live** — move the value (the A/B boxes, or Alt+drag a canvas for a live knob A) and every ganged step of every armed row moves together, using the active mode (ABS overwrites, REL offsets from each step's value at the moment you engaged, Random scatters within A…B). Scope is each row's own step cycle. Gang replaces the single-step playhead behaviour while it's on; turn Gang off to go back to shaping one playing/edit step at a time. Gang on/off, interval and offset persist in preferences.
 - Menu: (in-dialog — **Gang** checkbox, **Gang every** and **offset** value boxes in the Sculpt toolbar)

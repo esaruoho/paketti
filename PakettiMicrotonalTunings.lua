@@ -460,6 +460,55 @@ local function generate_pelog()
 end
 
 -- ========================================
+-- Wendy Carlos scales from the Scala archive (.scl)
+-- These are the canonical, full-range Carlos scales. Alpha / Beta / Gamma do NOT
+-- repeat at the octave -- the period of repetition is the perfect fifth (listed
+-- here as the last ratio, e.g. ~1404c = two fifths for Alpha). They are distinct
+-- from the compact fifth/N generators above: those list only one fifth's worth of
+-- steps, these list the full published scale. carlos_harm / carlos_super are
+-- 12-note just-intonation scales that DO repeat at the octave (last ratio 2/1).
+-- The equal-step scales are built from their published cents step so the values
+-- match the .scl files exactly; Benson + the two JI scales are listed verbatim.
+-- ========================================
+local function carlos_equal_cents(step, count, name)
+  local cents = {}
+  for k = 1, count do cents[k] = step * k end
+  return cents_to_ratios(cents), name
+end
+local function generate_carlos_alpha_scl()
+  return carlos_equal_cents(78, 18, "Carlos Alpha (Scala, 78c step, fifth/9, 18-note)")
+end
+local function generate_carlos_alpha_prime_scl()
+  return carlos_equal_cents(39, 36, "Carlos Alpha Prime (Scala, 39c step, fifth/18, 36-note)")
+end
+local function generate_carlos_alpha_benson_scl()
+  return cents_to_ratios({
+    63.83293, 127.66587, 191.49880, 255.33173, 319.16466, 382.99760,
+    446.83053, 510.66346, 574.49640, 638.32933, 702.16226, 765.99520,
+    829.82813, 893.66106, 957.49399, 1021.32693, 1085.15986, 1148.99279
+  }), "Carlos Alpha Benson-optimized (Scala, 18-note)"
+end
+local function generate_carlos_beta_scl()
+  return carlos_equal_cents(63.8, 22, "Carlos Beta (Scala, 63.8c step, fifth/11, 22-note)")
+end
+local function generate_carlos_beta_prime_scl()
+  return carlos_equal_cents(31.9, 44, "Carlos Beta Prime (Scala, 31.9c step, fifth/22, 44-note)")
+end
+local function generate_carlos_gamma_scl()
+  return carlos_equal_cents(35.099, 35, "Carlos Gamma (Scala, 35.1c step, fifth/20, 35-note)")
+end
+local function generate_carlos_harmonic_scl()
+  return {
+    17/16, 9/8, 19/16, 5/4, 21/16, 11/8, 3/2, 13/8, 27/16, 7/4, 15/8, 2/1
+  }, "Carlos Harmonic (Scala, 12-note JI)"
+end
+local function generate_carlos_super_just_scl()
+  return {
+    17/16, 9/8, 6/5, 5/4, 4/3, 11/8, 3/2, 13/8, 5/3, 7/4, 15/8, 2/1
+  }, "Carlos Super Just (Scala, 12-note JI)"
+end
+
+-- ========================================
 -- TUNING PRESET TABLE
 -- ========================================
 
@@ -501,6 +550,14 @@ local tuning_presets = {
   {name = "Wendy Carlos Alpha (78c)", generator = generate_carlos_alpha},
   {name = "Wendy Carlos Beta (63.8c)", generator = generate_carlos_beta},
   {name = "Wendy Carlos Gamma (35.1c)", generator = generate_carlos_gamma},
+  {name = "Carlos Alpha (Scala, 18-note)", generator = generate_carlos_alpha_scl},
+  {name = "Carlos Alpha Prime (Scala, 36-note)", generator = generate_carlos_alpha_prime_scl},
+  {name = "Carlos Alpha Benson-optimized (Scala, 18-note)", generator = generate_carlos_alpha_benson_scl},
+  {name = "Carlos Beta (Scala, 22-note)", generator = generate_carlos_beta_scl},
+  {name = "Carlos Beta Prime (Scala, 44-note)", generator = generate_carlos_beta_prime_scl},
+  {name = "Carlos Gamma (Scala, 35-note)", generator = generate_carlos_gamma_scl},
+  {name = "Carlos Harmonic (Scala, 12-note JI)", generator = generate_carlos_harmonic_scl},
+  {name = "Carlos Super Just (Scala, 12-note JI)", generator = generate_carlos_super_just_scl},
   {name = "Slendro (gamelan example)", generator = generate_slendro},
   {name = "Pelog (gamelan example)", generator = generate_pelog},
 }
@@ -2310,6 +2367,19 @@ local function apply_carlos_gamma()
     if preset.name == "Wendy Carlos Gamma (35.1c)" then apply_tuning_to_instrument(i) return end
   end
 end
+local function apply_preset_by_name(target)
+  for i, preset in ipairs(tuning_presets) do
+    if preset.name == target then apply_tuning_to_instrument(i) return end
+  end
+end
+local function apply_carlos_alpha_scl() apply_preset_by_name("Carlos Alpha (Scala, 18-note)") end
+local function apply_carlos_alpha_prime_scl() apply_preset_by_name("Carlos Alpha Prime (Scala, 36-note)") end
+local function apply_carlos_alpha_benson_scl() apply_preset_by_name("Carlos Alpha Benson-optimized (Scala, 18-note)") end
+local function apply_carlos_beta_scl() apply_preset_by_name("Carlos Beta (Scala, 22-note)") end
+local function apply_carlos_beta_prime_scl() apply_preset_by_name("Carlos Beta Prime (Scala, 44-note)") end
+local function apply_carlos_gamma_scl() apply_preset_by_name("Carlos Gamma (Scala, 35-note)") end
+local function apply_carlos_harmonic_scl() apply_preset_by_name("Carlos Harmonic (Scala, 12-note JI)") end
+local function apply_carlos_super_just_scl() apply_preset_by_name("Carlos Super Just (Scala, 12-note JI)") end
 local function apply_slendro()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Slendro (gamelan example)" then apply_tuning_to_instrument(i) return end
@@ -2375,6 +2445,14 @@ for _, base in ipairs(menus) do
   PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Alpha (78c)", invoke = apply_carlos_alpha}
   PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Beta (63.8c)", invoke = apply_carlos_beta}
   PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Gamma (35.1c)", invoke = apply_carlos_gamma}
+  PakettiAddMenuEntry{name = base..":Apply Carlos Alpha (Scala, 18-note)", invoke = apply_carlos_alpha_scl}
+  PakettiAddMenuEntry{name = base..":Apply Carlos Alpha Prime (Scala, 36-note)", invoke = apply_carlos_alpha_prime_scl}
+  PakettiAddMenuEntry{name = base..":Apply Carlos Alpha Benson-optimized (Scala, 18-note)", invoke = apply_carlos_alpha_benson_scl}
+  PakettiAddMenuEntry{name = base..":Apply Carlos Beta (Scala, 22-note)", invoke = apply_carlos_beta_scl}
+  PakettiAddMenuEntry{name = base..":Apply Carlos Beta Prime (Scala, 44-note)", invoke = apply_carlos_beta_prime_scl}
+  PakettiAddMenuEntry{name = base..":Apply Carlos Gamma (Scala, 35-note)", invoke = apply_carlos_gamma_scl}
+  PakettiAddMenuEntry{name = base..":Apply Carlos Harmonic (Scala, 12-note JI)", invoke = apply_carlos_harmonic_scl}
+  PakettiAddMenuEntry{name = base..":Apply Carlos Super Just (Scala, 12-note JI)", invoke = apply_carlos_super_just_scl}
   PakettiAddMenuEntry{name = base..":Apply Slendro (gamelan example)", invoke = apply_slendro}
   PakettiAddMenuEntry{name = base..":Apply Pelog (gamelan example)", invoke = apply_pelog}
   PakettiAddMenuEntry{name = base..":Apply Phi-9 (Lange)", invoke = apply_phi_9_lange}
