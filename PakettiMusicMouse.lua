@@ -92,7 +92,8 @@ local mm = {
   sound_on    = true,         -- spacebar
 
   treatment   = 1,            -- 1 Chord, 2 Arpeggiate, 3 Line, 4 Improvise
-  mute        = { false, false, false, false },
+  num_voices  = 4,            -- 4 = classic Music Mouse; 5..9 = richer chords (extra X-chord tones)
+  mute        = { false, false, false, false, false, false, false, false, false },
 
   tempo_basic = 100,          -- quarter-notes/min (a MM beat = a 16th, so beats/min = tempo*4)
   tempo_alt   = 200,
@@ -100,22 +101,24 @@ local mm = {
   sync_bpm    = true,         -- pattern player locks to the song's BPM/LPB (read live)
 
   waveform    = "Square",     -- current single-cycle waveform
-  bell        = false,        -- false = Sustain (looping drone), true = Bell (non-looping decay)
+  bell        = true,         -- true = Bell (non-looping decay, default), false = Sustain (loop)
   dark        = false,        -- theme: false = authentic light Music Mouse, true = dark
 
   -- runtime
   mouse_active = true,        -- delete key disconnects
-  key_probe   = false,        -- temporary: log every key's reported name/modifiers to discover right-shift
+  key_probe   = false,        -- key-name diagnostic logger (off)
   frozen      = false,        -- SPACE: pause sound + mouse-follow + auto-play (keys still drive it)
   keyjazz     = false,        -- punch mode: mouse aims silently; i/o/p triggers (and records)
   record      = false,        -- right-shift: imprint current notes to the pattern at the playhead
   held        = {},           -- ENTER-locked notes that keep ringing (compose buffer)
   seeds       = {},           -- gravitation seeds: click-dropped attractor positions {dx,dy}
+  gravity_play = false,       -- when on, the timer steps through the seeds in recorded order
+  gravity_index = 0,          -- current seed in the gravity-play sequence
   mx = 0.5, my = 0.5,         -- normalized mouse position in play area (0..1)
   deg_x = 0, deg_y = 0,       -- current quantized scale-degree on each axis
   axis  = {},                 -- ordered list of degrees whose note is in playable range
-  voice_note = { nil, nil, nil, nil }, -- currently sounding Renoise note per voice
-  last_notes = { nil, nil, nil, nil }, -- last computed target notes
+  voice_note = {}, -- currently sounding Renoise note per voice (max MM_MAX_VOICES)
+  last_notes = {}, -- last computed target notes
   seq_i = 0,                  -- arp/line/improvise voice index
   random_seed = 12345,        -- deterministic pseudo-random for improvise
   timer_running = false,
@@ -129,6 +132,13 @@ local function mm_load_prefs()
   mm.sync_bpm    = preferences.pakettiMusicMouseSyncBPM.value
   local ld = preferences.pakettiMusicMouseLoudness.value or 102
   mm.loudness    = math.max(0, math.min(1, ld / 127))
+  -- restore gravitation seeds (the diamonds stay across close/reopen + reloads)
+  mm.seeds = {}
+  local str = preferences.pakettiMusicMouseSeeds.value or ""
+  for pair in str:gmatch("[^;]+") do
+    local dx, dy = pair:match("(-?%d+):(-?%d+)")
+    if dx and dy then mm.seeds[#mm.seeds + 1] = { dx = tonumber(dx), dy = tonumber(dy) } end
+  end
 end
 
 local function mm_save_prefs()
@@ -137,6 +147,9 @@ local function mm_save_prefs()
   preferences.pakettiMusicMouseTempoAlt.value   = mm.tempo_alt
   preferences.pakettiMusicMouseSyncBPM.value    = mm.sync_bpm
   preferences.pakettiMusicMouseLoudness.value   = math.floor(mm.loudness * 127 + 0.5)
+  local parts = {}
+  for _, s in ipairs(mm.seeds) do parts[#parts + 1] = s.dx .. ":" .. s.dy end
+  preferences.pakettiMusicMouseSeeds.value = table.concat(parts, ";")
   preferences:save_as("preferences.xml")
 end
 
@@ -272,11 +285,36 @@ end
 -- voice layout:
 --   chord-melody (default): v1,v2,v3 = 3-note chord on X axis (treble); v4 = melody on Y axis (bass)
 --   voice-pairs:            v1,v2 = pair on X axis;  v3,v4 = pair on Y axis
-local function mm_compute_voices()
+-- X-axis and Y-axis voice degrees (before the pattern contour). mm.num_voices = 4 is classic
+-- Music Mouse; 5 and 6 add richer chord tones (extra thirds stacked on the X-axis chord).
+local function mm_axis_degrees()
   local sc = MM_SCALES[mm.scale_key]
   local dx, dy = mm.deg_x, mm.deg_y
+  local sign = mm.mouse_contrary and -1 or 1
+  local n = mm.num_voices
+  -- ascending chord-tone offsets (scale degrees): 0, vs3, vs4, vs4+2, vs4+4, ... (a third per extra)
+  local offs = { 0, sc.vs3, sc.vs4 }
+  while #offs < n do offs[#offs + 1] = sc.vs4 + 2 * (#offs - 2) end
+  local xd, yd = {}, {}
+  if not mm.format_pairs then
+    -- chord-melody: solo melody on Y; the chord (n-1 tones) on X
+    for i = 1, n - 1 do xd[#xd + 1] = dx + offs[i] * sign end
+    yd[1] = dy
+  else
+    -- voice-pairs: X pair (dx, dx+vs3), Y pair (dy, dy+vs4); extra tones stack on X
+    xd[1] = dx
+    if n >= 2 then xd[#xd + 1] = dx + sc.vs3 * sign end
+    yd[1] = dy
+    if n >= 4 then yd[#yd + 1] = dy + sc.vs4 * sign end
+    for vi = 5, n do xd[#xd + 1] = dx + (sc.vs4 + 2 * (vi - 4)) * sign end
+  end
+  return xd, yd
+end
 
-  -- additive pattern contour (a + 0-9)
+-- Returns the target Renoise notes for the current state (one per active voice).
+-- Voice order is X-axis voices first, then Y-axis voices (so 4-voice layout is unchanged:
+-- v1..v3 = X chord, v4 = Y melody).
+local function mm_compute_voices()
   local pat = 0
   if mm.pattern_on then
     local arr = MM_PATTERNS[mm.pattern_idx]
@@ -285,25 +323,19 @@ local function mm_compute_voices()
     if mm.pattern_contrary then pat = -pat end
   end
 
-  local vs3 = sc.vs3
-  local vs4 = sc.vs4
-  -- contrary motion for the mouse-derived lines: flip the sign of the added offsets
-  if mm.mouse_contrary then vs3 = -vs3; vs4 = -vs4 end
+  local xd, yd = mm_axis_degrees()
+  local base = {}
+  for _, d in ipairs(xd) do base[#base + 1] = d end
+  for _, d in ipairs(yd) do base[#base + 1] = d end
+  local nv = #base
 
-  -- base scale-degree per voice (before the pattern contour)
-  local base
-  if not mm.format_pairs then
-    base = { dx, dx + vs3, dx + vs4, dy }   -- 3-note chord on X, solo on Y
-  else
-    base = { dx, dx + vs3, dy, dy + vs4 }   -- two voices per axis
-  end
-
-  -- decide which voices the pattern contour ornaments (target = all / melody-top / bass-bottom)
-  local apply = { true, true, true, true }
+  -- which voices the pattern contour ornaments (target = all / melody-top / bass-bottom)
+  local apply = {}
+  for v = 1, nv do apply[v] = true end
   if mm.pattern_on and mm.pat_target ~= "all" then
-    apply = { false, false, false, false }
+    for v = 1, nv do apply[v] = false end
     local pick, best = 1, base[1]
-    for v = 2, 4 do
+    for v = 2, nv do
       if mm.pat_target == "melody" and base[v] > best then best = base[v]; pick = v end
       if mm.pat_target == "bass" and base[v] < best then best = base[v]; pick = v end
     end
@@ -311,7 +343,7 @@ local function mm_compute_voices()
   end
 
   local notes = {}
-  for v = 1, 4 do
+  for v = 1, nv do
     notes[v] = mm_degree_note(base[v] + (apply[v] and pat or 0))
   end
   return notes
@@ -363,15 +395,17 @@ local function mm_release_held()
   mm.held = {}
 end
 
+local MM_MAX_VOICES = 9
+
 local function mm_all_notes_off()
-  for v = 1, 4 do mm_note_off(v) end
+  for v = 1, MM_MAX_VOICES do mm_note_off(v) end
   mm_release_held()
 end
 
 -- ENTER: lock the currently sounding voices so they keep ringing; the mouse then plays fresh ones
 local function mm_lock_voices()
   local locked = 0
-  for v = 1, 4 do
+  for v = 1, MM_MAX_VOICES do
     local n = mm.voice_note[v]
     if n ~= nil then
       mm.held[#mm.held + 1] = n   -- keep it ringing; detach so future plays don't release it
@@ -382,31 +416,29 @@ local function mm_lock_voices()
   return locked
 end
 
--- Play the full set of target notes honoring grouping/staccato.
+-- Play the full set of target notes honoring grouping/staccato. Voices beyond the active count
+-- (or muted) are released, so dropping from 6 to 4 voices silences the extras.
 local function mm_play_chord(notes)
-  for v = 1, 4 do
-    if mm.mute[v] then
+  for v = 1, MM_MAX_VOICES do
+    if v > #notes or mm.mute[v] then
       mm_note_off(v)
     else
       local newn = notes[v]
       if mm.grouping then
-        -- grouping on: retrigger every voice
-        mm_note_on(v, newn)
+        mm_note_on(v, newn)                                   -- grouping: retrigger every voice
       else
-        -- grouping off: only retrigger voices whose pitch changed
-        if newn ~= mm.voice_note[v] then mm_note_on(v, newn) end
+        if newn ~= mm.voice_note[v] then mm_note_on(v, newn) end -- only retrigger changed voices
       end
     end
   end
   mm.last_notes = notes
   if mm_record_write then
     local rl = {}
-    for v = 1, 4 do if not mm.mute[v] then rl[#rl + 1] = notes[v] end end
+    for v = 1, #notes do if not mm.mute[v] then rl[#rl + 1] = notes[v] end end
     mm_record_write(rl)
   end
   if mm.staccato then
-    -- staccato: release immediately; the instrument envelope provides the tail
-    for v = 1, 4 do mm_note_off(v) end
+    for v = 1, MM_MAX_VOICES do mm_note_off(v) end   -- staccato: release immediately
   end
 end
 
@@ -428,18 +460,18 @@ local function mm_retrigger()
     mm.seq_i = 0   -- restart the arpeggio/line/improvise from the top with the new sound
     return
   end
-  for v = 1, 4 do
+  for v = 1, MM_MAX_VOICES do
     if mm.voice_note[v] then mm_note_off(v) end
   end
-  for v = 1, 4 do
+  for v = 1, #notes do
     if not mm.mute[v] then mm_note_on(v, notes[v]) end
   end
   if mm_record_write then
     local rl = {}
-    for v = 1, 4 do if not mm.mute[v] then rl[#rl + 1] = notes[v] end end
+    for v = 1, #notes do if not mm.mute[v] then rl[#rl + 1] = notes[v] end end
     mm_record_write(rl)
   end
-  if mm.staccato then for v = 1, 4 do mm_note_off(v) end end
+  if mm.staccato then for v = 1, MM_MAX_VOICES do mm_note_off(v) end end
 end
 
 -- Arpeggio "button": write the current 4-voice arpeggio into consecutive pattern lines at the
@@ -461,7 +493,7 @@ local function mm_stamp_arpeggio()
   if track.visible_note_columns < 1 then track.visible_note_columns = 1 end
   local start_line = song.selected_line_index
   local written = 0
-  for v = 1, 4 do
+  for v = 1, #notes do
     if not mm.mute[v] and notes[v] then
       local line = start_line + written
       if line <= nlines then
@@ -590,11 +622,22 @@ local function mm_tick()
   -- accumulate real time; fire a beat when enough has passed (beat length read live from BPM)
   mm_beat_accum = mm_beat_accum + MM_TICK_MS
   local beat = mm_beat_ms()
-  if mm.treatment == 2 then beat = beat / 4 end   -- arpeggiate subdivides by 4
+  -- arpeggiate subdivides by 4, but Gravity Play always steps at the base (BPM-locked) beat
+  if mm.treatment == 2 and not mm.gravity_play then beat = beat / 4 end
   if beat < 8 then beat = 8 end
   if mm_beat_accum < beat then return end
   mm_beat_accum = mm_beat_accum - beat
   if mm_beat_accum > beat * 4 then mm_beat_accum = 0 end   -- clamp runaway
+
+  -- GRAVITY PLAY: step through the dropped seeds in recorded order, one chord per beat
+  if mm.gravity_play and #mm.seeds > 0 then
+    mm.gravity_index = (mm.gravity_index % #mm.seeds) + 1
+    local s = mm.seeds[mm.gravity_index]
+    mm.deg_x = s.dx; mm.deg_y = s.dy
+    mm_play_chord(mm_compute_voices())
+    if mm_canvas then mm_canvas:update() end
+    return
+  end
 
   if mm.pattern_on then mm.pat_step = mm.pat_step + 1 end
   local notes = mm_compute_voices()
@@ -602,10 +645,10 @@ local function mm_tick()
   if mm.treatment == 1 then
     if mm.pattern_on then mm_play_chord(notes) end   -- chord: timer only sounds when patterning
   elseif mm.treatment == 2 or mm.treatment == 3 then
-    mm.seq_i = (mm.seq_i % 4) + 1
+    mm.seq_i = (mm.seq_i % #notes) + 1
     mm_play_one(mm.seq_i, notes[mm.seq_i])
   elseif mm.treatment == 4 then
-    for v = 1, 4 do
+    for v = 1, #notes do
       if mm_rand() < 0.45 then mm_play_one(v, notes[v]) end
     end
   end
@@ -641,7 +684,7 @@ end
 -- Mouse interaction
 --------------------------------------------------------------------------------
 
-local MM_SEED_PULL = 1   -- gravitation radius (scale-degrees) around a seed
+local MM_SEED_PULL = 2   -- gravitation radius (scale-degrees) around a seed — wide enough to feel the magnet
 
 -- snap the current degrees toward a nearby seed (the "gravity well")
 local function mm_apply_gravitation()
@@ -659,7 +702,8 @@ local function mm_update_from_mouse()
   local fy = (1 - mm.my)          -- invert: top of canvas = high pitch
   mm.deg_x = mm_frac_to_degree(fx)
   mm.deg_y = mm_frac_to_degree(fy)
-  mm_apply_gravitation()          -- pull toward a nearby gravitation seed
+  -- (no auto-snap: the mouse moves freely so you can place/modify seeds anywhere;
+  --  the diamonds are reached by Gravity Play, not by magnetism)
   if mm.keyjazz then
     -- punch mode: aim silently — update the cursor only; i/o/p triggers the picked chord
     mm.last_notes = mm_compute_voices()
@@ -681,6 +725,7 @@ local function mm_add_seed()
   local dy = mm_frac_to_degree(1 - mm.my)
   for _, s in ipairs(mm.seeds) do if s.dx == dx and s.dy == dy then return end end
   mm.seeds[#mm.seeds + 1] = { dx = dx, dy = dy }
+  mm_save_prefs()
   renoise.app():show_status("Music Mouse: gravitation seed dropped (" .. #mm.seeds .. " total)")
 end
 
@@ -693,13 +738,24 @@ local function mm_remove_nearest_seed()
     local d = math.abs(s.dx - dx) + math.abs(s.dy - dy)
     if d < bestd then bestd = d; best = i end
   end
-  if best then table.remove(mm.seeds, best); renoise.app():show_status("Music Mouse: seed removed (" .. #mm.seeds .. " left)") end
+  if best then table.remove(mm.seeds, best); mm_save_prefs(); renoise.app():show_status("Music Mouse: seed removed (" .. #mm.seeds .. " left)") end
 end
 
 function mm_clear_seeds()
   mm.seeds = {}
+  mm.gravity_play = false
+  mm_save_prefs()
   if mm_canvas then mm_canvas:update() end
   renoise.app():show_status("Music Mouse: gravitation seeds cleared")
+end
+
+function mm_toggle_gravity_play()
+  mm.gravity_play = not mm.gravity_play
+  mm.gravity_index = 0
+  mm_restart_timer()
+  if mm_canvas then mm_canvas:update() end
+  renoise.app():show_status("Music Mouse: Gravity Play " ..
+    (mm.gravity_play and ("ON — " .. #mm.seeds .. " seeds, in order") or "OFF"))
 end
 
 function mm_mouse_handler(ev)
@@ -808,17 +864,7 @@ function mm_render(ctx)
   end
 
   -- current voice degrees per axis (X = top/bottom keyboards, Y = left/right keyboards)
-  local sc = MM_SCALES[mm.scale_key]
-  local vs3 = mm.mouse_contrary and -sc.vs3 or sc.vs3
-  local vs4 = mm.mouse_contrary and -sc.vs4 or sc.vs4
-  local x_degs, y_degs
-  if not mm.format_pairs then
-    x_degs = { mm.deg_x, mm.deg_x + vs3, mm.deg_x + vs4 }
-    y_degs = { mm.deg_y }
-  else
-    x_degs = { mm.deg_x, mm.deg_x + vs3 }
-    y_degs = { mm.deg_y, mm.deg_y + vs4 }
-  end
+  local x_degs, y_degs = mm_axis_degrees()
   local hi_x, hi_y = {}, {}
   local vline_fracs, hline_fracs = {}, {}
   for _, d in ipairs(x_degs) do hi_x[mm_degree_note(d)] = true; vline_fracs[#vline_fracs + 1] = mm_degree_to_frac(d) end
@@ -860,16 +906,19 @@ function mm_render(ctx)
     end
   end
 
-  -- gravitation seeds: green diamonds you can land back on (cursor is pulled toward them)
-  for _, s in ipairs(mm.seeds) do
+  -- gravitation seeds: green diamonds you can land back on (cursor is pulled toward them).
+  -- During Gravity Play the active seed is larger + yellow, and each shows its play order.
+  for i, s in ipairs(mm.seeds) do
     local cx = PLAY_X0 + mm_degree_to_frac(s.dx) * playW
     local cy = PLAY_Y0 + (1 - mm_degree_to_frac(s.dy)) * playH
-    ctx.fill_color = { 60, 220, 130, 255 }
+    local active = mm.gravity_play and (i == mm.gravity_index)
+    local r = active and 9 or 6
+    ctx.fill_color = active and { 255, 220, 40, 255 } or { 60, 220, 130, 255 }
     ctx.stroke_color = th.frame
     ctx.line_width = 1
     ctx:begin_path()
-    ctx:move_to(cx, cy - 6); ctx:line_to(cx + 6, cy); ctx:line_to(cx, cy + 6)
-    ctx:line_to(cx - 6, cy); ctx:line_to(cx, cy - 6)
+    ctx:move_to(cx, cy - r); ctx:line_to(cx + r, cy); ctx:line_to(cx, cy + r)
+    ctx:line_to(cx - r, cy); ctx:line_to(cx, cy - r)
     ctx:fill()
     ctx:stroke()
   end
@@ -1106,22 +1155,31 @@ local function mm_reseat_axis()
   mm.deg_x = mm_frac_to_degree(mm.mx)
   mm.deg_y = mm_frac_to_degree(1 - mm.my)
 end
+local function mm_set_num_voices(n)
+  mm.num_voices = n
+  for v = n + 1, MM_MAX_VOICES do mm_note_off(v) end   -- silence voices that are no longer active
+  mm_replay()
+  mm_update_panel()
+end
 
 -- build the live control panel (dropdowns / valueboxes / checkboxes), two-way synced with the keyboard
 local function mm_controls_column(vbx)
   local function lbl(t) return vbx:text{ text = t, width = LBL, font = "mono" } end
+  -- mute row (1..MM_MAX_VOICES), built programmatically
+  local mute_row = { spacing = 3, lbl("Mute voices") }
+  for i = 1, MM_MAX_VOICES do
+    local vi = i
+    mute_row[#mute_row + 1] = vbx:checkbox{ id = "mm_mute_" .. vi, value = not mm.mute[vi],
+      notifier = function(b) if mm_ui_busy then return end mm.mute[vi] = not b; if mm.mute[vi] then mm_note_off(vi) end end }
+    mute_row[#mute_row + 1] = vbx:text{ text = tostring(vi), font = "mono" }
+  end
   return vbx:column{
     spacing = 3,
-    vbx:row{ spacing = 4, lbl("Voices"),
-      vbx:checkbox{ id = "mm_mute_1", value = not mm.mute[1], notifier = function(b) if mm_ui_busy then return end mm.mute[1] = not b; if mm.mute[1] then mm_note_off(1) end end },
-      vbx:text{ text = "1", font = "mono" },
-      vbx:checkbox{ id = "mm_mute_2", value = not mm.mute[2], notifier = function(b) if mm_ui_busy then return end mm.mute[2] = not b; if mm.mute[2] then mm_note_off(2) end end },
-      vbx:text{ text = "2", font = "mono" },
-      vbx:checkbox{ id = "mm_mute_3", value = not mm.mute[3], notifier = function(b) if mm_ui_busy then return end mm.mute[3] = not b; if mm.mute[3] then mm_note_off(3) end end },
-      vbx:text{ text = "3", font = "mono" },
-      vbx:checkbox{ id = "mm_mute_4", value = not mm.mute[4], notifier = function(b) if mm_ui_busy then return end mm.mute[4] = not b; if mm.mute[4] then mm_note_off(4) end end },
-      vbx:text{ text = "4", font = "mono" },
-    },
+    vbx:row{ spacing = 4, lbl("Voices (4-9)"),
+      vbx:switch{ id = "mm_voices_switch", width = 168, items = { "4", "5", "6", "7", "8", "9" }, value = mm.num_voices - 3,
+        notifier = function(i) if mm_ui_busy then return end mm_set_num_voices(i + 3) end },
+      vbx:text{ text = "5+=rich", font = "mono" } },
+    vbx:row(mute_row),
     vbx:row{ spacing = 4, lbl("Harmonic Mode"),
       vbx:popup{ id = "mm_harmony_popup", width = 150, items = MM_HARMONY_ITEMS, value = mm_scale_index(),
         notifier = function(i) if mm_ui_busy then return end mm.scale_key = MM_SCALE_ORDER[i]; mm_reseat_axis(); mm_replay() end } },
@@ -1211,7 +1269,8 @@ mm_update_panel = function()
   v["mm_sound_check"].value = mm.sound_on
   v["mm_altt_check"].value = mm.tempo_use_alt
   v["mm_mouse_check"].value = mm.mouse_active
-  for i = 1, 4 do v["mm_mute_" .. i].value = not mm.mute[i] end
+  for i = 1, MM_MAX_VOICES do if v["mm_mute_" .. i] then v["mm_mute_" .. i].value = not mm.mute[i] end end
+  if v["mm_voices_switch"] then v["mm_voices_switch"].value = mm.num_voices - 3 end
   if v["mm_wave_popup"] then v["mm_wave_popup"].value = mm_wave_index_value() end
   if v["mm_mode_switch"] then v["mm_mode_switch"].value = mm.bell and 2 or 1 end
   mm_ui_busy = false
@@ -1413,8 +1472,10 @@ function mm_keyhandler(dlg, key)
     if has_shift then mm.half_legato = not mm.half_legato else mm.staccato = not mm.staccato end
     mm_update_panel(); return nil
   end
+  -- shift-comma = ';' on Nordic/many layouts -> Gravity Play (must be caught before loudness)
+  if (name == "," or name == "comma") and has_shift then mm_toggle_gravity_play(); return nil end
   if name == "," or name == "comma" or name == "<" then
-    if has_shift then mm.loudness = 0 else mm.loudness = math.max(0, mm.loudness - 0.08) end
+    mm.loudness = math.max(0, mm.loudness - 0.08)   -- loudness down (plain comma)
     mm_update_panel(); mm_save_prefs(); return nil
   end
   if name == "." or name == "period" or name == ">" then
@@ -1428,11 +1489,11 @@ function mm_keyhandler(dlg, key)
     if mm_canvas then mm_canvas:update() end
     return nil
   end
-  -- Muting shift-1..4 ; ~ reverse / shift-~ all on
-  if has_shift and name:match("^[1-4]$") then mm_toggle_mute(tonumber(name)); mm_update_panel(); return nil end
+  -- Muting shift-1..9 ; ~ reverse / shift-~ all on
+  if has_shift and name:match("^[1-9]$") then mm_toggle_mute(tonumber(name)); mm_update_panel(); return nil end
   if name == "~" or name == "`" then
-    if has_shift then for v = 1, 4 do mm.mute[v] = false end
-    else for v = 1, 4 do mm.mute[v] = not mm.mute[v]; if mm.mute[v] then mm_note_off(v) end end end
+    if has_shift then for v = 1, MM_MAX_VOICES do mm.mute[v] = false end
+    else for v = 1, MM_MAX_VOICES do mm.mute[v] = not mm.mute[v]; if mm.mute[v] then mm_note_off(v) end end end
     mm_update_panel(); return nil
   end
   -- Tempo - + [ ] \  (shift = Slow/Fast/Default presets). Taking manual tempo control
@@ -1533,6 +1594,7 @@ function mm_keyhandler(dlg, key)
   end
   if name == "b" then mm_set_bell(not mm.bell); return nil end   -- Bell / Sustain toggle
   if name == "l" then mm_clear_seeds(); return nil end           -- clear gravitation seeds
+  if name == ";" or name == "semicolon" then mm_toggle_gravity_play(); return nil end  -- Gravity Play
   if name == "j" then  -- keyjazz punch mode: mouse aims silently, i/o/p triggers
     mm.keyjazz = not mm.keyjazz
     if mm.keyjazz then mm_all_notes_off() end
@@ -1627,9 +1689,10 @@ ARTICULATION / LOUDNESS / MUTING
   g            cycle Staccato/Half/Full Legato
   /            staccato / legato
   shift-/      half / full legato
-  , .          loudness down / up (shift=min/max)
-  shift-1..4   mute voice 1..4
+  , .          loudness down / up  (shift-. = max)
+  shift-1..9   mute voice 1..9
   ~  reverse mutes     shift-~  all on
+  (Voices 4-9 selector in panel: 5+ = rich chords)
 
 TEMPO
   - +  tempo1 down/up    [ ]  tempo2
@@ -1652,6 +1715,7 @@ PERFORMANCE
   j            Keyjazz punch (mouse silent; i/o/p triggers)
   click        drop gravitation seed (cursor pulled to it)
   right-click  remove nearest seed     l  clear all seeds
+  ;            Gravity Play (= shift-comma; also button / MIDI)
   delete       disconnect mouse
   k  theme    home  re-init    esc  close
 ]]
@@ -1713,6 +1777,11 @@ function pakettiMusicMouseShow()
           notifier = function(i) if not mm_ui_busy then mm_set_bell(i == 2) end end },
       },
       vb:button{ text = "Generate New Pakettified Instrument", width = 230, notifier = pakettiMusicMouseGenerateInstrument },
+      vb:row{
+        spacing = 4,
+        vb:button{ text = "Gravity Play (;)", width = 150, notifier = mm_toggle_gravity_play },
+        vb:button{ text = "Clear Seeds (l)", width = 76, notifier = mm_clear_seeds },
+      },
       vb:text{ text = "Pattern Editor — drag bars (a + 0-9 contour)", font = "mono" },
       mm_pat_canvas,
       vb:row{
@@ -1753,4 +1822,31 @@ renoise.tool():add_keybinding{ name = "Global:Paketti:Music Mouse Show/Hide", in
 
 renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Show/Hide", invoke = function(message)
   if message:is_trigger() then pakettiMusicMouseShow() end
+end }
+
+-- MIDI slider/knob -> song BPM (also drives the Music Mouse / Gravity Play tempo when Sync is on)
+renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse BPM (Slider)", invoke = function(message)
+  local song = renoise.song()
+  if not song or not message:is_abs_value() then return end
+  local bpm = math.floor(40 + (message.int_value / 127) * (240 - 40) + 0.5)
+  song.transport.bpm = math.max(32, math.min(999, bpm))
+  mm.sync_bpm = true
+  mm_restart_timer()
+  if mm_update_panel then mm_update_panel() end
+  renoise.app():show_status("Music Mouse: BPM " .. bpm)
+end }
+
+-- MIDI slider/knob -> Gravity Play / pattern tempo (Music Mouse Tempo 1, Sync off), 20..400
+renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Tempo (Slider)", invoke = function(message)
+  if not message:is_abs_value() then return end
+  mm.sync_bpm = false
+  mm.tempo_basic = math.floor(20 + (message.int_value / 127) * (400 - 20) + 0.5)
+  mm_restart_timer()
+  if mm_update_panel then mm_update_panel() end
+  renoise.app():show_status("Music Mouse: Tempo 1 = " .. mm.tempo_basic)
+end }
+
+-- MIDI pad/button -> toggle Gravity Play (sequence the gravitation seeds in recorded order)
+renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Gravity Play (Toggle)", invoke = function(message)
+  if message:is_trigger() then mm_toggle_gravity_play() end
 end }
