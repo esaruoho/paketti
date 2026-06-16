@@ -460,53 +460,92 @@ local function generate_pelog()
 end
 
 -- ========================================
--- Wendy Carlos scales from the Scala archive (.scl)
--- These are the canonical, full-range Carlos scales. Alpha / Beta / Gamma do NOT
--- repeat at the octave -- the period of repetition is the perfect fifth (listed
--- here as the last ratio, e.g. ~1404c = two fifths for Alpha). They are distinct
--- from the compact fifth/N generators above: those list only one fifth's worth of
--- steps, these list the full published scale. carlos_harm / carlos_super are
--- 12-note just-intonation scales that DO repeat at the octave (last ratio 2/1).
--- The equal-step scales are built from their published cents step so the values
--- match the .scl files exactly; Benson + the two JI scales are listed verbatim.
+-- Scala (.scl) file loader
+-- Reads standard Scala scale files from the bundled tunings/ folder (and any the
+-- user drops there) and turns each into a tuning preset. The .scl format: lines
+-- starting with "!" are comments; the first non-comment line is the description,
+-- the next is the note count, then one pitch per line -- either CENTS (a number
+-- containing a ".", e.g. 78.0) or a RATIO (a fraction "3/2", or a bare integer
+-- treated as n/1). The last pitch is the period of repetition (often 2/1 octave,
+-- but Carlos Alpha/Beta/Gamma repeat at the fifth instead -- fully supported by
+-- Renoise's native tuning). 1/1 is implicit and never listed.
 -- ========================================
-local function carlos_equal_cents(step, count, name)
-  local cents = {}
-  for k = 1, count do cents[k] = step * k end
-  return cents_to_ratios(cents), name
+local function parse_scl_pitch(token)
+  -- returns a ratio (number) for one .scl pitch token, or nil if unparseable
+  if token:find("/", 1, true) then
+    local num, den = token:match("^(%d+)%s*/%s*(%d+)")
+    if num and den and tonumber(den) ~= 0 then
+      return tonumber(num) / tonumber(den)
+    end
+    return nil
+  elseif token:find(".", 1, true) then
+    local cents = tonumber(token)
+    if cents then return 2 ^ (cents / 1200) end
+    return nil
+  else
+    local whole = tonumber(token)
+    if whole then return whole end  -- bare integer = whole-number ratio (n/1)
+    return nil
+  end
 end
-local function generate_carlos_alpha_scl()
-  return carlos_equal_cents(78, 18, "Carlos Alpha (Scala, 78c step, fifth/9, 18-note)")
+
+local function parse_scl_file(path)
+  local f = io.open(path, "r")
+  if not f then return nil end
+  local lines = {}
+  for line in f:lines() do lines[#lines + 1] = line end
+  f:close()
+
+  local description, count, ratios = nil, nil, {}
+  for _, raw in ipairs(lines) do
+    -- strip trailing whitespace/CR; keep the leading-! check on the raw line
+    local line = raw:gsub("[\r\n]+$", "")
+    if line:match("^%s*!") then
+      -- comment, skip
+    elseif description == nil then
+      description = line:gsub("^%s+", ""):gsub("%s+$", "")
+    elseif count == nil then
+      count = tonumber((line:match("(-?%d+)")))
+    else
+      -- first whitespace-delimited token on the line is the pitch
+      local token = line:match("^%s*([^%s]+)")
+      if token then
+        local r = parse_scl_pitch(token)
+        if r then ratios[#ratios + 1] = r end
+      end
+    end
+  end
+
+  if not description or description == "" then
+    description = path:match("([^/\\]+)%.scl$") or "Scala tuning"
+  end
+  if #ratios == 0 then return nil end
+  return ratios, description
 end
-local function generate_carlos_alpha_prime_scl()
-  return carlos_equal_cents(39, 36, "Carlos Alpha Prime (Scala, 39c step, fifth/18, 36-note)")
+
+-- Discover all bundled .scl files at load time and build a sorted preset list.
+local function discover_scala_presets()
+  local presets = {}
+  local dir = renoise.tool().bundle_path .. "tunings/"
+  local ok, files = pcall(function() return os.filenames(dir, "*.scl") end)
+  if not ok or not files then return presets end
+  table.sort(files)
+  for _, filename in ipairs(files) do
+    local ratios, description = parse_scl_file(dir .. filename)
+    if ratios then
+      local stem = filename:gsub("%.scl$", "")
+      local display = string.format("%s (%s.scl, %d-note)", description, stem, #ratios)
+      presets[#presets + 1] = {
+        name = display,
+        ratios = ratios,
+        generator = function() return ratios, display end,
+      }
+    end
+  end
+  return presets
 end
-local function generate_carlos_alpha_benson_scl()
-  return cents_to_ratios({
-    63.83293, 127.66587, 191.49880, 255.33173, 319.16466, 382.99760,
-    446.83053, 510.66346, 574.49640, 638.32933, 702.16226, 765.99520,
-    829.82813, 893.66106, 957.49399, 1021.32693, 1085.15986, 1148.99279
-  }), "Carlos Alpha Benson-optimized (Scala, 18-note)"
-end
-local function generate_carlos_beta_scl()
-  return carlos_equal_cents(63.8, 22, "Carlos Beta (Scala, 63.8c step, fifth/11, 22-note)")
-end
-local function generate_carlos_beta_prime_scl()
-  return carlos_equal_cents(31.9, 44, "Carlos Beta Prime (Scala, 31.9c step, fifth/22, 44-note)")
-end
-local function generate_carlos_gamma_scl()
-  return carlos_equal_cents(35.099, 35, "Carlos Gamma (Scala, 35.1c step, fifth/20, 35-note)")
-end
-local function generate_carlos_harmonic_scl()
-  return {
-    17/16, 9/8, 19/16, 5/4, 21/16, 11/8, 3/2, 13/8, 27/16, 7/4, 15/8, 2/1
-  }, "Carlos Harmonic (Scala, 12-note JI)"
-end
-local function generate_carlos_super_just_scl()
-  return {
-    17/16, 9/8, 6/5, 5/4, 4/3, 11/8, 3/2, 13/8, 5/3, 7/4, 15/8, 2/1
-  }, "Carlos Super Just (Scala, 12-note JI)"
-end
+
+local scala_file_presets = discover_scala_presets()
 
 -- ========================================
 -- TUNING PRESET TABLE
@@ -550,17 +589,16 @@ local tuning_presets = {
   {name = "Wendy Carlos Alpha (78c)", generator = generate_carlos_alpha},
   {name = "Wendy Carlos Beta (63.8c)", generator = generate_carlos_beta},
   {name = "Wendy Carlos Gamma (35.1c)", generator = generate_carlos_gamma},
-  {name = "Carlos Alpha (Scala, 18-note)", generator = generate_carlos_alpha_scl},
-  {name = "Carlos Alpha Prime (Scala, 36-note)", generator = generate_carlos_alpha_prime_scl},
-  {name = "Carlos Alpha Benson-optimized (Scala, 18-note)", generator = generate_carlos_alpha_benson_scl},
-  {name = "Carlos Beta (Scala, 22-note)", generator = generate_carlos_beta_scl},
-  {name = "Carlos Beta Prime (Scala, 44-note)", generator = generate_carlos_beta_prime_scl},
-  {name = "Carlos Gamma (Scala, 35-note)", generator = generate_carlos_gamma_scl},
-  {name = "Carlos Harmonic (Scala, 12-note JI)", generator = generate_carlos_harmonic_scl},
-  {name = "Carlos Super Just (Scala, 12-note JI)", generator = generate_carlos_super_just_scl},
   {name = "Slendro (gamelan example)", generator = generate_slendro},
   {name = "Pelog (gamelan example)", generator = generate_pelog},
 }
+
+-- Append every .scl file found in the bundled tunings/ folder as a preset, so the
+-- dialog popup, the A/B comparison and the menu all pick them up automatically.
+-- Drop a new .scl into tunings/ and it shows up next time the tool loads.
+for _, p in ipairs(scala_file_presets) do
+  tuning_presets[#tuning_presets + 1] = {name = p.name, generator = p.generator}
+end
 
 -- ========================================
 -- HELPERS
@@ -2372,14 +2410,6 @@ local function apply_preset_by_name(target)
     if preset.name == target then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_carlos_alpha_scl() apply_preset_by_name("Carlos Alpha (Scala, 18-note)") end
-local function apply_carlos_alpha_prime_scl() apply_preset_by_name("Carlos Alpha Prime (Scala, 36-note)") end
-local function apply_carlos_alpha_benson_scl() apply_preset_by_name("Carlos Alpha Benson-optimized (Scala, 18-note)") end
-local function apply_carlos_beta_scl() apply_preset_by_name("Carlos Beta (Scala, 22-note)") end
-local function apply_carlos_beta_prime_scl() apply_preset_by_name("Carlos Beta Prime (Scala, 44-note)") end
-local function apply_carlos_gamma_scl() apply_preset_by_name("Carlos Gamma (Scala, 35-note)") end
-local function apply_carlos_harmonic_scl() apply_preset_by_name("Carlos Harmonic (Scala, 12-note JI)") end
-local function apply_carlos_super_just_scl() apply_preset_by_name("Carlos Super Just (Scala, 12-note JI)") end
 local function apply_slendro()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Slendro (gamelan example)" then apply_tuning_to_instrument(i) return end
@@ -2445,16 +2475,12 @@ for _, base in ipairs(menus) do
   PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Alpha (78c)", invoke = apply_carlos_alpha}
   PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Beta (63.8c)", invoke = apply_carlos_beta}
   PakettiAddMenuEntry{name = base..":Apply Wendy Carlos Gamma (35.1c)", invoke = apply_carlos_gamma}
-  PakettiAddMenuEntry{name = base..":Apply Carlos Alpha (Scala, 18-note)", invoke = apply_carlos_alpha_scl}
-  PakettiAddMenuEntry{name = base..":Apply Carlos Alpha Prime (Scala, 36-note)", invoke = apply_carlos_alpha_prime_scl}
-  PakettiAddMenuEntry{name = base..":Apply Carlos Alpha Benson-optimized (Scala, 18-note)", invoke = apply_carlos_alpha_benson_scl}
-  PakettiAddMenuEntry{name = base..":Apply Carlos Beta (Scala, 22-note)", invoke = apply_carlos_beta_scl}
-  PakettiAddMenuEntry{name = base..":Apply Carlos Beta Prime (Scala, 44-note)", invoke = apply_carlos_beta_prime_scl}
-  PakettiAddMenuEntry{name = base..":Apply Carlos Gamma (Scala, 35-note)", invoke = apply_carlos_gamma_scl}
-  PakettiAddMenuEntry{name = base..":Apply Carlos Harmonic (Scala, 12-note JI)", invoke = apply_carlos_harmonic_scl}
-  PakettiAddMenuEntry{name = base..":Apply Carlos Super Just (Scala, 12-note JI)", invoke = apply_carlos_super_just_scl}
   PakettiAddMenuEntry{name = base..":Apply Slendro (gamelan example)", invoke = apply_slendro}
   PakettiAddMenuEntry{name = base..":Apply Pelog (gamelan example)", invoke = apply_pelog}
+  for _, p in ipairs(scala_file_presets) do
+    local preset_name = p.name
+    PakettiAddMenuEntry{name = base..":Apply "..preset_name, invoke = function() apply_preset_by_name(preset_name) end}
+  end
   PakettiAddMenuEntry{name = base..":Apply Phi-9 (Lange)", invoke = apply_phi_9_lange}
   PakettiAddMenuEntry{name = base..":Apply Phi-7 (Lange)", invoke = apply_phi_7_lange}
   PakettiAddMenuEntry{name = base..":Apply Lange 36-note Phi Scale", invoke = apply_lange_phi_36}
