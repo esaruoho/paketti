@@ -532,6 +532,69 @@ function PakettiXRNSProbeBrowseAndAnalyzeXRNS()
   end
 end
 
+-- Reusable structured extractor (the engine behind BrowseAndAnalyzeXRNS, but it
+-- RETURNS data instead of dumping text to a dialog). Reads an .xrns WITHOUT
+-- loading it: `unzip -p file.xrns Song.xml` then string-parses the XML.
+-- Returns: { ok, song, instruments={name,...}, samples={{name=,file=},...}, plugins={name,...} }
+-- This is what lets the File Warehouse build a "which songs use this sample" graph.
+local PAKETTI_XRNS_MACRO_NAMES = {
+  ["Pitchbend"]=true, ["Modulation"]=true, ["Channel Pressure"]=true, ["Aftertouch"]=true,
+}
+local function paketti_xrns_is_macro_name(nm)
+  if nm == "" then return true end
+  if PAKETTI_XRNS_MACRO_NAMES[nm] then return true end
+  if nm:match("^Macro %d+$") then return true end
+  if nm:match("^Set %d+$") then return true end
+  if nm:match("^Bus #%d+$") then return true end
+  return false
+end
+
+function PakettiXRNSProbeExtractManifest(xrns_path)
+  local result = { ok = false, song = (xrns_path:match("[^/]+$") or xrns_path),
+                   instruments = {}, samples = {}, plugins = {} }
+  local temp_path = pakettiGetTempFilePath(".xml")
+  os.execute(string.format('unzip -p "%s" "Song.xml" > "%s"', xrns_path, temp_path))
+  local file = io.open(temp_path, "r")
+  if not file then os.remove(temp_path); return result end
+  local content = file:read("*all")
+  file:close()
+  os.remove(temp_path)
+  if not content or #content == 0 then return result end
+
+  -- Instruments: first <Name> per <Instrument> block, minus macro/standard names.
+  local seen_inst = {}
+  for block in content:gmatch("<Instrument>(.-)</Instrument>") do
+    local nm = block:match("<Name>(.-)</Name>")
+    if nm and not paketti_xrns_is_macro_name(nm) and not seen_inst[nm] then
+      seen_inst[nm] = true
+      result.instruments[#result.instruments+1] = nm
+    end
+  end
+
+  -- Samples: <Name> + <FileName> per <Sample> block. The FileName basename is the
+  -- cross-song key (//File:C:\...\HP-KICK (3).wav  ->  "HP-KICK (3).wav").
+  for block in content:gmatch("<Sample>(.-)</Sample>") do
+    local nm = block:match("<Name>(.-)</Name>")
+    local fn = block:match("<FileName>(.-)</FileName>")
+    local base = (fn and fn ~= "") and fn:match("[^/\\]+$") or nil
+    if (nm and nm ~= "") or base then
+      result.samples[#result.samples+1] = { name = nm or base, file = base }
+    end
+  end
+
+  -- Plugins (instrument + track): PluginDisplayName.
+  local seen_plug = {}
+  for nm in content:gmatch("<PluginDisplayName>(.-)</PluginDisplayName>") do
+    if nm ~= "" and not seen_plug[nm] then
+      seen_plug[nm] = true
+      result.plugins[#result.plugins+1] = nm
+    end
+  end
+
+  result.ok = true
+  return result
+end
+
 function pakettiXRNSProbeShowDialog(mode)
   if dialog and dialog.visible then
     dialog:close()

@@ -29,6 +29,19 @@ local fw_selected = nil  -- selected node index
 local fw_scroll   = 0    -- vertical scroll, in rows
 local fw_connections_on = false
 
+-- Music-graph mode: bipartite "which songs use which sample" view, built by
+-- probing each .xrns in the folder via PakettiXRNSProbeExtractManifest (XRNSProbe
+-- reads Song.xml WITHOUT loading the song). fw_mode = "files" | "music".
+local fw_mode = "files"
+local fw_manifest_cache = {}   -- [xrns_path] = manifest
+local fw_m_songs = {}          -- { {label=, path=, keys={k,...}, x,y,w,h,cx,cy}, ... }
+local fw_m_samples = {}        -- { {label=, key=, is_file=, songs={song_idx,...}, x,y,w,h,cx,cy}, ... }
+local fw_m_sample_idx = {}     -- key -> index into fw_m_samples
+local fw_m_sel_song = nil      -- highlighted song index
+local fw_m_sel_sample = nil    -- highlighted sample index
+local fw_mode_button = nil
+local FW_MUSIC_MAX_XRNS = 120  -- safety cap on songs probed per folder
+
 local fw_path_text   = nil  -- vb text view (breadcrumb)
 local fw_status_text = nil  -- vb text view (selected-file info)
 local fw_conn_button = nil  -- vb button (connections toggle)
@@ -190,6 +203,174 @@ function fw_file_history(path)  -- luacheck: ignore
 end
 
 --------------------------------------------------------------------------------
+-- MUSIC GRAPH: "which songs use which sample", built by probing each .xrns in the
+-- folder with XRNSProbe (reads Song.xml without loading the song).
+--------------------------------------------------------------------------------
+local function fw_truncate(text, avail_w, size)
+  local per = size * 1.4
+  local maxc = math.floor(avail_w / per)
+  if maxc < 1 then maxc = 1 end
+  if #text <= maxc then return text end
+  if maxc <= 1 then return text:sub(1, 1) end
+  return text:sub(1, maxc - 1) .. "…"
+end
+
+local FW_AUDIO_EXTS = { wav=true, aif=true, aiff=true, flac=true, ogg=true, mp3=true, iff=true }
+
+local function fw_norm_key(name) return name:lower() end
+
+local function fw_build_music_graph()
+  fw_m_songs = {}; fw_m_samples = {}; fw_m_sample_idx = {}
+  fw_m_sel_song = nil; fw_m_sel_sample = nil; fw_scroll = 0
+
+  local function ensure_sample(key, label, is_file)
+    local idx = fw_m_sample_idx[key]
+    if idx then
+      if is_file then fw_m_samples[idx].is_file = true end
+      return idx
+    end
+    fw_m_samples[#fw_m_samples+1] = { label = label, key = key, is_file = is_file or false, songs = {} }
+    fw_m_sample_idx[key] = #fw_m_samples
+    return #fw_m_samples
+  end
+
+  -- loose audio files in the folder become sample nodes (real, on-disk)
+  for _, e in ipairs(fw_entries) do
+    if e.kind == "file" and FW_AUDIO_EXTS[e.ext] then
+      ensure_sample(fw_norm_key(e.name), e.name, true)
+    end
+  end
+
+  -- probe each .xrns and wire song -> sample edges
+  local count = 0
+  for _, e in ipairs(fw_entries) do
+    if e.kind == "file" and e.ext == "xrns" and count < FW_MUSIC_MAX_XRNS then
+      count = count + 1
+      local man = fw_manifest_cache[e.path]
+      if not man then
+        man = PakettiXRNSProbeExtractManifest(e.path)
+        fw_manifest_cache[e.path] = man
+      end
+      fw_m_songs[#fw_m_songs+1] = { label = e.name, path = e.path, keys = {} }
+      local sidx = #fw_m_songs
+      local song = fw_m_songs[sidx]
+      if man and man.ok then
+        local seen = {}
+        for _, s in ipairs(man.samples) do
+          local key = s.file and fw_norm_key(s.file) or ("name:" .. fw_norm_key(s.name or "?"))
+          if not seen[key] then
+            seen[key] = true
+            local samp_i = ensure_sample(key, s.file or s.name or "?", false)
+            song.keys[#song.keys+1] = samp_i
+            local songs = fw_m_samples[samp_i].songs
+            songs[#songs+1] = sidx
+          end
+        end
+      end
+    end
+  end
+end
+
+local FW_M_NODE_W = 240
+local FW_M_NODE_H = 22
+local FW_M_GAP    = 5
+
+local function fw_layout_music()
+  local left_x  = FW_MARGIN
+  local right_x = FW_W - FW_MARGIN - FW_M_NODE_W
+  for i, s in ipairs(fw_m_songs) do
+    local y = FW_MARGIN + (i - 1 - fw_scroll) * (FW_M_NODE_H + FW_M_GAP)
+    s.x = left_x; s.y = y; s.w = FW_M_NODE_W; s.h = FW_M_NODE_H
+    s.cx = left_x + FW_M_NODE_W; s.cy = y + FW_M_NODE_H/2
+  end
+  for i, s in ipairs(fw_m_samples) do
+    local y = FW_MARGIN + (i - 1 - fw_scroll) * (FW_M_NODE_H + FW_M_GAP)
+    s.x = right_x; s.y = y; s.w = FW_M_NODE_W; s.h = FW_M_NODE_H
+    s.cx = right_x; s.cy = y + FW_M_NODE_H/2
+  end
+end
+
+local FW_MC = {
+  song = {60,70,95}, samp = {48,78,58}, samp_file = {64,104,74},
+  hi = {232,180,70}, dim = {38,40,46},
+  edge = {110,140,190,70}, edge_hi = {235,200,110,210}, text = {225,228,235},
+}
+
+-- nil = neutral (no selection), true = highlighted, false = dimmed
+local function fw_song_active(i)
+  if fw_m_sel_song then return i == fw_m_sel_song end
+  if fw_m_sel_sample then
+    for _, si in ipairs(fw_m_samples[fw_m_sel_sample].songs) do if si == i then return true end end
+    return false
+  end
+  return nil
+end
+local function fw_sample_active(i)
+  if fw_m_sel_sample then return i == fw_m_sel_sample end
+  if fw_m_sel_song then
+    for _, si in ipairs(fw_m_songs[fw_m_sel_song].keys) do if si == i then return true end end
+    return false
+  end
+  return nil
+end
+
+local function fw_render_music(ctx)
+  ctx:clear_rect(0, 0, FW_W, FW_H)
+  ctx.fill_color = FW_C.bg
+  ctx:fill_rect(0, 0, FW_W, FW_H)
+
+  if #fw_m_songs == 0 and #fw_m_samples == 0 then
+    ctx.fill_color = FW_C.subtext
+    PakettiCanvasFontDrawText(ctx, "NO .XRNS SONGS IN THIS FOLDER", FW_MARGIN, FW_MARGIN + 6, 7)
+    return
+  end
+
+  -- edges
+  for si, song in ipairs(fw_m_songs) do
+    local sa = fw_song_active(si)
+    for _, sampi in ipairs(song.keys) do
+      local samp = fw_m_samples[sampi]
+      if song.cy and samp.cy then
+        local on = (sa == true) or (fw_sample_active(sampi) == true)
+        if (sa ~= false) and (fw_sample_active(sampi) ~= false) then
+          ctx.stroke_color = on and FW_MC.edge_hi or FW_MC.edge
+          ctx.line_width = on and 2 or 1
+          ctx:begin_path(); ctx:move_to(song.cx, song.cy); ctx:line_to(samp.cx, samp.cy); ctx:stroke()
+        end
+      end
+    end
+  end
+
+  local function draw_node(n, base, active, label)
+    if not n.y or n.y + n.h < 0 or n.y > FW_H then return end
+    local fill = base
+    if active == true then fill = FW_MC.hi elseif active == false then fill = FW_MC.dim end
+    ctx.fill_color = fill
+    ctx:fill_rect(n.x, n.y, n.w, n.h)
+    ctx.stroke_color = FW_C.border; ctx.line_width = 1
+    ctx:stroke_rect(n.x, n.y, n.w, n.h)
+    ctx.fill_color = (active == true) and FW_C.bg or FW_MC.text
+    PakettiCanvasFontDrawText(ctx, fw_truncate(label, n.w - 10, 6), n.x + 5, n.y + 7, 6)
+  end
+
+  for i, s in ipairs(fw_m_songs) do draw_node(s, FW_MC.song, fw_song_active(i), s.label) end
+  for i, s in ipairs(fw_m_samples) do
+    draw_node(s, s.is_file and FW_MC.samp_file or FW_MC.samp, fw_sample_active(i),
+      (s.is_file and "● " or "") .. s.label)
+  end
+end
+
+local function fw_hit_music(x, y)
+  for i, s in ipairs(fw_m_songs) do
+    if s.x and x >= s.x and x <= s.x + s.w and y >= s.y and y <= s.y + s.h then return "song", i end
+  end
+  for i, s in ipairs(fw_m_samples) do
+    if s.x and x >= s.x and x <= s.x + s.w and y >= s.y and y <= s.y + s.h then return "sample", i end
+  end
+  return nil
+end
+
+--------------------------------------------------------------------------------
 -- Layout entries into a scrollable grid of nodes
 --------------------------------------------------------------------------------
 local function fw_cols()
@@ -225,16 +406,8 @@ end
 --------------------------------------------------------------------------------
 -- Render
 --------------------------------------------------------------------------------
-local function fw_truncate(text, avail_w, size)
-  local per = size * 1.4
-  local maxc = math.floor(avail_w / per)
-  if maxc < 1 then maxc = 1 end
-  if #text <= maxc then return text end
-  if maxc <= 1 then return text:sub(1, 1) end
-  return text:sub(1, maxc - 1) .. "…"
-end
-
 local function fw_render(ctx)
+  if fw_mode == "music" then return fw_render_music(ctx) end
   ctx:clear_rect(0, 0, FW_W, FW_H)
   ctx.fill_color = FW_C.bg
   ctx:fill_rect(0, 0, FW_W, FW_H)
@@ -298,7 +471,7 @@ local function fw_hit_test(x, y)
 end
 
 local function fw_refresh_canvas()
-  fw_layout()
+  if fw_mode == "music" then fw_layout_music() else fw_layout() end
   if fw_canvas then fw_canvas:update() end
 end
 
@@ -312,6 +485,33 @@ local function fw_handle_mouse(ev)
   end
   if not ev.position then return end
   local x, y = ev.position.x, ev.position.y
+
+  if fw_mode == "music" then
+    if ev.type ~= "down" then return end
+    local kind, idx = fw_hit_music(x, y)
+    if kind == "song" then
+      fw_m_sel_song = (fw_m_sel_song == idx) and nil or idx
+      fw_m_sel_sample = nil
+      if fw_m_sel_song and fw_status_text then
+        fw_status_text.text = string.format("Song '%s' uses %d samples",
+          fw_m_songs[idx].label, #fw_m_songs[idx].keys)
+      end
+    elseif kind == "sample" then
+      fw_m_sel_sample = (fw_m_sel_sample == idx) and nil or idx
+      fw_m_sel_song = nil
+      if fw_m_sel_sample and fw_status_text then
+        local s = fw_m_samples[idx]
+        local names = {}
+        for _, si in ipairs(s.songs) do names[#names+1] = fw_m_songs[si].label end
+        fw_status_text.text = string.format("Sample '%s' used by %d song(s): %s",
+          s.label, #s.songs, table.concat(names, ", "))
+      end
+    else
+      fw_m_sel_song = nil; fw_m_sel_sample = nil
+    end
+    fw_refresh_canvas()
+    return
+  end
 
   if ev.type == "move" then
     local h = fw_hit_test(x, y)
@@ -343,7 +543,15 @@ local function fw_after_navigate()
   fw_scan(fw_current_path)
   if fw_connections_on then fw_edges = fw_compute_edges() else fw_edges = {} end
   if fw_path_text then fw_path_text.text = fw_current_path end
-  if fw_status_text then fw_status_text.text = string.format("%d items", #fw_entries) end
+  if fw_mode == "music" then
+    fw_build_music_graph()
+    if fw_status_text then
+      fw_status_text.text = string.format("Music graph: %d songs, %d samples",
+        #fw_m_songs, #fw_m_samples)
+    end
+  else
+    if fw_status_text then fw_status_text.text = string.format("%d items", #fw_entries) end
+  end
   fw_refresh_canvas()
 end
 
@@ -400,6 +608,24 @@ local function fw_toggle_connections()
   fw_refresh_canvas()
 end
 
+local function fw_toggle_mode()
+  fw_mode = (fw_mode == "music") and "files" or "music"
+  if fw_mode == "music" then
+    renoise.app():show_status("File Warehouse: probing .xrns songs for the music graph…")
+    fw_build_music_graph()
+    if fw_status_text then
+      fw_status_text.text = string.format("Music graph: %d songs, %d samples (click a sample to see which songs use it)",
+        #fw_m_songs, #fw_m_samples)
+    end
+  else
+    if fw_status_text then fw_status_text.text = string.format("%d items", #fw_entries) end
+  end
+  if fw_mode_button then
+    fw_mode_button.text = (fw_mode == "music") and "Mode: Music Graph" or "Mode: Files"
+  end
+  fw_refresh_canvas()
+end
+
 local function fw_default_path()
   local home = os.getenv("HOME")
   if home and home ~= "" then return home end
@@ -422,6 +648,9 @@ function PakettiFileWarehouseShow()
   fw_status_text = vb:text{ text = "", width = FW_W - 20 }
   fw_conn_button = vb:button{ text = fw_connections_on and "Connections: On" or "Connections: Off",
     width = 130, notifier = fw_toggle_connections }
+  fw_mode_button = vb:button{ text = (fw_mode == "music") and "Mode: Music Graph" or "Mode: Files",
+    width = 130, tooltip = "Files = browse folder. Music Graph = probe the folder's .xrns songs and show which songs use which sample.",
+    notifier = fw_toggle_mode }
 
   fw_canvas = vb:canvas{
     width = FW_W, height = FW_H,
@@ -445,6 +674,7 @@ function PakettiFileWarehouseShow()
       end
     end },
     vb:button{ text = "Refresh", width = 64, notifier = fw_after_navigate },
+    fw_mode_button,
     fw_conn_button,
     vb:button{ text = "▲", width = 30, notifier = function() fw_scroll_by(-1) end },
     vb:button{ text = "▼", width = 30, notifier = function() fw_scroll_by(1) end },
