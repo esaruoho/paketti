@@ -2268,7 +2268,22 @@ function PakettiHyperEditHandleRowClick(row, x, y)
     step_data[row][step] = normalized_y
     PakettiHyperEditApplyStep(row, step)
   end
-  
+
+  -- Gang draw-linkage: when Gang is on and you draw a GANGED (highlighted) step,
+  -- all the other ganged steps of this row follow to the same value — that's the
+  -- point of ganging: the highlighted steps move together. Drawing a non-ganged
+  -- step stays normal (single step).
+  if gang_enabled and PakettiHyperEditIsGanged(step) then
+    local len = row_steps[row] or 16
+    for s = 1, len do
+      if PakettiHyperEditIsGanged(s) then
+        step_active[row][s] = true
+        step_data[row][s] = normalized_y
+      end
+    end
+    PakettiHyperEditWriteAutomationPattern(row)
+  end
+
   -- Store current position as previous for next interpolation
   previous_mouse_step[row] = step
   previous_mouse_value[row] = normalized_y
