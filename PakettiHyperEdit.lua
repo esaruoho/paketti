@@ -266,6 +266,7 @@ local sculpt_active = false      -- the shared "SCULPT held/engaged" flag
 local sculpt_armed = {}          -- [row] = bool; only armed rows respond to sculpt
 local sculpt_canvas_live = {}    -- [row] = bool; canvas-hold is driving live knob A on this row
 local sculpt_live_a = nil        -- when set (0..1), overrides knob A from a live canvas-hold drag
+local sculpt_hold_timer_fn = nil -- repeating timer that keeps sculpting WHILE the hold is held + stopped
 
 -- Gang (Cirklon "GANG by step/row"): instead of shaping only the playing/edit step,
 -- gang shapes EVERY Nth step (every gang_every steps, shifted by gang_offset) of every
@@ -400,6 +401,37 @@ function PakettiHyperEditSculptApplyCurrentStep()
   end
 end
 
+-- Repeating tick while the hold is engaged: keeps the parameter MOVING (REL ramps,
+-- Random scatters) for as long as you hold, without re-clicking. Only acts while
+-- STOPPED — when playing, the playhead crossings drive once-per-pass accumulation,
+-- so this stays out of the way to avoid double-applying.
+function PakettiHyperEditSculptHoldTick()
+  if not sculpt_active or sculpt_mode <= 1 then return end
+  local song = renoise.song()
+  if not song or song.transport.playing then return end
+  if gang_enabled then
+    -- accumulate over the ganged set from each step's CURRENT value
+    for row = 1, NUM_ROWS do
+      if sculpt_armed[row] and row_parameters[row] then
+        local len = row_steps[row] or 16
+        step_active[row] = step_active[row] or {}
+        step_data[row] = step_data[row] or {}
+        for s = 1, len do
+          if PakettiHyperEditIsGanged(s) then
+            local cur = step_active[row][s] and (step_data[row][s] or 0.5) or 0.0
+            step_active[row][s] = true
+            step_data[row][s] = PakettiHyperEditSculptValue(cur)
+          end
+        end
+        PakettiHyperEditWriteAutomationPattern(row)
+        if row_canvases[row] then row_canvases[row]:update() end
+      end
+    end
+  else
+    PakettiHyperEditSculptApplyCurrentStep()   -- accumulates on the edit-cursor step
+  end
+end
+
 -- Recolor the HOLD button to reflect engaged state (orange) vs idle (grey).
 function PakettiHyperEditSculptUpdateHoldButton()
   if dialog_vb and dialog_vb.views["sculpt_hold_btn"] then
@@ -438,7 +470,16 @@ function PakettiHyperEditSculptSetActive(on)
       -- Playing: let the playhead crossings drive it, so per-pass REL stays exact.
       PakettiHyperEditSculptApplyCurrentStep()
     end
+    -- Keep the parameter moving for as long as the hold is held (ramps while stopped).
+    if not sculpt_hold_timer_fn then
+      sculpt_hold_timer_fn = function() PakettiHyperEditSculptHoldTick() end
+      renoise.tool():add_timer(sculpt_hold_timer_fn, 120)
+    end
   else
+    if sculpt_hold_timer_fn then
+      if renoise.tool():has_timer(sculpt_hold_timer_fn) then renoise.tool():remove_timer(sculpt_hold_timer_fn) end
+      sculpt_hold_timer_fn = nil
+    end
     gang_base = {}   -- drop the REL base reference when released
     renoise.app():show_status("HyperEdit Sculpt: released")
   end
@@ -3997,6 +4038,10 @@ function PakettiHyperEditCleanup()
   sculpt_active = false
   sculpt_live_a = nil
   sculpt_canvas_live = {}
+  if sculpt_hold_timer_fn then
+    if renoise.tool():has_timer(sculpt_hold_timer_fn) then renoise.tool():remove_timer(sculpt_hold_timer_fn) end
+    sculpt_hold_timer_fn = nil
+  end
 end
 
 -- Mouse state monitor to handle mouse releases outside canvas
@@ -4414,6 +4459,10 @@ function PakettiHyperEditCreateDialog()
           preferences.PakettiHyperEditGangEvery.value = v
           preferences:save_as("preferences.xml")
         end
+        -- Dialing the interval means you want Gang on — self-activate the checkbox.
+        if not gang_enabled and dialog_vb and dialog_vb.views["gang_enabled"] then
+          dialog_vb.views["gang_enabled"].value = true   -- fires the checkbox notifier (enables gang)
+        end
         if gang_enabled and sculpt_active then PakettiHyperEditGangCaptureBase(); PakettiHyperEditGangApply() end
         for r = 1, NUM_ROWS do if row_canvases[r] then row_canvases[r]:update() end end
       end
@@ -4428,6 +4477,10 @@ function PakettiHyperEditCreateDialog()
         if preferences and preferences.PakettiHyperEditGangOffset then
           preferences.PakettiHyperEditGangOffset.value = v
           preferences:save_as("preferences.xml")
+        end
+        -- Dialing the offset means you want Gang on — self-activate the checkbox.
+        if not gang_enabled and dialog_vb and dialog_vb.views["gang_enabled"] then
+          dialog_vb.views["gang_enabled"].value = true   -- fires the checkbox notifier (enables gang)
         end
         if gang_enabled and sculpt_active then PakettiHyperEditGangCaptureBase(); PakettiHyperEditGangApply() end
         for r = 1, NUM_ROWS do if row_canvases[r] then row_canvases[r]:update() end end
