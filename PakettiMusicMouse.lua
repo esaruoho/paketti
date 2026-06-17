@@ -130,7 +130,8 @@ local function mm_load_prefs()
   mm.tempo_basic = preferences.pakettiMusicMouseTempoBasic.value or mm.tempo_basic
   mm.tempo_alt   = preferences.pakettiMusicMouseTempoAlt.value or mm.tempo_alt
   mm.sync_bpm    = preferences.pakettiMusicMouseSyncBPM.value
-  local ld = preferences.pakettiMusicMouseLoudness.value or 102
+  local ld = preferences.pakettiMusicMouseLoudness.value
+  if not ld or ld < 1 then ld = 102 end   -- a stored 0/empty = silent = fall back to an audible default
   mm.loudness    = math.max(0, math.min(1, ld / 127))
   -- restore gravitation seeds (the diamonds stay across close/reopen + reloads)
   mm.seeds = {}
@@ -1550,7 +1551,14 @@ function mm_keyhandler(dlg, key)
     return nil
   end
   if name == "tab" then
-    renoise.app():show_status("Music Mouse: 'tab' microtonal mode is internal-sound only; not available via note triggers")
+    -- cycle the selected instrument's tuning through Paketti's microtonal presets (12-TET first)
+    if PakettiMicrotonalCycleTuning then
+      local tname = PakettiMicrotonalCycleTuning(1)   -- next tuning (12-TET -> ... -> wrap)
+      mm_retrigger()
+      renoise.app():show_status("Music Mouse tuning: " .. (tname == "" and "12-TET" or tname))
+    else
+      renoise.app():show_status("Music Mouse: Microtonal Tunings not available")
+    end
     return nil
   end
   if name:match("^[0-9]$") then
@@ -1672,7 +1680,7 @@ PITCH / HARMONY
   z / x        transpose down / up
   c            reset transpose       (cmd = quiet)
   shift-z/x    interval - / +    shift-c  reset
-  tab          microtonal (internal only)
+  tab          cycle tuning (12-TET -> Paketti microtonals)
 
 PATTERNS
   a            patterning on/off

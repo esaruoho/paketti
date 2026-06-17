@@ -101,8 +101,16 @@ Context: Global
     Then the pattern/Gravity-Play step rate follows the song tempo live
     # @built @user-verified
 
-  Scenario: tab microtonal mode is not available via note triggers
+  Scenario: tab cycles the selected instrument through Paketti's microtonal tunings
     Given the Music Mouse dialog is open
     When the user presses tab
-    Then a status explains microtonal is internal-sound only (12-TET note triggers can't)
-    # @built @known-limitation
+    Then the selected instrument's tuning advances to the next preset (12-TET first, then wraps)
+    And the notes re-strike and play in that tuning (trigger_options.tuning)
+    # @built @user-verified — via PakettiMicrotonalCycleTuning (PakettiMicrotonalTunings.lua)
+
+  Scenario: Loudness persists and never boots silent
+    Given the user set Loudness to a value and closed the dialog
+    When the dialog is reopened (or the tool reloaded)
+    Then the Loudness is restored
+    And a stored 0 (silent) falls back to an audible default instead of booting near-mute
+    # @built @user-verified

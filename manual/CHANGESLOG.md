@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-17 - Improvement: Music Mouse — tab cycles microtonal tunings; Loudness persistence fixed
+Music Mouse's **`tab`** now cycles the selected instrument through Paketti's **microtonal tuning presets** (12-TET first, then every bundled Scala / Wendy Carlos / etc. tuning, wrapping around) and re-strikes the chord so you hear it — the notes play in that tuning via the instrument's native `trigger_options.tuning`, while the 12-TET keyboard grid stays put (as Spiegel's manual notes for microtonal mode). Also fixed **Loudness persistence**: the value you set is now restored across close/reopen and reloads, and a previously-stored `0` (silent) falls back to an audible default instead of booting near-mute.
+
 ### 2026-06-17 - Fix: HyperEdit Gang — disarmed ("un-S") rows are now excluded from the highlight (and stay excluded from writes)
 The Gang **highlight** (the gold tint on ganged step columns) was being drawn on every row regardless of its "S" arm state, so a disarmed row looked like it was still part of the gang. Now the highlight only appears on **armed** rows, matching the actual behaviour: gang writes (draw-linkage and the sculpt hold) only touch armed rows. Arming/disarming a row (the per-row **S** button, or **Arm All / Arm None**) now redraws immediately so the highlight tracks the arm state live.
 

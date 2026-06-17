@@ -734,6 +734,20 @@ local function apply_tuning_to_all_instruments(preset_index)
   end
 end
 
+-- GLOBAL: cycle the selected instrument's tuning through every preset (12-TET first).
+-- direction = +1 next, -1 previous. Returns the new tuning name and preset index.
+-- Used by Music Mouse's `tab` key so it can step through Paketti's microtonal tunings.
+PakettiMicrotonalCurrentPresetIndex = 1
+function PakettiMicrotonalCycleTuning(direction)
+  local n = #tuning_presets
+  if n < 1 then return "12-TET", 1 end
+  direction = direction or 1
+  PakettiMicrotonalCurrentPresetIndex = ((PakettiMicrotonalCurrentPresetIndex - 1 + direction) % n) + 1
+  apply_tuning_to_instrument(PakettiMicrotonalCurrentPresetIndex)
+  local p = tuning_presets[PakettiMicrotonalCurrentPresetIndex]
+  return (p and p.name) or "?", PakettiMicrotonalCurrentPresetIndex
+end
+
 -- ========================================
 -- SHIMMERING WAVETABLE GENERATORS
 -- ========================================
