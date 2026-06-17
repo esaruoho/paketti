@@ -4,12 +4,24 @@
 
 ## Where Paketti touches Renoise
 
-- **24,921 unique registration points**
+- **24,927 unique registration points**
   - **11,357 keyboard shortcuts**
-  - **6,696 menu entries**
+  - **6,702 menu entries**
   - **6,868 MIDI mappings**
 
-**Validation:** Paketti's own runtime counters say 11,352 keybindings / 6,867 MIDI / 6,693 menus — matching.
+**Validation:** Paketti's own runtime counters say 11,352 keybindings / 6,867 MIDI / 6,699 menus — matching.
+
+## What Paketti does for Renoise
+
+Paketti is a **24,927-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
+
+- **Keyboard- and MIDI-first.** 7,044 shortcuts fire *anywhere* (the Global region) and 6,868 actions are MIDI-mappable — most of Paketti is reachable without ever opening a menu. It's built for speed and for hardware.
+- **Pattern-centric.** ~3,831 actions live in the Pattern Editor / Matrix / Sequencer / Phrase views — the tracker grid where you actually make the music is where Paketti is heaviest.
+- **A sample & instrument powerhouse.** ~4,667 actions across the Sample Editor, Navigator, Keyzone, Mappings and Instrument Box — a whole sampler workflow grafted on.
+- **Menus are the catalogue.** 6,702 menu entries make every feature browsable when you don't remember the shortcut.
+- **Lighter, deliberate touch on mixing / FX / automation** (~773) — present, but not the focus. Paketti augments the tracker and the sampler; it doesn't rebuild the mixer.
+
+**In one line:** Paketti turns Renoise into a keyboard- and MIDI-driven, pattern-and-sample-centric production environment — most of its power reachable instantly from a key or a controller.
 
 ## Where the features live (Renoise regions)
 
@@ -42,16 +54,16 @@
 | **Menus & global** | | | | |
 | &nbsp;&nbsp;Global | 7,044 | 482 | 515 | 8,041 |
 | &nbsp;&nbsp;Paketti | 0 | 0 | 6,263 | 6,263 |
-| &nbsp;&nbsp;MainMenuTools | 0 | 1,106 | 0 | 1,106 |
+| &nbsp;&nbsp;MainMenuTools | 0 | 1,112 | 0 | 1,112 |
 | &nbsp;&nbsp;MainMenuFile | 0 | 67 | 0 | 67 |
 | &nbsp;&nbsp;MainMenuView | 0 | 58 | 0 | 58 |
 | **Other** | | | | |
 | &nbsp;&nbsp;Modulation Set | 0 | 48 | 0 | 48 |
 | &nbsp;&nbsp;Sononymph | 0 | 0 | 5 | 5 |
 | &nbsp;&nbsp;Instrument Phrases | 0 | 4 | 0 | 4 |
-| &nbsp;&nbsp; Sample FX Mixer | 0 | 1 | 0 | 1 |
-| &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
+| &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
+| &nbsp;&nbsp; Sample FX Mixer | 0 | 1 | 0 | 1 |
 
 ## Robustness: 194/194 files load clean, 0 brittle
 
