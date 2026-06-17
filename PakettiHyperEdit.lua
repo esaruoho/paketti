@@ -267,6 +267,7 @@ local sculpt_armed = {}          -- [row] = bool; only armed rows respond to scu
 local sculpt_canvas_live = {}    -- [row] = bool; canvas-hold is driving live knob A on this row
 local sculpt_live_a = nil        -- when set (0..1), overrides knob A from a live canvas-hold drag
 local sculpt_hold_timer_fn = nil -- repeating timer that keeps sculpting WHILE the hold is held + stopped
+local sculpt_ramp_ms = 120       -- hold-ramp interval (ms); user-configurable, persisted
 
 -- Gang (Cirklon "GANG by step/row"): instead of shaping only the playing/edit step,
 -- gang shapes EVERY Nth step (every gang_every steps, shifted by gang_offset) of every
@@ -432,10 +433,35 @@ function PakettiHyperEditSculptHoldTick()
   end
 end
 
--- Recolor the HOLD button to reflect engaged state (orange) vs idle (grey).
+-- Accent color for sculpt/gang UI. When "Capture Track Color" is on (like the rest
+-- of HyperEdit) it returns the track color; otherwise the given default. Pass alpha
+-- for the translucent gang highlight. Idle/disarmed states stay grey (passed in).
+function PakettiHyperEditSculptAccent(default_rgb, alpha)
+  local rgb = default_rgb
+  if preferences and preferences.PakettiHyperEditCaptureTrackColor
+     and preferences.PakettiHyperEditCaptureTrackColor.value then
+    local c = PakettiHyperEditGetTrackColor()
+    if c then rgb = {c[1], c[2], c[3]} end
+  end
+  if alpha then return {rgb[1], rgb[2], rgb[3], alpha} end
+  return {rgb[1], rgb[2], rgb[3]}
+end
+
+-- Re-apply colors to the HOLD button and every "S" arm button (used when the
+-- Capture Track Color preference toggles, so the sculpt UI follows immediately).
+function PakettiHyperEditSculptRefreshColors()
+  PakettiHyperEditSculptUpdateHoldButton()
+  if not dialog_vb then return end
+  for row = 1, NUM_ROWS do
+    local v = dialog_vb.views["sculpt_arm_" .. row]
+    if v then v.color = sculpt_armed[row] and PakettiHyperEditSculptAccent({0x00, 0x80, 0x00}) or {0x40, 0x40, 0x40} end
+  end
+end
+
+-- Recolor the HOLD button to reflect engaged state vs idle (grey).
 function PakettiHyperEditSculptUpdateHoldButton()
   if dialog_vb and dialog_vb.views["sculpt_hold_btn"] then
-    dialog_vb.views["sculpt_hold_btn"].color = sculpt_active and {0xC0, 0x40, 0x00} or {0x40, 0x40, 0x40}
+    dialog_vb.views["sculpt_hold_btn"].color = sculpt_active and PakettiHyperEditSculptAccent({0xC0, 0x40, 0x00}) or {0x40, 0x40, 0x40}
   end
 end
 
@@ -473,7 +499,9 @@ function PakettiHyperEditSculptSetActive(on)
     -- Keep the parameter moving for as long as the hold is held (ramps while stopped).
     if not sculpt_hold_timer_fn then
       sculpt_hold_timer_fn = function() PakettiHyperEditSculptHoldTick() end
-      renoise.tool():add_timer(sculpt_hold_timer_fn, 120)
+      local ms = sculpt_ramp_ms or 120
+      if ms < 20 then ms = 20 elseif ms > 2000 then ms = 2000 end
+      renoise.tool():add_timer(sculpt_hold_timer_fn, ms)
     end
   else
     if sculpt_hold_timer_fn then
@@ -501,7 +529,7 @@ function PakettiHyperEditSculptArmAll(on)
   for row = 1, NUM_ROWS do
     sculpt_armed[row] = on
     if dialog_vb and dialog_vb.views["sculpt_arm_" .. row] then
-      dialog_vb.views["sculpt_arm_" .. row].color = on and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40}
+      dialog_vb.views["sculpt_arm_" .. row].color = on and PakettiHyperEditSculptAccent({0x00, 0x80, 0x00}) or {0x40, 0x40, 0x40}
     end
     if row_canvases[row] then row_canvases[row]:update() end   -- refresh gang highlight
   end
@@ -512,7 +540,7 @@ end
 function PakettiHyperEditSculptToggleArm(row)
   sculpt_armed[row] = not sculpt_armed[row]
   if dialog_vb and dialog_vb.views["sculpt_arm_" .. row] then
-    dialog_vb.views["sculpt_arm_" .. row].color = sculpt_armed[row] and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40}
+    dialog_vb.views["sculpt_arm_" .. row].color = sculpt_armed[row] and PakettiHyperEditSculptAccent({0x00, 0x80, 0x00}) or {0x40, 0x40, 0x40}
   end
   if row_canvases[row] then row_canvases[row]:update() end   -- refresh gang highlight on this row
 end
@@ -958,6 +986,12 @@ function PakettiHyperEditUpdateColors()
       row_canvases[row]:update()
       updated_count = updated_count + 1
     end
+  end
+
+  -- Keep the sculpt/gang UI (HOLD button + "S" arm buttons) in step with the
+  -- Capture Track Color preference, like the canvases above.
+  if type(PakettiHyperEditSculptRefreshColors) == "function" then
+    PakettiHyperEditSculptRefreshColors()
   end
 end
 
@@ -3278,7 +3312,7 @@ function PakettiHyperEditDrawRowCanvas(row)
     -- Gang highlight: tint the ganged step columns, but ONLY on ARMED ("S") rows —
     -- a disarmed row does not participate in gang, so it must not look like it does.
     if gang_enabled and sculpt_armed[row] then
-      ctx.fill_color = {255, 200, 0, 40}
+      ctx.fill_color = PakettiHyperEditSculptAccent({255, 200, 0}, 40)
       for step = 1, row_step_count do
         if PakettiHyperEditIsGanged(step) then
           ctx:fill_rect(content_x + ((step - 1) * step_width), content_y, step_width, content_height)
@@ -4151,6 +4185,7 @@ function PakettiHyperEditCreateDialog()
   sculpt_mode = preferences.PakettiHyperEditSculptMode.value or 1
   sculpt_knob_a = preferences.PakettiHyperEditSculptKnobA.value or 0
   sculpt_knob_b = preferences.PakettiHyperEditSculptKnobB.value or 0
+  sculpt_ramp_ms = preferences.PakettiHyperEditSculptRampMs.value or 120
   sculpt_active = false
   sculpt_live_a = nil
   sculpt_canvas_live = {}
@@ -4461,8 +4496,8 @@ function PakettiHyperEditCreateDialog()
     vb:text { text = "Gang every", style = "strong", font = "bold" },
     vb:valuebox {
       id = "gang_every",
-      min = 1, max = 64, value = gang_every, width = 72,
-      tooltip = "Gang interval: 1 = every step (whole row), 3 = every 3rd step, ...",
+      min = 1, max = 512, value = gang_every, width = 72,
+      tooltip = "Gang interval: 1 = every step (whole row), 2/4/8/16/32/64/128/256/512 for divisions, or any number (3 = every 3rd step).",
       notifier = function(v)
         gang_every = v
         if preferences and preferences.PakettiHyperEditGangEvery then
@@ -4480,7 +4515,7 @@ function PakettiHyperEditCreateDialog()
     vb:text { text = "offset", style = "strong", font = "bold" },
     vb:valuebox {
       id = "gang_offset",
-      min = 0, max = 63, value = gang_offset, width = 72,
+      min = 0, max = 511, value = gang_offset, width = 72,
       tooltip = "Shifts which steps are ganged (offset 1 turns 'every 3rd' from steps 1,4,7 into 2,5,8).",
       notifier = function(v)
         gang_offset = v
@@ -4494,6 +4529,20 @@ function PakettiHyperEditCreateDialog()
         end
         if gang_enabled and sculpt_active then PakettiHyperEditGangCaptureBase(); PakettiHyperEditGangApply() end
         for r = 1, NUM_ROWS do if row_canvases[r] then row_canvases[r]:update() end end
+      end
+    },
+    vb:text { text = "|", style = "strong", font = "bold" },
+    vb:text { text = "ramp", style = "strong", font = "bold" },
+    vb:valuebox {
+      id = "sculpt_ramp_ms",
+      min = 20, max = 2000, value = sculpt_ramp_ms, width = 72,
+      tooltip = "How fast the SCULPT hold ramps while stopped (milliseconds between steps). Lower = faster. Applies on the next hold.",
+      notifier = function(v)
+        sculpt_ramp_ms = v
+        if preferences and preferences.PakettiHyperEditSculptRampMs then
+          preferences.PakettiHyperEditSculptRampMs.value = v
+          preferences:save_as("preferences.xml")
+        end
       end
     }
   })
@@ -4722,7 +4771,7 @@ function PakettiHyperEditCreateDialog()
           id = "sculpt_arm_" .. row,
           text = "S",
           width = 22,
-          color = sculpt_armed[row] and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40},
+          color = sculpt_armed[row] and PakettiHyperEditSculptAccent({0x00, 0x80, 0x00}) or {0x40, 0x40, 0x40},
           tooltip = "Arm this row for Sculpt/Random. When the Sculpt hold is engaged, only armed (green) rows have their playing step shaped.",
           notifier = function()
             PakettiHyperEditSculptToggleArm(row)

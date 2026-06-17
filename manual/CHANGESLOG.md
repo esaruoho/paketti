@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-17 - Improvement: HyperEdit Sculpt/Gang — colors follow Capture Track Color, ramp speed is a setting, Gang every up to 512
+Three follow-ups to HyperEdit's Sculpt/Gang. The **gang highlight, HOLD SCULPT button and "S" arm buttons now follow the "Capture Track Color" preference** like the rest of HyperEdit (instead of fixed colors), so the sculpt UI matches your track theming; toggling the preference recolors them immediately. The **hold-ramp speed is now a setting** — a "ramp" value box (20–2000 ms) in the Sculpt toolbar controls how fast the held sculpt ramps while stopped, persisted in preferences, replacing the hardcoded 120 ms. And **"Gang every" now ranges 1–512** (with offset 0–511) so you can gang at any musical division — 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 — not just up to 64.
+
 ### 2026-06-17 - Improvement: Music Mouse — tab cycles microtonal tunings; Loudness persistence fixed
 Music Mouse's **`tab`** now cycles the selected instrument through Paketti's **microtonal tuning presets** (12-TET first, then every bundled Scala / Wendy Carlos / etc. tuning, wrapping around) and re-strikes the chord so you hear it — the notes play in that tuning via the instrument's native `trigger_options.tuning`, while the 12-TET keyboard grid stays put (as Spiegel's manual notes for microtonal mode). Also fixed **Loudness persistence**: the value you set is now restored across close/reopen and reloads, and a previously-stored `0` (silent) falls back to an audible default instead of booting near-mute.
 
