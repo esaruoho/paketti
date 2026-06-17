@@ -4,20 +4,20 @@
 
 ## Where Paketti touches Renoise
 
-- **23,933 unique registration points**
-  - **10,369 keyboard shortcuts**
+- **24,418 unique registration points**
+  - **10,854 keyboard shortcuts**
   - **6,696 menu entries**
   - **6,868 MIDI mappings**
 
-**Validation:** Paketti's own runtime counters say 10,364 keybindings / 6,867 MIDI / 6,693 menus — matching.
+**Validation:** Paketti's own runtime counters say 10,849 keybindings / 6,867 MIDI / 6,693 menus — matching.
 
 ## What Paketti does for Renoise
 
-Paketti is a **23,933-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
+Paketti is a **24,418-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
 
 - **Keyboard- and MIDI-first.** 7,043 shortcuts fire *anywhere* (the Global region) and 6,868 actions are MIDI-mappable — most of Paketti is reachable without ever opening a menu. It's built for speed and for hardware.
 - **Pattern-centric.** ~3,830 actions live in the Pattern Editor / Matrix / Sequencer / Phrase views — the tracker grid where you actually make the music is where Paketti is heaviest.
-- **A sample & instrument powerhouse.** ~3,681 actions across the Sample Editor, Navigator, Keyzone, Mappings and Instrument Box — a whole sampler workflow grafted on.
+- **A sample & instrument powerhouse.** ~4,166 actions across the Sample Editor, Navigator, Keyzone, Mappings and Instrument Box — a whole sampler workflow grafted on.
 - **Menus are the catalogue.** 6,696 menu entries make every feature browsable when you don't remember the shortcut.
 - **Lighter, deliberate touch on mixing / FX / automation** (~773) — present, but not the focus. Paketti augments the tracker and the sampler; it doesn't rebuild the mixer.
 
@@ -36,9 +36,9 @@ Paketti is a **23,933-action layer** bolted onto Renoise. *Where* those actions 
 | &nbsp;&nbsp;PhraseMappings | 0 | 4 | 0 | 4 |
 | **Samples & instruments** | | | | |
 | &nbsp;&nbsp;InstrumentBox | 483 | 758 | 0 | 1,241 |
+| &nbsp;&nbsp;SampleKeyzone | 512 | 585 | 0 | 1,097 |
 | &nbsp;&nbsp;SampleEditor | 527 | 415 | 63 | 1,005 |
 | &nbsp;&nbsp;SampleNavigator | 0 | 641 | 0 | 641 |
-| &nbsp;&nbsp;SampleKeyzone | 27 | 585 | 0 | 612 |
 | &nbsp;&nbsp;SampleFXMixer | 0 | 83 | 0 | 83 |
 | &nbsp;&nbsp;SampleModulationMatrix | 0 | 67 | 0 | 67 |
 | &nbsp;&nbsp;SampleEditorRuler | 0 | 32 | 0 | 32 |
@@ -61,9 +61,9 @@ Paketti is a **23,933-action layer** bolted onto Renoise. *Where* those actions 
 | &nbsp;&nbsp;Modulation Set | 0 | 48 | 0 | 48 |
 | &nbsp;&nbsp;Sononymph | 0 | 0 | 5 | 5 |
 | &nbsp;&nbsp;Instrument Phrases | 0 | 4 | 0 | 4 |
-| &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; Sample FX Mixer | 0 | 1 | 0 | 1 |
+| &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
 
 ## Robustness: 194/194 files load clean, 0 brittle
 

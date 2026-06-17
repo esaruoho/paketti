@@ -26,9 +26,9 @@
 | Global | 6,402 | 3,485 | 0 | **2,917** |
 | Pattern Editor | 1,224 | 582 | 228 | **468** |
 | Phrase Editor | 408 | 203 | 47 | **167** |
+| Sample Keyzones | 268 | 22 | 0 | **246** |
 | Sample Editor | 262 | 79 | 127 | **105** |
 | Instrument Box | 243 | 0 | 0 | **243** |
 | Pattern Matrix | 183 | 152 | 29 | **20** |
 | Mixer | 175 | 91 | 25 | **63** |
 | Pattern Sequencer | 42 | 14 | 32 | **7** |
-| Sample Keyzones | 23 | 22 | 0 | **1** |
