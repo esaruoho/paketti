@@ -4,12 +4,12 @@
 
 ## Where Paketti touches Renoise
 
-- **24,860 unique registration points**
-  - **11,356 keyboard shortcuts**
-  - **6,701 menu entries**
-  - **6,803 MIDI mappings**
+- **24,921 unique registration points**
+  - **11,357 keyboard shortcuts**
+  - **6,696 menu entries**
+  - **6,868 MIDI mappings**
 
-**Validation:** Paketti's own runtime counters say 11,351 keybindings / 6,802 MIDI / 6,698 menus — matching.
+**Validation:** Paketti's own runtime counters say 11,352 keybindings / 6,867 MIDI / 6,693 menus — matching.
 
 ## Where the features live (Renoise regions)
 
@@ -40,18 +40,18 @@
 | **Files** | | | | |
 | &nbsp;&nbsp;DiskBrowserFiles | 0 | 55 | 0 | 55 |
 | **Menus & global** | | | | |
-| &nbsp;&nbsp;Global | 7,043 | 482 | 515 | 8,040 |
-| &nbsp;&nbsp;Paketti | 0 | 0 | 6,198 | 6,198 |
-| &nbsp;&nbsp;MainMenuTools | 0 | 1,111 | 0 | 1,111 |
+| &nbsp;&nbsp;Global | 7,044 | 482 | 515 | 8,041 |
+| &nbsp;&nbsp;Paketti | 0 | 0 | 6,263 | 6,263 |
+| &nbsp;&nbsp;MainMenuTools | 0 | 1,106 | 0 | 1,106 |
 | &nbsp;&nbsp;MainMenuFile | 0 | 67 | 0 | 67 |
 | &nbsp;&nbsp;MainMenuView | 0 | 58 | 0 | 58 |
 | **Other** | | | | |
 | &nbsp;&nbsp;Modulation Set | 0 | 48 | 0 | 48 |
 | &nbsp;&nbsp;Sononymph | 0 | 0 | 5 | 5 |
 | &nbsp;&nbsp;Instrument Phrases | 0 | 4 | 0 | 4 |
-| &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
-| &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; Sample FX Mixer | 0 | 1 | 0 | 1 |
+| &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
+| &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
 
 ## Robustness: 194/194 files load clean, 0 brittle
 
