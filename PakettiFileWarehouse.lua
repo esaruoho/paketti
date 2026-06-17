@@ -17,6 +17,8 @@
 local fw_dialog = nil
 local fw_canvas = nil
 local fw_vb = nil
+local fw_scrollbar = nil
+local fw_updating_scrollbar = false
 
 local fw_current_path = nil
 local fw_history  = {}   -- back stack of paths
@@ -37,8 +39,9 @@ local fw_manifest_cache = {}   -- [xrns_path] = manifest
 local fw_m_songs = {}          -- { {label=, path=, keys={k,...}, x,y,w,h,cx,cy}, ... }
 local fw_m_samples = {}        -- { {label=, key=, is_file=, songs={song_idx,...}, x,y,w,h,cx,cy}, ... }
 local fw_m_sample_idx = {}     -- key -> index into fw_m_samples
-local fw_m_sel_song = nil      -- highlighted song index
-local fw_m_sel_sample = nil    -- highlighted sample index
+local fw_m_sel_song = nil      -- focused song index (collapses view to its samples)
+local fw_m_sel_sample = nil    -- focused sample index (collapses view to its songs)
+local fw_m_drag = nil          -- {y=, scroll=, moved=} drag-to-pan state
 local fw_mode_button = nil
 local FW_MUSIC_MAX_XRNS = 120  -- safety cap on songs probed per folder
 
@@ -215,6 +218,16 @@ local function fw_truncate(text, avail_w, size)
   return text:sub(1, maxc - 1) .. "…"
 end
 
+-- The canvas font draws glyphs with ctx:stroke(), so the TEXT color is the
+-- STROKE color, not the fill color. Always set stroke_color here, or labels
+-- inherit whatever stroke (e.g. a node border) was last used = unreadable.
+local function fw_text(ctx, color, s, x, y, size)
+  ctx.fill_color = color
+  ctx.stroke_color = color
+  ctx.line_width = 1
+  PakettiCanvasFontDrawText(ctx, s, x, y, size)
+end
+
 local FW_AUDIO_EXTS = { wav=true, aif=true, aiff=true, flac=true, ogg=true, mp3=true, iff=true }
 
 local function fw_norm_key(name) return name:lower() end
@@ -248,7 +261,12 @@ local function fw_build_music_graph()
       count = count + 1
       local man = fw_manifest_cache[e.path]
       if not man then
-        man = PakettiXRNSProbeExtractManifest(e.path)
+        if type(PakettiXRNSProbeExtractManifest) == "function" then
+          local ok, res = pcall(PakettiXRNSProbeExtractManifest, e.path)
+          man = ok and res or { ok = false, samples = {} }
+        else
+          man = { ok = false, samples = {} }
+        end
         fw_manifest_cache[e.path] = man
       end
       fw_m_songs[#fw_m_songs+1] = { label = e.name, path = e.path, keys = {} }
@@ -278,15 +296,39 @@ local FW_M_GAP    = 5
 local function fw_layout_music()
   local left_x  = FW_MARGIN
   local right_x = FW_W - FW_MARGIN - FW_M_NODE_W
-  for i, s in ipairs(fw_m_songs) do
-    local y = FW_MARGIN + (i - 1 - fw_scroll) * (FW_M_NODE_H + FW_M_GAP)
-    s.x = left_x; s.y = y; s.w = FW_M_NODE_W; s.h = FW_M_NODE_H
-    s.cx = left_x + FW_M_NODE_W; s.cy = y + FW_M_NODE_H/2
+
+  local function place(n, x, row)
+    n.x = x; n.w = FW_M_NODE_W; n.h = FW_M_NODE_H
+    n.y = FW_MARGIN + (row - fw_scroll) * (FW_M_NODE_H + FW_M_GAP)
+    n.cx = (x == left_x) and (x + FW_M_NODE_W) or x
+    n.cy = n.y + FW_M_NODE_H/2
   end
-  for i, s in ipairs(fw_m_samples) do
-    local y = FW_MARGIN + (i - 1 - fw_scroll) * (FW_M_NODE_H + FW_M_GAP)
-    s.x = right_x; s.y = y; s.w = FW_M_NODE_W; s.h = FW_M_NODE_H
-    s.cx = right_x; s.cy = y + FW_M_NODE_H/2
+  local function hide(n) n.x = nil; n.y = nil; n.cx = nil; n.cy = nil end
+
+  if fw_m_sel_sample then
+    -- collapse: only the focused sample (right) + the songs that use it (left)
+    local samp = fw_m_samples[fw_m_sel_sample]
+    local using = {}
+    for _, si in ipairs(samp.songs) do using[si] = true end
+    for i, s in ipairs(fw_m_samples) do if i == fw_m_sel_sample then place(s, right_x, 0) else hide(s) end end
+    local row = 0
+    for i, s in ipairs(fw_m_songs) do
+      if using[i] then place(s, left_x, row); row = row + 1 else hide(s) end
+    end
+  elseif fw_m_sel_song then
+    -- collapse: only the focused song (left) + the samples it uses (right)
+    local song = fw_m_songs[fw_m_sel_song]
+    local uses = {}
+    for _, k in ipairs(song.keys) do uses[k] = true end
+    for i, s in ipairs(fw_m_songs) do if i == fw_m_sel_song then place(s, left_x, 0) else hide(s) end end
+    local row = 0
+    for i, s in ipairs(fw_m_samples) do
+      if uses[i] then place(s, right_x, row); row = row + 1 else hide(s) end
+    end
+  else
+    -- full bipartite view
+    for i, s in ipairs(fw_m_songs)   do place(s, left_x,  i - 1) end
+    for i, s in ipairs(fw_m_samples) do place(s, right_x, i - 1) end
   end
 end
 
@@ -296,22 +338,14 @@ local FW_MC = {
   edge = {110,140,190,70}, edge_hi = {235,200,110,210}, text = {225,228,235},
 }
 
--- nil = neutral (no selection), true = highlighted, false = dimmed
+-- In collapsed (focus) mode only connected nodes are laid out at all, so the
+-- only thing to highlight is the node you actually clicked. true = the clicked
+-- node (gold), nil = normal. (No "dim in place" — the collapse IS the filter.)
 local function fw_song_active(i)
-  if fw_m_sel_song then return i == fw_m_sel_song end
-  if fw_m_sel_sample then
-    for _, si in ipairs(fw_m_samples[fw_m_sel_sample].songs) do if si == i then return true end end
-    return false
-  end
-  return nil
+  return (fw_m_sel_song and i == fw_m_sel_song) and true or nil
 end
 local function fw_sample_active(i)
-  if fw_m_sel_sample then return i == fw_m_sel_sample end
-  if fw_m_sel_song then
-    for _, si in ipairs(fw_m_songs[fw_m_sel_song].keys) do if si == i then return true end end
-    return false
-  end
-  return nil
+  return (fw_m_sel_sample and i == fw_m_sel_sample) and true or nil
 end
 
 local function fw_render_music(ctx)
@@ -320,21 +354,20 @@ local function fw_render_music(ctx)
   ctx:fill_rect(0, 0, FW_W, FW_H)
 
   if #fw_m_songs == 0 and #fw_m_samples == 0 then
-    ctx.fill_color = FW_C.subtext
-    PakettiCanvasFontDrawText(ctx, "NO .XRNS SONGS IN THIS FOLDER", FW_MARGIN, FW_MARGIN + 6, 7)
+    fw_text(ctx, FW_C.subtext, "NO .XRNS SONGS IN THIS FOLDER", FW_MARGIN, FW_MARGIN + 6, 7)
     return
   end
 
-  -- edges
-  for si, song in ipairs(fw_m_songs) do
-    local sa = fw_song_active(si)
-    for _, sampi in ipairs(song.keys) do
-      local samp = fw_m_samples[sampi]
-      if song.cy and samp.cy then
-        local on = (sa == true) or (fw_sample_active(sampi) == true)
-        if (sa ~= false) and (fw_sample_active(sampi) ~= false) then
-          ctx.stroke_color = on and FW_MC.edge_hi or FW_MC.edge
-          ctx.line_width = on and 2 or 1
+  -- edges — only when focused (full view of all edges is an unreadable hairball,
+  -- and redrawing thousands of lines on every drag is slow). In focus mode only
+  -- the connected nodes are laid out, so this draws a clean star.
+  if fw_m_sel_song or fw_m_sel_sample then
+    ctx.stroke_color = FW_MC.edge_hi
+    ctx.line_width = 2
+    for _, song in ipairs(fw_m_songs) do
+      for _, sampi in ipairs(song.keys) do
+        local samp = fw_m_samples[sampi]
+        if song.cy and samp.cy then
           ctx:begin_path(); ctx:move_to(song.cx, song.cy); ctx:line_to(samp.cx, samp.cy); ctx:stroke()
         end
       end
@@ -349,8 +382,8 @@ local function fw_render_music(ctx)
     ctx:fill_rect(n.x, n.y, n.w, n.h)
     ctx.stroke_color = FW_C.border; ctx.line_width = 1
     ctx:stroke_rect(n.x, n.y, n.w, n.h)
-    ctx.fill_color = (active == true) and FW_C.bg or FW_MC.text
-    PakettiCanvasFontDrawText(ctx, fw_truncate(label, n.w - 10, 6), n.x + 5, n.y + 7, 6)
+    local txt = (active == true) and FW_C.bg or FW_MC.text
+    fw_text(ctx, txt, fw_truncate(label, n.w - 10, 6), n.x + 5, n.y + 7, 6)
   end
 
   for i, s in ipairs(fw_m_songs) do draw_node(s, FW_MC.song, fw_song_active(i), s.label) end
@@ -394,13 +427,52 @@ local function fw_layout()
   end
 end
 
-local function fw_max_scroll()
+-- Mode-aware scroll metrics: how many content rows exist and how many fit.
+local function fw_scroll_metrics()
+  if fw_mode == "music" then
+    local total
+    if fw_m_sel_sample then total = #fw_m_samples[fw_m_sel_sample].songs
+    elseif fw_m_sel_song then total = #fw_m_songs[fw_m_sel_song].keys
+    else total = math.max(#fw_m_songs, #fw_m_samples) end
+    if total < 1 then total = 1 end
+    local visible = math.floor((FW_H - 2*FW_MARGIN) / (FW_M_NODE_H + FW_M_GAP))
+    return total, visible
+  end
   local cols = fw_cols()
-  local total_rows = math.ceil(#fw_entries / cols)
-  local visible_rows = math.floor((FW_H - 2*FW_MARGIN) / (FW_NODE_H + FW_GAP_Y))
-  local m = total_rows - visible_rows
+  local total = math.ceil(#fw_entries / cols)
+  local visible = math.floor((FW_H - 2*FW_MARGIN) / (FW_NODE_H + FW_GAP_Y))
+  return total, visible
+end
+
+local function fw_max_scroll()
+  local total, visible = fw_scroll_metrics()
+  local m = total - visible
   if m < 0 then m = 0 end
   return m
+end
+
+-- Push current scroll metrics into the scrollbar widget (guarded against the
+-- notifier feedback loop). Called after any content/layout change.
+local function fw_sync_scrollbar()
+  if not fw_scrollbar then return end
+  local total, visible = fw_scroll_metrics()
+  if total < 1 then total = 1 end
+  if visible < 1 then visible = 1 end
+  local page = math.min(visible, total)
+  local maxv = total - page
+  if fw_scroll > maxv then fw_scroll = maxv end
+  if fw_scroll < 0 then fw_scroll = 0 end
+  -- Order matters: Renoise validates pagestep against the CURRENT max, and value
+  -- against max-pagestep. Shrink to safe values first, then grow into the new
+  -- range, so no intermediate assignment is ever out of range.
+  fw_updating_scrollbar = true
+  fw_scrollbar.min = 0
+  fw_scrollbar.pagestep = 1
+  fw_scrollbar.value = 0
+  fw_scrollbar.max = total
+  fw_scrollbar.pagestep = page
+  fw_scrollbar.value = fw_scroll
+  fw_updating_scrollbar = false
 end
 
 --------------------------------------------------------------------------------
@@ -443,17 +515,16 @@ local function fw_render(ctx)
       ctx:stroke_rect(n.x, n.y, n.w, n.h)
 
       -- name
-      ctx.fill_color = (i == fw_selected) and FW_C.bg or FW_C.text
-      local label = fw_truncate(e.name, n.w - 12, FW_LABEL_SZ)
-      PakettiCanvasFontDrawText(ctx, label, n.x + 6, n.y + 10, FW_LABEL_SZ)
+      local name_col = (i == fw_selected) and FW_C.bg or FW_C.text
+      fw_text(ctx, name_col, fw_truncate(e.name, n.w - 12, FW_LABEL_SZ), n.x + 6, n.y + 10, FW_LABEL_SZ)
 
       -- subtitle: DIR / ext / size
       local sub
       if e.name == ".." then sub = "PARENT"
       elseif is_dir then sub = "DIR"
       else sub = (e.ext ~= "" and ("." .. e.ext) or "FILE") .. "  " .. fw_size_str(e.size) end
-      ctx.fill_color = (i == fw_selected) and FW_C.bg or FW_C.subtext
-      PakettiCanvasFontDrawText(ctx, sub, n.x + 6, n.y + 34, FW_SUB_SZ)
+      local sub_col = (i == fw_selected) and FW_C.bg or FW_C.subtext
+      fw_text(ctx, sub_col, sub, n.x + 6, n.y + 34, FW_SUB_SZ)
     end
   end
 end
@@ -472,6 +543,7 @@ end
 
 local function fw_refresh_canvas()
   if fw_mode == "music" then fw_layout_music() else fw_layout() end
+  fw_sync_scrollbar()
   if fw_canvas then fw_canvas:update() end
 end
 
@@ -480,6 +552,7 @@ local fw_navigate
 
 local function fw_handle_mouse(ev)
   if ev.type == "exit" then
+    fw_m_drag = nil
     if fw_hover ~= nil then fw_hover = nil; fw_refresh_canvas() end
     return
   end
@@ -487,13 +560,39 @@ local function fw_handle_mouse(ev)
   local x, y = ev.position.x, ev.position.y
 
   if fw_mode == "music" then
-    if ev.type ~= "down" then return end
+    if ev.type == "down" then
+      fw_m_drag = { y = y, scroll = fw_scroll, moved = false }
+      return
+    elseif ev.type == "move" then
+      if fw_m_drag then
+        local dy = y - fw_m_drag.y
+        if math.abs(dy) > 4 then
+          fw_m_drag.moved = true
+          local rowh = FW_M_NODE_H + FW_M_GAP
+          fw_scroll = fw_m_drag.scroll - dy / rowh
+          local maxs = fw_max_scroll()
+          if fw_scroll < 0 then fw_scroll = 0 end
+          if fw_scroll > maxs then fw_scroll = maxs end
+          fw_layout_music(); fw_sync_scrollbar()
+          if fw_canvas then fw_canvas:update() end
+        end
+      end
+      return
+    elseif ev.type ~= "up" then
+      return
+    end
+    -- mouse "up": a click only if we didn't drag
+    local was_click = fw_m_drag and not fw_m_drag.moved
+    fw_m_drag = nil
+    if not was_click then return end
+
     local kind, idx = fw_hit_music(x, y)
+    fw_scroll = 0  -- collapse/restore always resets scroll to the top
     if kind == "song" then
       fw_m_sel_song = (fw_m_sel_song == idx) and nil or idx
       fw_m_sel_sample = nil
       if fw_m_sel_song and fw_status_text then
-        fw_status_text.text = string.format("Song '%s' uses %d samples",
+        fw_status_text.text = string.format("Song '%s' uses %d samples — showing only those",
           fw_m_songs[idx].label, #fw_m_songs[idx].keys)
       end
     elseif kind == "sample" then
@@ -501,13 +600,15 @@ local function fw_handle_mouse(ev)
       fw_m_sel_song = nil
       if fw_m_sel_sample and fw_status_text then
         local s = fw_m_samples[idx]
-        local names = {}
-        for _, si in ipairs(s.songs) do names[#names+1] = fw_m_songs[si].label end
-        fw_status_text.text = string.format("Sample '%s' used by %d song(s): %s",
-          s.label, #s.songs, table.concat(names, ", "))
+        fw_status_text.text = string.format("Sample '%s' used by %d song(s) — showing only those",
+          s.label, #s.songs)
       end
     else
       fw_m_sel_song = nil; fw_m_sel_sample = nil
+      if fw_status_text then
+        fw_status_text.text = string.format("Music graph: %d songs, %d samples (click to focus, drag to pan)",
+          #fw_m_songs, #fw_m_samples)
+      end
     end
     fw_refresh_canvas()
     return
@@ -628,6 +729,16 @@ end
 
 local function fw_default_path()
   local home = os.getenv("HOME")
+  -- Prefer a real folder of songs so Music Graph has something to show. First
+  -- existing candidate wins; otherwise home; otherwise root.
+  local candidates = {}
+  if home and home ~= "" then
+    candidates[#candidates+1] = home .. "/Music/Projects/Projects-Renoise"
+    candidates[#candidates+1] = home .. "/Music/Projects"
+  end
+  for _, p in ipairs(candidates) do
+    if io.exists(p) then return p end
+  end
   if home and home ~= "" then return home end
   return "/"
 end
@@ -660,6 +771,18 @@ function PakettiFileWarehouseShow()
     mouse_events = {"down", "up", "move", "exit"},
   }
 
+  fw_scrollbar = vb:scrollbar{
+    width = 18, height = FW_H,
+    min = 0, max = 1, value = 0, pagestep = 1,
+    autohide = false,
+    notifier = function(v)
+      if fw_updating_scrollbar then return end
+      fw_scroll = math.floor(v + 0.5)
+      if fw_mode == "music" then fw_layout_music() else fw_layout() end
+      if fw_canvas then fw_canvas:update() end
+    end
+  }
+
   local controls = vb:row{
     vb:button{ text = "◀ Back", width = 64, notifier = fw_go_back },
     vb:button{ text = "Fwd ▶", width = 64, notifier = fw_go_forward },
@@ -684,7 +807,7 @@ function PakettiFileWarehouseShow()
     margin = 8, spacing = 4,
     controls,
     fw_path_text,
-    fw_canvas,
+    vb:row{ spacing = 2, fw_canvas, fw_scrollbar },
     fw_status_text,
   }
 
