@@ -503,6 +503,7 @@ function PakettiHyperEditSculptArmAll(on)
     if dialog_vb and dialog_vb.views["sculpt_arm_" .. row] then
       dialog_vb.views["sculpt_arm_" .. row].color = on and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40}
     end
+    if row_canvases[row] then row_canvases[row]:update() end   -- refresh gang highlight
   end
   renoise.app():show_status("HyperEdit Sculpt: " .. (on and "all rows armed" or "all rows disarmed"))
 end
@@ -513,6 +514,7 @@ function PakettiHyperEditSculptToggleArm(row)
   if dialog_vb and dialog_vb.views["sculpt_arm_" .. row] then
     dialog_vb.views["sculpt_arm_" .. row].color = sculpt_armed[row] and {0x00, 0x80, 0x00} or {0x40, 0x40, 0x40}
   end
+  if row_canvases[row] then row_canvases[row]:update() end   -- refresh gang highlight on this row
 end
 
 -- ============================================================================
@@ -3273,8 +3275,9 @@ function PakettiHyperEditDrawRowCanvas(row)
     -- Calculate step width for later use
     local step_width = content_width / row_step_count
 
-    -- Gang highlight: tint the ganged step columns so the selection is visible.
-    if gang_enabled then
+    -- Gang highlight: tint the ganged step columns, but ONLY on ARMED ("S") rows —
+    -- a disarmed row does not participate in gang, so it must not look like it does.
+    if gang_enabled and sculpt_armed[row] then
       ctx.fill_color = {255, 200, 0, 40}
       for step = 1, row_step_count do
         if PakettiHyperEditIsGanged(step) then
