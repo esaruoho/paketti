@@ -235,6 +235,9 @@ jobs:
       - name: Generate SPINE-TRUE.md + COVERAGE.md from the running code
         run: python3 .spine/build.py "$GITHUB_WORKSPACE"
 
+      - name: Generate FEATURE-MAP.md + MIDI-GAPS.md (non-technical feature view)
+        run: python3 .spine/features.py "$GITHUB_WORKSPACE/.spine/features.json" "$GITHUB_WORKSPACE"
+
       - name: Generate architecture understandings (radial / compact / worktree)
         run: |
           chmod +x .spine/archof
@@ -306,7 +309,7 @@ jobs:
         run: |
           git config user.name  "GitHub Action"
           git config user.email "action@github.com"
-          git add docs/SPINE-TRUE.md docs/COVERAGE.md docs/ARCHITECTURE.md
+          git add docs/SPINE-TRUE.md docs/COVERAGE.md docs/ARCHITECTURE.md docs/FEATURE-MAP.md docs/MIDI-GAPS.md
           if git diff --cached --quiet; then
             echo "docs unchanged — nothing to commit"
           else
