@@ -1999,6 +1999,12 @@ PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse Lau
 renoise.tool():add_keybinding{ name = "Global:Paketti:Music Mouse Launchpad Mode Cycle", invoke = PakettiMusicMouseLaunchpadCycleMode }
 renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Launchpad Mode (Cycle)", invoke = function(message) if message:is_trigger() then PakettiMusicMouseLaunchpadCycleMode() end end }
 
+-- 64 inert sinks: MIDI-learn each Launchpad pad to one of these so its note-on is
+-- consumed by a mapping instead of falling through to the keyboard / pattern editor.
+for i = 1, 64 do
+  renoise.tool():add_midi_mapping{ name = string.format("Paketti:Music Mouse LaunchPad Mini Do Nothing %02d", i), invoke = function(message) end }
+end
+
 PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }
 PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse...", invoke = pakettiMusicMouseShow }
 PakettiAddMenuEntry{ name = "Instrument Box:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }
