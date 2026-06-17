@@ -1054,10 +1054,27 @@ local PAKETTI_VALID_KB_SCOPES = {
 }
 PakettiDeadKeybindings = PakettiDeadKeybindings or {}
 
+-- Some menu CONTEXTS share a name with no keybinding scope, but DO have a real
+-- keybinding scope under a different name. Rewrite those keybindings to the real
+-- scope so they fire (rather than dropping them). Only keybindings pass through
+-- here, so the matching menu entries keep their context name untouched. Mirrors
+-- Paketti's own menu→identifier intent (PakettiKeyBindings.lua).
+local PAKETTI_KB_SCOPE_REMAP = {
+  ["Sample Mappings"] = "Sample Keyzones",
+}
+PakettiRemappedKeybindings = PakettiRemappedKeybindings or {}
+
 -- Intercepted: add_keybinding with conditional registration + scope validation
 local function proxy_add_keybinding(proxy_self, args)
-  -- Drop dead-scope bindings (would be listed in prefs but never fire).
   local scope = args and args.name and args.name:match("^([^:]+):")
+  -- Rescue a known-misnamed scope (menu context used where a keybinding scope was meant).
+  if scope and PAKETTI_KB_SCOPE_REMAP[scope] then
+    local real = PAKETTI_KB_SCOPE_REMAP[scope]
+    PakettiRemappedKeybindings[#PakettiRemappedKeybindings + 1] = args.name
+    args.name = real .. args.name:sub(#scope + 1)
+    scope = real
+  end
+  -- Drop dead-scope bindings (would be listed in prefs but never fire).
   if scope and not PAKETTI_VALID_KB_SCOPES[scope] then
     PakettiDeadKeybindings[#PakettiDeadKeybindings + 1] = args.name
     return false
