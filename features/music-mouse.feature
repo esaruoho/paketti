@@ -108,6 +108,19 @@ Context: Global
     And the notes re-strike and play in that tuning (trigger_options.tuning)
     # @built @user-verified — via PakettiMicrotonalCycleTuning (PakettiMicrotonalTunings.lua)
 
+  Scenario: A Launchpad plays Music Mouse and runs a Raindrops light show
+    Given a Novation Launchpad is connected and the Music Mouse dialog is open
+    When the user sets the Launchpad selector to "Play chords"
+    Then the device enters Programmer mode and pressing a pad (note = row*10+col)
+      punches the chord at that pad's X/Y, and an LED mirrors the live cursor pad
+    When the user sets it to "Raindrops demo"
+    Then pads still trigger chords AND expanding rings of colour ripple out from
+      each press and from ambient drops
+    When the user sets it to "Off" (or closes Music Mouse / changes song)
+    Then the LEDs clear and the in/out MIDI devices are released
+    # @built — layout from Esa's live probe (row-by-row 1..8); colours = mk3 palette.
+    #   Triggering/LEDs not yet self-verified by Claude (drives the device on Esa's rig).
+
   Scenario: Loudness persists and never boots silent
     Given the user set Loudness to a value and closed the dialog
     When the dialog is reopened (or the tool reloaded)

@@ -77,3 +77,16 @@ through to Renoise**, so your own shortcuts stay live.
 - **Generate New Pakettified Instrument** — button.
 - **Sound on/off** — checkbox (use `space` to pause).
 - **Pattern Editor** — draw bars; Len −/+ and Reset buttons.
+
+## Launchpad (8×8 grid controller)
+A **Launchpad** selector in the control panel (also `Global:Paketti:Music Mouse Launchpad Mode Cycle`, the
+Instruments menu, and a MIDI mapping) switches the hardware mode:
+
+| Mode | What it does |
+|------|--------------|
+| `Off` | Devices released, LEDs cleared. |
+| `Play chords` | Each pad = a point on the play area; press it to punch the 4–9-voice chord at that X/Y (works even when frozen / in Keyjazz). An LED mirrors the live cursor pad; your last press flashes white. |
+| `Raindrops demo` | Everything Play does, **plus** an expanding-ring light show — colour ripples out from every press and from ambient drops. |
+
+Layout = Programmer mode, `note = row*10 + col` (row 1 = bottom, col 1 = left); colours use the mk3 velocity palette.
+The device opens/closes with the mode and is released when Music Mouse closes or the song changes.

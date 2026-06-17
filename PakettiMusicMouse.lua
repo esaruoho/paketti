@@ -1241,6 +1241,12 @@ local function mm_controls_column(vbx)
       vbx:text{ text = "Mouse", font = "mono" },
       vbx:checkbox{ id = "mm_mouse_check", value = mm.mouse_active, notifier = function(b) if mm_ui_busy then return end mm.mouse_active = b; if not b then mm_all_notes_off() end; if mm_canvas then mm_canvas:update() end end },
     },
+    vbx:row{ spacing = 4, lbl("Launchpad"),
+      vbx:popup{ id = "mm_launchpad_popup", width = 150, items = { "Off", "Play chords", "Raindrops demo" },
+        value = (PakettiMusicMouseLaunchpadModeIndex and PakettiMusicMouseLaunchpadModeIndex()) or 1,
+        notifier = function(i) if mm_ui_busy then return end
+          PakettiMusicMouseLaunchpadSetMode((i == 2 and "play") or (i == 3 and "raindrops") or "off") end },
+      vbx:text{ text = "(8x8 pads trigger chords / ripple light show)", font = "mono" } },
   }
 end
 
@@ -1659,6 +1665,7 @@ function pakettiMusicMouseClose()
   mm_stop_timer()
   mm.record = false
   mm_all_notes_off()
+  if PakettiMusicMouseLaunchpadSetMode then PakettiMusicMouseLaunchpadSetMode("off") end  -- release Launchpad LEDs + MIDI
   if dialog and dialog.visible then dialog:close() end
   dialog = nil
 end
@@ -1819,8 +1826,178 @@ function pakettiMusicMouseShow()
 end
 
 --------------------------------------------------------------------------------
+-- Launchpad controller — pads PLAY Music Mouse chords; LEDs mirror / ripple.
+-- Layout learned via the probe (Esa confirmed row-by-row 1..8): Programmer mode,
+-- note = row*10 + col (11..88), row 1 = bottom, col 1 = left. mk3 velocity palette.
+-- Three modes (dialog popup / cycle key / MIDI):
+--   off       — devices closed, LEDs cleared.
+--   play      — press a pad -> punch the chord at that X/Y; LED mirrors the cursor.
+--   raindrops — same triggering PLUS an expanding-ring light show (ambient + per press).
+--------------------------------------------------------------------------------
+
+local mm_lp = { mode = "off", in_dev = nil, out_dev = nil, timer = nil, frame = nil, drops = {}, tickn = 0, flash = {} }
+local MM_LP_RING   = { 45, 41, 37, 33, 25, 21 }                         -- mk3 palette: blue->cyan->green ripple
+local MM_LP_CURSOR = 21                                                 -- green: the live cursor pad (Play)
+local MM_LP_FLASH  = 3                                                  -- white: a pad you just pressed
+local MM_LP_PROG   = { 0xF0, 0x00, 0x20, 0x29, 0x02, 0x0D, 0x0E, 0x01, 0xF7 }  -- Mini mk3 Programmer mode
+
+local function mm_lp_find(list)
+  for _, n in ipairs(list or {}) do if n:lower():find("launchpad") then return n end end
+  return nil
+end
+
+local function mm_lp_raw(note, color)
+  if mm_lp.out_dev then pcall(function() mm_lp.out_dev:send { 0x90, note, color } end) end
+end
+
+local function mm_lp_clear_all()
+  for r = 1, 8 do for c = 1, 8 do mm_lp_raw(r * 10 + c, 0) end end
+  mm_lp.frame = nil
+end
+
+-- grid pad note (11..88) -> normalized cursor fraction (mx, my); nil if not a grid pad
+local function mm_lp_note_frac(note)
+  local r, c = math.floor(note / 10), note % 10
+  if r < 1 or r > 8 or c < 1 or c > 8 then return nil end
+  return (c - 1) / 7, (8 - r) / 7        -- col1=left=low X ; row8=top=my0=high pitch
+end
+
+-- normalized fraction -> nearest grid pad note
+local function mm_lp_frac_note(mx, my)
+  local c = math.max(1, math.min(8, math.floor((mx or 0) * 7 + 0.5) + 1))
+  local r = math.max(1, math.min(8, 8 - math.floor((my or 0) * 7 + 0.5)))
+  return r * 10 + c
+end
+
+-- diff-render a full frame (table note->color); only push the pads that changed
+local function mm_lp_render(newframe)
+  local prev = mm_lp.frame or {}
+  for r = 1, 8 do for c = 1, 8 do
+    local note = r * 10 + c
+    local col = newframe[note] or 0
+    if prev[note] ~= col then mm_lp_raw(note, col) end
+  end end
+  mm_lp.frame = newframe
+end
+
+-- punch the chord at a pad's X/Y (fires regardless of frozen / keyjazz, like i/o/p)
+local function mm_lp_trigger(note)
+  local mx, my = mm_lp_note_frac(note)
+  if not mx then return end
+  mm.mx, mm.my = mx, my
+  mm.deg_x = mm_frac_to_degree(mm.mx)
+  mm.deg_y = mm_frac_to_degree(1 - mm.my)
+  mm_play_chord(mm_compute_voices())
+  if mm_update_panel then mm_update_panel() end
+  if mm_canvas then mm_canvas:update() end
+end
+
+local function mm_lp_on_midi(msg)
+  local status = msg[1] or 0
+  local note   = msg[2] or 0
+  local vel    = msg[3] or 0
+  if (status - (status % 16)) ~= 0x90 or vel == 0 then return end   -- note-on only
+  if not mm_lp_note_frac(note) then return end                     -- ignore side/scene buttons
+  if mm_lp.mode == "play" then
+    mm_lp.flash[note] = 2
+    mm_lp_trigger(note)
+  elseif mm_lp.mode == "raindrops" then
+    mm_lp.drops[#mm_lp.drops + 1] = { r = math.floor(note / 10), c = note % 10, age = 0 }
+    mm_lp_trigger(note)
+  end
+end
+
+local function mm_lp_tick()
+  if mm_lp.mode == "off" or not mm_lp.out_dev then return end
+  mm_lp.tickn = mm_lp.tickn + 1
+  local frame = {}
+  if mm_lp.mode == "play" then
+    frame[mm_lp_frac_note(mm.mx, mm.my)] = MM_LP_CURSOR     -- mirror the cursor pad
+    for note, f in pairs(mm_lp.flash) do
+      if f > 0 then frame[note] = MM_LP_FLASH; mm_lp.flash[note] = f - 1 else mm_lp.flash[note] = nil end
+    end
+  elseif mm_lp.mode == "raindrops" then
+    if mm_lp.tickn % 10 == 0 then                            -- ambient drop
+      mm_lp.drops[#mm_lp.drops + 1] = { r = math.floor(mm_rand() * 8) + 1, c = math.floor(mm_rand() * 8) + 1, age = 0 }
+    end
+    local alive = {}
+    for _, d in ipairs(mm_lp.drops) do
+      for r = 1, 8 do for c = 1, 8 do
+        if math.floor(math.sqrt((r - d.r) ^ 2 + (c - d.c) ^ 2) + 0.5) == d.age then
+          frame[r * 10 + c] = MM_LP_RING[math.min(#MM_LP_RING, d.age + 1)]
+        end
+      end end
+      d.age = d.age + 1
+      if d.age <= 12 then alive[#alive + 1] = d end          -- expire once the ring leaves the grid
+    end
+    mm_lp.drops = alive
+  end
+  mm_lp_render(frame)
+end
+
+local function mm_lp_open()
+  if not mm_lp.out_dev then
+    local on = mm_lp_find(renoise.Midi.available_output_devices())
+    if on then mm_lp.out_dev = renoise.Midi.create_output_device(on) end
+  end
+  if not mm_lp.in_dev then
+    local inn = mm_lp_find(renoise.Midi.available_input_devices())
+    if inn then mm_lp.in_dev = renoise.Midi.create_input_device(inn, mm_lp_on_midi) end
+  end
+  if mm_lp.out_dev then pcall(function() mm_lp.out_dev:send(MM_LP_PROG) end); mm_lp_clear_all() end
+  if not mm_lp.timer then mm_lp.timer = mm_lp_tick; renoise.tool():add_timer(mm_lp.timer, 60) end
+  return (mm_lp.out_dev ~= nil) or (mm_lp.in_dev ~= nil)
+end
+
+local function mm_lp_shutdown()
+  if mm_lp.timer and renoise.tool():has_timer(mm_lp.timer) then renoise.tool():remove_timer(mm_lp.timer) end
+  mm_lp.timer = nil
+  if mm_lp.out_dev then mm_lp_clear_all(); pcall(function() mm_lp.out_dev:close() end); mm_lp.out_dev = nil end
+  if mm_lp.in_dev then pcall(function() mm_lp.in_dev:close() end); mm_lp.in_dev = nil end
+  mm_lp.drops = {}; mm_lp.flash = {}; mm_lp.frame = nil
+end
+
+-- index for the dialog popup (1=Off, 2=Play, 3=Raindrops)
+function PakettiMusicMouseLaunchpadModeIndex()
+  return (mm_lp.mode == "play" and 2) or (mm_lp.mode == "raindrops" and 3) or 1
+end
+
+-- the one entry point — used by the dialog popup, the cycle key, and MIDI
+function PakettiMusicMouseLaunchpadSetMode(mode)
+  if mode ~= "off" and mode ~= "play" and mode ~= "raindrops" then mode = "off" end
+  if mode == "off" then
+    mm_lp.mode = "off"
+    mm_lp_shutdown()
+    renoise.app():show_status("Music Mouse Launchpad: OFF")
+  else
+    mm_lp.mode = mode
+    if not mm_lp_open() then
+      mm_lp.mode = "off"; mm_lp_shutdown()
+      renoise.app():show_status("Music Mouse Launchpad: no 'Launchpad' device found")
+    else
+      renoise.app():show_status("Music Mouse Launchpad: " ..
+        (mode == "play" and "PLAY — pads trigger chords" or "RAINDROPS — ripple light show + triggers"))
+    end
+  end
+  if vb and vb.views and vb.views["mm_launchpad_popup"] then
+    mm_ui_busy = true
+    pcall(function() vb.views["mm_launchpad_popup"].value = PakettiMusicMouseLaunchpadModeIndex() end)
+    mm_ui_busy = false
+  end
+end
+
+function PakettiMusicMouseLaunchpadCycleMode()
+  local nxt = { off = "play", play = "raindrops", raindrops = "off" }
+  PakettiMusicMouseLaunchpadSetMode(nxt[mm_lp.mode] or "play")
+end
+
+--------------------------------------------------------------------------------
 -- Registration (define-before-register: all functions above; registrations last)
 --------------------------------------------------------------------------------
+
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse Launchpad Mode (Cycle)", invoke = PakettiMusicMouseLaunchpadCycleMode }
+renoise.tool():add_keybinding{ name = "Global:Paketti:Music Mouse Launchpad Mode Cycle", invoke = PakettiMusicMouseLaunchpadCycleMode }
+renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Launchpad Mode (Cycle)", invoke = function(message) if message:is_trigger() then PakettiMusicMouseLaunchpadCycleMode() end end }
 
 PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }
 PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse...", invoke = pakettiMusicMouseShow }
