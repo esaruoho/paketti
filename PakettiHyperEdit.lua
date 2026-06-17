@@ -403,15 +403,18 @@ function PakettiHyperEditSculptApplyCurrentStep()
 end
 
 -- Repeating tick while the hold is engaged: keeps the parameter MOVING (REL ramps,
--- Random scatters) for as long as you hold, without re-clicking. Only acts while
--- STOPPED — when playing, the playhead crossings drive once-per-pass accumulation,
--- so this stays out of the way to avoid double-applying.
+-- Random scatters) for as long as you hold, without re-clicking.
+--  * GANG: the timer is the ONLY continuous driver (the playhead path is off for
+--    gang), so it runs whether stopped OR playing — hold + gang keeps re-shaping
+--    the whole ganged set every ramp tick.
+--  * NON-gang: only acts while STOPPED; when playing, the playhead crossings drive
+--    once-per-pass accumulation, so the timer stays out of the way (no double-apply).
 function PakettiHyperEditSculptHoldTick()
   if not sculpt_active or sculpt_mode <= 1 then return end
   local song = renoise.song()
-  if not song or song.transport.playing then return end
+  if not song then return end
   if gang_enabled then
-    -- accumulate over the ganged set from each step's CURRENT value
+    -- accumulate over the ganged set from each step's CURRENT value (stopped or playing)
     for row = 1, NUM_ROWS do
       if sculpt_armed[row] and row_parameters[row] then
         local len = row_steps[row] or 16
@@ -429,6 +432,7 @@ function PakettiHyperEditSculptHoldTick()
       end
     end
   else
+    if song.transport.playing then return end  -- non-gang: playhead drives while playing
     PakettiHyperEditSculptApplyCurrentStep()   -- accumulates on the edit-cursor step
   end
 end

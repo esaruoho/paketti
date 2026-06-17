@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-17 - Fix: HyperEdit Gang — holding now keeps re-shaping the gang during playback too
+With Gang on, holding SCULPT while the pattern plays now **keeps modifying the ganged steps every ramp tick** (Random REL keeps re-scattering, REL keeps drifting), instead of applying just once at the moment you engaged. Gang deliberately bypasses the per-step playhead path, so the hold-timer is its only continuous driver — it now runs whether the transport is stopped or playing. (Non-gang holding is unchanged: stopped ramps via the timer, playing accumulates once per pass via the playhead.)
+
 ### 2026-06-17 - Improvement: HyperEdit Sculpt/Gang — colors follow Capture Track Color, ramp speed is a setting, Gang every up to 512
 Three follow-ups to HyperEdit's Sculpt/Gang. The **gang highlight, HOLD SCULPT button and "S" arm buttons now follow the "Capture Track Color" preference** like the rest of HyperEdit (instead of fixed colors), so the sculpt UI matches your track theming; toggling the preference recolors them immediately. The **hold-ramp speed is now a setting** — a "ramp" value box (20–2000 ms) in the Sculpt toolbar controls how fast the held sculpt ramps while stopped, persisted in preferences, replacing the hardcoded 120 ms. And **"Gang every" now ranges 1–512** (with offset 0–511) so you can gang at any musical division — 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 — not just up to 64.
 
