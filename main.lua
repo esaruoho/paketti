@@ -1064,6 +1064,15 @@ local PAKETTI_KB_SCOPE_REMAP = {
 }
 PakettiRemappedKeybindings = PakettiRemappedKeybindings or {}
 
+-- Menu CONTEXTS that look like scopes but are NOT keybinding categories AND have no
+-- keybinding equivalent to rescue them to. Their keybindings are intentionally
+-- disabled here. Every one has a twin under a valid scope (Global / Instrument Box /
+-- Sample Editor), so nothing becomes keyboard-unreachable. Listed explicitly so the
+-- drop is deliberate and greppable — not just an incidental catch.
+local PAKETTI_DISABLED_KB_SCOPES = {
+  ["Sample Navigator"] = true,   -- 501 transpose/slice-move/loop bindings; twins under Global/Instrument Box/Sample Editor
+}
+
 -- Intercepted: add_keybinding with conditional registration + scope validation
 local function proxy_add_keybinding(proxy_self, args)
   local scope = args and args.name and args.name:match("^([^:]+):")
@@ -1074,9 +1083,16 @@ local function proxy_add_keybinding(proxy_self, args)
     args.name = real .. args.name:sub(#scope + 1)
     scope = real
   end
-  -- Drop dead-scope bindings (would be listed in prefs but never fire).
-  if scope and not PAKETTI_VALID_KB_SCOPES[scope] then
+  -- Intentionally-disabled scopes (known dead menu-contexts; see table above).
+  if scope and PAKETTI_DISABLED_KB_SCOPES[scope] then
     PakettiDeadKeybindings[#PakettiDeadKeybindings + 1] = args.name
+    return false
+  end
+  -- Any OTHER non-real scope is also dead (most likely a fresh typo) — drop it too,
+  -- but bucket separately so it stands out as something to fix or remap, not a known one.
+  if scope and not PAKETTI_VALID_KB_SCOPES[scope] then
+    PakettiUnexpectedDeadKeybindings = PakettiUnexpectedDeadKeybindings or {}
+    PakettiUnexpectedDeadKeybindings[#PakettiUnexpectedDeadKeybindings + 1] = args.name
     return false
   end
   if PakettiShouldRegisterKeybindings and PakettiShouldRegisterKeybindings() then

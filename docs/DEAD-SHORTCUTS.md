@@ -5,13 +5,18 @@
 | Invalid scope | Count | Resolution |
 |---|--:|---|
 | `Sample Mappings:` | 485 | **Re-scoped to `Sample Keyzones:`** — the real keybinding category. Now fire. The valid `Sample Mappings` *menu* entries are untouched (only keybindings are rewritten). |
-| `Sample Navigator:` | 501 | **Dropped** — `Sample Navigator` is a menu context with no keybinding-scope equivalent. Every one has a twin under `Instrument Box` / `Global`, so nothing is lost. |
+| `Sample Navigator:` | 501 | **Intentionally disabled** (`PAKETTI_DISABLED_KB_SCOPES`) — `Sample Navigator` is a menu context with no keybinding-scope equivalent. Every one has a twin under `Global` (498) / `Instrument Box` (482) / `Sample Editor` (19), so nothing is lost. Breakdown: 481 instrument-transpose, 16 `Move Slice` (10/100/300/500), 3 loop-length, 1 transpose-reset. |
 | `DSP Device:` | 1 | **Typo fixed at source** (`PakettiPresetPlusPlus.lua:1164` → `DSP Chain:`). Now fires. |
 
 The 16 valid Renoise 3.5 keybinding scopes (keyboard-prefs category dropdown):
 `Global · Automation · Disk Browser · DSP Chain · Instrument Box · Mixer · Pattern Editor · Pattern Matrix · Pattern Sequencer · Phrase Editor · Phrase Map · Phrase Script Editor · Sample Editor · Sample FX Mixer · Sample Keyzones · Sample Modulation Matrix`
 
-Mechanism in `main.lua`: `PAKETTI_KB_SCOPE_REMAP` rewrites a misnamed scope to its real keybinding category (`Sample Mappings` → `Sample Keyzones`); anything still invalid after that is dropped and collected in `PakettiDeadKeybindings`. Because only keybindings pass through `proxy_add_keybinding`, menu entries under the same context names keep working.
+Mechanism in `main.lua` (`proxy_add_keybinding`), in order:
+1. `PAKETTI_KB_SCOPE_REMAP` rewrites a misnamed scope to its real keybinding category (`Sample Mappings` → `Sample Keyzones`).
+2. `PAKETTI_DISABLED_KB_SCOPES` — known menu-contexts with no keybinding equivalent (`Sample Navigator`) — are intentionally dropped and collected in `PakettiDeadKeybindings`.
+3. Any *other* invalid scope (a fresh typo) is also dropped, but bucketed in `PakettiUnexpectedDeadKeybindings` so it stands out as something to fix or remap.
+
+Because only keybindings pass through `proxy_add_keybinding`, menu entries under the same context names keep working (641 `Sample Navigator:` + 585 `Sample Mappings:` menu entries untouched).
 
 ## Re-scoped `Sample Mappings:` → `Sample Keyzones:` (now working)
 
