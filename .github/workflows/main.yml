@@ -77,7 +77,7 @@ jobs:
       - name: Zip XRNX Package
         run: |
           zip -r "${{ env.FILENAME }}" . \
-            -x "*.git*" "*.github*" \
+            -x "*.git*" "*.github*" "docs/*" ".spine/*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
             "definitions/*" \
@@ -184,7 +184,7 @@ jobs:
       - name: Zip XRNX Package (API 5)
         run: |
           zip -r "${{ env.FILENAME }}" . \
-            -x "*.git*" "*.github*" \
+            -x "*.git*" "*.github*" "docs/*" ".spine/*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
             "preferences_deviceLoaders.xml" \
@@ -209,3 +209,107 @@ jobs:
           asset_path: ${{ env.FILENAME }}
           asset_name: ${{ env.FILENAME }}
           asset_content_type: application/octet-stream
+
+  # ── Job 4: Spine + Architecture — Paketti's anatomy, coverage & shape ──
+  # Runs Paketti's own registration code under a mocked Renoise (.spine/harness.lua)
+  # for loop-expanded truth, and archof for the repo's architecture (radial / compact
+  # images + the worktree ARCHITECTURE.md). All written to docs/ and attached to the
+  # same release. No commit-back, no bot. (docs/ + .spine/ are excluded from the .xrnx.)
+  package-spine:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: false
+
+      - name: Install LuaJIT + Graphviz
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq luajit graphviz
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate SPINE-TRUE.md + COVERAGE.md from the running code
+        run: python3 .spine/build.py "$GITHUB_WORKSPACE"
+
+      - name: Generate architecture understandings (radial / compact / worktree)
+        run: |
+          chmod +x .spine/archof
+          mkdir -p docs
+          # worktree understanding (text) → docs/ARCHITECTURE.md
+          .spine/archof "$GITHUB_WORKSPACE" --write
+          mv -f ARCHITECTURE.md docs/ARCHITECTURE.md
+          # radial + compact images → docs/, normalized slug-independent names
+          .spine/archof "$GITHUB_WORKSPACE" --images docs
+          mv -f docs/*-architecture-radial.png  docs/architecture-radial.png  2>/dev/null || true
+          mv -f docs/*-architecture-compact.png docs/architecture-compact.png 2>/dev/null || true
+          ls -la docs/
+
+      - name: Upload SPINE-TRUE.md
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: docs/SPINE-TRUE.md
+          asset_name: SPINE-TRUE.md
+          asset_content_type: text/markdown
+
+      - name: Upload COVERAGE.md
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: docs/COVERAGE.md
+          asset_name: COVERAGE.md
+          asset_content_type: text/markdown
+
+      - name: Upload ARCHITECTURE.md (worktree understanding)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: docs/ARCHITECTURE.md
+          asset_name: ARCHITECTURE.md
+          asset_content_type: text/markdown
+
+      - name: Upload architecture-radial.png
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: docs/architecture-radial.png
+          asset_name: architecture-radial.png
+          asset_content_type: image/png
+
+      - name: Upload architecture-compact.png
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: docs/architecture-compact.png
+          asset_name: architecture-compact.png
+          asset_content_type: image/png
+
+      # Refresh the docs/ TEXT understandings in the repo on every release, using the
+      # releaser's existing identity (not a new bot). [skip ci] => no trigger loop.
+      # The PNGs are NOT committed — release-assets-only — so the repo never bloats
+      # with regenerated binaries (and docs/+.spine/ are already kept out of the .xrnx).
+      - name: Commit refreshed docs (text only) back to master
+        run: |
+          git config user.name  "GitHub Action"
+          git config user.email "action@github.com"
+          git add docs/SPINE-TRUE.md docs/COVERAGE.md docs/ARCHITECTURE.md
+          if git diff --cached --quiet; then
+            echo "docs unchanged — nothing to commit"
+          else
+            git commit -m "docs: refresh spine + coverage + architecture [skip ci]"
+            git push origin HEAD:master
+          fi

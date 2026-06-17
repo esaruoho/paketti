@@ -33,3 +33,7 @@ KeyBindings/Debug_Paketti_KeyBindings.log
 # Convey DreamGraph — derived, never commit
 kb/
 features/generated/
+
+# Spine/architecture: regenerated images are release-assets-only (don't bloat the repo)
+docs/architecture-*.png
+.spine/spine-true.json

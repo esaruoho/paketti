@@ -1,0 +1,187 @@
+#!/bin/bash
+# archof — the architecture of ANY git repo, whitelabeled.
+#
+# Point it at a repository and it reads the repo's SHAPE (not its commit log):
+#   composition (files by type) · top-level modules · entry points ·
+#   structural HUBS (most-imported modules = the wiring backbone) ·
+#   module → module WIRING as both a text edge list AND a Mermaid graph.
+#
+# Same skeleton for every repo, repo-specific skin — so you can "see the architecture"
+# of anything. Language-agnostic, and aware of custom require-wrappers (e.g. Renoise-Lua's
+# `timed_require`). Dependency-free: git + awk + sh, no Homebrew, no Python.
+#
+# Usage:
+#   archof <repo>            # print the architecture to stdout
+#   archof <repo> --write    # also write a durable <repo>/ARCHITECTURE.md (with a Mermaid diagram)
+#   archof <repo> --mermaid  # print ONLY the Mermaid graph block
+#
+# SAFE by construction: anchored import regex + `grep -wFc` fixed-string whole-word counts
+# (no catastrophic backtracking), module stems < 3 chars skipped, bounded to 2000 files.
+#
+# FEATURE-CARD >> ~/work/apple/features/archof.feature
+# NOTE: deliberately NOT `set -e`/`pipefail` — grep/git-grep exit 1 on no-match, which is
+# normal for an analysis pass; aborting on it would truncate the report. Errors are handled
+# explicitly where they matter (arg/dir/repo checks below).
+set -u
+
+REPO="${1:-}"
+MODE="full"
+OUTDIR="${3:-$HOME/Desktop}"   # for --images
+case "${2:-}" in
+  --write)   MODE="write" ;;
+  --mermaid) MODE="mermaid" ;;
+  --dot)     MODE="dot" ;;
+  --images)  MODE="images" ;;   # render dot + radial + compact PNGs (needs graphviz)
+  "")        MODE="full" ;;
+  *) echo "archof: unknown flag ${2}" >&2; exit 2 ;;
+esac
+[ -n "$REPO" ] || { echo "usage: archof <repo> [--write|--mermaid|--dot|--images [outdir]]" >&2; exit 2; }
+[ -d "$REPO" ] || { echo "archof: not a directory: $REPO" >&2; exit 1; }
+cd "$REPO" || { echo "archof: cannot cd: $REPO" >&2; exit 1; }
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "archof: not a git repo: $REPO" >&2; exit 1; }
+
+NAME="$(basename "$(git rev-parse --show-toplevel)")"
+SLUG="$(basename "$(pwd -P)")"   # clean folder name for output filenames
+# :(icase) so UPPERCASE extensions match too (e.g. TASM .ASM/.INC). Covers code, assembly, web.
+EXTS=(-- ':(icase)*.py' ':(icase)*.swift' ':(icase)*.js' ':(icase)*.mjs' ':(icase)*.ts' ':(icase)*.jsx' ':(icase)*.tsx' \
+         ':(icase)*.rs' ':(icase)*.lua' ':(icase)*.c' ':(icase)*.h' ':(icase)*.cc' ':(icase)*.cpp' ':(icase)*.hpp' \
+         ':(icase)*.go' ':(icase)*.rb' ':(icase)*.kt' ':(icase)*.java' ':(icase)*.php' ':(icase)*.scala' \
+         ':(icase)*.ex' ':(icase)*.exs' ':(icase)*.asm' ':(icase)*.inc' ':(icase)*.s' ':(icase)*.css' \
+         ':(icase)*.html' ':(icase)*.htm')
+HTML_EXTS=(-- ':(icase)*.html' ':(icase)*.htm')
+# any *require( catches require / timed_require …; dofile/loadfile (Lua); include (TASM, case-insens via -i)
+IMPORT_RE='^[[:space:]]*(import|from|#include|#import|[A-Za-z_]*require|use|@import|include|dofile|loadfile)[[:space:](]'
+
+# ── the module→module edge list (count from→to), shared by text + mermaid ──────────
+# Three edge sources: I = import/include statements (any language, case-insensitive);
+#   H = HTML <script src>/<link href> (browser projects load JS/CSS this way, not via import).
+edges() {
+  { git ls-files "${EXTS[@]}" 2>/dev/null | sed 's/^/F /'
+    git grep -nI -iE "$IMPORT_RE" "${EXTS[@]}" 2>/dev/null | sed 's/^/I /'
+    git grep -nIE '(src|href)="[^"]+\.(js|mjs|css)"' "${HTML_EXTS[@]}" 2>/dev/null | sed 's/^/H /'
+  } | awk '
+    $1=="F"{ f=$2; n=split(f,p,"/"); b=p[n]; sub(/\.[^.]*$/,"",b); known[b]=1; next }
+    $1=="I"{ s=substr($0,3); ci=index(s,":"); ff=substr(s,1,ci-1); rest=substr(s,ci+1);
+             n=split(ff,p,"/"); fb=p[n]; sub(/\.[^.]*$/,"",fb);
+             if(fb ~ /^test/ || fb=="steps" || fb=="conftest" || fb=="setup") next;
+             m=split(rest,t,/[^A-Za-z0-9_]+/);
+             for(i=1;i<=m;i++){ x=t[i]; if(length(x)>=3 && (x in known) && x!=fb) e[fb" -> "x]++ } }
+    $1=="H"{ s=substr($0,3); ci=index(s,":"); ff=substr(s,1,ci-1); rest=substr(s,ci+1);
+             n=split(ff,p,"/"); fb=p[n]; sub(/\.[^.]*$/,"",fb);
+             # pull each quoted src/href path, basename it (keeps hyphens) → match a known stem
+             while (match(rest, /(src|href)="[^"]+"/)) {
+               seg=substr(rest, RSTART, RLENGTH); rest=substr(rest, RSTART+RLENGTH);
+               q=seg; sub(/^[^"]*"/,"",q); sub(/".*$/,"",q);
+               np=split(q, pp, "/"); base=pp[np]; sub(/\.[^.]*$/,"",base);
+               if (length(base)>=3 && (base in known) && base!=fb) e[fb" -> "base]++ } }
+    END{ for(k in e) print e[k], k }
+  ' | sort -k1,1nr -k2   # count DESC, then ALPHABETICAL (from → to) within equal counts
+}
+
+mermaid() {
+  echo '```mermaid'
+  echo 'graph LR'
+  edges | while read -r cnt a arrow b; do          # ALL edges — no cap
+    # sanitise node ids for mermaid (alnum + _)
+    ai=$(printf '%s' "$a" | tr -c 'A-Za-z0-9_' '_'); bi=$(printf '%s' "$b" | tr -c 'A-Za-z0-9_' '_')
+    printf '  %s["%s"] -->|%s| %s["%s"]\n' "$ai" "$a" "$cnt" "$bi" "$b"
+  done
+  echo '```'
+}
+
+# Graphviz DOT (text only — no graphviz dependency here; pipe to `dot -Tpng` where available)
+dot_graph() {
+  echo 'digraph architecture {'
+  echo '  rankdir=LR; bgcolor="white"; pad=0.4;'
+  echo '  node [shape=box, style="rounded,filled", fillcolor="#eef3fb", color="#5b7aa8", fontname="Helvetica", fontsize=11];'
+  echo '  edge [color="#8a8a8a", fontname="Helvetica", fontsize=9];'
+  echo "  labelloc=t; label=\"architecture · $NAME\"; fontname=\"Helvetica-Bold\"; fontsize=16;"
+  edges | while read -r cnt a arrow b; do          # ALL edges — no cap (show the whole architecture)
+    printf '  "%s" -> "%s" [label="%s"];\n' "$a" "$b" "$cnt"
+  done
+  echo '}'
+}
+
+if [ "$MODE" = "mermaid" ]; then mermaid; exit 0; fi
+if [ "$MODE" = "dot" ]; then dot_graph; exit 0; fi
+
+# Render the SAME DOT graph in three layouts via Graphviz engines (dep: graphviz).
+#   <slug>-architecture.png         layered  (dot)    — the dependency columns
+#   <slug>-architecture-radial.png  radial   (twopi)  — hub at centre, spokes around (great for hub-and-spoke)
+#   <slug>-architecture-compact.png compact  (sfdp)   — force-directed cloud (great for dense, multi-cluster)
+render_images() {
+  command -v dot >/dev/null 2>&1 || { echo "archof: graphviz not found (brew install graphviz) — images need dot/twopi/sfdp" >&2; return 1; }
+  mkdir -p "$OUTDIR"
+  local dotfile="/tmp/archof-$SLUG.dot"
+  dot_graph > "$dotfile"
+  # root the radial layout at the busiest hub (most outgoing edges)
+  local hub; hub="$(edges | awk '{c[$2]++} END{for(k in c) print c[k], k}' | sort -rn | awk 'NR==1{print $2}')"
+  dot   -Tpng "$dotfile" -o "$OUTDIR/$SLUG-architecture.png" 2>/dev/null \
+    && echo "  ✓ $OUTDIR/$SLUG-architecture.png        (layered/dot)"
+  twopi ${hub:+-Groot="$hub"} -Goverlap=false -Granksep=2.6 -Tpng "$dotfile" -o "$OUTDIR/$SLUG-architecture-radial.png" 2>/dev/null \
+    && echo "  ✓ $OUTDIR/$SLUG-architecture-radial.png  (radial/twopi, root=$hub)"
+  sfdp  -Goverlap=prism -Gsize=26 -Tpng "$dotfile" -o "$OUTDIR/$SLUG-architecture-compact.png" 2>/dev/null \
+    && echo "  ✓ $OUTDIR/$SLUG-architecture-compact.png (compact/sfdp)"
+}
+
+if [ "$MODE" = "images" ]; then
+  echo "architecture · $SLUG  →  $OUTDIR  (zero-token: git + awk + graphviz, no LLM, no network)"
+  render_images
+  exit 0
+fi
+
+render() {
+  echo "# Architecture · $NAME"
+  echo
+  echo "> Generated by \`archof\`. The repo's shape: what it's made of and how it's wired."
+  echo
+  echo '## Composition (tracked files by type)'
+  echo '```'
+  git ls-files | awk -F. 'NF>1{print $NF}' | grep -E '^[A-Za-z0-9]+$' | sort | uniq -c | sort -rn | head -12
+  echo '```'
+  echo '## Top-level modules (file count · dir)'
+  echo '```'
+  git ls-files | awk -F/ 'NF>1{print $1}' | sort | uniq -c | sort -rn | head -15
+  echo '```'
+  echo '## Entry points'
+  echo '```'
+  git ls-files | grep -iE '(^|/)(main|index|app|cli|__main__|server|lib|mod)\.(swift|py|js|ts|jsx|tsx|rs|lua|c|cc|cpp|go|rb|kt|java|php|ex)$' | head -12 || true
+  echo '```'
+  echo '## Structural hubs (refs · module — the most-imported = wiring backbone)'
+  echo '```'
+  local imports; imports="$(git grep -hI -E "$IMPORT_RE" "${EXTS[@]}" 2>/dev/null || true)"
+  git ls-files "${EXTS[@]}" 2>/dev/null | head -2000 | while IFS= read -r f; do b=$(basename "$f"); echo "${b%.*}"; done \
+    | grep -vE '^(steps|__init__|conftest|setup|index|mod|lib|test|tests|main)$' \
+    | sort -u | while IFS= read -r stem; do
+        [ ${#stem} -lt 3 ] && continue
+        n=$(printf '%s\n' "$imports" | grep -wFc -- "$stem" 2>/dev/null || true)
+        [ "${n:-0}" -gt 0 ] 2>/dev/null && printf '%5d  %s\n' "$n" "$stem"
+      done | sort -rn | head -15
+  echo '```'
+  echo '## Module → module wiring (count · from → to)'
+  echo '```'
+  local n; n="$(edges)"                              # ALL edges — no cap
+  if [ -n "$n" ]; then
+    printf '%s\n' "$n"
+    echo "  ── $(printf '%s\n' "$n" | grep -c .) edges total ──"
+  else
+    echo '(no import-statement edges — this repo may load modules without imports)'
+  fi
+  echo '```'
+  echo '## The wiring, drawn'
+  echo
+  mermaid
+  echo
+  echo '## Orientation docs'
+  echo '```'
+  ls README* readme* atlas/MAP.md UNDERSTANDING.md CLAUDE.md AGENTS.md 2>/dev/null | head -8 || true
+  echo '```'
+}
+
+if [ "$MODE" = "write" ]; then
+  OUT="$REPO/ARCHITECTURE.md"
+  render > "$OUT"
+  echo "archof: wrote $OUT ($(wc -l < "$OUT" | tr -d ' ') lines)"
+else
+  render
+fi
