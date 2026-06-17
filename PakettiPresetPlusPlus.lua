@@ -1161,7 +1161,7 @@ end
 PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:Hipass", invoke = HipassPlusPlus}
 PakettiAddMenuEntry{name="--DSP Chain:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:Hipass", invoke = HipassPlusPlus}
-renoise.tool():add_keybinding{name="DSP Device:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
+renoise.tool():add_keybinding{name="DSP Chain:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 renoise.tool():add_keybinding{name="Global:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 

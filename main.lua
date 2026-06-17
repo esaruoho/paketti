@@ -1041,8 +1041,27 @@ local function proxy_add_menu_entry(proxy_self, args)
   return real_tool:add_menu_entry(args)
 end
 
--- Intercepted: add_keybinding with conditional registration
+-- Renoise 3.5 keyboard-shortcut scopes (the "category" list in the keyboard prefs).
+-- A keybinding registered under ANY other scope is listed and mappable but NEVER
+-- invoked when the key is pressed (per the Renoise API) — dead weight. We refuse to
+-- register those, and collect them in PakettiDeadKeybindings for docs/DEAD-SHORTCUTS.md.
+local PAKETTI_VALID_KB_SCOPES = {
+  ["Global"]=true, ["Automation"]=true, ["Disk Browser"]=true, ["DSP Chain"]=true,
+  ["Instrument Box"]=true, ["Mixer"]=true, ["Pattern Editor"]=true, ["Pattern Matrix"]=true,
+  ["Pattern Sequencer"]=true, ["Phrase Editor"]=true, ["Phrase Map"]=true,
+  ["Phrase Script Editor"]=true, ["Sample Editor"]=true, ["Sample FX Mixer"]=true,
+  ["Sample Keyzones"]=true, ["Sample Modulation Matrix"]=true,
+}
+PakettiDeadKeybindings = PakettiDeadKeybindings or {}
+
+-- Intercepted: add_keybinding with conditional registration + scope validation
 local function proxy_add_keybinding(proxy_self, args)
+  -- Drop dead-scope bindings (would be listed in prefs but never fire).
+  local scope = args and args.name and args.name:match("^([^:]+):")
+  if scope and not PAKETTI_VALID_KB_SCOPES[scope] then
+    PakettiDeadKeybindings[#PakettiDeadKeybindings + 1] = args.name
+    return false
+  end
   if PakettiShouldRegisterKeybindings and PakettiShouldRegisterKeybindings() then
     real_tool:add_keybinding(args)
     PakettiActualRegistrations.keybindings = PakettiActualRegistrations.keybindings + 1
