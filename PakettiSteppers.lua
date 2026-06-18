@@ -1008,6 +1008,10 @@ for _, stepperType in pairs(STEPPER_TYPES) do
     PakettiAddMenuEntry{name = string.format("%sInstrument Box:Paketti:Steppers:Show Selected Instrument %s Stepper", prefix, baseText),
         invoke = function() PakettiShowStepper(stepperType) end
     }
+    -- MIDI mapping: jump to this stepper view from a controller (fire on press).
+    renoise.tool():add_midi_mapping{name = string.format("Paketti:Show Selected Instrument %s Stepper", baseText),
+        invoke = function(message) if message:is_trigger() then PakettiShowStepper(stepperType) end end
+    }
     first_stepper = false
 end
 

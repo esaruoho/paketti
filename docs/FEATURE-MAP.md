@@ -2,33 +2,34 @@
 
 *Non-technical. Every Paketti capability as **a feature, in a place, reachable through one or more doors** — keyboard shortcut · MIDI mapping · menu entry. Parameter variants (e.g. Transpose −120…+120) are collapsed into the one feature they are. Auto-generated from the running code by `.spine/features.py`; do not hand-edit.*
 
-## 4,306 distinct features across 89 groups
+## 4,335 distinct features across 92 groups
 
 | Feature group | features | ⌨ keyboard | 🎛 MIDI | ☰ menu |
 |---|--:|--:|--:|--:|
-| **(top level)** | 2864 | 2218 | 2293 | 565 |
-| **(misc)** | 290 | 180 | 120 | 170 |
-| **Instruments** | 88 | 58 | 50 | 88 |
+| **(top level)** | 2852 | 2182 | 2323 | 530 |
+| **(misc)** | 283 | 173 | 138 | 163 |
+| **Instruments** | 88 | 58 | 57 | 88 |
 | **Paketti Groovebox 8120** | 65 | 0 | 65 | 0 |
 | **!Preferences** | 62 | 0 | 29 | 62 |
-| **Load Renoise Native** | 56 | 0 | 19 | 56 |
-| **PhraseGrid** | 48 | 12 | 34 | 48 |
+| **Load Renoise Native** | 56 | 0 | 44 | 56 |
+| **PhraseGrid** | 47 | 12 | 33 | 47 |
 | **Process** | 46 | 39 | 31 | 46 |
 | **Automation** | 45 | 20 | 29 | 45 |
 | **Clipboard** | 43 | 1 | 36 | 43 |
 | **Tracks** | 42 | 29 | 26 | 42 |
 | **MetaSynth** | 41 | 0 | 9 | 41 |
+| **Xperimental/WIP** | 40 | 0 | 16 | 40 |
 | **Microtonal Tunings** | 36 | 0 | 22 | 29 |
 | **Devices** | 36 | 11 | 28 | 36 |
-| **Xperimental/WIP** | 34 | 0 | 15 | 34 |
+| **Write Notes** | 30 | 30 | 30 | 30 |
 | **Phrases** | 30 | 25 | 27 | 30 |
 | **Pattern** | 28 | 23 | 20 | 28 |
-| **MPC Cycler** | 24 | 0 | 24 | 13 |
+| **MPC Cycler** | 25 | 0 | 25 | 14 |
 | **Octatrack** | 23 | 5 | 23 | 23 |
 | **Load** | 23 | 20 | 15 | 23 |
 | **DSP** | 22 | 3 | 15 | 22 |
 | **Samples** | 18 | 9 | 14 | 18 |
-| **Preset++** | 15 | 5 | 6 | 15 |
+| **Preset++** | 15 | 5 | 8 | 15 |
 | **Plugins/Devices** | 14 | 0 | 5 | 14 |
 | **Automation Curves** | 14 | 0 | 13 | 14 |
 | **Save** | 13 | 9 | 9 | 13 |
@@ -39,13 +40,14 @@
 | **Replicate** | 11 | 11 | 11 | 11 |
 | **Wipe&Slice** | 10 | 4 | 9 | 10 |
 | **LFO Write** | 10 | 9 | 10 | 10 |
+| **Export** | 10 | 9 | 1 | 10 |
 | **Delay Output** | 10 | 0 | 10 | 10 |
 | **Glider** | 9 | 1 | 2 | 9 |
 | **Effect Columns** | 9 | 0 | 3 | 9 |
-| **Steppers** | 8 | 2 | 1 | 8 |
+| **Steppers** | 8 | 2 | 8 | 8 |
 | **Other Trackers** | 8 | 0 | 1 | 8 |
 | **Navigation** | 8 | 4 | 8 | 8 |
-| **06 Drive** | 8 | 0 | 2 | 8 |
+| **06 Drive** | 8 | 0 | 3 | 8 |
 | **Transpose** | 7 | 4 | 4 | 7 |
 | **AKWF** | 7 | 7 | 1 | 7 |
 | **Transport** | 6 | 6 | 5 | 6 |
@@ -60,6 +62,7 @@
 | **Tuning** | 4 | 4 | 2 | 4 |
 | **Quick Sample Folders** | 4 | 0 | 2 | 4 |
 | **Pattern Preset** | 4 | 0 | 3 | 4 |
+| **Order Notes** | 4 | 4 | 1 | 4 |
 | **Generate** | 4 | 0 | 0 | 4 |
 | **Convolver** | 4 | 1 | 2 | 4 |
 | **CapsLockChassis** | 4 | 0 | 0 | 4 |
@@ -68,13 +71,11 @@
 | **Slice** | 3 | 2 | 2 | 3 |
 | **Mixer** | 3 | 1 | 3 | 1 |
 | **Initialize** | 3 | 3 | 0 | 3 |
-| **Export** | 3 | 2 | 0 | 3 |
-| **Beatsync/Slices** | 3 | 0 | 1 | 3 |
 | **.WT** | 3 | 3 | 0 | 3 |
 
 ## Every feature, by group
 
-### (top level)  ·  2864 features  ·  ⌨2218 🎛2293 ☰565
+### (top level)  ·  2852 features  ·  ⌨2182 🎛2323 ☰530
 
 - **(WIP) Paketti Tuplet Writer Dialog...** — _menu_
 - **8120 All Rows as Phrase Triggers** — _keyboard · MIDI_
@@ -117,6 +118,7 @@
 - **Alias Identical Pattern Slots** — _keyboard · MIDI · menu_
 - **All Samples Loop Cycler (Backwards)** — _keyboard_
 - **All Samples Loop Cycler (Forwards)** — _keyboard_
+- **Analyze Slice Markers** — _MIDI · menu_
 - **APC Light Up All Pads** — _MIDI_
 - **APC Test First 4 Pads OFF** — _MIDI_
 - **APC Test First 4 Pads ON** — _MIDI_
@@ -133,7 +135,7 @@
 - **Apply Lange 36-note Phi Tuning** — _keyboard · MIDI_
 - **Apply Lange Phi Music System Tuning** — _keyboard · MIDI_
 - **Apply Light Swing (25%) to Phrase** — _keyboard · MIDI_
-- **Apply Note Column Sample Effects M00/MFF** — _keyboard · menu_
+- **Apply Note Column Sample Effects M00/MFF** — _keyboard · MIDI · menu_
 - **Apply Pattern Init Settings to Current Track** — _keyboard · MIDI · menu_
 - **Apply Phi 7/10 Hybrid Lange Tuning** — _keyboard · MIDI_
 - **Apply Phi Power Series Tuning** — _keyboard · MIDI_
@@ -359,12 +361,12 @@
 - **Clear Delay Column (Selection)** — _keyboard · MIDI · menu_
 - **Clear Delay Column (Track)** — _keyboard · MIDI · menu_
 - **Clear Drive Steps** — _keyboard · menu_
-- **Clear Note Column Sample Effects M00/MFF** — _keyboard · menu_
+- **Clear Note Column Sample Effects M00/MFF** — _keyboard · MIDI · menu_
 - **Clear Panning Steps** — _keyboard · MIDI · menu_
 - **Clear Pattern Aliases** — _keyboard · MIDI · menu_
 - **Clear Pattern Sequence Loop** — _keyboard · MIDI_
 - **Clear Pitch Steps** — _keyboard · menu_
-- **Clear PitchStep Steps** — _keyboard · menu_
+- **Clear PitchStep Steps** — _keyboard · MIDI · menu_
 - **Clear Resonance Steps** — _keyboard · menu_
 - **Clear Unreferenced Patterns** — _keyboard · MIDI · menu_
 - **Clear Unused Patterns** — _keyboard · MIDI · menu_
@@ -494,9 +496,9 @@
 - **Contract Section Loop (Remove Last Section)** — _keyboard · MIDI_
 - **Control Mixer Shown Parameter 01 (Relative) x[Knob]** — _MIDI_
 - **Control Mixer Shown Parameter 01 x[Knob]** — _MIDI_
-- **Convert 3 Note Chord to Arpeggio** — _keyboard · menu_
+- **Convert 3 Note Chord to Arpeggio** — _keyboard · MIDI · menu_
 - **Convert 4to3 Feel** — _keyboard_
-- **Convert Beatsync to Sample Pitch** — _keyboard · menu_
+- **Convert Beatsync to Sample Pitch** — _keyboard · MIDI · menu_
 - **Convert from Triplet Feel** — _keyboard_
 - **Convert to Triplet Feel** — _keyboard_
 - **Copy Above Effect Column** — _keyboard · MIDI · menu_
@@ -522,16 +524,39 @@
 - **Create Sidechain Trigger Instrument Kick** — _keyboard · MIDI_
 - **Create Sidechain Trigger Instrument Snare** — _keyboard · MIDI_
 - **Crossfade Loop** — _keyboard · menu_
-- **Custom LFO Envelope Scale 50%** — _keyboard_
-- **Custom LFO Envelope Scale Center** — _keyboard_
-- **Custom LFO Envelope Scale FLIP** — _keyboard_
-- **Custom LFO Envelope Scale Humanize** — _keyboard_
-- **Custom LFO Envelope Scale Invert** — _keyboard_
-- **Custom LFO Envelope Scale Max** — _keyboard_
-- **Custom LFO Envelope Scale Min** — _keyboard_
-- **Custom LFO Envelope Scale Mirror** — _keyboard_
+- **Custom LFO Center** — _MIDI_
+- **Custom LFO Curve - Bell (Peak)** — _MIDI_
+- **Custom LFO Curve - Double Peak** — _MIDI_
+- **Custom LFO Curve - Double Valley** — _MIDI_
+- **Custom LFO Curve - Exponential Down** — _MIDI_
+- **Custom LFO Curve - Exponential Up** — _MIDI_
+- **Custom LFO Curve - Linear Down** — _MIDI_
+- **Custom LFO Curve - Linear Up** — _MIDI_
+- **Custom LFO Curve - Logarithmic Down** — _MIDI_
+- **Custom LFO Curve - Logarithmic Up** — _MIDI_
+- **Custom LFO Curve - U-Shape (Valley)** — _MIDI_
+- **Custom LFO Double Envelope Resolution** — _MIDI_
+- **Custom LFO Envelope Editor...** — _MIDI_
+- **Custom LFO Envelope Scale 50%** — _keyboard · MIDI_
+- **Custom LFO Envelope Scale Center** — _keyboard · MIDI_
+- **Custom LFO Envelope Scale FLIP** — _keyboard · MIDI_
+- **Custom LFO Envelope Scale Humanize** — _keyboard · MIDI_
+- **Custom LFO Envelope Scale Invert** — _keyboard · MIDI_
+- **Custom LFO Envelope Scale Max** — _keyboard · MIDI_
+- **Custom LFO Envelope Scale Min** — _keyboard · MIDI_
+- **Custom LFO Envelope Scale Mirror** — _keyboard · MIDI_
 - **Custom LFO Envelope Scale Randomize** — _keyboard · MIDI_
-- **Custom LFO Envelope Scale Slapback** — _keyboard_
+- **Custom LFO Envelope Scale Slapback** — _keyboard · MIDI_
+- **Custom LFO Flip** — _MIDI_
+- **Custom LFO Halve Envelope Resolution** — _MIDI_
+- **Custom LFO Humanize** — _MIDI_
+- **Custom LFO Invert** — _MIDI_
+- **Custom LFO Max** — _MIDI_
+- **Custom LFO Min** — _MIDI_
+- **Custom LFO Mirror** — _MIDI_
+- **Custom LFO Randomize** — _MIDI_
+- **Custom LFO Scale 150%** — _MIDI_
+- **Custom LFO Slapback** — _MIDI_
 - **Cycle Frequency Analysis Cycles (1/2/4/8/16)** — _keyboard · menu_
 - **Cycle Paketti Dynamic View 01** — _keyboard · MIDI_
 - **Cycle Sample Editor Tabs x[Knob]** — _MIDI_
@@ -628,12 +653,12 @@
 - **Disable Track DSP Device 01** — _MIDI_
 - **Display Effect Column 1** — _keyboard · MIDI_
 - **Display Note Column 01** — _keyboard · MIDI_
-- **Display Sample Recorder with #Line Input** — _keyboard_
+- **Display Sample Recorder with #Line Input** — _keyboard · MIDI_
 - **Divide LPB by 4, return to Original** — _keyboard_
-- **Double Beatsync Lines (All)** — _keyboard_
+- **Double Beatsync Lines (All)** — _keyboard · MIDI_
 - **Double Beatsync Lines (Selected Sample)** — _keyboard · MIDI_
 - **Double BPM** — _keyboard_
-- **Double Double Beatsync Lines (All)** — _keyboard_
+- **Double Double Beatsync Lines (All)** — _keyboard · MIDI_
 - **Double Double Beatsync Lines (Selected Sample)** — _keyboard · MIDI_
 - **Double Double BPM** — _keyboard_
 - **Double EditStep** — _keyboard · MIDI_
@@ -846,9 +871,9 @@
 - **Generate Delay Value (Notes Only, Pattern)** — _keyboard · MIDI · menu_
 - **Generate Delay Value (Notes Only, Row)** — _keyboard · MIDI · menu_
 - **Generate Delay Value (Notes Only, Selection)** — _keyboard · MIDI · menu_
-- **Generate Delay Value on Entire Pattern** — _keyboard · menu_
-- **Generate Delay Value on Note Columns** — _keyboard · menu_
-- **Generate Delay Value on Selection** — _keyboard · menu_
+- **Generate Delay Value on Entire Pattern** — _keyboard · MIDI · menu_
+- **Generate Delay Value on Note Columns** — _keyboard · MIDI · menu_
+- **Generate Delay Value on Selection** — _keyboard · MIDI · menu_
 - **Generate Golden Arpeggio Phrases** — _keyboard · MIDI · menu_
 - **Generate Golden Binaural Beats** — _keyboard · MIDI · menu_
 - **Generate Golden Drone Pad** — _keyboard · MIDI · menu_
@@ -875,11 +900,11 @@
 - **Groovebox 8120 Canvas View (MK2)…** — _MIDI · menu_
 - **Groovebox 8120 Toggle Auto-Fill Default Slots** — _keyboard_
 - **Group Tracks Note Column Solo Toggle** — _keyboard · MIDI_
-- **Halve Beatsync Lines (All)** — _keyboard_
+- **Halve Beatsync Lines (All)** — _keyboard · MIDI_
 - **Halve Beatsync Lines (Selected Sample)** — _keyboard · MIDI_
 - **Halve BPM** — _keyboard · MIDI_
 - **Halve EditStep** — _keyboard · MIDI_
-- **Halve Halve Beatsync Lines (All)** — _keyboard_
+- **Halve Halve Beatsync Lines (All)** — _keyboard · MIDI_
 - **Halve Halve Beatsync Lines (Selected Sample)** — _keyboard · MIDI_
 - **Halve Halve BPM** — _keyboard · MIDI_
 - **Halve Slice Count** — _keyboard_
@@ -1098,18 +1123,18 @@
 - **LFO 04 Random** — _keyboard_
 - **LFO 05 Custom** — _keyboard · MIDI_
 - **LFO Curve Write Bell (Up Parabola)** — _keyboard_
-- **LFO Curve Write Double Peak** — _keyboard_
-- **LFO Curve Write Double Valley** — _keyboard_
-- **LFO Curve Write Exponential Down** — _keyboard_
-- **LFO Curve Write Exponential Up** — _keyboard_
-- **LFO Curve Write Linear Down** — _keyboard_
-- **LFO Curve Write Linear Up** — _keyboard_
-- **LFO Curve Write Logarithmic Down** — _keyboard_
-- **LFO Curve Write Logarithmic Up** — _keyboard_
-- **LFO Curve Write U-Shape (Down Parabola)** — _keyboard_
+- **LFO Curve Write Double Peak** — _keyboard · MIDI_
+- **LFO Curve Write Double Valley** — _keyboard · MIDI_
+- **LFO Curve Write Exponential Down** — _keyboard · MIDI_
+- **LFO Curve Write Exponential Up** — _keyboard · MIDI_
+- **LFO Curve Write Linear Down** — _keyboard · MIDI_
+- **LFO Curve Write Linear Up** — _keyboard · MIDI_
+- **LFO Curve Write Logarithmic Down** — _keyboard · MIDI_
+- **LFO Curve Write Logarithmic Up** — _keyboard · MIDI_
+- **LFO Curve Write U-Shape (Down Parabola)** — _keyboard · MIDI_
 - **LFO Envelope Editor Dialog** — _keyboard · MIDI_
-- **LFO Shape Next** — _keyboard_
-- **LFO Shape Previous** — _keyboard_
+- **LFO Shape Next** — _keyboard · MIDI_
+- **LFO Shape Previous** — _keyboard · MIDI_
 - **LFO Write Single Parameter Write to Automation** — _keyboard · MIDI_
 - **LFOEnvelopePan (Preset++)** — _keyboard · menu_
 - **List Devices with External Editor Support** — _keyboard · MIDI · menu_
@@ -1356,7 +1381,7 @@
 - **Mixer Parameter Exposer...** — _keyboard · MIDI · menu_
 - **Modify PitchStep Steps (Hard Detune)** — _keyboard · menu_
 - **Modify PitchStep Steps (Octave Up+2, Octave Down-2)** — _keyboard · MIDI · menu_
-- **Modify PitchStep Steps (Random)** — _keyboard · menu_
+- **Modify PitchStep Steps (Random)** — _keyboard · MIDI · menu_
 - **Modulate & Audio Diff** — _keyboard_
 - **Move Section Loop (Next)** — _keyboard · MIDI_
 - **Move Section Loop (Previous)** — _keyboard · MIDI_
@@ -1477,7 +1502,7 @@
 - **Nudge Phrase Up by 2 Steps** — _MIDI_
 - **Nudge Sequence Selection Down** — _keyboard · MIDI · menu_
 - **Nudge Sequence Selection Up** — _keyboard · MIDI · menu_
-- **Nudge Slice 01 by (-1)** — _keyboard_
+- **Nudge Slice 01 by (-32)** — _keyboard_
 - **Nudge Up** — _keyboard · MIDI_
 - **Nudge Up by Delay** — _keyboard · MIDI_
 - **Nudge Up by Row** — _keyboard · MIDI_
@@ -1516,10 +1541,6 @@
 - **Open Visible Pages to Fit Parameters** — _keyboard_
 - **Open Visible Pages to Fit Plugin Parameter Count** — _menu_
 - **Open VolDelayPan Slider Dialog...** — _keyboard · MIDI_
-- **Order Notes Across Track** — _keyboard · menu_
-- **Order Notes All Phrases** — _keyboard · menu_
-- **Order Notes Current Phrase** — _keyboard · menu_
-- **Order Notes Current Track All Patterns** — _keyboard · MIDI · menu_
 - **Organize Instruments by Track Use** — _keyboard · MIDI · menu_
 - **Organize Tracks by Instrument Box** — _keyboard · MIDI · menu_
 - **Output Routing (Continual, Include Master, Exclude Master)** — _keyboard · MIDI_
@@ -1542,9 +1563,9 @@
 - **Paketti Effect Column CheatSheet...** — _MIDI · menu_
 - **Paketti Enhanced Phrase Generator...** — _keyboard · MIDI · menu_
 - **Paketti EQ30 Unused Note Frequency Reduction Flavor** — _keyboard · MIDI · menu_
-- **Paketti eSpeak Generate Row 00** — _keyboard_
+- **Paketti eSpeak Generate Row 00** — _keyboard · MIDI_
 - **Paketti eSpeak Generate Sample** — _keyboard_
-- **Paketti eSpeak Generate Selection** — _keyboard_
+- **Paketti eSpeak Generate Selection** — _keyboard · MIDI_
 - **Paketti eSpeak Refresh** — _keyboard_
 - **Paketti eSpeak Text-to-Speech Dialog...** — _keyboard_
 - **Paketti eSpeak Text-to-Speech...** — _menu_
@@ -2379,7 +2400,7 @@
 - **Set Selected Instrument Interpolation to 4 (Sinc)** — _keyboard_
 - **Set Selected Instrument Mod Group (Next)** — _keyboard · MIDI_
 - **Set Selected Instrument Mod Group (Previous)** — _keyboard · MIDI_
-- **Set Selected Instrument Panning (+0.01)** — _keyboard_
+- **Set Selected Instrument Panning (+0.01)** — _keyboard · MIDI_
 - **Set Selected Instrument Panning 0.0 (Left)** — _keyboard_
 - **Set Selected Instrument Panning 1.0 (Right)** — _keyboard_
 - **Set Selected Instrument Panning Reset (Center)** — _keyboard · MIDI_
@@ -2545,8 +2566,8 @@
 - **Simple Play** — _keyboard · MIDI_
 - **Simple Play Record Follow** — _keyboard · MIDI_
 - **Simple Play Record Follow (2nd)** — _keyboard · MIDI_
-- **Slice Drumkit (Percussion)** — _keyboard · menu_
-- **Slice Drumkit (Texture)** — _keyboard · menu_
+- **Slice Drumkit (Percussion)** — _keyboard · MIDI · menu_
+- **Slice Drumkit (Texture)** — _keyboard · MIDI · menu_
 - **Slice Move Resolution x[Knob]** — _MIDI_
 - **Slice Step All Rows to Phrases Bank** — _keyboard · MIDI_
 - **Slice Step All Rows to Phrases Bank [Trigger]** — _MIDI_
@@ -2559,7 +2580,6 @@
 - **Slice Step Row 1 to Phrase** — _keyboard · MIDI_
 - **Slice Step Row 1 to Phrase [Trigger]** — _MIDI_
 - **Slice to Pattern Sequencer Dialog...** — _keyboard · MIDI · menu_
-- **Slice Tools Dialog...** — _keyboard · MIDI · menu_
 - **SlicePro Create Beat-Synced Phrases** — _keyboard · MIDI_
 - **SlicePro Create Uniform Phrases** — _keyboard · MIDI_
 - **Slices to Pattern (beat sync only)** — _keyboard · MIDI · menu_
@@ -2576,7 +2596,6 @@
 - **Slices to Phrase Bank [Trigger]** — _MIDI_
 - **Slices to Phrases Per Starting Slice** — _keyboard · MIDI_
 - **Slices to Phrases Per Starting Slice (detected BPM)** — _keyboard · MIDI_
-- **SliceSafely Dialog...** — _keyboard · MIDI · menu_
 - **Slide Selected Column Content Down** — _keyboard · MIDI · menu_
 - **Slide Selected Column Content Up** — _keyboard · MIDI · menu_
 - **Slide Selected Track Content Down** — _keyboard · MIDI · menu_
@@ -2894,42 +2913,12 @@
 - **Write AKWF A&B to 12st_WT Wavetable** — _keyboard_
 - **Write BPM (Interpolated) to Master Track** — _keyboard · menu_
 - **Write BPM/LPB to Master** — _keyboard · MIDI_
-- **Write Notes Ascending** — _keyboard · MIDI · menu_
-- **Write Notes Descending** — _keyboard · MIDI · menu_
-- **Write Notes EditStep Ascending** — _keyboard · MIDI · menu_
-- **Write Notes EditStep Descending** — _keyboard · MIDI · menu_
-- **Write Notes EditStep Random** — _keyboard · MIDI · menu_
-- **Write Notes Flood Ascending** — _keyboard · MIDI · menu_
-- **Write Notes Flood Descending** — _keyboard · MIDI · menu_
-- **Write Notes Flood EditStep Ascending** — _keyboard · MIDI · menu_
-- **Write Notes Flood EditStep Descending** — _keyboard · MIDI · menu_
-- **Write Notes Flood EditStep Random** — _keyboard · MIDI · menu_
-- **Write Notes Flood Pro Ascending** — _keyboard · MIDI · menu_
-- **Write Notes Flood Pro Descending** — _keyboard · MIDI · menu_
-- **Write Notes Flood Pro EditStep Ascending** — _keyboard · MIDI · menu_
-- **Write Notes Flood Pro EditStep Descending** — _keyboard · MIDI · menu_
-- **Write Notes Flood Pro EditStep Random** — _keyboard · MIDI · menu_
-- **Write Notes Flood Pro Random** — _keyboard · MIDI · menu_
-- **Write Notes Flood Random** — _keyboard · MIDI · menu_
-- **Write Notes Pro Ascending** — _keyboard · MIDI · menu_
-- **Write Notes Pro Descending** — _keyboard · MIDI · menu_
-- **Write Notes Pro EditStep Ascending** — _keyboard · MIDI · menu_
-- **Write Notes Pro EditStep Descending** — _keyboard · MIDI · menu_
-- **Write Notes Pro EditStep Random** — _keyboard · MIDI · menu_
-- **Write Notes Pro Random** — _keyboard · MIDI · menu_
-- **Write Notes Random** — _keyboard · MIDI · menu_
 - **Write Track Mute (0L00)** — _keyboard · MIDI_
 - **Write Track Solo via 0L00** — _MIDI_
 - **Write Track Solo via 0L00 (Mute All Others)** — _keyboard · MIDI_
 - **Write Track Unmute (0L80)** — _keyboard · MIDI_
 - **Write Track Unsolo via 0L80** — _MIDI_
 - **Write Track Unsolo via 0L80 (Unmute All)** — _keyboard · MIDI_
-- **Write Values/Notes Ascending (SubColumn Aware)** — _keyboard · MIDI · menu_
-- **Write Values/Notes Ascending EditStep (SubColumn Aware)** — _keyboard · MIDI · menu_
-- **Write Values/Notes Descending (SubColumn Aware)** — _keyboard · MIDI · menu_
-- **Write Values/Notes Descending EditStep (SubColumn Aware)** — _keyboard · MIDI · menu_
-- **Write Values/Notes Random (SubColumn Aware)** — _keyboard · MIDI · menu_
-- **Write Values/Notes Random EditStep (SubColumn Aware)** — _keyboard · MIDI · menu_
 - **Write Velocity Ramp Down for Stacked Instrument** — _keyboard · menu_
 - **Write Velocity Ramp Up for Stacked Instrument** — _keyboard · menu_
 - **Write Velocity Random for Stacked Instrument** — _keyboard · MIDI · menu_
@@ -2941,7 +2930,7 @@
 - **Zero Crossings Advanced Dialog** — _keyboard · MIDI_
 - **∿ Squiggly Sinewave to Clipboard (macOS)** — _keyboard_
 
-### (misc)  ·  290 features  ·  ⌨180 🎛120 ☰170
+### (misc)  ·  283 features  ·  ⌨173 🎛138 ☰163
 
 - **!Execute Applications...** — _menu_
 - **0G01 Loader Toggle** — _MIDI · menu_
@@ -2970,12 +2959,8 @@
 - **Basic Triads - Major (3-4)** — _menu_
 - **Basic Triads - Minor (4-3)** — _menu_
 - **Basic Triads - Sus2 (2-5)** — _menu_
-- **Batch Convert IFF/8SVX/16SV to WAV...** — _keyboard · menu_
 - **Batch Convert RX2 to XRNI...** — _keyboard · MIDI · menu_
 - **Batch Convert SF2 to XRNI (Per Preset)...** — _menu_
-- **Batch Convert WAV to IFF...** — _keyboard · MIDI · menu_
-- **Batch Convert WAV/AIFF to 16SV...** — _keyboard · menu_
-- **Batch Convert WAV/AIFF to 8SVX...** — _keyboard · menu_
 - **Block Loop Follows Edit Cursor Toggle** — _MIDI · menu_
 - **BPM-Based Sample Slicer Dialog...** — _keyboard · MIDI · menu_
 - **Chebyshev Polynomial Waveshaper...** — _menu_
@@ -3001,9 +2986,6 @@
 - **Duplicate Lowest Notes to New Track & Duplicate Instrument** — _keyboard · MIDI · menu_
 - **Duplicate Lowest Notes to New Track (Original Instrument)** — _keyboard · MIDI · menu_
 - **Duplicate Lowest Notes to New Track (Selected Instrument)** — _keyboard · MIDI · menu_
-- **Export Instrument to ITI...** — _keyboard · menu_
-- **Export WAV with CUE File...** — _keyboard · menu_
-- **Export WAV with Embedded CUE Headers...** — _keyboard · menu_
 - **Export Wavetable (.WT)...** — _menu_
 - **Export XI (FastTracker II Extended Instrument)** — _keyboard · menu_
 - **Extract .SF2 Samples (Chromatic)** — _menu_
@@ -3050,13 +3032,13 @@
 - **Load OhmForce OhmBoyz** — _keyboard_
 - **Load OhmForce Predatohm** — _keyboard_
 - **Load QuikQuak FusionField** — _keyboard_
-- **Load Renoise #Line Input** — _keyboard_
-- **Load Renoise #Multiband Send** — _keyboard_
-- **Load Renoise #ReWire Input** — _keyboard_
+- **Load Renoise #Line Input** — _keyboard · MIDI_
+- **Load Renoise #Multiband Send** — _keyboard · MIDI_
+- **Load Renoise #ReWire Input** — _keyboard · MIDI_
 - **Load Renoise #Send** — _keyboard · MIDI_
 - **Load Renoise #Sidechain** — _keyboard · MIDI_
 - **Load Renoise (Hidden) Chorus** — _keyboard_
-- **Load Renoise (Hidden) Comb Filter** — _keyboard_
+- **Load Renoise (Hidden) Comb Filter** — _keyboard · MIDI_
 - **Load Renoise (Hidden) Distortion** — _keyboard_
 - **Load Renoise (Hidden) Filter** — _keyboard_
 - **Load Renoise (Hidden) Flanger** — _keyboard_
@@ -3070,26 +3052,26 @@
 - **Load Renoise (Hidden) Stutter** — _keyboard_
 - **Load Renoise *Formula** — _keyboard · MIDI_
 - **Load Renoise *Hydra** — _keyboard · MIDI_
-- **Load Renoise *Instr. Automation** — _keyboard_
-- **Load Renoise *Instr. Macros** — _keyboard_
+- **Load Renoise *Instr. Automation** — _keyboard · MIDI_
+- **Load Renoise *Instr. Macros** — _keyboard · MIDI_
 - **Load Renoise *Instr. MIDI Control** — _keyboard · MIDI_
-- **Load Renoise *Key Tracker** — _keyboard_
+- **Load Renoise *Key Tracker** — _keyboard · MIDI_
 - **Load Renoise *LFO** — _keyboard · MIDI_
-- **Load Renoise *Meta Mixer** — _keyboard_
-- **Load Renoise *Signal Follower** — _keyboard_
-- **Load Renoise *Velocity Tracker** — _keyboard_
-- **Load Renoise *XY Pad** — _keyboard_
-- **Load Renoise Analog Filter** — _keyboard_
-- **Load Renoise Bus Compressor** — _keyboard_
-- **Load Renoise Cabinet Simulator** — _keyboard_
+- **Load Renoise *Meta Mixer** — _keyboard · MIDI_
+- **Load Renoise *Signal Follower** — _keyboard · MIDI_
+- **Load Renoise *Velocity Tracker** — _keyboard · MIDI_
+- **Load Renoise *XY Pad** — _keyboard · MIDI_
+- **Load Renoise Analog Filter** — _keyboard · MIDI_
+- **Load Renoise Bus Compressor** — _keyboard · MIDI_
+- **Load Renoise Cabinet Simulator** — _keyboard · MIDI_
 - **Load Renoise Chorus** — _keyboard · MIDI_
 - **Load Renoise Chorus 2 as Vowel Filter** — _keyboard_
-- **Load Renoise Comb Filter 2** — _keyboard_
+- **Load Renoise Comb Filter 2** — _keyboard · MIDI_
 - **Load Renoise Compressor** — _keyboard · MIDI_
 - **Load Renoise Convolver** — _keyboard · MIDI_
 - **Load Renoise DC Offset** — _keyboard · MIDI_
 - **Load Renoise Delay** — _keyboard · MIDI_
-- **Load Renoise Digital Filter** — _keyboard_
+- **Load Renoise Digital Filter** — _keyboard · MIDI_
 - **Load Renoise Distortion 2** — _keyboard · MIDI_
 - **Load Renoise Doofer** — _keyboard · MIDI_
 - **Load Renoise EQ 5** — _keyboard · MIDI_
@@ -3100,7 +3082,7 @@
 - **Load Renoise LofiMat 2** — _keyboard · MIDI_
 - **Load Renoise Maximizer** — _keyboard · MIDI_
 - **Load Renoise Maximizer to Master Track** — _keyboard · MIDI_
-- **Load Renoise Mixer EQ** — _keyboard_
+- **Load Renoise Mixer EQ** — _keyboard · MIDI_
 - **Load Renoise mpReverb 2** — _keyboard · MIDI_
 - **Load Renoise Multitap** — _keyboard · MIDI_
 - **Load Renoise Notepad** — _keyboard · MIDI_
@@ -3110,7 +3092,7 @@
 - **Load Renoise Reverb** — _keyboard · MIDI_
 - **Load Renoise RingMod 2** — _keyboard · MIDI_
 - **Load Renoise Splitter** — _keyboard · MIDI_
-- **Load Renoise Stereo Expander** — _keyboard_
+- **Load Renoise Stereo Expander** — _keyboard · MIDI_
 - **Load Schaack Transient Shaper (VST)** — _keyboard_
 - **Load Selected Sample from Sononym (No Prompt) [Trigger]** — _keyboard · MIDI_
 - **Load Selected Sample from Sononym (Prompt) [Trigger]** — _keyboard · MIDI_
@@ -3178,7 +3160,7 @@
 - **Parama Param Parameter 01 Value Decrease** — _keyboard_
 - **Parama Param Parameter 01 Value Increase** — _keyboard_
 - **Parama Param Previous Parameter** — _keyboard · menu_
-- **Pattern Delay Viewer...** — _menu_
+- **Pattern Delay Viewer...** — _MIDI · menu_
 - **Pattern Status Monitor Toggle** — _menu_
 - **Phrase Follow Pattern Playback Hack Toggle** — _MIDI · menu_
 - **Pick Up Slices** — _menu_
@@ -3234,18 +3216,18 @@
 - **Transposer Selection/Row +03** — _MIDI · menu_
 - **Trigger Sample on Pattern Input During Record Toggle** — _keyboard · MIDI · menu_
 
-### Instruments  ·  88 features  ·  ⌨58 🎛50 ☰88
+### Instruments  ·  88 features  ·  ⌨58 🎛57 ☰88
 
-- **Apply Custom LFO Preset 01** — _keyboard · menu_
-- **Beatsync Lines Double (All)** — _menu_
+- **Apply Custom LFO Preset 01** — _keyboard · MIDI · menu_
+- **Beatsync Lines Double (All)** — _MIDI · menu_
 - **Beatsync Lines Double (Selected Sample)** — _MIDI · menu_
-- **Beatsync Lines Halve (All)** — _menu_
+- **Beatsync Lines Halve (All)** — _MIDI · menu_
 - **Beatsync Lines Halve (Selected Sample)** — _MIDI · menu_
 - **Bypass All Sample FX on All Instruments** — _keyboard · menu_
 - **Bypass All Sample FX on Selected Instrument** — _keyboard · menu_
 - **Center** — _menu_
 - **Command Wheel...** — _MIDI · menu_
-- **Curve - Bell (Peak)** — _menu_
+- **Curve - Bell (Peak)** — _MIDI · menu_
 - **Curve - Double Peak** — _MIDI · menu_
 - **Curve - Double Valley** — _MIDI · menu_
 - **Curve - Exponential Down** — _MIDI · menu_
@@ -3254,12 +3236,12 @@
 - **Curve - Linear Up** — _MIDI · menu_
 - **Curve - Logarithmic Down** — _MIDI · menu_
 - **Curve - Logarithmic Up** — _MIDI · menu_
-- **Curve - U-Shape (Valley)** — _menu_
+- **Curve - U-Shape (Valley)** — _MIDI · menu_
 - **Cycle Overlap Mode** — _keyboard · MIDI · menu_
 - **Delete Current Instrument** — _keyboard · MIDI · menu_
 - **Delete Unused Instruments...** — _keyboard · menu_
 - **Delete Unused Samples...** — _keyboard · menu_
-- **Double LFO Envelope Resolution** — _keyboard · menu_
+- **Double LFO Envelope Resolution** — _keyboard · MIDI · menu_
 - **Dump REX Structure to Text** — _menu_
 - **Duplicate and Reverse Instrument** — _keyboard · MIDI · menu_
 - **Duplicate Instrument and Select Last Instrument** — _keyboard · MIDI · menu_
@@ -3272,7 +3254,7 @@
 - **Global Volume Reduce All Samples by -4.5dB** — _keyboard · MIDI · menu_
 - **Global Volume Reduce Reduce All Samples by -4.5dB** — _MIDI · menu_
 - **Group Samples by Name to New Instruments** — _keyboard · MIDI · menu_
-- **Halve LFO Envelope Resolution** — _keyboard · menu_
+- **Halve LFO Envelope Resolution** — _keyboard · MIDI · menu_
 - **Hide All Instrument Properties** — _keyboard · menu_
 - **Humanize** — _menu_
 - **Inject Key Trackers + Hydras to FX Chain 120** — _keyboard · menu_
@@ -3458,12 +3440,12 @@
 - **Toggle BPM Randomization on New Songs On/Off** — _menu_
 - **Toggle Global Groove on Startup On/Off** — _menu_
 
-### Load Renoise Native  ·  56 features  ·  ⌨0 🎛19 ☰56
+### Load Renoise Native  ·  56 features  ·  ⌨0 🎛44 ☰56
 
 - **#Line Input** — _MIDI · menu_
 - **#Multiband Send** — _MIDI · menu_
-- **#ReWire Input** — _menu_
-- **#Send** — _menu_
+- **#ReWire Input** — _MIDI · menu_
+- **#Send** — _MIDI · menu_
 - **(Hidden) Chorus** — _menu_
 - **(Hidden) Comb Filter** — _MIDI · menu_
 - **(Hidden) Distortion** — _menu_
@@ -3477,8 +3459,8 @@
 - **(Hidden) Scream Filter** — _menu_
 - **(Hidden) Shaper** — _menu_
 - **(Hidden) Stutter** — _menu_
-- ***Formula** — _menu_
-- ***Hydra** — _menu_
+- ***Formula** — _MIDI · menu_
+- ***Hydra** — _MIDI · menu_
 - ***Instr. Automation** — _MIDI · menu_
 - ***Instr. Macros** — _MIDI · menu_
 - ***Instr. MIDI Control** — _MIDI · menu_
@@ -3490,34 +3472,34 @@
 - **Analog Filter** — _MIDI · menu_
 - **Bus Compressor** — _MIDI · menu_
 - **Cabinet Simulator** — _MIDI · menu_
-- **Chorus** — _menu_
+- **Chorus** — _MIDI · menu_
 - **Comb Filter 2** — _MIDI · menu_
-- **Compressor** — _menu_
-- **Convolver** — _menu_
+- **Compressor** — _MIDI · menu_
+- **Convolver** — _MIDI · menu_
 - **DC Offset** — _MIDI · menu_
-- **Delay** — _menu_
+- **Delay** — _MIDI · menu_
 - **Digital Filter** — _MIDI · menu_
-- **Distortion 2** — _menu_
-- **Doofer** — _menu_
-- **EQ 10** — _menu_
-- **Exciter** — _menu_
-- **Flanger 2** — _menu_
-- **Gainer** — _menu_
-- **Gate 2** — _menu_
-- **LofiMat 2** — _menu_
-- **Maximizer** — _menu_
+- **Distortion 2** — _MIDI · menu_
+- **Doofer** — _MIDI · menu_
+- **EQ 10** — _MIDI · menu_
+- **Exciter** — _MIDI · menu_
+- **Flanger 2** — _MIDI · menu_
+- **Gainer** — _MIDI · menu_
+- **Gate 2** — _MIDI · menu_
+- **LofiMat 2** — _MIDI · menu_
+- **Maximizer** — _MIDI · menu_
 - **Mixer EQ** — _MIDI · menu_
-- **mpReverb 2** — _menu_
-- **Multitap** — _menu_
-- **Notepad** — _menu_
-- **Phaser 2** — _menu_
-- **Repeater** — _menu_
-- **Reverb** — _menu_
-- **RingMod 2** — _menu_
-- **Splitter** — _menu_
+- **mpReverb 2** — _MIDI · menu_
+- **Multitap** — _MIDI · menu_
+- **Notepad** — _MIDI · menu_
+- **Phaser 2** — _MIDI · menu_
+- **Repeater** — _MIDI · menu_
+- **Reverb** — _MIDI · menu_
+- **RingMod 2** — _MIDI · menu_
+- **Splitter** — _MIDI · menu_
 - **Stereo Expander** — _MIDI · menu_
 
-### PhraseGrid  ·  48 features  ·  ⌨12 🎛34 ☰48
+### PhraseGrid  ·  47 features  ·  ⌨12 🎛33 ☰47
 
 - **Auto-Fill Pattern** — _MIDI · menu_
 - **Auto-Fill Pattern with Phrase** — _menu_
@@ -3554,7 +3536,6 @@
 - **Replace Selection with Phrase** — _keyboard · MIDI · menu_
 - **Retrig R04** — _MIDI · menu_
 - **Selection to Phrase** — _keyboard · MIDI · menu_
-- **Show Dialog** — _MIDI · menu_
 - **Show Performance Hub** — _MIDI · menu_
 - **Show PhraseGrid Dialog** — _MIDI · menu_
 - **Show Quick Flicks Dialog** — _MIDI · menu_
@@ -3800,6 +3781,49 @@
 - **Velocity** — _menu_
 - **Wide** — _menu_
 
+### Xperimental/WIP  ·  40 features  ·  ⌨0 🎛16 ☰40
+
+- **2 (Triplet feel)** — _menu_
+- **3 (From triplet)** — _MIDI · menu_
+- **4 (3/4→4/4 feel)** — _menu_
+- **Align Instrument Names** — _menu_
+- **Audio Processing Tools...** — _menu_
+- **Auto Correlate Loop** — _MIDI · menu_
+- **Auto Detect Single-Cycle Loop** — _menu_
+- **BeatDetector Modified (Headless Mode)** — _menu_
+- **Block Loop Snap to Cursor (Manual)** — _MIDI · menu_
+- **Block Loop Toggle & Snap to Cursor** — _MIDI · menu_
+- **Decode Active Plugin ParameterChunk Amigo (AU)** — _menu_
+- **EQ10 XY Control...** — _menu_
+- **Expand to Triplets (Note every row, note every 2nd row)** — _menu_
+- **Export Pattern to MTP** — _menu_
+- **Export Polyend Project** — _menu_
+- **Export Sample Chain...** — _MIDI · menu_
+- **Export Selected Sample to Amigo (AU)** — _menu_
+- **Import Active Plugin Wavefile Amigo (AU)** — _menu_
+- **Import Embedded Amigo (AU) WAV into Sample** — _menu_
+- **Import MT Project File** — _menu_
+- **Import Polyend Pattern** — _MIDI · menu_
+- **Import Polyend Pattern Tracks** — _menu_
+- **Import Polyend Project** — _menu_
+- **Match EditStep with Delay Pattern** — _menu_
+- **Open Amigo (AU) Sample Path** — _menu_
+- **Paketti XRNS Probe (Browse)** — _menu_
+- **Pattern Browser** — _menu_
+- **Quick Export (Chain Mode)** — _MIDI · menu_
+- **Quick Export (Digitakt 2 Stereo)** — _MIDI · menu_
+- **Quick Export (Digitakt Mono)** — _MIDI · menu_
+- **Randomize Existing Slices** — _MIDI · menu_
+- **Rename with Drum Names (GM Kit)** — _menu_
+- **Rename with Note Names (Melodic)** — _MIDI · menu_
+- **SBx Loop Playback** — _MIDI · menu_
+- **Set Active Plugin Pathname Amigo (AU)** — _menu_
+- **Sort by Base Note** — _MIDI · menu_
+- **Sort by Name** — _MIDI · menu_
+- **Sort by Note->Velocity->Name** — _MIDI · menu_
+- **Sort by Velocity** — _menu_
+- **XY Pad Sound Mixer** — _MIDI · menu_
+
 ### Microtonal Tunings  ·  36 features  ·  ⌨0 🎛22 ☰29
 
 - **Apply 10-TET Decagono (Lange)** — _MIDI · menu_
@@ -3878,42 +3902,38 @@
 - **Toggle All Routing on Track** — _MIDI · menu_
 - **Toggle All VST on Track** — _MIDI · menu_
 
-### Xperimental/WIP  ·  34 features  ·  ⌨0 🎛15 ☰34
+### Write Notes  ·  30 features  ·  ⌨30 🎛30 ☰30
 
-- **2 (Triplet feel)** — _menu_
-- **3 (From triplet)** — _MIDI · menu_
-- **4 (3/4→4/4 feel)** — _menu_
-- **Align Instrument Names** — _menu_
-- **Audio Processing Tools...** — _menu_
-- **Auto Correlate Loop** — _MIDI · menu_
-- **Auto Detect Single-Cycle Loop** — _menu_
-- **BeatDetector Modified (Headless Mode)** — _menu_
-- **Block Loop Snap to Cursor (Manual)** — _MIDI · menu_
-- **Block Loop Toggle & Snap to Cursor** — _MIDI · menu_
-- **EQ10 XY Control...** — _menu_
-- **Expand to Triplets (Note every row, note every 2nd row)** — _menu_
-- **Export Pattern to MTP** — _menu_
-- **Export Polyend Project** — _menu_
-- **Export Sample Chain...** — _MIDI · menu_
-- **Import MT Project File** — _menu_
-- **Import Polyend Pattern** — _MIDI · menu_
-- **Import Polyend Pattern Tracks** — _menu_
-- **Import Polyend Project** — _menu_
-- **Match EditStep with Delay Pattern** — _menu_
-- **Paketti XRNS Probe (Browse)** — _menu_
-- **Pattern Browser** — _menu_
-- **Quick Export (Chain Mode)** — _MIDI · menu_
-- **Quick Export (Digitakt 2 Stereo)** — _MIDI · menu_
-- **Quick Export (Digitakt Mono)** — _MIDI · menu_
-- **Randomize Existing Slices** — _MIDI · menu_
-- **Rename with Drum Names (GM Kit)** — _menu_
-- **Rename with Note Names (Melodic)** — _MIDI · menu_
-- **SBx Loop Playback** — _MIDI · menu_
-- **Sort by Base Note** — _MIDI · menu_
-- **Sort by Name** — _MIDI · menu_
-- **Sort by Note->Velocity->Name** — _MIDI · menu_
-- **Sort by Velocity** — _menu_
-- **XY Pad Sound Mixer** — _menu_
+- **Write Notes Ascending** — _keyboard · MIDI · menu_
+- **Write Notes Descending** — _keyboard · MIDI · menu_
+- **Write Notes EditStep Ascending** — _keyboard · MIDI · menu_
+- **Write Notes EditStep Descending** — _keyboard · MIDI · menu_
+- **Write Notes EditStep Random** — _keyboard · MIDI · menu_
+- **Write Notes Flood Ascending** — _keyboard · MIDI · menu_
+- **Write Notes Flood Descending** — _keyboard · MIDI · menu_
+- **Write Notes Flood EditStep Ascending** — _keyboard · MIDI · menu_
+- **Write Notes Flood EditStep Descending** — _keyboard · MIDI · menu_
+- **Write Notes Flood EditStep Random** — _keyboard · MIDI · menu_
+- **Write Notes Flood Pro Ascending** — _keyboard · MIDI · menu_
+- **Write Notes Flood Pro Descending** — _keyboard · MIDI · menu_
+- **Write Notes Flood Pro EditStep Ascending** — _keyboard · MIDI · menu_
+- **Write Notes Flood Pro EditStep Descending** — _keyboard · MIDI · menu_
+- **Write Notes Flood Pro EditStep Random** — _keyboard · MIDI · menu_
+- **Write Notes Flood Pro Random** — _keyboard · MIDI · menu_
+- **Write Notes Flood Random** — _keyboard · MIDI · menu_
+- **Write Notes Pro Ascending** — _keyboard · MIDI · menu_
+- **Write Notes Pro Descending** — _keyboard · MIDI · menu_
+- **Write Notes Pro EditStep Ascending** — _keyboard · MIDI · menu_
+- **Write Notes Pro EditStep Descending** — _keyboard · MIDI · menu_
+- **Write Notes Pro EditStep Random** — _keyboard · MIDI · menu_
+- **Write Notes Pro Random** — _keyboard · MIDI · menu_
+- **Write Notes Random** — _keyboard · MIDI · menu_
+- **Write Values/Notes Ascending (SubColumn Aware)** — _keyboard · MIDI · menu_
+- **Write Values/Notes Ascending EditStep (SubColumn Aware)** — _keyboard · MIDI · menu_
+- **Write Values/Notes Descending (SubColumn Aware)** — _keyboard · MIDI · menu_
+- **Write Values/Notes Descending EditStep (SubColumn Aware)** — _keyboard · MIDI · menu_
+- **Write Values/Notes Random (SubColumn Aware)** — _keyboard · MIDI · menu_
+- **Write Values/Notes Random EditStep (SubColumn Aware)** — _keyboard · MIDI · menu_
 
 ### Phrases  ·  30 features  ·  ⌨25 🎛27 ☰30
 
@@ -3979,7 +3999,7 @@
 - **Wonkify Generate Chain** — _keyboard · MIDI · menu_
 - **Wonkify Settings...** — _menu_
 
-### MPC Cycler  ·  24 features  ·  ⌨0 🎛24 ☰13
+### MPC Cycler  ·  25 features  ·  ⌨0 🎛25 ☰14
 
 - **Commit Preview** — _MIDI · menu_
 - **Commit Preview [Trigger]** — _MIDI_
@@ -4001,6 +4021,7 @@
 - **Previous Sample Folder [Trigger]** — _MIDI_
 - **Set Instrument Folder** — _MIDI · menu_
 - **Set Sample Folder** — _MIDI · menu_
+- **Show Dialog** — _MIDI · menu_
 - **Toggle Global Lock** — _MIDI · menu_
 - **Toggle Global Lock [Trigger]** — _MIDI_
 - **Toggle Preview Mode** — _MIDI · menu_
@@ -4104,10 +4125,10 @@
 - **Trim Selected Sample to Selection** — _keyboard · MIDI · menu_
 - **Trim Selected Sample to Selection and Normalize** — _keyboard · MIDI · menu_
 
-### Preset++  ·  15 features  ·  ⌨5 🎛6 ☰15
+### Preset++  ·  15 features  ·  ⌨5 🎛8 ☰15
 
-- **Create New Multiband Send Track (Keep Source)** — _menu_
-- **Create New Multiband Send Track (Keep Source) (Preset++)** — _keyboard · menu_
+- **Create New Multiband Send Track (Keep Source)** — _MIDI · menu_
+- **Create New Multiband Send Track (Keep Source) (Preset++)** — _keyboard · MIDI · menu_
 - **Create New Multiband Send Track (Mute Source)** — _MIDI · menu_
 - **Create New Multiband Send Track (Mute Source) (Preset++)** — _keyboard · MIDI · menu_
 - **Create New Send Track** — _menu_
@@ -4272,6 +4293,19 @@
 - **LFO Write to Selected Automation Parameter** — _keyboard · MIDI · menu_
 - **Single Parameter Write to Automation** — _MIDI · menu_
 
+### Export  ·  10 features  ·  ⌨9 🎛1 ☰10
+
+- **Batch Convert IFF/8SVX/16SV to WAV...** — _keyboard · menu_
+- **Batch Convert WAV to IFF...** — _keyboard · MIDI · menu_
+- **Batch Convert WAV/AIFF to 16SV...** — _keyboard · menu_
+- **Batch Convert WAV/AIFF to 8SVX...** — _keyboard · menu_
+- **Export Current Sample as IFF...** — _menu_
+- **Export Instrument to ITI...** — _keyboard · menu_
+- **Export WAV with CUE File...** — _keyboard · menu_
+- **Export WAV with Embedded CUE Headers...** — _keyboard · menu_
+- **Save Current Sample as 16SV...** — _keyboard · menu_
+- **Save Current Sample as 8SVX...** — _keyboard · menu_
+
 ### Delay Output  ·  10 features  ·  ⌨0 🎛10 ☰10
 
 - **Nudge Delay Output +01ms** — _MIDI · menu_
@@ -4309,16 +4343,16 @@
 - **L00/LC0 Volume Effect Switch** — _menu_
 - **ZBxx Jump To Row (Next)** — _menu_
 
-### Steppers  ·  8 features  ·  ⌨2 🎛1 ☰8
+### Steppers  ·  8 features  ·  ⌨2 🎛8 ☰8
 
-- **Modify PitchStep Steps (Minor Flurry)** — _keyboard · menu_
+- **Modify PitchStep Steps (Minor Flurry)** — _keyboard · MIDI · menu_
 - **Paketti Steppers Dialog...** — _keyboard · MIDI · menu_
-- **Show Selected Instrument Cutoff Stepper** — _menu_
-- **Show Selected Instrument Drive Stepper** — _menu_
-- **Show Selected Instrument Panning Stepper** — _menu_
-- **Show Selected Instrument Pitch Stepper** — _menu_
-- **Show Selected Instrument Resonance Stepper** — _menu_
-- **Show Selected Instrument Volume Stepper** — _menu_
+- **Show Selected Instrument Cutoff Stepper** — _MIDI · menu_
+- **Show Selected Instrument Drive Stepper** — _MIDI · menu_
+- **Show Selected Instrument Panning Stepper** — _MIDI · menu_
+- **Show Selected Instrument Pitch Stepper** — _MIDI · menu_
+- **Show Selected Instrument Resonance Stepper** — _MIDI · menu_
+- **Show Selected Instrument Volume Stepper** — _MIDI · menu_
 
 ### Other Trackers  ·  8 features  ·  ⌨0 🎛1 ☰8
 
@@ -4342,9 +4376,9 @@
 - **Cycle Forward through Global View Presets** — _keyboard · MIDI · menu_
 - **Enable/Disable Auto-Capture Track** — _keyboard · MIDI · menu_
 
-### 06 Drive  ·  8 features  ·  ⌨0 🎛2 ☰8
+### 06 Drive  ·  8 features  ·  ⌨0 🎛3 ☰8
 
-- ***LFO** — _menu_
+- ***LFO** — _MIDI · menu_
 - **AHDSR** — _menu_
 - **Envelope** — _menu_
 - **Fader** — _menu_
@@ -4472,6 +4506,13 @@
 - **Save Bank to File...** — _MIDI · menu_
 - **Slice into 16** — _menu_
 
+### Order Notes  ·  4 features  ·  ⌨4 🎛1 ☰4
+
+- **Order Notes Across Track** — _keyboard · menu_
+- **Order Notes All Phrases** — _keyboard · menu_
+- **Order Notes Current Phrase** — _keyboard · menu_
+- **Order Notes Current Track All Patterns** — _keyboard · MIDI · menu_
+
 ### Generate  ·  4 features  ·  ⌨0 🎛0 ☰4
 
 - **AM Sinewave 1000Hz (20x mod)** — _menu_
@@ -4524,18 +4565,6 @@
 - **Add 84 Sample Slots to Instrument** — _keyboard · menu_
 - **PitchBend Drumkit Instrument Init** — _keyboard · menu_
 
-### Export  ·  3 features  ·  ⌨2 🎛0 ☰3
-
-- **Export Current Sample as IFF...** — _menu_
-- **Save Current Sample as 16SV...** — _keyboard · menu_
-- **Save Current Sample as 8SVX...** — _keyboard · menu_
-
-### Beatsync/Slices  ·  3 features  ·  ⌨0 🎛1 ☰3
-
-- **Analyze Slice Markers** — _MIDI · menu_
-- **Double Beatsync Line** — _menu_
-- **Halve Beatsync Line** — _menu_
-
 ### .WT  ·  3 features  ·  ⌨3 🎛0 ☰3
 
 - **Export Wavetable...** — _keyboard · menu_
@@ -4556,6 +4585,11 @@
 
 - **Load Selected Sample to Selected Slot** — _MIDI · menu_
 - **Sononymph Dialog...** — _MIDI · menu_
+
+### SliceSafely  ·  2 features  ·  ⌨1 🎛1 ☰2
+
+- **SliceSafely (002)** — _menu_
+- **SliceSafely Dialog...** — _keyboard · MIDI · menu_
 
 ### Selection  ·  2 features  ·  ⌨2 🎛1 ☰2
 
@@ -4582,6 +4616,11 @@
 - **Load from File** — _MIDI · menu_
 - **Open CCizer Dialog** — _MIDI · menu_
 
+### Beatsync/Slices  ·  2 features  ·  ⌨0 🎛2 ☰2
+
+- **Double Beatsync Line** — _MIDI · menu_
+- **Halve Beatsync Line** — _MIDI · menu_
+
 ### Basenote  ·  2 features  ·  ⌨2 🎛2 ☰2
 
 - **Basenote Octave Down** — _keyboard · MIDI · menu_
@@ -4595,17 +4634,17 @@
 
 - **Toggle Sample Selection Info** — _keyboard · menu_
 
-### SliceSafely  ·  1 features  ·  ⌨0 🎛0 ☰1
+### Slice Tools  ·  1 features  ·  ⌨1 🎛1 ☰1
 
-- **SliceSafely (002)** — _menu_
+- **Slice Tools Dialog...** — _keyboard · MIDI · menu_
 
 ### Set Sample Zoom  ·  1 features  ·  ⌨0 🎛1 ☰1
 
 - **Zoom 01x** — _MIDI · menu_
 
-### Recording  ·  1 features  ·  ⌨1 🎛0 ☰1
+### Recording  ·  1 features  ·  ⌨1 🎛1 ☰1
 
-- **Display Sample Recorder with #Line Input and Track Scopes** — _keyboard · menu_
+- **Display Sample Recorder with #Line Input and Track Scopes** — _keyboard · MIDI · menu_
 
 ### Plugin Slots  ·  1 features  ·  ⌨0 🎛1 ☰0
 

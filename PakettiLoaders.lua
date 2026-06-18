@@ -1457,8 +1457,12 @@ for i, device in ipairs(nativeDevices) do
   PakettiAddMenuEntry{name="Sample FX Mixer:Paketti:Load Renoise Native:" .. device, 
     invoke=function() loadnative(device_path) end
   }  
-  PakettiAddMenuEntry{name="Mixer:Paketti:Load Renoise Native:" .. device, 
+  PakettiAddMenuEntry{name="Mixer:Paketti:Load Renoise Native:" .. device,
     invoke=function() loadnative(device_path) end
+  }
+  -- MIDI mapping: load this native device from a controller (fire on press).
+  renoise.tool():add_midi_mapping{name="Paketti:Load Renoise Native: " .. device,
+    invoke=function(message) if message:is_trigger() then loadnative(device_path) end end
   }
 end
 

@@ -4379,3 +4379,65 @@ end
 
 -- renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Load:Import AKP File...",invoke = importAKPFile}
 --renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import AKP File...",invoke=importAKPFile}
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- MIDI mappings batch: Beatsync/Slices · Custom LFO Envelopes · Note Columns ·
+-- Steppers (Modify PitchStep). All fire on button press (is_trigger); each calls
+-- the same global function its keybinding/menu entry uses.
+-- ════════════════════════════════════════════════════════════════════════════
+local function pkmidi(name, fn) renoise.tool():add_midi_mapping{name=name, invoke=function(message) if message:is_trigger() then fn() end end} end
+
+-- Beatsync / Slices (8). NOTE: the bare "Double/Halve Beatsync Line" menu entries
+-- call doubleBeatsyncLines()/halveBeatsyncLines() which are NOT defined anywhere
+-- (pre-existing broken menu entries) — deliberately NOT mapped here.
+pkmidi("Paketti:Slice Drumkit (Percussion)", function() slicePercussionDrumKit() end)
+pkmidi("Paketti:Slice Drumkit (Texture)", function() sliceTextureDrumKit() end)
+pkmidi("Paketti:Beatsync Lines Halve (All)", function() halveBeatsyncLinesAll() end)
+pkmidi("Paketti:Beatsync Lines Halve (Selected Sample)", function() halveBeatsyncLinesSelected() end)
+pkmidi("Paketti:Beatsync Lines Double (All)", function() doubleBeatsyncLinesAll() end)
+pkmidi("Paketti:Beatsync Lines Double (Selected Sample)", function() doubleBeatsyncLinesSelected() end)
+pkmidi("Paketti:Analyze Slice Markers", function() analyze_slice_markers() end)
+pkmidi("Paketti:Convert Beatsync to Sample Pitch", function() convert_beatsync_to_pitch() end)
+
+-- Custom LFO Envelopes (24)
+pkmidi("Paketti:Custom LFO Envelope Editor...", function() pakettiLFOEnvelopeEditorDialog() end)
+pkmidi("Paketti:Custom LFO Center", function() pakettiCenterLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Curve - Bell (Peak)", function() pakettiLFOCurveUpParabola() end)
+pkmidi("Paketti:Custom LFO Curve - Double Peak", function() pakettiLFOCurveDoublePeak() end)
+pkmidi("Paketti:Custom LFO Curve - Double Valley", function() pakettiLFOCurveDoubleValley() end)
+pkmidi("Paketti:Custom LFO Curve - Exponential Down", function() pakettiLFOCurveExponentialDown() end)
+pkmidi("Paketti:Custom LFO Curve - Exponential Up", function() pakettiLFOCurveExponential() end)
+pkmidi("Paketti:Custom LFO Curve - Linear Down", function() pakettiLFOCurveLinearDown() end)
+pkmidi("Paketti:Custom LFO Curve - Linear Up", function() pakettiLFOCurveLinear() end)
+pkmidi("Paketti:Custom LFO Curve - Logarithmic Down", function() pakettiLFOCurveLogarithmicDown() end)
+pkmidi("Paketti:Custom LFO Curve - Logarithmic Up", function() pakettiLFOCurveLogarithmic() end)
+pkmidi("Paketti:Custom LFO Curve - U-Shape (Valley)", function() pakettiLFOCurveDownParabola() end)
+pkmidi("Paketti:Custom LFO Double Envelope Resolution", function() pakettiDoubleLFOResolution() end)
+pkmidi("Paketti:Custom LFO Halve Envelope Resolution", function() pakettiHalveLFOResolution() end)
+pkmidi("Paketti:Custom LFO Flip", function() pakettiFlipLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Mirror", function() pakettiInvertLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Invert", function() pakettiInvertLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Humanize", function() pakettiHumanizeLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Randomize", function() pakettiRandomizeLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Max", function() pakettiMaxLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Min", function() pakettiMinLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Slapback", function() pakettiSlapbackLFOEnvelope() end)
+pkmidi("Paketti:Custom LFO Scale 150%", function() pakettiScaleLFOEnvelope(1.5) end)
+pkmidi("Paketti:Custom LFO Scale 50%", function() pakettiScaleLFOEnvelope(0.5) end)
+
+-- Note Columns (12)
+pkmidi("Paketti:Generate Delay Value on Note Columns", function() GenerateDelayValue("row") end)
+pkmidi("Paketti:Generate Delay Value on Entire Pattern", function() GenerateDelayValue("pattern") end)
+pkmidi("Paketti:Generate Delay Value on Selection", function() GenerateDelayValue("selection") end)
+pkmidi("Paketti:Generate Delay Value (Notes Only, Row)", function() GenerateDelayValueNotes("row") end)
+pkmidi("Paketti:Generate Delay Value (Notes Only, Pattern)", function() GenerateDelayValueNotes("pattern") end)
+pkmidi("Paketti:Generate Delay Value (Notes Only, Selection)", function() GenerateDelayValueNotes("selection") end)
+pkmidi("Paketti:Reverse Notes in Selection", function() PakettiReverseNotesInSelection() end)
+pkmidi("Paketti:Apply Note Column Sample Effects M00/MFF", function() applyNoteColumnEffects() end)
+pkmidi("Paketti:Clear Note Column Sample Effects M00/MFF", function() clearNoteColumnEffects() end)
+pkmidi("Paketti:Note-Off Paste (from Selection)", function() noteOffPaste() end)
+pkmidi("Paketti:Convert 3 Note Chord to Arpeggio", function() ConvertChordsToArpeggio() end)
+pkmidi("Paketti:Flood Fill Note and Instrument", function() pakettiFloodFill() end)
+
+-- Steppers — the edit action (the Show views are mapped in PakettiSteppers.lua)
+pkmidi("Paketti:Modify PitchStep Steps (Minor Flurry)", function() PakettiFillPitchStepperDigits(0.015,64) end)
