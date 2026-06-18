@@ -3119,6 +3119,23 @@ renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (0Gxx
 renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (0Rxx)",invoke=function(message) if message:is_trigger() then toggle_fx_amount_following("0R") end end}
 renoise.tool():add_midi_mapping{name="Paketti:LFO Write Single Parameter Write to Automation",invoke=function(message) if message:is_trigger() then toggle_single_parameter_following() end end}
 
+-- ── MIDI mappings: Automation Curves (per-shape BUTTONS) ────────────────────
+-- Paketti already has knobs for automation (Cycle Through Automation Envelopes
+-- x[Knob], Midi Automation Curve Draw Selection x[Knob]); these add a BUTTON per
+-- curve shape so a controller can stamp a specific shape onto the selection.
+-- One-shot: fire on button press (is_trigger).
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Top to Top",invoke=function(message) if message:is_trigger() then apply_constant_automation_top_to_top() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Bottom to Bottom",invoke=function(message) if message:is_trigger() then apply_constant_automation_bottom_to_bottom() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Selection Up (Exp)",invoke=function(message) if message:is_trigger() then apply_exponential_automation_curveUP() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Selection Up (Linear)",invoke=function(message) if message:is_trigger() then apply_selection_up_linear() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Selection Down (Exp)",invoke=function(message) if message:is_trigger() then apply_exponential_automation_curveDOWN() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Selection Down (Linear)",invoke=function(message) if message:is_trigger() then apply_selection_down_linear() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Center to Top (Exp)",invoke=function(message) if message:is_trigger() then apply_exponential_automation_curve_center_to_top() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Center to Bottom (Exp)",invoke=function(message) if message:is_trigger() then apply_exponential_automation_curve_center_to_bottom() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Top to Center (Exp)",invoke=function(message) if message:is_trigger() then apply_exponential_automation_curve_top_to_center() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Bottom to Center (Exp)",invoke=function(message) if message:is_trigger() then apply_exponential_automation_curve_bottom_to_center() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Automation Curve Set to Center",invoke=function(message) if message:is_trigger() then set_to_center() end end}
+
 ------
 -- Global variables
 local is_following_lpb = false
