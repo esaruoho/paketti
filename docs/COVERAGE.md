@@ -6,16 +6,16 @@
 
 | reachable by | count | meaning |
 |---|--:|---|
-| **KME** | 305 | all three |
-| **KE** | 988 | keyboard + menu (no MIDI) |
-| **KM** | 3,573 | keyboard + MIDI (no menu) |
-| **ME** | 45 | MIDI + menu (no keyboard) |
-| **K** | 2,724 | keyboard ONLY |
-| **E** | 1,773 | menu ONLY (mouse-only) |
+| **KME** | 317 | all three |
+| **KE** | 976 | keyboard + menu (no MIDI) |
+| **KM** | 3,574 | keyboard + MIDI (no menu) |
+| **ME** | 50 | MIDI + menu (no keyboard) |
+| **K** | 2,723 | keyboard ONLY |
+| **E** | 1,768 | menu ONLY (mouse-only) |
 | **M** | 2,218 | MIDI ONLY |
 
-- Keyboard 7,590 · MIDI 6,141 · Menu 3,111
-- **Shortcut but NO MIDI:** 3,712 (controller users can't reach)
+- Keyboard 7,590 · MIDI 6,159 · Menu 3,111
+- **Shortcut but NO MIDI:** 3,699 (controller users can't reach)
 - **Shortcut but NO menu:** 6,297 (undiscoverable by browsing)
 - **Menu but NO shortcut:** 1,818 (mouse-only)
 
@@ -23,12 +23,12 @@
 
 | Region | shortcuts | also MIDI | also menu | keyboard-ONLY |
 |---|--:|--:|--:|--:|
-| Global | 6,402 | 3,485 | 0 | **2,917** |
-| Pattern Editor | 1,224 | 582 | 228 | **468** |
+| Global | 6,402 | 3,497 | 0 | **2,905** |
+| Pattern Editor | 1,224 | 584 | 228 | **468** |
 | Phrase Editor | 408 | 203 | 47 | **167** |
 | Sample Keyzones | 268 | 22 | 0 | **246** |
 | Sample Editor | 262 | 79 | 127 | **105** |
 | Instrument Box | 243 | 0 | 0 | **243** |
 | Pattern Matrix | 183 | 152 | 29 | **20** |
-| Mixer | 175 | 91 | 25 | **63** |
+| Mixer | 175 | 92 | 25 | **62** |
 | Pattern Sequencer | 42 | 14 | 32 | **7** |
