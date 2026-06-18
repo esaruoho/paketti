@@ -4507,3 +4507,25 @@ pkmidi("Paketti:FT2 Minimize Selected Sample", function() pakettiMinimizeToLoopE
 pkmidi("Paketti:Create Wrecked Sample Variants", function() paketti_build_sample_variants() end)
 pkmidi("Paketti:Max Amp DC Offset Kick Generator", function() pakettiMaxAmplitudeDCOffsetKickCreator() end)
 pkmidi("Paketti:Experimental Sample FX Render", function() pakettiExperimentalSampleFXRender() end)
+
+-- ── MIDI mappings: REAL view jumps (switch to a Renoise pane from a controller) ──
+-- Sets the active frame via the documented ApplicationWindow enums. Middle frames
+-- are always visible; upper/lower are shown first. ("Switch to Automation" already
+-- exists elsewhere; these are the rest, named distinctly to avoid collision.)
+local AW = renoise.ApplicationWindow
+local function pkmid(frame) renoise.app().window.active_middle_frame = frame end
+local function pkup(frame) local w=renoise.app().window; w.upper_frame_is_visible=true; w.active_upper_frame=frame end
+local function pklow(frame) local w=renoise.app().window; w.lower_frame_is_visible=true; w.active_lower_frame=frame end
+pkmidi("Paketti:Switch to Pattern Editor", function() pkmid(AW.MIDDLE_FRAME_PATTERN_EDITOR) end)
+pkmidi("Paketti:Switch to Mixer", function() pkmid(AW.MIDDLE_FRAME_MIXER) end)
+pkmidi("Paketti:Switch to Phrase Editor", function() pkmid(AW.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR) end)
+pkmidi("Paketti:Switch to Sample Keyzones", function() pkmid(AW.MIDDLE_FRAME_INSTRUMENT_SAMPLE_KEYZONES) end)
+pkmidi("Paketti:Switch to Sample Editor", function() pkmid(AW.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR) end)
+pkmidi("Paketti:Switch to Sample Modulation", function() pkmid(AW.MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION) end)
+pkmidi("Paketti:Switch to Sample Effects", function() pkmid(AW.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS) end)
+pkmidi("Paketti:Switch to Plugin Editor", function() pkmid(AW.MIDDLE_FRAME_INSTRUMENT_PLUGIN_EDITOR) end)
+pkmidi("Paketti:Switch to MIDI Editor", function() pkmid(AW.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR) end)
+pkmidi("Paketti:Switch to Track Scopes (Upper Frame)", function() pkup(AW.UPPER_FRAME_TRACK_SCOPES) end)
+pkmidi("Paketti:Switch to Master Spectrum (Upper Frame)", function() pkup(AW.UPPER_FRAME_MASTER_SPECTRUM) end)
+pkmidi("Paketti:Switch to Track DSPs (Lower Frame)", function() pklow(AW.LOWER_FRAME_TRACK_DSPS) end)
+pkmidi("Paketti:Switch to Track Automation (Lower Frame)", function() pklow(AW.LOWER_FRAME_TRACK_AUTOMATION) end)
