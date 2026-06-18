@@ -3712,8 +3712,9 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Sh
   pakettiConvolverSelectionDialog(handle_convolver_action)
 end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Import Selected Sample to Selected Convolver",invoke=function()
-  print("Importing selected sample to Convolver via menu entry")
+-- Extracted to a named function so both the menu entry and a MIDI mapping share it.
+function PakettiImportSampleToConvolver()
+  print("Importing selected sample to Convolver")
   local selected_device = renoise.song().selected_device
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
@@ -3722,7 +3723,22 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Impo
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
-end}
+end
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Import Selected Sample to Selected Convolver",invoke=PakettiImportSampleToConvolver}
+
+-- ── MIDI mappings: Plugins/Devices (3 actions + 6 panel-openers) ───────────
+-- Per Esa's selection: instant actions + dialog/loader openers. NO squiggly
+-- sinewave, NO console/terminal dumps (console work isn't a MIDI job). Fire on
+-- button press. Functions are global, resolved at invoke-time.
+renoise.tool():add_midi_mapping{name="Paketti:Randomize Selected Instrument Plugin Parameters",invoke=function(message) if message:is_trigger() then randomizeSelectedPlugin() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Switch Plugin AutoSuspend Off",invoke=function(message) if message:is_trigger() then autosuspendOFF() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Import Selected Sample to Selected Convolver",invoke=function(message) if message:is_trigger() then PakettiImportSampleToConvolver() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Load Devices Dialog...",invoke=function(message) if message:is_trigger() then pakettiLoadDevicesDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Load Plugins Dialog...",invoke=function(message) if message:is_trigger() then pakettiLoadPluginsDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Show Effect Details Dialog...",invoke=function(message) if message:is_trigger() then pakettiDebugDeviceInfoDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Show Plugin Details Dialog...",invoke=function(message) if message:is_trigger() then pakettiDebugPluginInfoDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Dump Available Effects/Plugins to Dialog...",invoke=function(message) if message:is_trigger() then show_available_plugins_dialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Configure Plugin Slots...",invoke=function(message) if message:is_trigger() then pakettiPluginSlotsDialog() end end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Export Convolver IR into New Instrument",invoke=function()
   print("Exporting Convolver IR into New Instrument via menu entry")
   local selected_device = renoise.song().selected_device
