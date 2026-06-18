@@ -3862,3 +3862,22 @@ PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Generate Drumkit (Play
 PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Generate .ot Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Octatrack Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
 
+-- ── MIDI mappings: Octatrack actions ───────────────────────────────────────
+-- One-button Octatrack export/import/generate from a controller (fire on press).
+-- Dialog-opening verbs are included on purpose — a button that opens the picker
+-- is still useful in a hardware workflow.
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Export (.WAV+.ot)",invoke=function(message) if message:is_trigger() then PakettiOTExport() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Export (.ot only)",invoke=function(message) if message:is_trigger() then PakettiOTExportOtOnly() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Import (.ot)",invoke=function(message) if message:is_trigger() then PakettiOTImport() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Generate Drumkit (Smart Mono/Stereo)",invoke=function(message) if message:is_trigger() then PakettiOTDrumkitSmart() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Generate Drumkit (Force Mono)",invoke=function(message) if message:is_trigger() then PakettiOTDrumkitMono() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Generate Drumkit (Play to End)",invoke=function(message) if message:is_trigger() then PakettiOTDrumkitPlayToEnd() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Set .ot Loop to Slice",invoke=function(message) if message:is_trigger() then PakettiOTSetLoopToSlice() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Debug (.ot)",invoke=function(message) if message:is_trigger() then PakettiOTDebugDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Generate OctaCycle",invoke=function(message) if message:is_trigger() then PakettiOctaCycle() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Quick OctaCycle (C, Oct 1-7)",invoke=function(message) if message:is_trigger() then PakettiOctaCycleQuick() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Export OctaCycle to Octatrack",invoke=function(message) if message:is_trigger() then PakettiOctaCycleExport() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Import STRD Bank",invoke=function(message) if message:is_trigger() then PakettiOTSTRDImporter() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Batch Convert RX2 to OT (WAV+.ot)",invoke=function(message) if message:is_trigger() then PakettiBatchRX2ToOT() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octatrack Batch Convert .ot to CUE Files",invoke=function(message) if message:is_trigger() then PakettiBatchOTToWavCue() end end}
+

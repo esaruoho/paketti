@@ -1903,6 +1903,11 @@ for _, device in ipairs(moddevices) do
     renoise.tool():add_keybinding{name=keybinding_name,invoke=function() loadModulationDevice(device, target.target)
       end
     }
+    -- MIDI mapping: drop the device into the chosen domain of the SELECTED modulation
+    -- set (the API exposes the selected set, but not a focused domain — so domain is
+    -- explicit per mapping). Fires on button press. 8 devices x 6 domains = 48.
+    local midi_name=string.format("Paketti:Load Modulation Device (%s) %s", target.name, device)
+    renoise.tool():add_midi_mapping{name=midi_name,invoke=function(message) if message:is_trigger() then loadModulationDevice(device, target.target) end end}
   end
 end
 local targets = {
