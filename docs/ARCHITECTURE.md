@@ -11,7 +11,7 @@
     210 gif
     133 txt
      49 xrni
-     30 md
+     34 md
      20 xml
      14 feature
      12 xrdp
@@ -32,8 +32,8 @@
      15 DeviceChains
      13 rx2
      13 PakettiMCP
+      8 docs
       8 KeyBindings
-      8 Customization
 ```
 ## Entry points
 ```
@@ -45,13 +45,13 @@ main.lua
 ```
     3  cFilesystem
     2  slaxdom
+    2  json
     2  cValue
     2  cString
     2  cReflection
     1  slaxml
     1  process_slicer
     1  legacy_v2_8_tools
-    1  json
     1  hotelsinus_stepseq
     1  cTable
     1  cParseXML
@@ -83,6 +83,7 @@ main.lua
 1 cPreferences -> cFilesystem
 1 cProcessSlicer -> main
 1 cSandbox -> cString
+1 features -> json
 1 main -> AppMain
 1 main -> FormulaDeviceManual
 1 main -> Paketti0G01_Loader
@@ -269,7 +270,7 @@ main.lua
 1 main -> base64float
 1 main -> legacy_v2_8_tools
 1 main -> process_slicer
-  ── 208 edges total ──
+  ── 209 edges total ──
 ```
 ## The wiring, drawn
 
@@ -297,6 +298,7 @@ graph LR
   cPreferences["cPreferences"] -->|1| cFilesystem["cFilesystem"]
   cProcessSlicer["cProcessSlicer"] -->|1| main["main"]
   cSandbox["cSandbox"] -->|1| cString["cString"]
+  features["features"] -->|1| json["json"]
   main["main"] -->|1| AppMain["AppMain"]
   main["main"] -->|1| FormulaDeviceManual["FormulaDeviceManual"]
   main["main"] -->|1| Paketti0G01_Loader["Paketti0G01_Loader"]
