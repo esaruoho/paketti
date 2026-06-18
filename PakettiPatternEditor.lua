@@ -9474,6 +9474,34 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Flood Pro
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Flood Pro EditStep Descending",invoke=function() writeNotesMethodFloodEditStepPro("descending") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Flood Pro EditStep Random",invoke=function() writeNotesMethodFloodEditStepPro("random") end}
 
+-- ── MIDI mappings: Write Notes ─────────────────────────────────────────────
+-- Note generation from a controller — fire on button press (is_trigger). Each
+-- calls the same global writeNotesMethod* the keybinding/menu uses.
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Ascending",invoke=function(message) if message:is_trigger() then writeNotesMethod("ascending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Descending",invoke=function(message) if message:is_trigger() then writeNotesMethod("descending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Random",invoke=function(message) if message:is_trigger() then writeNotesMethod("random") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes EditStep Ascending",invoke=function(message) if message:is_trigger() then writeNotesMethodEditStep("ascending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes EditStep Descending",invoke=function(message) if message:is_trigger() then writeNotesMethodEditStep("descending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes EditStep Random",invoke=function(message) if message:is_trigger() then writeNotesMethodEditStep("random") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Ascending",invoke=function(message) if message:is_trigger() then writeNotesMethodFlood("ascending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Descending",invoke=function(message) if message:is_trigger() then writeNotesMethodFlood("descending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Random",invoke=function(message) if message:is_trigger() then writeNotesMethodFlood("random") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood EditStep Ascending",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodEditStep("ascending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood EditStep Descending",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodEditStep("descending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood EditStep Random",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodEditStep("random") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Pro Ascending",invoke=function(message) if message:is_trigger() then writeNotesMethodPro("ascending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Pro Descending",invoke=function(message) if message:is_trigger() then writeNotesMethodPro("descending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Pro Random",invoke=function(message) if message:is_trigger() then writeNotesMethodPro("random") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Pro EditStep Ascending",invoke=function(message) if message:is_trigger() then writeNotesMethodEditStepPro("ascending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Pro EditStep Descending",invoke=function(message) if message:is_trigger() then writeNotesMethodEditStepPro("descending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Pro EditStep Random",invoke=function(message) if message:is_trigger() then writeNotesMethodEditStepPro("random") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Pro Ascending",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodPro("ascending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Pro Descending",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodPro("descending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Pro Random",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodPro("random") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Pro EditStep Ascending",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodEditStepPro("ascending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Pro EditStep Descending",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodEditStepPro("descending") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Notes Flood Pro EditStep Random",invoke=function(message) if message:is_trigger() then writeNotesMethodFloodEditStepPro("random") end end}
+
 ---
 -- Fit Sample Offset to Pattern
 -- Calculates sample length and spreads 0Sxx commands from 0S00 to 0SFE across pattern length

@@ -570,3 +570,12 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Values/Notes As
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Values/Notes Ascending EditStep (SubColumn Aware)", invoke=PakettiSubColumnWriteAscendingEditStep}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Values/Notes Descending (SubColumn Aware)", invoke=PakettiSubColumnWriteDescending}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Values/Notes Descending EditStep (SubColumn Aware)", invoke=PakettiSubColumnWriteDescendingEditStep}
+
+-- ── MIDI mappings: Write Values/Notes (SubColumn Aware) ────────────────────
+-- Controller triggers for the sub-column-aware note/value writers (fire on press).
+renoise.tool():add_midi_mapping{name="Paketti:Write Values/Notes Ascending (SubColumn Aware)",invoke=function(message) if message:is_trigger() then PakettiSubColumnWriteAscending() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Values/Notes Ascending EditStep (SubColumn Aware)",invoke=function(message) if message:is_trigger() then PakettiSubColumnWriteAscendingEditStep() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Values/Notes Descending (SubColumn Aware)",invoke=function(message) if message:is_trigger() then PakettiSubColumnWriteDescending() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Values/Notes Descending EditStep (SubColumn Aware)",invoke=function(message) if message:is_trigger() then PakettiSubColumnWriteDescendingEditStep() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Values/Notes Random (SubColumn Aware)",invoke=function(message) if message:is_trigger() then PakettiSubColumnWriteRandom() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Values/Notes Random EditStep (SubColumn Aware)",invoke=function(message) if message:is_trigger() then PakettiSubColumnWriteRandomEditStep() end end}
