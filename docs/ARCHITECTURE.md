@@ -11,7 +11,7 @@
     210 gif
     133 txt
      49 xrni
-     35 md
+     36 md
      20 xml
      14 feature
      12 xrdp
@@ -32,7 +32,7 @@
      15 DeviceChains
      13 rx2
      13 PakettiMCP
-      9 docs
+     10 docs
       8 KeyBindings
 ```
 ## Entry points
