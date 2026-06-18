@@ -1476,8 +1476,12 @@ for i, device in ipairs(nativeDeprecatedDevices) do
   PakettiAddMenuEntry{name=separator .. "Sample FX Mixer:Paketti:Load Renoise Native:(Hidden) " .. device, 
     invoke=function() loadnative(device_path) end
   }
-  PakettiAddMenuEntry{name=separator .. "Mixer:Paketti:Load Renoise Native:(Hidden) " .. device, 
+  PakettiAddMenuEntry{name=separator .. "Mixer:Paketti:Load Renoise Native:(Hidden) " .. device,
     invoke=function() loadnative(device_path) end
+  }
+  -- MIDI mapping: load this deprecated/hidden legacy device from a controller.
+  renoise.tool():add_midi_mapping{name="Paketti:Load Renoise Native (Hidden): " .. device,
+    invoke=function(message) if message:is_trigger() then loadnative(device_path) end end
   }
 end
 
