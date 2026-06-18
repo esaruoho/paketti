@@ -306,13 +306,33 @@ jobs:
       # The PNGs are NOT committed — release-assets-only — so the repo never bloats
       # with regenerated binaries (and docs/+.spine/ are already kept out of the .xrnx).
       - name: Commit refreshed docs (text only) back to master
+        # Race-proof + non-fatal: concurrent release runs (or a human push) move
+        # master while this runs, so a plain push gets "! [rejected] (fetch first)".
+        # We retry by re-basing our generated docs onto the latest master (reset
+        # --soft, last-writer-wins — the docs are regenerated, so overwriting is
+        # correct and conflict-free). This step must NEVER fail the build: the
+        # release assets are already uploaded; the in-repo refresh is cosmetic.
         run: |
           git config user.name  "GitHub Action"
           git config user.email "action@github.com"
           git add docs/SPINE-TRUE.md docs/COVERAGE.md docs/ARCHITECTURE.md docs/FEATURE-MAP.md docs/MIDI-GAPS.md
           if git diff --cached --quiet; then
             echo "docs unchanged — nothing to commit"
-          else
-            git commit -m "docs: refresh spine + coverage + architecture [skip ci]"
-            git push origin HEAD:master
+            exit 0
           fi
+          git commit -m "docs: refresh spine + coverage + architecture [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:master; then
+              echo "docs pushed (attempt $attempt)"; exit 0
+            fi
+            echo "push rejected (attempt $attempt) — rebasing docs onto latest master"
+            git fetch origin master || true
+            git reset --soft origin/master
+            if git diff --cached --quiet; then
+              echo "docs already current on remote — nothing to push"; exit 0
+            fi
+            git commit -m "docs: refresh spine + coverage + architecture [skip ci]"
+            sleep 3
+          done
+          echo "could not push docs after retries — non-fatal, next run will refresh"
+          exit 0
