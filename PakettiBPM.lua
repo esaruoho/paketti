@@ -573,3 +573,17 @@ renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve BPM", invoke = fu
 renoise.tool():add_keybinding{name="Global:Paketti:Double Double BPM", invoke = function() pakettiBPMDouble() pakettiBPMDouble() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Multiply BPM & Halve LPB", invoke = pakettiBPMMultiplyHalveLPB}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve BPM & Multiply LPB", invoke = pakettiBPMHalveMultiplyLPB}
+
+-- ── MIDI mappings: BPM & LPB ───────────────────────────────────────────────
+-- So a controller/hardware player can trigger these live, not only by key/menu.
+-- Each is a one-shot: fire on button press (is_trigger). Functions are global,
+-- resolved at invoke-time (defined in PakettiTkna / PakettiPatternEditor / etc).
+renoise.tool():add_midi_mapping{name="Paketti:Double LPB",invoke=function(message) if message:is_trigger() then PakettiLPBDouble() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Halve LPB",invoke=function(message) if message:is_trigger() then PakettiLPBHalve() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Double Double LPB",invoke=function(message) if message:is_trigger() then PakettiLPBDouble() PakettiLPBDouble() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Halve Halve LPB",invoke=function(message) if message:is_trigger() then PakettiLPBHalve() PakettiLPBHalve() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Multiply BPM & Halve LPB",invoke=function(message) if message:is_trigger() then pakettiBPMMultiplyHalveLPB() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Halve BPM & Multiply LPB",invoke=function(message) if message:is_trigger() then pakettiBPMHalveMultiplyLPB() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Write Current BPM&LPB to Master Column",invoke=function(message) if message:is_trigger() then write_bpm() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Renoise Random BPM & Write BPM/LPB to Master",invoke=function(message) if message:is_trigger() then randomBPMMaster() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Random BPM (60-180)",invoke=function(message) if message:is_trigger() then randomBPM() end end}

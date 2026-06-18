@@ -3106,6 +3106,19 @@ renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Gxx)",invoke=function() toggle_fx_amount_following("0G") end}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Rxx)",invoke=function() toggle_fx_amount_following("0R") end}
 
+-- ── MIDI mappings: LFO Write ───────────────────────────────────────────────
+-- Controller toggles for writing LFO-shaped effect-command patterns live. Each
+-- fires on button press (is_trigger). toggle_fx_amount_following /
+-- toggle_single_parameter_following are global, resolved at invoke-time.
+renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (Amount Only)",invoke=function(message) if message:is_trigger() then toggle_fx_amount_following() end end}
+renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (0Yxx)",invoke=function(message) if message:is_trigger() then toggle_fx_amount_following("0Y") end end}
+renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (0Sxx)",invoke=function(message) if message:is_trigger() then toggle_fx_amount_following("0S") end end}
+renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (0Dxx)",invoke=function(message) if message:is_trigger() then toggle_fx_amount_following("0D") end end}
+renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (0Uxx)",invoke=function(message) if message:is_trigger() then toggle_fx_amount_following("0U") end end}
+renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (0Gxx)",invoke=function(message) if message:is_trigger() then toggle_fx_amount_following("0G") end end}
+renoise.tool():add_midi_mapping{name="Paketti:LFO Write to Effect Column 1 (0Rxx)",invoke=function(message) if message:is_trigger() then toggle_fx_amount_following("0R") end end}
+renoise.tool():add_midi_mapping{name="Paketti:LFO Write Single Parameter Write to Automation",invoke=function(message) if message:is_trigger() then toggle_single_parameter_following() end end}
+
 ------
 -- Global variables
 local is_following_lpb = false

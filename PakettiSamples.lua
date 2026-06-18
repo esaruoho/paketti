@@ -1959,6 +1959,17 @@ renoise.tool():add_keybinding{name="Global:Paketti:Wipe Slices",invoke=function(
 renoise.tool():add_keybinding{name="Global:Paketti:Double Slices",invoke=function() doubleslices() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve Slices",invoke=function() halveslices() end}
 
+-- ── MIDI mappings: Wipe & Slice ────────────────────────────────────────────
+-- Controller triggers for live slice manipulation + one-button slicing workflows.
+-- One-shot: fire on button press (is_trigger). Functions are global.
+renoise.tool():add_midi_mapping{name="Paketti:Wipe Slices",invoke=function(message) if message:is_trigger() then wipeslices() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Double Slices",invoke=function(message) if message:is_trigger() then doubleslices() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Halve Slices",invoke=function(message) if message:is_trigger() then halveslices() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Prepare Sample for Slicing (Setup + First Slice + Write Note)",invoke=function(message) if message:is_trigger() then prepare_sample_for_slicing() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Auto-Slice Using First Slice Length",invoke=function(message) if message:is_trigger() then detect_first_slice_and_auto_slice() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Auto-Slice every 8 beats",invoke=function(message) if message:is_trigger() then auto_slice_every_8_beats() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Whole Hog (Complete Workflow)",invoke=function(message) if message:is_trigger() then whole_hog_complete_workflow() end end}
+
 
 
 --------------
