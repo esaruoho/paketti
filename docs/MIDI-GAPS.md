@@ -8,8 +8,9 @@
 
 | Feature group | no MIDI | has MIDI | total | coverage |
 |---|--:|--:|--:|--:|
-| **(top level)** | **648** | 2266 | 2914 | 78% |
-| **(misc)** | **175** | 108 | 283 | 38% |
+| **(top level)** | **625** | 2226 | 2851 | 78% |
+| **(misc)** | **182** | 108 | 290 | 37% |
+| **Instruments** | **38** | 50 | 88 | 57% |
 | **Load Renoise Native** | **37** | 19 | 56 | 34% |
 | **!Preferences** | **33** | 29 | 62 | 47% |
 | **MetaSynth** | **32** | 9 | 41 | 22% |
@@ -19,16 +20,14 @@
 | **Tracks** | **16** | 26 | 42 | 62% |
 | **Automation** | **16** | 29 | 45 | 64% |
 | **Process** | **15** | 31 | 46 | 67% |
-| **Instruments** | **15** | 12 | 27 | 44% |
-| **PhraseGrid** | **14** | 34 | 48 | 71% |
+| **PhraseGrid** | **14** | 33 | 47 | 70% |
 | **Microtonal Tunings** | **14** | 22 | 36 | 61% |
 | **Load** | **10** | 13 | 23 | 57% |
-| **Export** | **10** | 0 | 10 | 0% |
 | **Preset++** | **9** | 6 | 15 | 40% |
 | **V3.5** | **8** | 4 | 12 | 33% |
 | **Pattern** | **8** | 20 | 28 | 71% |
 | **Devices** | **8** | 28 | 36 | 78% |
-| **06 Drive** | **8** | 0 | 8 | 0% |
+| **03 Pitch** | **8** | 0 | 8 | 0% |
 | **Steppers** | **7** | 1 | 8 | 12% |
 | **Other Trackers** | **7** | 1 | 8 | 12% |
 | **Glider** | **7** | 2 | 9 | 22% |
@@ -46,24 +45,13 @@
 | **Transpose** | **3** | 4 | 7 | 57% |
 | **Phrases** | **3** | 27 | 30 | 90% |
 | **Initialize** | **3** | 0 | 3 | 0% |
+| **Export** | **3** | 0 | 3 | 0% |
 | **Convolver** | **3** | 1 | 4 | 25% |
 | **.WT** | **3** | 0 | 3 | 0% |
 
 ## The biggest fully-unmapped areas (0% MIDI — whole capabilities a controller can't reach)
 
-### Export — 10 features, **none MIDI-mappable**
-- Batch Convert IFF/8SVX/16SV to WAV...  _( keyboard · menu )_
-- Batch Convert WAV to IFF...  _( keyboard · menu )_
-- Batch Convert WAV/AIFF to 16SV...  _( keyboard · menu )_
-- Batch Convert WAV/AIFF to 8SVX...  _( keyboard · menu )_
-- Export Current Sample as IFF...  _( menu )_
-- Export Instrument to ITI...  _( keyboard · menu )_
-- Export WAV with CUE File...  _( keyboard · menu )_
-- Export WAV with Embedded CUE Headers...  _( keyboard · menu )_
-- Save Current Sample as 16SV...  _( keyboard · menu )_
-- Save Current Sample as 8SVX...  _( keyboard · menu )_
-
-### 06 Drive — 8 features, **none MIDI-mappable**
+### 03 Pitch — 8 features, **none MIDI-mappable**
 - *LFO  _( menu )_
 - AHDSR  _( menu )_
 - Envelope  _( menu )_
