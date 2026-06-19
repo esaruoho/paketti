@@ -4529,3 +4529,17 @@ pkmidi("Paketti:Switch to Track Scopes (Upper Frame)", function() pkup(AW.UPPER_
 pkmidi("Paketti:Switch to Master Spectrum (Upper Frame)", function() pkup(AW.UPPER_FRAME_MASTER_SPECTRUM) end)
 pkmidi("Paketti:Switch to Track DSPs (Lower Frame)", function() pklow(AW.LOWER_FRAME_TRACK_DSPS) end)
 pkmidi("Paketti:Switch to Track Automation (Lower Frame)", function() pklow(AW.LOWER_FRAME_TRACK_AUTOMATION) end)
+
+-- ── MIDI mappings: open/close Paketti dialogs from a controller ──────────────
+-- Each invokes the same dialog function the menu uses (toggles open/closed where
+-- the dialog supports re-invoke-to-close). MCP Server Dialog lives in
+-- PakettiMCPMain.lua (its show_dialog is file-local).
+pkmidi("Paketti:Paketti Preferences...", function() pakettiPreferences() end)
+pkmidi("Paketti:Paketti KeyBindings...", function() pakettiKeyBindingsDialog() end)
+pkmidi("Paketti:Paketti Menu Configuration...", function() pakettiMenuConfigDialog() end)
+pkmidi("Paketti:Paketti Function Search...", function() pakettiAutocompleteToggle() end)
+pkmidi("Paketti:Renoise KeyBindings Dialog...", function() pakettiRenoiseKeyBindingsDialog() end)
+pkmidi("Paketti:Pattern / Phrase Init Preferences...", function() pakettiPatternPhraseInitDialog() end)
+pkmidi("Paketti:Dynamic View Preferences Dialog 1-3...", function() pakettiDynamicViewDialog(1, 3) end)
+pkmidi("Paketti:Dynamic View Preferences Dialog 4-6...", function() pakettiDynamicViewDialog(4, 6) end)
+pkmidi("Paketti:Dynamic View Preferences Dialog 7-9...", function() pakettiDynamicViewDialog(7, 9) end)

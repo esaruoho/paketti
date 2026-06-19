@@ -155,6 +155,11 @@ renoise.tool():add_keybinding{
   name = "Global:Paketti:MCP Server Dialog",
   invoke = show_dialog
 }
+-- MIDI mapping: open/close the MCP Server dialog from a controller (show_dialog is file-local).
+renoise.tool():add_midi_mapping{
+  name = "Paketti:MCP Server Dialog...",
+  invoke = function(message) if message:is_trigger() then show_dialog() end end
+}
 renoise.tool():add_keybinding{
   name = "Global:Paketti:MCP Server Start",
   invoke = start_server_silent
