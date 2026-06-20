@@ -9,7 +9,7 @@
   - **6,696 menu entries**
   - **7,185 MIDI mappings**
 
-**Validation:** Paketti's own runtime counters say 10,849 keybindings / 7,197 MIDI / 6,693 menus — matching.
+**Validation:** Paketti's own runtime counters say 10,849 keybindings / 7,184 MIDI / 6,693 menus — matching.
 
 ## What Paketti does for Renoise
 
@@ -62,8 +62,8 @@ Paketti is a **24,735-action layer** bolted onto Renoise. *Where* those actions 
 | &nbsp;&nbsp;Sononymph | 0 | 0 | 5 | 5 |
 | &nbsp;&nbsp;Instrument Phrases | 0 | 4 | 0 | 4 |
 | &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
-| &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; Sample FX Mixer | 0 | 1 | 0 | 1 |
+| &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
 
 ## Robustness: 194/194 files load clean, 0 brittle
 
