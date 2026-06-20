@@ -8,16 +8,16 @@
 
 | Feature group | no MIDI | has MIDI | total | coverage |
 |---|--:|--:|--:|--:|
-| **(top level)** | **499** | 2413 | 2912 | 83% |
+| **(top level)** | **515** | 2453 | 2968 | 83% |
 | **(misc)** | **141** | 142 | 283 | 50% |
 | **!Preferences** | **32** | 29 | 61 | 48% |
 | **MetaSynth** | **31** | 10 | 41 | 24% |
-| **Instruments** | **29** | 54 | 83 | 65% |
 | **Xperimental/WIP** | **18** | 16 | 34 | 47% |
 | **Automation** | **15** | 30 | 45 | 67% |
-| **PhraseGrid** | **14** | 34 | 48 | 71% |
+| **PhraseGrid** | **14** | 33 | 47 | 70% |
 | **Microtonal Tunings** | **14** | 22 | 36 | 61% |
 | **Tracks** | **13** | 29 | 42 | 69% |
+| **Instruments** | **13** | 15 | 28 | 54% |
 | **Load Renoise Native** | **11** | 45 | 56 | 80% |
 | **Plugins/Devices** | **9** | 5 | 14 | 36% |
 | **Export** | **9** | 1 | 10 | 10% |
@@ -35,10 +35,10 @@
 | **FX/MOD** | **5** | 0 | 5 | 0% |
 | **03 Pitch** | **5** | 3 | 8 | 38% |
 | **Save** | **4** | 9 | 13 | 69% |
-| **Samples** | **4** | 14 | 18 | 78% |
 | **Generate** | **4** | 0 | 4 | 0% |
 | **CapsLockChassis** | **4** | 0 | 4 | 0% |
 | **Transpose** | **3** | 4 | 7 | 57% |
+| **Samples** | **3** | 8 | 11 | 73% |
 | **Phrases** | **3** | 27 | 30 | 90% |
 | **Initialize** | **3** | 0 | 3 | 0% |
 | **Effect Columns** | **3** | 3 | 6 | 50% |
