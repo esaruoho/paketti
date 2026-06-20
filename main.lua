@@ -1052,7 +1052,7 @@ local PAKETTI_VALID_KB_SCOPES = {
   ["Phrase Script Editor"]=true, ["Sample Editor"]=true, ["Sample FX Mixer"]=true,
   ["Sample Keyzones"]=true, ["Sample Modulation Matrix"]=true,
 }
-PakettiDeadKeybindings = PakettiDeadKeybindings or {}
+PakettiDeadKeybindings = {}
 
 -- Some menu CONTEXTS share a name with no keybinding scope, but DO have a real
 -- keybinding scope under a different name. Rewrite those keybindings to the real
@@ -1062,7 +1062,8 @@ PakettiDeadKeybindings = PakettiDeadKeybindings or {}
 local PAKETTI_KB_SCOPE_REMAP = {
   ["Sample Mappings"] = "Sample Keyzones",
 }
-PakettiRemappedKeybindings = PakettiRemappedKeybindings or {}
+PakettiRemappedKeybindings = {}
+PakettiUnexpectedDeadKeybindings = {}
 
 -- Menu CONTEXTS that look like scopes but are NOT keybinding categories AND have no
 -- keybinding equivalent to rescue them to. Their keybindings are intentionally
@@ -1091,7 +1092,6 @@ local function proxy_add_keybinding(proxy_self, args)
   -- Any OTHER non-real scope is also dead (most likely a fresh typo) — drop it too,
   -- but bucket separately so it stands out as something to fix or remap, not a known one.
   if scope and not PAKETTI_VALID_KB_SCOPES[scope] then
-    PakettiUnexpectedDeadKeybindings = PakettiUnexpectedDeadKeybindings or {}
     PakettiUnexpectedDeadKeybindings[#PakettiUnexpectedDeadKeybindings + 1] = args.name
     return false
   end
