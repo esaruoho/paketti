@@ -11,11 +11,21 @@ if BUNDLE:sub(-1) ~= "/" then BUNDLE = BUNDLE .. "/" end
 
 -- ── capture sinks ────────────────────────────────────────────────────────────
 local CAP = { keybinding = {}, menu_entry = {}, midi_mapping = {} }
+local SEEN = { keybinding = {}, midi_mapping = {} }   -- Renoise THROWS on duplicate
+local DUPS = { keybinding = {}, midi_mapping = {} }    -- names registered 2+ times
 local FILES = {}            -- { {module=, ok=, err=} }
 
 local function record(kind, name)
   if type(name) == "table" then name = tostring(name) end
-  CAP[kind][#CAP[kind] + 1] = name or "(noname)"
+  name = name or "(noname)"
+  CAP[kind][#CAP[kind] + 1] = name
+  -- Replicate Renoise's duplicate guard: add_keybinding / add_midi_mapping error on
+  -- the 2nd registration of a name ("invalid ... entry: 'X' was already added") —
+  -- fatal at load. (Menu entries may legitimately repeat, so we don't track those.)
+  if SEEN[kind] then
+    if SEEN[kind][name] then DUPS[kind][#DUPS[kind] + 1] = name
+    else SEEN[kind][name] = true end
+  end
 end
 
 -- ── permissive magic stub: indexes/calls/concats/etc. never crash ────────────
@@ -208,7 +218,10 @@ end
 out[#out+1] = '"files":[' .. table.concat(fparts, ',') .. '],'
 local nok, nbad = 0, 0
 for _, f in ipairs(FILES) do if f.ok then nok = nok + 1 else nbad = nbad + 1 end end
-out[#out+1] = '"file_stats":{"loaded":' .. nok .. ',"errored":' .. nbad .. ',"total":' .. #FILES .. '}'
+out[#out+1] = '"file_stats":{"loaded":' .. nok .. ',"errored":' .. nbad .. ',"total":' .. #FILES .. '},'
+-- duplicate registrations (these THROW in real Renoise even though the mock dedups)
+out[#out+1] = '"duplicates":{"keybinding":' .. jarr(DUPS.keybinding, jstr) ..
+              ',"midi_mapping":' .. jarr(DUPS.midi_mapping, jstr) .. '}'
 out[#out+1] = '}'
 local fh = io.open(arg[2] or "/tmp/spine.json", "w")
 fh:write(table.concat(out, "\n"))

@@ -5,10 +5,33 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
+  # ── Job 0: Validate — fail FAST on anything that crashes/degrades a real load ──
+  # Duplicate add_midi_mapping/add_keybinding aborts the whole tool in Renoise
+  # ("'X' was already added") — this shipped once and broke users. This job runs
+  # the registration harness and fails the build on any duplicate or brittle file,
+  # on every push AND pull_request. create-release needs it, so a duplicate can
+  # never produce a release / .xrnx.
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Install luajit
+        run: sudo apt-get update && sudo apt-get install -y luajit
+      - name: Check duplicate registrations + brittle files
+        run: python3 .spine/check.py "$GITHUB_WORKSPACE"
+
   # ── Job 1: Create a shared release (tag + GitHub release) ──────────
   create-release:
+    needs: validate
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       tag_name: ${{ steps.gen.outputs.tag_name }}
