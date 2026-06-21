@@ -149,6 +149,8 @@ These extend the rules already in the `paketti` skill (which you've read). The o
 
 8. **`AHDSR` ≠ `LFO`**: `SampleAhdrsModulationDevice` has `attack/hold/duration/sustain/release`. `SampleLfoModulationDevice` has `mode/phase/frequency/amount/amplitude/delay`. There is no `.amplitude` on AHDSR.
 
+9. **NEVER ship a duplicate `add_midi_mapping` / `add_keybinding` name — run `python3 .spine/check.py` before committing.** Renoise THROWS on the 2nd registration of a name (`invalid midi mapping entry: 'Paketti:X' was already added`) and **aborts the whole tool load** — a user sees a broken Paketti. Before adding any mapping, **grep the whole repo for the exact `name="Paketti:<...>"`** (the action usually already has one in its feature file). Do NOT map from the menu list assuming it lacks MIDI — the MIDI-GAPS/FEATURE-MAP analysis false-positives "missing". The `.spine` harness DEDUPS silently, so a registration-count check won't catch it; `.spine/check.py` runs the harness, replicates Renoise's duplicate guard, and exits 1 naming any duplicate or brittle file. CI (`main.yml` Job 0 `validate`) gates `create-release` on it. **Real incident (2026-06-20):** 13 duplicate MIDI mappings shipped → Renoise crashed at load → a user reported "it doesn't work" (fixed `25fdcbde` + `cb8d61f8`).
+
 ## Cross-Module Globals to Know
 
 These globals are declared in one file and read/mutated by many. Search before adding new ones with similar names:
@@ -171,5 +173,6 @@ When the user names a feature or asks "can we…":
 3. **Estimate scope based on what exists**, not on what would need to be built from scratch.
 4. **Confirm with the user** before writing code if it's a substantial feature.
 5. **Build** — reuse existing infrastructure, don't duplicate engines. Use worktrees for branch work.
-6. **Update CHANGESLOG.md** in the same turn.
-7. **Commit + push** in the same turn.
+6. **If you added any registration, run `python3 .spine/check.py`** — must print `✅ clean` (0 duplicate mappings/keybindings, 0 brittle). A duplicate aborts the whole tool load in Renoise (see rule 9).
+7. **Update CHANGESLOG.md** in the same turn.
+8. **Commit + push** in the same turn.
