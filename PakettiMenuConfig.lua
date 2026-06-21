@@ -2196,8 +2196,10 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Auto-Slice 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Whole Hog (Complete Workflow)",invoke=function() whole_hog_complete_workflow() end}
 
 -- Sample Editor Beatsync/Slices
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Double Beatsync Line",invoke=function() doubleBeatsyncLines() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Halve Beatsync Line",invoke=function() halveBeatsyncLines() end}
+-- Fixed: doubleBeatsyncLines()/halveBeatsyncLines() never existed (broken menu entries);
+-- point them at the real Selected-sample variants.
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Double Beatsync Line",invoke=function() doubleBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Halve Beatsync Line",invoke=function() halveBeatsyncLinesSelected() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
@@ -4536,3 +4538,54 @@ pkmidi("Paketti:Pattern / Phrase Init Preferences...", function() pakettiPattern
 pkmidi("Paketti:Dynamic View Preferences Dialog 1-3...", function() pakettiDynamicViewDialog(1, 3) end)
 pkmidi("Paketti:Dynamic View Preferences Dialog 4-6...", function() pakettiDynamicViewDialog(4, 6) end)
 pkmidi("Paketti:Dynamic View Preferences Dialog 7-9...", function() pakettiDynamicViewDialog(7, 9) end)
+
+-- ── MIDI mappings: Tuning (4) ───────────────────────────────────────────────
+pkmidi("Paketti:Apply User-Set Tuning to Selected Track", function() apply_tuning_to_track() end)
+pkmidi("Paketti:Clear Tuning Effects from Selected Track", function() clear_tuning_effects_from_track() end)
+pkmidi("Paketti:User-Set Tuning Preferences Dialog...", function() show_tuning_selection_dialog() end)
+pkmidi("Paketti:Toggle Auto-Input Tuning", function() toggle_auto_input_tuning() end)
+
+-- ── MIDI mappings: Controller paging — Groovebox 8120 (13) ──────────────────
+pkmidi("Paketti:Groovebox 8120 MidiMix Next Page", function() PakettiEightOneTwentyMidiMixNextPage() end)
+pkmidi("Paketti:Groovebox 8120 MidiMix Previous Page", function() PakettiEightOneTwentyMidiMixPrevPage() end)
+pkmidi("Paketti:Groovebox 8120 MidiMix Toggle Follow-Page Mode", function() PakettiEightOneTwentyMidiMixToggleFollow() end)
+pkmidi("Paketti:Groovebox 8120 APC Next Page", function() PakettiEightOneTwentyAPCNextPage() end)
+pkmidi("Paketti:Groovebox 8120 APC Previous Page", function() PakettiEightOneTwentyAPCPrevPage() end)
+pkmidi("Paketti:Groovebox 8120 APC Toggle Follow-Page Mode", function() PakettiEightOneTwentyAPCToggleFollow() end)
+pkmidi("Paketti:Groovebox 8120 APC Step Sequencer Start", function() PakettiEightOneTwentyAPCSeqStart() end)
+pkmidi("Paketti:Groovebox 8120 APC Step Sequencer Stop", function() PakettiEightOneTwentyAPCSeqStop() end)
+pkmidi("Paketti:Groovebox 8120 LPD8 Next Page", function() PakettiEightOneTwentyLPD8NextPage() end)
+pkmidi("Paketti:Groovebox 8120 LPD8 Previous Page", function() PakettiEightOneTwentyLPD8PrevPage() end)
+pkmidi("Paketti:Groovebox 8120 LPD8 Toggle Follow-Page Mode", function() PakettiEightOneTwentyLPD8ToggleFollow() end)
+pkmidi("Paketti:Groovebox 8120 LPD8 Step Sequencer Start", function() PakettiEightOneTwentyLPD8SeqStart() end)
+pkmidi("Paketti:Groovebox 8120 LPD8 Step Sequencer Stop", function() PakettiEightOneTwentyLPD8SeqStop() end)
+
+-- ── MIDI mappings: Import/Export — file loaders (8) ─────────────────────────
+pkmidi("Paketti:Convert REX/RX2/ITI to PTI", function() universal_to_pti_convert() end)
+pkmidi("Paketti:Convert IFF to WAV...", function() convertIFFToWAV() end)
+pkmidi("Paketti:Convert WAV to IFF...", function() convertWAVToIFF() end)
+pkmidi("Paketti:Load Samples from .MOD", function() load_samples_from_mod() end)
+pkmidi("Paketti:Load IFF Sample File...", function() loadIFFSampleFromDialog() end)
+pkmidi("Paketti:Export .PTI Instrument", function() pti_savesample() end)
+pkmidi("Paketti:Export Subfolders as Drum Slices", function() PakettiExportSubfoldersAsDrumSlices() end)
+pkmidi("Paketti:Export Subfolders as Melodic Slices", function() PakettiExportSubfoldersAsMelodicSlices() end)
+
+-- ── MIDI mappings: PhraseGrid — phrase patterns (18) ────────────────────────
+pkmidi("Paketti:Show PhraseGrid Dialog", function() PakettiPhraseGridShowDialog() end)
+pkmidi("Paketti:Show PhraseGrid Performance Hub", function() PakettiPhraseGridShowPerformanceDialog() end)
+pkmidi("Paketti:Show PhraseGrid Quick Popup", function() PakettiPhraseGridShowPopup() end)
+pkmidi("Paketti:Toggle Phrase Transport", function() PakettiPhraseTransportToggle() end)
+pkmidi("Paketti:Toggle Phrase Auto-Spawn on Selection", function() PakettiPhraseVoiceToggleAutoSpawn() end)
+pkmidi("Paketti:Create Empty Phrase (16 lines)", function() PakettiPhraseTemplateCreate("empty", {length = 16}) end)
+pkmidi("Paketti:Create Phrase From Slices", function() PakettiPhraseTemplateFromSlices() end)
+pkmidi("Paketti:Create Drum Pattern (Basic)", function() PakettiPhraseTemplateDrum("basic") end)
+pkmidi("Paketti:Create Drum Pattern (Four Floor)", function() PakettiPhraseTemplateDrum("four_floor") end)
+pkmidi("Paketti:Create Arp Pattern (Ascending)", function() PakettiPhraseTemplateArp("ascending", 12) end)
+pkmidi("Paketti:Create Arp Pattern (Descending)", function() PakettiPhraseTemplateArp("descending", 12) end)
+pkmidi("Paketti:Auto-Fill Pattern with Phrase", function() PakettiPhraseAutoFillPattern() end)
+pkmidi("Paketti:Auto-Fill with Variations", function() PakettiPhraseAutoFillWithVariation() end)
+pkmidi("Paketti:Convert Phrase to Pattern", function() PakettiPhraseToPattern() end)
+pkmidi("Paketti:Dump Phrase to Pattern at Cursor", function() PakettiDumpPhraseToPattern() end)
+pkmidi("Paketti:Convert Pattern to Phrase", function() PakettiPatternToPhrase() end)
+pkmidi("Paketti:Selection to Phrase", function() PakettiSelectionToPhrase() end)
+pkmidi("Paketti:Replace Selection with Phrase", function() PakettiReplaceSelectionWithPhrase() end)
