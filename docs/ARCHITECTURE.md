@@ -43,9 +43,9 @@ main.lua
 ```
 ## Structural hubs (refs · module — the most-imported = wiring backbone)
 ```
+    3  json
     3  cFilesystem
     2  slaxdom
-    2  json
     2  cValue
     2  cString
     2  cReflection
@@ -83,6 +83,7 @@ main.lua
 1 cPreferences -> cFilesystem
 1 cProcessSlicer -> main
 1 cSandbox -> cString
+1 check -> json
 1 features -> json
 1 main -> AppMain
 1 main -> FormulaDeviceManual
@@ -270,7 +271,7 @@ main.lua
 1 main -> base64float
 1 main -> legacy_v2_8_tools
 1 main -> process_slicer
-  ── 209 edges total ──
+  ── 210 edges total ──
 ```
 ## The wiring, drawn
 
@@ -298,6 +299,7 @@ graph LR
   cPreferences["cPreferences"] -->|1| cFilesystem["cFilesystem"]
   cProcessSlicer["cProcessSlicer"] -->|1| main["main"]
   cSandbox["cSandbox"] -->|1| cString["cString"]
+  check["check"] -->|1| json["json"]
   features["features"] -->|1| json["json"]
   main["main"] -->|1| AppMain["AppMain"]
   main["main"] -->|1| FormulaDeviceManual["FormulaDeviceManual"]
