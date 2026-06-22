@@ -7,11 +7,11 @@
    4358 wav
    1032 png
     701 xrnc
-    245 lua
+    247 lua
     210 gif
     133 txt
      49 xrni
-     36 md
+     37 md
      20 xml
      14 feature
      12 xrdp
@@ -164,6 +164,7 @@ main.lua
 1 main -> PakettiLoadDevices
 1 main -> PakettiLoadPlugins
 1 main -> PakettiLoaders
+1 main -> PakettiLull
 1 main -> PakettiMCPMain
 1 main -> PakettiMIDIMappingCategories
 1 main -> PakettiMIDIMappings
@@ -271,7 +272,7 @@ main.lua
 1 main -> base64float
 1 main -> legacy_v2_8_tools
 1 main -> process_slicer
-  ── 210 edges total ──
+  ── 211 edges total ──
 ```
 ## The wiring, drawn
 
@@ -380,6 +381,7 @@ graph LR
   main["main"] -->|1| PakettiLoadDevices["PakettiLoadDevices"]
   main["main"] -->|1| PakettiLoadPlugins["PakettiLoadPlugins"]
   main["main"] -->|1| PakettiLoaders["PakettiLoaders"]
+  main["main"] -->|1| PakettiLull["PakettiLull"]
   main["main"] -->|1| PakettiMCPMain["PakettiMCPMain"]
   main["main"] -->|1| PakettiMIDIMappingCategories["PakettiMIDIMappingCategories"]
   main["main"] -->|1| PakettiMIDIMappings["PakettiMIDIMappings"]
