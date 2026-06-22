@@ -1183,6 +1183,7 @@ timed_require("PakettiFuzzySearchUtil")
 timed_require("PakettiFuzzySampleSearch")
 timed_require("PakettiKeyBindings")
 timed_require("PakettiControls")
+timed_require("PakettiLull")
 timed_require("PakettiWavetabler")
 timed_require("PakettiAKWF")
 
