@@ -33,7 +33,7 @@ Paketti is free and open source. If it's become part of your workflow, here's ho
 - **Ko-Fi**: https://ko-fi.com/esaruoho
 - **Buy Me a Coffee**: https://buymeacoffee.com/esaruoho
 - **GitHub Sponsors**: https://github.com/sponsors/esaruoho
-- **1-on-1 calls** (workflow evaluation, feature walkthrough): message me on Discord
+- **1-on-1 calls** (workflow evaluation, feature walkthrough): message **@esaruoho** — that's Esa Ruoho, the developer of Paketti — on the Paketti Discord: https://discord.gg/Qex7k5j4wG
 
 Full transparency on what support means: https://lackluster.org/support
 
