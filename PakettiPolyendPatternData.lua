@@ -1350,7 +1350,10 @@ function import_pattern_to_renoise(pattern_data, target_pattern_index, track_map
 end
 
 -- Export Renoise pattern to MTP file
-local function export_pattern_to_mtp(pattern_index, output_path, track_count)
+-- Global so it can be driven headlessly (PakettiMCP test harness) and reused
+-- programmatically (clipboard/selection export). Writes pattern `pattern_index`
+-- (1-based Renoise) to `output_path` as a byte-faithful .mtp with `track_count` tracks.
+function export_pattern_to_mtp(pattern_index, output_path, track_count)
     track_count = track_count or 16  -- Default to 16 tracks for Tracker Mini/Plus
     
     local song = renoise.song()
