@@ -350,9 +350,12 @@ local function read_project_file(filepath)
     if file2 then
         local file_size = file2:seek("end")
 
-        -- Global tempo: float32 at offset 0x80
-        if file_size >= 0x84 then
-            file2:seek("set", 0x80)
+        -- Global tempo: float32 at offset 0x1C0 (VERIFIED against real device project.mt
+        -- files: Treasure Island=140, Bios Creatures=170, sandroid=130, and Polyend's own
+        -- official 2324-byte project template=130, all match 0x1C0. The old 0x80 offset read
+        -- 0.0 on every real file, so BPM silently fell back to default — confirmed bug.)
+        if file_size >= 0x1C4 then
+            file2:seek("set", 0x1C0)
             local tempo_bytes = file2:read(4)
             if tempo_bytes and #tempo_bytes == 4 then
                 -- Decode IEEE 754 float32 little-endian
@@ -375,9 +378,15 @@ local function read_project_file(filepath)
             end
         end
 
-        -- Project name: char[32] at offset 0x80C
-        if file_size >= 0x80C + 32 then
-            file2:seek("set", 0x80C)
+        -- Project name: char[32], offset is firmware-version-gated (matches the official
+        -- tracker-lib: fileStructureVersion major >16 -> 0x810 (newest T+/Mini), >15 -> 0x80C
+        -- (verified on real 16.x device files), else 0x600 (legacy/OG). Write side always 0x810.
+        local fsv_major = file_structure_version and string.byte(file_structure_version, 1) or 0
+        local name_offset = 0x600
+        if fsv_major > 16 then name_offset = 0x810
+        elseif fsv_major > 15 then name_offset = 0x80C end
+        if file_size >= name_offset + 32 then
+            file2:seek("set", name_offset)
             local name_bytes = file2:read(32)
             if name_bytes then
                 -- Extract null-terminated string
