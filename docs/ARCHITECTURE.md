@@ -11,7 +11,7 @@
     210 gif
     133 txt
      49 xrni
-     37 md
+     39 md
      20 xml
      14 feature
      12 xrdp
@@ -24,7 +24,7 @@
     701 Themes
      78 images
      55 Presets
-     34 Research
+     35 Research
      32 Sononymph
      27 ccizer
      18 features
@@ -32,7 +32,7 @@
      15 DeviceChains
      13 rx2
      13 PakettiMCP
-     10 docs
+     12 docs
       9 KeyBindings
 ```
 ## Entry points
@@ -43,7 +43,7 @@ main.lua
 ```
 ## Structural hubs (refs · module — the most-imported = wiring backbone)
 ```
-    3  json
+    4  json
     3  cFilesystem
     2  slaxdom
     2  cValue
@@ -85,6 +85,7 @@ main.lua
 1 cSandbox -> cString
 1 check -> json
 1 features -> json
+1 functions -> json
 1 main -> AppMain
 1 main -> FormulaDeviceManual
 1 main -> Paketti0G01_Loader
@@ -272,7 +273,7 @@ main.lua
 1 main -> base64float
 1 main -> legacy_v2_8_tools
 1 main -> process_slicer
-  ── 211 edges total ──
+  ── 212 edges total ──
 ```
 ## The wiring, drawn
 
@@ -302,6 +303,7 @@ graph LR
   cSandbox["cSandbox"] -->|1| cString["cString"]
   check["check"] -->|1| json["json"]
   features["features"] -->|1| json["json"]
+  functions["functions"] -->|1| json["json"]
   main["main"] -->|1| AppMain["AppMain"]
   main["main"] -->|1| FormulaDeviceManual["FormulaDeviceManual"]
   main["main"] -->|1| Paketti0G01_Loader["Paketti0G01_Loader"]
