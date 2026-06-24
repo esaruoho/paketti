@@ -11,8 +11,80 @@ Every changelog entry below represents hours of development time. Paketti is fre
 ### 2026-06-22 - Feature: "Lull" — make a selected segment quieter, three ways (`PakettiLull.lua`)
 Three ways to drop the volume of a pattern selection, reversibly — answering the Discord request to "offset the volume of all selected notes." All three were **proven against a live Renoise 3.5.4 via PakettiMCP** (`.spine/lull_test.lua` / `.spine/lull_test.sh`): **(1) Volume-column offset** — adds/subtracts from the `volume_value` of every selected note (clamped 0x00–0x80, empty→full), instrument-agnostic so it works on drumtracks with many instruments; generalises to panning/delay via the same `PakettiColumnOffsetRange`. **(2) Lull instrument duplicate** — duplicates each instrument used in the selection, names it `<orig> (Lull)`, remaps the notes to it and scales that duplicate's volume relatively (clamped to +6 dB), with dedup so repeated presses re-tweak the same dupe instead of piling up; revert with the existing "Set Selection to Instrument". **(3) Lull track-volume automation** — writes `prefx_volume` automation over the selected line-range (drops the whole track for that segment — best for drum kits; `postfx_volume` is not automatable, `prefx_volume` is). Keybindings under `Pattern Editor:Paketti:Selection Volume Offset ±1/±8/±16` and `Pattern Editor:Paketti:Lull Selection Instrument / Track Volume (Quieter −6/−3 dB, Louder +3 dB)`; MIDI mappings `Paketti:Selection Volume Offset …` and `Paketti:Lull Selection Instrument/Track Volume …`. Core functions take explicit ranges so they're unit-testable.
 
+### 2026-06-22 - Fix: Double/Halve Beatsync Line menu entries were dead (called functions that never existed)
+The Sample Editor entries **Double Beatsync Line** and **Halve Beatsync Line** (`Sample Editor:Paketti:Beatsync/Slices:...`) invoked `doubleBeatsyncLines()` / `halveBeatsyncLines()`, which were never defined — so clicking them did nothing. They now call the real selected-sample variants (`doubleBeatsyncLinesSelected()` / `halveBeatsyncLinesSelected()`), doubling or halving the beat-sync line count of the selected sample so it locks to the song at half or double speed.
+
+### 2026-06-22 - Feature: Tuning MIDI mappings — apply microtuning from a controller (4)
+Map your microtonal / just-intonation tuning work to a MIDI controller, so you can switch a track in and out of microtonal worlds without touching the mouse. MIDI Mappings: `Paketti:Apply User-Set Tuning to Selected Track`, `Paketti:Clear Tuning Effects from Selected Track`, `Paketti:User-Set Tuning Preferences Dialog...`, `Paketti:Toggle Auto-Input Tuning`.
+
+### 2026-06-22 - Feature: Controller paging MIDI mappings — drive the Groovebox 8120 hands-free (13)
+The AKAI MidiMix, APC and Akai LPD8 running the Paketti Groovebox 8120 can now page themselves from a controller and start/stop the hardware step sequencer mid-jam. MIDI Mappings: `Paketti:Groovebox 8120 {MidiMix,APC,LPD8} Next Page`, `... Previous Page`, `... Toggle Follow-Page Mode` (all three controllers), plus `Paketti:Groovebox 8120 {APC,LPD8} Step Sequencer Start` and `... Step Sequencer Stop`.
+
+### 2026-06-22 - Feature: Import/Export file-loader MIDI mappings — load and convert sounds from a controller (8)
+Load and convert sample formats hands-on from a controller. MIDI Mappings: `Paketti:Convert REX/RX2/ITI to PTI`, `Paketti:Convert IFF to WAV...`, `Paketti:Convert WAV to IFF...`, `Paketti:Load Samples from .MOD`, `Paketti:Load IFF Sample File...`, `Paketti:Export .PTI Instrument`, `Paketti:Export Subfolders as Drum Slices`, `Paketti:Export Subfolders as Melodic Slices`.
+
+### 2026-06-22 - Feature: PhraseGrid MIDI mappings — phrase performance & pattern building (18)
+Build, fill, convert and perform phrases entirely from pads. MIDI Mappings — dialogs: `Paketti:Show PhraseGrid Dialog`, `Paketti:Show PhraseGrid Performance Hub`, `Paketti:Show PhraseGrid Quick Popup`; performance toggles: `Paketti:Toggle Phrase Transport`, `Paketti:Toggle Phrase Auto-Spawn on Selection`; templates: `Paketti:Create Empty Phrase (16 lines)`, `Paketti:Create Phrase From Slices`, `Paketti:Create Drum Pattern (Basic)`, `Paketti:Create Drum Pattern (Four Floor)`, `Paketti:Create Arp Pattern (Ascending)`, `Paketti:Create Arp Pattern (Descending)`; pattern integration: `Paketti:Auto-Fill Pattern with Phrase`, `Paketti:Auto-Fill with Variations`, `Paketti:Convert Phrase to Pattern`, `Paketti:Convert Pattern to Phrase`, `Paketti:Dump Phrase to Pattern at Cursor`, `Paketti:Selection to Phrase`, `Paketti:Replace Selection with Phrase`.
+
 ### 2026-06-20 - Fix: Tool boot crash — `PakettiDeadKeybindings` is not declared
 Fixed a fatal boot error (`main.lua:1055: variable 'PakettiDeadKeybindings' is not declared`) that prevented the entire tool from loading. The keybinding-scope validation block declared its bookkeeping tables with the self-referential idiom `X = X or {}`, which **reads** the global before it exists — and Renoise's strict-globals guard throws on reading any undeclared global. Changed `PakettiDeadKeybindings`, `PakettiRemappedKeybindings`, and `PakettiUnexpectedDeadKeybindings` to plain direct assignment (`X = {}`), since each is declared exactly once. No user-facing menu/keybinding/MIDI changes.
+
+### 2026-06-19 - Feature: BPM & LPB MIDI mappings (9)
+Tempo/LPB from a controller: Double/Halve LPB, Double-Double/Halve-Halve LPB, Multiply BPM & Halve LPB, Halve BPM & Multiply LPB, Write Current BPM&LPB to Master, Renoise Random BPM & Write to Master, Random BPM (60-180).
+
+### 2026-06-19 - Feature: Wipe & Slice MIDI mappings (7)
+Slice work from a controller: Wipe/Double/Halve Slices, Prepare Sample for Slicing, Auto-Slice (Using First Slice Length / every 8 beats), Whole Hog (Complete Workflow).
+
+### 2026-06-19 - Feature: LFO Write MIDI mappings (8)
+Write LFO-shaped effect patterns from a controller: LFO Write to Effect Column 1 (0Dxx/0Gxx/0Rxx/0Sxx/0Uxx/0Yxx/Amount-Only), plus LFO Write Single Parameter to Automation.
+
+### 2026-06-19 - Feature: Write Notes MIDI mappings (30)
+A controller becomes a note generator: Write Notes Ascending/Descending/Random, each in plain · EditStep · Flood · Flood-EditStep · Pro · Pro-EditStep · Flood-Pro · Flood-Pro-EditStep (24); plus Write Values/Notes (SubColumn Aware) Ascending/Descending/Random in plain · EditStep (6).
+
+### 2026-06-19 - Feature: Automation Curves MIDI mappings (11)
+Per-shape BUTTONS that stamp a curve onto the automation selection (complementing the existing knobs): Automation Curve — Top to Top, Bottom to Bottom, Selection Up/Down (Exp), Selection Up/Down (Linear), Center to Top/Bottom (Exp), Top/Bottom to Center (Exp), Set to Center.
+
+### 2026-06-19 - Feature: Modulation matrix loader MIDI mappings (48)
+Drop a modulation device into a chosen domain of the selected modulation set, from a controller: Load Modulation Device — {AHDSR, Envelope, Fader, Key Tracking, LFO, Operand, Stepper, Velocity Tracking} × {01 Volume, 02 Panning, 03 Pitch, 04 Cutoff, 05 Resonance, 06 Drive} = 48. (Renoise's API exposes the selected set but not a focused domain, so domain is explicit per mapping.)
+
+### 2026-06-19 - Feature: Octatrack action MIDI mappings (14)
+One-button Octatrack from a controller: Export (.WAV+.ot / .ot only), Import (.ot), Generate Drumkit (Smart / Force Mono / Play to End), Set .ot Loop to Slice, Debug (.ot), Generate/Quick/Export OctaCycle, Import STRD Bank, Batch Convert RX2→OT and .ot→CUE.
+
+### 2026-06-19 - Feature: Plugins/Devices MIDI mappings (9)
+Plugin actions + panel openers from a controller: Randomize Selected Instrument Plugin Parameters, Switch Plugin AutoSuspend Off, Import Selected Sample to Selected Convolver, Load Devices/Plugins Dialog, Show Effect/Plugin Details Dialog, Dump Available Effects/Plugins to Dialog, Configure Plugin Slots.
+
+### 2026-06-19 - Feature: Load Renoise Native device MIDI mappings (34)
+Insert any native device from a controller — one mapping per device: Analog Filter, Bus Compressor, Cabinet Simulator, Chorus, Compressor, Convolver, DC Offset, Delay, Doofer, EQ 5, EQ 10, Exciter, Gainer, Maximizer, Mixer EQ, Multitap, Repeater, Reverb, Stereo Expander, #Line Input, #Multiband Send, #ReWire Input, #Send, *Formula, *Hydra, *Instr. Automation, *Instr. Macros, *Instr. MIDI Control, *Key Tracker, *LFO, *Meta Mixer, *Signal Follower, *Velocity Tracker, *XY Pad.
+
+### 2026-06-19 - Feature: Steppers MIDI mappings (7)
+From a controller: Show Selected Instrument Stepper (Cutoff/Drive/Panning/Pitch/Resonance/Volume), plus Modify PitchStep Steps (Minor Flurry).
+
+### 2026-06-19 - Feature: Beatsync / Slices MIDI mappings (8)
+From a controller: Slice Drumkit (Percussion/Texture), Beatsync Lines Halve/Double (All / Selected Sample), Analyze Slice Markers, Convert Beatsync to Sample Pitch.
+
+### 2026-06-19 - Feature: Custom LFO Envelope MIDI mappings (24)
+Shape the custom LFO envelope from a controller: Editor dialog; Center; Curve — Bell, U-Shape, Double Peak, Double Valley, Exponential Up/Down, Linear Up/Down, Logarithmic Up/Down; Double/Halve Resolution; Flip; Mirror; Invert; Humanize; Randomize; Max; Min; Slapback; Scale 50%/150%.
+
+### 2026-06-19 - Feature: Note Column MIDI mappings (12)
+From a controller: Generate Delay Value (on Note Columns / Entire Pattern / Selection; and Notes-Only: Row / Pattern / Selection), Reverse Notes in Selection, Apply/Clear Note Column Sample Effects M00/MFF, Note-Off Paste, Convert 3 Note Chord to Arpeggio, Flood Fill Note and Instrument.
+
+### 2026-06-19 - Feature: DSP / Sidechain trigger MIDI mappings (5)
+From a controller: Create Kick/Snare/Hat Trigger Instrument, Save/Load Sidechain Recipe.
+
+### 2026-06-19 - Feature: Effect Column MIDI mappings (7)
+From a controller: Invert Effect Column Subcolumns, Wipe All Effect Columns (Selected-Track-on-Song / Selected Pattern / Song), and the +1 writers (Uxx) Slide Pitch Up, (Dxx) Slide Pitch Down, (Gxx) Glide.
+
+### 2026-06-19 - Feature: Process (sample DSP) MIDI mappings (52)
+Sample processing from a controller: Normalize (Sample, All Samples in Instrument, Slices Independently, and -12dB for Sample / Instrument / All Instruments); Invert (Left/Right channel, Sample, Random Samples); Strip Silence; Move Beginning Silence to End (selected + all); 15-Frame Fade In&Out; Cross-fade Loop Edges; Toggle Signed/Unsigned; Scale Unsigned→Signed; Convert to 8/16/24/32-bit (single + all samples); Stereo→Mono (Keep Left/Right/Mix); All Samples→Mono (Left/Right/Mix); Mono to Left/Right with Blank; Truncate 2/4/8/16/32/64×; Trim (to Loop, to Selection, to Selection+Normalize, All to Loop); FT2 Minimize; Create Wrecked Variants; Max-Amp DC-Offset Kick; Experimental Sample FX Render.
+
+### 2026-06-19 - Feature: Hidden/legacy native device MIDI mappings (15)
+Insert the deprecated/hidden legacy Renoise native devices from a controller (`Paketti:Load Renoise Native (Hidden): <device>`): Chorus, Comb Filter, Distortion, Filter, Filter 2, Filter 3, Flanger, Gate, LofiMat, Phaser, RingMod, Scream Filter, Shaper, Stutter, mpReverb.
+
+### 2026-06-19 - Feature: View-jump MIDI mappings — switch to any Renoise pane (13)
+Jump to a Renoise pane from a controller (`Paketti:Switch to ...`, fires on button press): Pattern Editor, Mixer, Phrase Editor, Sample Keyzones, Sample Editor, Sample Modulation, Sample Effects, Plugin Editor, MIDI Editor (middle frames); Track Scopes, Master Spectrum (upper frame); Track DSPs, Track Automation (lower frame). Upper/lower jumps reveal the frame first.
+
+### 2026-06-19 - Feature: Open/close Paketti dialog MIDI mappings (10)
+Open (and close, where the dialog toggles) Paketti dialogs from a controller (`Paketti:...`, fires on button press): Paketti Preferences, Paketti KeyBindings, Menu Configuration, Function Search, Renoise KeyBindings Dialog, MCP Server Dialog, Pattern / Phrase Init Preferences, and Dynamic View Preferences Dialog 1-3 / 4-6 / 7-9.
 
 ### 2026-06-17 - Feature: Music Mouse — Launchpad controller (pads play chords + a Raindrops light show)
 Music Mouse now drives a **Novation Launchpad** as a hardware front-end. A new **Launchpad** selector in the control panel (and a "Music Mouse Launchpad Mode (Cycle)" keybinding / menu / MIDI mapping) switches between three modes: **Off** (devices released, LEDs cleared), **Play chords** (the 8×8 grid maps onto the Music Mouse play area — pressing a pad punches the 4–9-voice chord at that X/Y exactly like clicking, regardless of Freeze/Keyjazz, while an LED mirrors the live cursor pad and your last press flashes white), and **Raindrops demo** (everything Play does, plus an animated light show — expanding rings of colour ripple outward from every press and from ambient drops, like rain on water). The Launchpad is opened/closed automatically with the mode and released when Music Mouse closes (or on song change). Layout is Programmer-mode `note = row*10 + col`; LED colours use the mk3 velocity palette. Menu: `Tools:Paketti:Instruments:Music Mouse Launchpad Mode (Cycle)`. Keybinding: `Global:Paketti:Music Mouse Launchpad Mode Cycle`. MIDI Mapping: `Paketti:Music Mouse Launchpad Mode (Cycle)`.
