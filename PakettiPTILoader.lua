@@ -1307,27 +1307,39 @@ function extractModulationForPTIExport(renoise_instrument)
     local target = device.target
     local env_idx = target_to_env_idx[target]
     if env_idx then
-      -- Check if it's an AHDSR device (has attack, hold, decay, sustain, release)
-      if device.attack and device.sustain and device.release then
+      -- Detect the device TYPE by its (fixed, read-only) name — NEVER by probing
+      -- a type-specific property. Renoise raises "unknown property or function"
+      -- when you read e.g. .attack on a Stepper, or .decay on an AHDSR, or
+      -- .amplitude on an LFO — none of those properties exist on those types —
+      -- and that error aborts the whole REX/RX2/ITI->PTI conversion. device.name
+      -- is "<Target> <Type>", e.g. "Volume AHDSR", "Pitch Stepper", "Cutoff LFO".
+      local dname = device.name or ""
+      if dname:find("AHDSR") then
+        -- AHDSR parameters are attack / hold / duration / sustain / release.
+        -- Renoise calls the decay stage "duration" (there is no .decay); PTI's
+        -- envelope slot is named "decay", so map duration -> decay.
         result.envelopes[env_idx] = {
           enabled = device.is_active,
           amount = 1.0,
           delay = 0,
           attack = device.attack.value,
-          hold = device.hold and device.hold.value or 0,
-          decay = device.decay and device.decay.value or 0,
+          hold = device.hold.value,
+          decay = device.duration.value,
           sustain = device.sustain.value,
           release = device.release.value,
         }
-      end
-      -- Check if it's an LFO device (has mode, frequency, amplitude)
-      if device.mode and device.frequency then
+      elseif dname:find("LFO") then
+        -- LFO parameters are mode / phase / frequency / amount / delay.
+        -- There is NO .amplitude on an LFO modulation device — use .amount.
         result.lfos[env_idx] = {
           mode = device.mode,
           frequency = device.frequency.value,
-          amount = device.amplitude and device.amplitude.value or 0,
+          amount = device.amount.value,
         }
       end
+      -- Stepper / Envelope / Fader / Key Tracking / Operand / Velocity Tracking
+      -- have no PTI envelope/LFO equivalent — skip them safely (this is what
+      -- previously crashed: a Pitch Stepper hit the .attack probe and threw).
     end
   end
 
