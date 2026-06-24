@@ -1,0 +1,50 @@
+name: Paketti function index
+
+# Regenerate the ground-truth function index on every push to master, so the repo always shows
+# the COMPLETE, current list of every Paketti function with its KeyBinding ⌨ / MidiMapping 🎛 /
+# MenuEntry ☰ — zero-token, for-loops resolved via the .spine harness.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+# needed so the workflow can commit the regenerated docs back
+permissions:
+  contents: write
+
+# never let two runs race the same push
+concurrency:
+  group: functions-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  functions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (on the branch, so we can push back)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Install luajit
+        run: sudo apt-get update && sudo apt-get install -y luajit
+
+      - name: Generate the function index (zero-token, for-loops resolved)
+        run: python3 .spine/functions.py "$GITHUB_WORKSPACE"
+
+      - name: Commit the index if it changed
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          # -f: docs/ is gitignored (the .gitignore 'Docs/' rule is case-insensitive on macOS),
+          # so the tracked docs (like FEATURE-MAP.md) are all force-added. Match that.
+          git add -f docs/PAKETTI-FUNCTIONS.md
+          if git diff --cached --quiet; then
+            echo "function index unchanged — nothing to commit"
+          else
+            # [skip ci] so this commit does not re-trigger the workflow (no loop)
+            git commit -m "docs: regenerate Paketti function index [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
