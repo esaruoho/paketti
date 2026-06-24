@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,249 functions** · 10,866 keybindings · 7,240 midimappings · 6,696 menu entries.
+**4,255 functions** · 10,866 keybindings · 7,240 midimappings · 6,702 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (-16) | ✅ | · | · |
+| Nudge Slice 01 by (-32) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -2849,7 +2849,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1456 functions  ·  ⌨ 0 · 🎛 724 · ☰ 876
+## (menu/midi only)  ·  1462 functions  ·  ⌨ 0 · 🎛 724 · ☰ 882
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -3233,6 +3233,7 @@
 | Debug Logging Toggle | · | · | ✅ |
 | Debug Matching Logic... | · | · | ✅ |
 | Debug Print Points | · | · | ✅ |
+| Decode Active Plugin ParameterChunk Amigo (AU) | · | · | ✅ |
 | Decrease All Track Volumes by 3dB | · | · | ✅ |
 | Default Pattern (2,3,5,8) | · | · | ✅ |
 | Delay | · | ✅ | ✅ |
@@ -3309,6 +3310,7 @@
 | Export Pattern to MTP | · | · | ✅ |
 | Export Polyend Project | · | · | ✅ |
 | Export Sample Chain... | · | · | ✅ |
+| Export Selected Sample to Amigo (AU) | · | · | ✅ |
 | Export to Octatrack (.ot only) | · | · | ✅ |
 | Export Wavetable (.WT)... | · | · | ✅ |
 | Expose/Hide Selected Device Parameters | · | · | ✅ |
@@ -3457,6 +3459,8 @@
 | Import .RX2 | · | · | ✅ |
 | Import .RX2 (ReCycle v2.0 Format) | · | · | ✅ |
 | Import .SF2 (Single XRNI per Preset) | · | · | ✅ |
+| Import Active Plugin Wavefile Amigo (AU) | · | · | ✅ |
+| Import Embedded Amigo (AU) WAV into Sample | · | · | ✅ |
 | Import MT Project File | · | · | ✅ |
 | Import Polyend Pattern | · | · | ✅ |
 | Import Polyend Pattern Tracks | · | · | ✅ |
@@ -3734,6 +3738,7 @@
 | Octatrack Import (.ot) | · | ✅ | ✅ |
 | Octatrack Quick OctaCycle (C, Oct 1-7) | · | ✅ | ✅ |
 | OFF | · | · | ✅ |
+| Open Amigo (AU) Sample Path | · | · | ✅ |
 | Open Architecture Designer... | · | · | ✅ |
 | Open CCizer Dialog | · | · | ✅ |
 | Open Dialog | · | · | ✅ |
@@ -4076,6 +4081,7 @@
 | Sequential RandomLoadAll (1 folder, all 8 rows)… | · | · | ✅ |
 | Sequential RandomLoadAll [Trigger] | · | ✅ | · |
 | Set .ot Loop to Slice | · | · | ✅ |
+| Set Active Plugin Pathname Amigo (AU) | · | · | ✅ |
 | Set All Beatsync Values for Instrument x[Knob] | · | ✅ | · |
 | Set Beatsync Value for Selected Sample x[Knob] | · | ✅ | · |
 | Set Delay (+1) x[Toggle] | · | ✅ | · |
