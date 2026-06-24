@@ -115,6 +115,21 @@ Menu entries (un-bury from Xperimental/WIP if desired), keybindings (3-part!), M
 
 ---
 
+## PROGRESS (2026-06-25)
+- ✅ **Phase 0 — oracle**: `tracker-lib` built; durable validator in `Research/polyend-roundtrip-tests/`.
+- ✅ **Phase 1 — import BPM/name** (commit `3b42aa6f`): tempo 0x80→0x1C0 (proven on real 140/170/130
+  device files), project-name version-gating. Verified by luajit harness on real files.
+- ✅ **Phase 2 — faithful MTP export** (commit `c530fb24`): `"KS"` id, lastStep on all tracks, correct
+  size + CRC. Exported header BYTE-IDENTICAL to real device; parses in official tracker-lib.
+- ⏳ **Phase 1 leftover**: note-cut fidelity (121→OFF collapse) — needs live Renoise.
+- ⏳ **Phase 3 — project.mt export**: adopt the 2324-byte official template, write tempo @ 0x1C0 from
+  Renoise BPM, names/playlist; reconcile filename convention (real device = `pattern_%02d.mtp`, 1-based).
+- ⏳ **Phase 4 — clipboard ⇄ pattern**, **Phase 5 — full FX + instrument map + long-pattern split**,
+  **Phase 6 — wiring (menus/keys/MIDI) + docs + skill-spec corrections**.
+
+Ground truth confirmed: real device pattern id = `"KS"`; 16-track pattern = 12336 bytes; tempo @ 0x1C0
+matches folder-labelled BPMs; export header byte-identical to device.
+
 ## Open decisions for the user
 1. **Sequencing / priority** — import-correctness first, export-faithfulness first, or clipboard first?
 2. **Ground truth** — can you drop a real Polyend project folder (a `project.mt` + a few
