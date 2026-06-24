@@ -6,6 +6,26 @@ library `tracker-lib` — the same code the Polyend web editors (tracker-mtp-edi
 tracker-pti-editor) use — so a file Paketti writes that this library accepts is, by
 definition, format-correct.
 
+## Looping harness (recommended)
+```bash
+python3 loop-roundtrip.py
+```
+Generates many synthetic patterns (8/12/16 tracks, lengths 1–128, notes, note-offs,
+FX), drives Paketti's REAL `export_pattern_to_mtp` (sliced live from the source via
+luajit + a Renoise stub), re-reads with Paketti's REAL `read_pattern_file`, and
+validates each file against **two** oracles:
+- the authoritative official Polyend reference parser `patternRead.py` (all track counts), and
+- Sandroid's `tracker-lib` (perfect for 16-track).
+
+### Known `tracker-lib` bug found via this harness (worth reporting upstream)
+`tracker-lib` `src/types/patterns.ts:261` sets `UNUSED_SIZE: 10`, but the real
+unused block is **12 bytes** (`<ff4B>` = 2×float32 + 4×uint8, per the official
+`patternRead.py`). So `detectTrackCount` computes 8-track=6182 / 12-track=9258
+instead of the correct **6184 / 9260**, can't match correct 8/12-track files,
+falls back to 16, then overruns and throws. Its *writer* uses the correct 28-byte
+base, so tracker-lib writes 8/12-track files its own reader can't parse. 16-track
+(Tracker Mini / Tracker+) is unaffected. Paketti matches the authoritative reference.
+
 ## One-time setup
 ```bash
 cd ~/work/tracker-lib && npm install && npm run build
