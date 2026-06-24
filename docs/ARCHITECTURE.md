@@ -24,7 +24,7 @@
     701 Themes
      78 images
      55 Presets
-     38 Research
+     39 Research
      32 Sononymph
      27 ccizer
      18 features
@@ -43,7 +43,7 @@ main.lua
 ```
 ## Structural hubs (refs · module — the most-imported = wiring backbone)
 ```
-    4  json
+    5  json
     3  cFilesystem
     2  slaxdom
     2  cValue
@@ -86,6 +86,7 @@ main.lua
 1 check -> json
 1 features -> json
 1 functions -> json
+1 loop-roundtrip -> json
 1 main -> AppMain
 1 main -> FormulaDeviceManual
 1 main -> Paketti0G01_Loader
@@ -273,7 +274,7 @@ main.lua
 1 main -> base64float
 1 main -> legacy_v2_8_tools
 1 main -> process_slicer
-  ── 212 edges total ──
+  ── 213 edges total ──
 ```
 ## The wiring, drawn
 
@@ -304,6 +305,7 @@ graph LR
   check["check"] -->|1| json["json"]
   features["features"] -->|1| json["json"]
   functions["functions"] -->|1| json["json"]
+  loop_roundtrip["loop-roundtrip"] -->|1| json["json"]
   main["main"] -->|1| AppMain["AppMain"]
   main["main"] -->|1| FormulaDeviceManual["FormulaDeviceManual"]
   main["main"] -->|1| Paketti0G01_Loader["Paketti0G01_Loader"]
