@@ -33,7 +33,7 @@
      13 rx2
      13 PakettiMCP
      10 docs
-      8 KeyBindings
+      9 KeyBindings
 ```
 ## Entry points
 ```
