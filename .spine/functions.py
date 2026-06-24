@@ -43,9 +43,11 @@ def harness_names():
 # the leaf phrase, lower-cased, with parameter noise (+1/-10, slot NN, x[Knob], NN dB) and
 # common filler words removed. Parameter variants intentionally MERGE (+1 and +10 are the same
 # function); the per-door name lists below still record every concrete registration.
-_PARAM = re.compile(r"""\(?[-+]?\d+(\.\d+)?\)?|x\[[a-z]+\]|\b\d+\s*db\b""", re.I)
+# strip parameter noise AND the door-specific suffixes MIDI names carry but keybindings don't:
+#   x[Knob]/x[Toggle]/[Trigger]/[Button]/[Slider]  — same FUNCTION, different door.
+_PARAM = re.compile(r"""\(?[-+]?\d+(\.\d+)?\)?|x?\[[^\]]*\]|\b\d+\s*db\b""", re.I)
 _FILLER = {"to", "the", "a", "of", "for", "by", "in", "on", "and", "or", "as", "with",
-           "this", "paketti", "selected", "current"}
+           "this", "paketti", "selected", "current", "trigger"}
 
 
 def leaf(n):

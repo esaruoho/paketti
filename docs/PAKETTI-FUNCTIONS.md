@@ -4,9 +4,9 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,396 functions** · 10,866 keybindings · 7,240 midimappings · 6,702 menu entries.
+**4,255 functions** · 10,866 keybindings · 7,240 midimappings · 6,702 menu entries.
 
-## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 40 · ☰ 81
+## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -28,7 +28,7 @@
 | Cycle Frequency Analysis Cycles | ✅ | · | ✅ |
 | Debug Octatrack (.ot) | ✅ | · | ✅ |
 | Destructive Repeat Sample Range | ✅ | · | ✅ |
-| Detect and Select Silence in Zoom | ✅ | · | ✅ |
+| Detect and Select Silence in Zoom | ✅ | ✅ | ✅ |
 | Detect Gaps in Sample | ✅ | · | · |
 | Detect Zero Crossings | ✅ | · | ✅ |
 | Duplicate Sample Range, Mute Original | ✅ | · | ✅ |
@@ -48,8 +48,8 @@
 | Fit Slices to Longest Slice with Power of 2 Padding | ✅ | · | ✅ |
 | Fit Slices to Shortest Slice + Export OT/WAV with CUE | ✅ | · | ✅ |
 | Fit Slices to Shortest Slice with Power of 2 Padding | ✅ | · | ✅ |
-| Flip Sample Buffer Selection Back | ✅ | · | ✅ |
-| Flip Sample Buffer Selection Forward | ✅ | · | ✅ |
+| Flip Sample Buffer Selection Back | ✅ | ✅ | ✅ |
+| Flip Sample Buffer Selection Forward | ✅ | ✅ | ✅ |
 | Flip Sample by 1/4 | ✅ | · | · |
 | Generate OctaCycle for Octatrack | ✅ | · | · |
 | Import Octatrack (.ot) | ✅ | · | ✅ |
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+16) | ✅ | · | · |
+| Nudge Slice 01 by (-32) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -181,7 +181,7 @@
 | Parama Param Previous Parameter | ✅ | · | ✅ |
 | To Pattern Editor | ✅ | · | ✅ |
 
-## Pattern Editor  ·  489 functions  ·  ⌨ 489 · 🎛 201 · ☰ 187
+## Pattern Editor  ·  489 functions  ·  ⌨ 489 · 🎛 210 · ☰ 187
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -364,12 +364,12 @@
 | Expose and Select Next Column | ✅ | ✅ | · |
 | Extract Highest Note to New Track | ✅ | · | ✅ |
 | Fill Effect Column Between Notes | ✅ | ✅ | · |
-| Fill Effect Column with 0D00 | ✅ | · | ✅ |
-| Fill Effect Column with 0G01+0D00 | ✅ | · | ✅ |
-| Fill Effect Column with 0G01+0D00 (From Cursor) | ✅ | · | ✅ |
-| Fill Effect Column with 0G01+0U00 | ✅ | · | ✅ |
-| Fill Effect Column with 0G01+0U00 (From Cursor) | ✅ | · | ✅ |
-| Fill Effect Column with 0U00 | ✅ | · | ✅ |
+| Fill Effect Column with 0D00 | ✅ | ✅ | ✅ |
+| Fill Effect Column with 0G01+0D00 | ✅ | ✅ | ✅ |
+| Fill Effect Column with 0G01+0D00 (From Cursor) | ✅ | ✅ | ✅ |
+| Fill Effect Column with 0G01+0U00 | ✅ | ✅ | ✅ |
+| Fill Effect Column with 0G01+0U00 (From Cursor) | ✅ | ✅ | ✅ |
+| Fill Effect Column with 0U00 | ✅ | ✅ | ✅ |
 | Fill Sample Effects Between Notes | ✅ | ✅ | · |
 | Fit Sample Offset to Pattern (0Sxx Headless) | ✅ | · | ✅ |
 | Fit Sample Offset to Pattern (0Sxx) | ✅ | · | ✅ |
@@ -503,7 +503,7 @@
 | Pattern Expand + Resize (dBlue) | ✅ | · | · |
 | Pattern Shrink (dBlue) | ✅ | · | · |
 | Pattern Shrink + Resize (dBlue) | ✅ | · | · |
-| Place Note Off in All Visible Note Columns | ✅ | · | · |
+| Place Note Off in All Visible Note Columns | ✅ | ✅ | · |
 | Play Next Note Line | ✅ | ✅ | · |
 | Play Previous Note Line | ✅ | ✅ | · |
 | Player Pro Effect Dialog... | ✅ | · | · |
@@ -602,9 +602,9 @@
 | Toggle Auto-Input Tuning | ✅ | ✅ | ✅ |
 | Toggle Match EditStep with Note Placement (Effect Column) | ✅ | · | · |
 | Toggle Match EditStep with Note Placement (Note Column) | ✅ | · | · |
-| Toggle Note Off in All Visible Note Columns | ✅ | · | · |
+| Toggle Note Off in All Visible Note Columns | ✅ | ✅ | · |
 | Toggle Note Off in Selected Tracks | ✅ | · | · |
-| Toggle Note Off on All Tracks on Current Row | ✅ | · | · |
+| Toggle Note Off on All Tracks on Current Row | ✅ | ✅ | · |
 | Toggle Selection Follow Start | ✅ | ✅ | · |
 | Toggle Selection Follow to End | ✅ | ✅ | · |
 | Toggle Show Only Delay Columns | ✅ | · | ✅ |
@@ -675,7 +675,7 @@
 | Write Values/Notes Random EditStep (SubColumn Aware) | ✅ | ✅ | ✅ |
 | Write ZD04 (4 Lines Delay) | ✅ | ✅ | · |
 
-## Phrase Editor  ·  36 functions  ·  ⌨ 36 · 🎛 1 · ☰ 4
+## Phrase Editor  ·  36 functions  ·  ⌨ 36 · 🎛 3 · ☰ 4
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -702,8 +702,8 @@
 | Paketti Phrase Doubler (2nd) | ✅ | · | · |
 | Phrase Halver (Joule) | ✅ | · | · |
 | Phrase Halver (Joule) (2nd) | ✅ | · | · |
-| Phrase Quantize Phrase | ✅ | · | · |
-| Phrase Quantize Selection | ✅ | · | · |
+| Phrase Quantize Phrase | ✅ | ✅ | · |
+| Phrase Quantize Selection | ✅ | ✅ | · |
 | Player Pro Note Grid Dialog | ✅ | · | · |
 | Replicate Above + Current (-12) | ✅ | · | ✅ |
 | Replicate Above Current Row (-12) | ✅ | · | ✅ |
@@ -752,16 +752,16 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2092 functions  ·  ⌨ 2092 · 🎛 702 · ☰ 652
+## Global  ·  2092 functions  ·  ⌨ 2092 · 🎛 797 · ☰ 655
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
 | 12st PitchBend Instrument Init | ✅ | · | ✅ |
-| 8120 All Rows as Phrase Triggers | ✅ | · | · |
-| 8120 All Rows to Phrases Bank | ✅ | · | · |
-| 8120 Cycle Output Mode | ✅ | · | · |
+| 8120 All Rows as Phrase Triggers | ✅ | ✅ | · |
+| 8120 All Rows to Phrases Bank | ✅ | ✅ | · |
+| 8120 Cycle Output Mode | ✅ | ✅ | · |
 | 8120 Row 1 as Phrase Trigger (Z01) | ✅ | · | · |
-| 8120 Row 1 to Phrase | ✅ | · | · |
+| 8120 Row 1 to Phrase | ✅ | ✅ | · |
 | About Paketti/Donations... | ✅ | · | ✅ |
 | Add 84 Sample Slots to Instrument | ✅ | · | ✅ |
 | Add Autocomplete Abbreviation | ✅ | · | ✅ |
@@ -773,9 +773,9 @@
 | Add Gainer B to Selected Track | ✅ | · | ✅ |
 | Add Input Inertia Formula Device | ✅ | · | ✅ |
 | Add New Phrase | ✅ | · | · |
-| Add Next Pattern in Section to Schedule | ✅ | · | · |
-| Add Pattern 01 in Section to Schedule | ✅ | · | · |
-| Add Previous Pattern in Section to Schedule | ✅ | · | · |
+| Add Next Pattern in Section to Schedule | ✅ | ✅ | · |
+| Add Pattern 01 in Section to Schedule | ✅ | ✅ | · |
+| Add Previous Pattern in Section to Schedule | ✅ | ✅ | · |
 | Add Sample Slot to Instrument | ✅ | · | · |
 | Additive Record Follow Pattern (Dialog) | ✅ | · | ✅ |
 | Advanced Subdivision Calculator | ✅ | · | ✅ |
@@ -804,7 +804,7 @@
 | Auto-Capture Track (Not Pattern Editor) | ✅ | ✅ | · |
 | Auto-Capture Track (Pattern Editor Only) | ✅ | ✅ | · |
 | Auto-Slice and Create Phrases | ✅ | · | ✅ |
-| Automate Last Touched Parameter | ✅ | · | ✅ |
+| Automate Last Touched Parameter | ✅ | ✅ | ✅ |
 | Automation Bottom to Center (Exp) | ✅ | · | · |
 | Automation Bottom to Center (Lin) | ✅ | · | · |
 | Automation Center to Bottom (Exp) | ✅ | · | · |
@@ -872,13 +872,13 @@
 | Batch Convert RX2 to Octatrack (WAV+.ot) | ✅ | · | · |
 | Batch Convert RX2 to XRNI | ✅ | · | ✅ |
 | Batch Convert SF2 to XRNI | ✅ | · | · |
-| Batch Convert SFZ to XRNI & Load... | ✅ | · | ✅ |
-| Batch Convert SFZ to XRNI (Save Only)... | ✅ | · | ✅ |
+| Batch Convert SFZ to XRNI & Load... | ✅ | ✅ | ✅ |
+| Batch Convert SFZ to XRNI (Save Only)... | ✅ | ✅ | ✅ |
 | Batch Convert WAV to IFF... | ✅ | · | ✅ |
 | Batch Convert WAV/AIFF to 16SV... | ✅ | · | ✅ |
 | Batch Convert WAV/AIFF to 8SVX... | ✅ | · | ✅ |
-| Batch Pakettify Wave Files in Folder to XRNI & Load... | ✅ | · | ✅ |
-| Batch Pakettify Wave Files in Folder to XRNI (Save Only)... | ✅ | · | ✅ |
+| Batch Pakettify Wave Files in Folder to XRNI & Load... | ✅ | ✅ | ✅ |
+| Batch Pakettify Wave Files in Folder to XRNI (Save Only)... | ✅ | ✅ | ✅ |
 | Batch Sample Adjust Dialog... | ✅ | ✅ | ✅ |
 | BeatDetector Modified... | ✅ | · | ✅ |
 | Beatsync Seamless Auto-Chop | ✅ | ✅ | · |
@@ -979,7 +979,7 @@
 | Computer Keyboard Velocity (Double) | ✅ | ✅ | · |
 | Computer Keyboard Velocity (Halve) | ✅ | ✅ | · |
 | Configure Launch App Selection... | ✅ | · | · |
-| Continue Sequence 00 From Same Line | ✅ | · | ✅ |
+| Continue Sequence 00 From Same Line | ✅ | ✅ | ✅ |
 | Contour Shuttle Record Off, Follow On | ✅ | · | · |
 | Contour Shuttle Record On, Follow Off | ✅ | · | · |
 | Contour Shuttle Record On/Off | ✅ | · | · |
@@ -1139,7 +1139,7 @@
 | Dump Phrase to Pattern at Cursor | ✅ | ✅ | ✅ |
 | Duplicate & Wonkify Pattern | ✅ | ✅ | ✅ |
 | Duplicate All Samples at -36 Transpose | ✅ | · | ✅ |
-| Duplicate and Reverse Instrument | ✅ | · | ✅ |
+| Duplicate and Reverse Instrument | ✅ | ✅ | ✅ |
 | Duplicate Effect Column Content to Pattern or Selection | ✅ | ✅ | ✅ |
 | Duplicate Instrument and Select Last Instrument | ✅ | · | ✅ |
 | Duplicate Instrument and Select New Instrument | ✅ | · | ✅ |
@@ -1272,16 +1272,16 @@
 | Frame Calculator Dialog | ✅ | · | ✅ |
 | Frequency to Note Analysis | ✅ | · | ✅ |
 | FT2 Minimize Selected Sample | ✅ | ✅ | ✅ |
-| Full Render Stack Workflow | ✅ | · | ✅ |
+| Full Render Stack Workflow | ✅ | ✅ | ✅ |
 | Fullscreen (2nd) | ✅ | · | · |
 | Fuzzy Sample Search Dialog... | ✅ | · | ✅ |
 | Fuzzy Search Track | ✅ | · | ✅ |
-| Gater All to Phrases State | ✅ | · | · |
-| Gater Cycle Output Mode | ✅ | · | · |
-| Gater Panning to Phrase | ✅ | · | · |
-| Gater Playback to Phrase | ✅ | · | · |
-| Gater Retrig to Phrase | ✅ | · | · |
-| Gater Volume to Phrase | ✅ | · | · |
+| Gater All to Phrases State | ✅ | ✅ | · |
+| Gater Cycle Output Mode | ✅ | ✅ | · |
+| Gater Panning to Phrase | ✅ | ✅ | · |
+| Gater Playback to Phrase | ✅ | ✅ | · |
+| Gater Retrig to Phrase | ✅ | ✅ | · |
+| Gater Volume to Phrase | ✅ | ✅ | · |
 | Generate AM Sinewave 440Hz (20x mod) | ✅ | · | · |
 | Generate AM Sinewave Custom | ✅ | · | · |
 | Generate Automation Points from Notes in Selected Track | ✅ | ✅ | ✅ |
@@ -1293,7 +1293,7 @@
 | Generate Pure Sinewave Custom | ✅ | · | · |
 | Generate Trigger Phrase Library | ✅ | ✅ | ✅ |
 | Glider Show Dialog | ✅ | · | · |
-| Glider Toggle | ✅ | · | ✅ |
+| Glider Toggle | ✅ | ✅ | ✅ |
 | Global Edit Mode Toggle | ✅ | · | · |
 | Global Volume Adjustment... | ✅ | ✅ | ✅ |
 | Global Volume Reduce All Instruments by -4.5dB | ✅ | ✅ | ✅ |
@@ -1341,7 +1341,7 @@
 | Impulse Tracker Bootstrap | ✅ | ✅ | ✅ |
 | Impulse Tracker Capture Marker Position (CTRL-F7) | ✅ | · | · |
 | Impulse Tracker CTRL-N New Song Dialog... | ✅ | · | · |
-| Impulse Tracker CTRL-O Pattern to Sample | ✅ | · | ✅ |
+| Impulse Tracker CTRL-O Pattern to Sample | ✅ | ✅ | ✅ |
 | Impulse Tracker F11 Order List | ✅ | · | · |
 | Impulse Tracker F12 Master | ✅ | · | · |
 | Impulse Tracker F2 Pattern Editor | ✅ | · | · |
@@ -1410,10 +1410,10 @@
 | Jump Forward Within Pattern by Random | ✅ | ✅ | · |
 | Jump Forward Within Song by 001 | ✅ | ✅ | · |
 | Jump Forward Within Song by Random | ✅ | ✅ | · |
-| Jump to Pattern 01 in Section | ✅ | · | · |
+| Jump to Pattern 01 in Section | ✅ | ✅ | · |
 | Jump to Previous Position | ✅ | ✅ | · |
-| Jump to Section (Next) | ✅ | · | · |
-| Jump to Section (Previous) | ✅ | · | · |
+| Jump to Section (Next) | ✅ | ✅ | · |
+| Jump to Section (Previous) | ✅ | ✅ | · |
 | Jump to Sends | ✅ | · | · |
 | Jump to Sequence (Next) | ✅ | · | · |
 | Jump to Sequence (Previous) | ✅ | · | · |
@@ -1620,11 +1620,11 @@
 | Load Renoise Splitter | ✅ | · | · |
 | Load Renoise Stereo Expander | ✅ | · | · |
 | Load Rhino 2.1 AU | ✅ | · | · |
-| Load RingMod Instrument | ✅ | · | ✅ |
-| Load RingMod Legacy Instrument | ✅ | · | ✅ |
+| Load RingMod Instrument | ✅ | ✅ | ✅ |
+| Load RingMod Legacy Instrument | ✅ | ✅ | ✅ |
 | Load Schaack Transient Shaper (VST) | ✅ | · | · |
-| Load Selected Sample from Sononym (No Prompt) [Trigger] | ✅ | ✅ | · |
-| Load Selected Sample from Sononym (Prompt) [Trigger] | ✅ | ✅ | · |
+| Load Selected Sample from Sononym (No Prompt) [Trigger] | ✅ | ✅ | ✅ |
+| Load Selected Sample from Sononym (Prompt) [Trigger] | ✅ | ✅ | ✅ |
 | Load Sidechain Recipe Dialog | ✅ | · | · |
 | Load SphereDelay Maybe? | ✅ | · | · |
 | Load Surge (VST) | ✅ | · | · |
@@ -1747,8 +1747,8 @@
 | Multiband Send (Preset++) | ✅ | · | · |
 | Multiband Send Device (Preset++) | ✅ | · | ✅ |
 | Multiply BPM & Halve LPB | ✅ | ✅ | ✅ |
-| Multitap Create Delay Phrase | ✅ | · | · |
-| Multitap Create Echo Phrase | ✅ | · | · |
+| Multitap Create Delay Phrase | ✅ | ✅ | · |
+| Multitap Create Echo Phrase | ✅ | ✅ | · |
 | Multitap Restore from PhraseGrid State | ✅ | · | · |
 | Multitap Snapshot to PhraseGrid State | ✅ | · | · |
 | Music Mouse Launchpad Mode Cycle | ✅ | ✅ | ✅ |
@@ -1952,11 +1952,11 @@
 | Phrase Live Record Arm | ✅ | ✅ | · |
 | Phrase Live Record Start | ✅ | ✅ | · |
 | Phrase Live Record Stop | ✅ | ✅ | · |
-| Phrase Recording Arm | ✅ | · | · |
+| Phrase Recording Arm | ✅ | ✅ | · |
 | Phrase Recording Dialog | ✅ | · | · |
-| Phrase Recording Start | ✅ | · | · |
-| Phrase Recording Stop | ✅ | · | · |
-| Phrase Recording Toggle | ✅ | · | · |
+| Phrase Recording Start | ✅ | ✅ | · |
+| Phrase Recording Stop | ✅ | ✅ | · |
+| Phrase Recording Toggle | ✅ | ✅ | · |
 | Phrase Switcher Cycle Launch Mode | ✅ | ✅ | · |
 | Phrase Switcher Cycle Quantization | ✅ | ✅ | · |
 | Phrase Switcher Stop | ✅ | ✅ | · |
@@ -1967,43 +1967,43 @@
 | Phrase Transport Arm Offset | ✅ | · | · |
 | Phrase Transport Clear Offset | ✅ | · | · |
 | Phrase Transport Toggle | ✅ | ✅ | · |
-| PhraseGrid Create From Context | ✅ | · | · |
+| PhraseGrid Create From Context | ✅ | ✅ | · |
 | PhraseGrid Dialog | ✅ | · | · |
-| PhraseGrid Performance Hub | ✅ | · | · |
+| PhraseGrid Performance Hub | ✅ | ✅ | · |
 | PhraseGrid Popup | ✅ | · | · |
-| PhraseGrid Quick Capture (Current State) | ✅ | · | · |
-| PhraseGrid Quick Recall (Current State) | ✅ | · | · |
+| PhraseGrid Quick Capture (Current State) | ✅ | ✅ | · |
+| PhraseGrid Quick Recall (Current State) | ✅ | ✅ | · |
 | PhraseGrid Recall State 01 | ✅ | ✅ | · |
-| PhraseGrid Snapshot 8120 to Current State | ✅ | · | · |
+| PhraseGrid Snapshot 8120 to Current State | ✅ | ✅ | · |
 | PhraseGrid Snapshot All Sequencers to Current State | ✅ | · | · |
-| PhraseGrid Snapshot Gater to Current State | ✅ | · | · |
-| PhraseGrid Snapshot SliceStep to Current State | ✅ | · | · |
+| PhraseGrid Snapshot Gater to Current State | ✅ | ✅ | · |
+| PhraseGrid Snapshot SliceStep to Current State | ✅ | ✅ | · |
 | PhraseGrid Store State 01 | ✅ | ✅ | · |
-| PhraseGrid Toggle Auto-Restore Sequencers | ✅ | · | · |
-| PhraseVoice Clear Pending Queue | ✅ | · | · |
-| PhraseVoice Kill All | ✅ | · | · |
-| PhraseVoice Kill Phrase 01 | ✅ | · | · |
-| PhraseVoice Smart Spawn Phrase 01 | ✅ | · | · |
+| PhraseGrid Toggle Auto-Restore Sequencers | ✅ | ✅ | · |
+| PhraseVoice Clear Pending Queue | ✅ | ✅ | · |
+| PhraseVoice Kill All | ✅ | ✅ | · |
+| PhraseVoice Kill Phrase 01 | ✅ | ✅ | · |
+| PhraseVoice Smart Spawn Phrase 01 | ✅ | ✅ | · |
 | PhraseVoice Spawn Bass Phrases | ✅ | · | · |
 | PhraseVoice Spawn HiHat Phrases | ✅ | · | · |
 | PhraseVoice Spawn Kick Phrases | ✅ | · | · |
 | PhraseVoice Spawn Lead Phrases | ✅ | · | · |
 | PhraseVoice Spawn Pad Phrases | ✅ | · | · |
-| PhraseVoice Spawn Phrase 01 | ✅ | · | · |
+| PhraseVoice Spawn Phrase 01 | ✅ | ✅ | · |
 | PhraseVoice Spawn Snare Phrases | ✅ | · | · |
-| PhraseVoice State Recall 01 | ✅ | · | · |
-| PhraseVoice State Save 1 | ✅ | · | · |
+| PhraseVoice State Recall 01 | ✅ | ✅ | · |
+| PhraseVoice State Save 1 | ✅ | ✅ | · |
 | PhraseVoice Toggle Additive Mode | ✅ | · | · |
-| PhraseVoice Toggle Auto-Spawn on Selection | ✅ | · | · |
+| PhraseVoice Toggle Auto-Spawn on Selection | ✅ | ✅ | · |
 | PhraseVoice Toggle Debug Mode | ✅ | · | · |
-| PhraseVoice Toggle Operation Mode | ✅ | · | · |
-| PhraseVoice Toggle Output Mode | ✅ | · | · |
-| PhraseVoice Toggle Phase Lock | ✅ | · | · |
-| PhraseVoice Toggle Phrase 01 | ✅ | · | · |
+| PhraseVoice Toggle Operation Mode | ✅ | ✅ | · |
+| PhraseVoice Toggle Output Mode | ✅ | ✅ | · |
+| PhraseVoice Toggle Phase Lock | ✅ | ✅ | · |
+| PhraseVoice Toggle Phrase 01 | ✅ | ✅ | · |
 | Pick & Move Toggle | ✅ | · | ✅ |
 | PitchBend Drumkit Instrument Init | ✅ | · | ✅ |
 | PitchStepper Demo | ✅ | · | ✅ |
-| Place Sample to End at Pattern End | ✅ | · | ✅ |
+| Place Sample to End at Pattern End | ✅ | ✅ | ✅ |
 | Play & Loop Pattern 01 | ✅ | ✅ | · |
 | Play at 75% Speed (Song BPM) | ✅ | · | ✅ |
 | Play at Random Line in Current Pattern | ✅ | ✅ | · |
@@ -2092,7 +2092,7 @@
 | Play at Row 254 (0FE) Force Internal | ✅ | ✅ | · |
 | Play at Row 255 (0FF) | ✅ | ✅ | · |
 | Play at Row 255 (0FF) Force Internal | ✅ | ✅ | · |
-| Play Current Line in Phrase | ✅ | · | ✅ |
+| Play Current Line in Phrase | ✅ | ✅ | ✅ |
 | Play Current Line&Step Backwards | ✅ | · | · |
 | Play Current Line&Step Forwards | ✅ | · | · |
 | Play Current Line&Step Random | ✅ | · | · |
@@ -2128,7 +2128,7 @@
 | Quick Flick Volume Ramp Down | ✅ | · | · |
 | Quick Flick Volume Ramp Up | ✅ | · | · |
 | Quick Flicks Dialog | ✅ | · | · |
-| Quick Flicks Toggle Output Mode | ✅ | · | · |
+| Quick Flicks Toggle Output Mode | ✅ | ✅ | · |
 | Quick Folder 01 Open Folder | ✅ | · | · |
 | Quick Folder 01 Random 01 | ✅ | · | · |
 | Quick Folder 01 Random 01 Sample to Pattern | ✅ | · | · |
@@ -2136,13 +2136,13 @@
 | Quick Humanize 5 | ✅ | ✅ | · |
 | Quick Humanize Random | ✅ | ✅ | · |
 | Quick LFO Custom Editor | ✅ | ✅ | ✅ |
-| Quick Load Device Dialog... | ✅ | · | ✅ |
+| Quick Load Device Dialog... | ✅ | ✅ | ✅ |
 | Quick Sample to New Track & Instrument (Sync Off) | ✅ | ✅ | ✅ |
 | Quick Sample to New Track & Instrument (Sync On + 0G01) | ✅ | ✅ | ✅ |
 | Quick Sample to New Track & Instrument (Toggle) | ✅ | ✅ | ✅ |
 | Quick Select First Half | ✅ | · | · |
-| Quick Select Full Pattern | ✅ | · | · |
-| Quick Select Lines 1-16 | ✅ | · | · |
+| Quick Select Full Pattern | ✅ | ✅ | · |
+| Quick Select Lines 1-16 | ✅ | ✅ | · |
 | Quick Select Second Half | ✅ | · | · |
 | Random BPM from List | ✅ | · | · |
 | Random Feature for Documentation | ✅ | · | ✅ |
@@ -2212,9 +2212,9 @@
 | Render and Reverse | ✅ | · | ✅ |
 | Render Current PhraseGrid State | ✅ | · | · |
 | Render Pattern Matrix Selection to New Instrument | ✅ | · | ✅ |
-| Render Pattern to Phrases | ✅ | · | ✅ |
+| Render Pattern to Phrases | ✅ | ✅ | ✅ |
 | Render Pattern to Phrases (8 slices) | ✅ | · | · |
-| Render Phrase to Sample | ✅ | · | ✅ |
+| Render Phrase to Sample | ✅ | ✅ | ✅ |
 | Repeater 1 / 1 Dotted | ✅ | · | · |
 | Repeater 1 / 1 Even | ✅ | · | · |
 | Repeater 1 / 1 Triplet | ✅ | · | · |
@@ -2266,25 +2266,25 @@
 | Save Unused Samples (.WAV&.XRNI) | ✅ | · | ✅ |
 | Scala Tuning Map | ✅ | ✅ | ✅ |
 | Scale Automation to 90% | ✅ | ✅ | ✅ |
-| Schedule Next Pattern in Section | ✅ | · | · |
-| Schedule Pattern 01 in Section | ✅ | · | · |
-| Schedule Previous Pattern in Section | ✅ | · | · |
-| Search Selected Sample in Sononym | ✅ | · | ✅ |
+| Schedule Next Pattern in Section | ✅ | ✅ | · |
+| Schedule Pattern 01 in Section | ✅ | ✅ | · |
+| Schedule Previous Pattern in Section | ✅ | ✅ | · |
+| Search Selected Sample in Sononym | ✅ | ✅ | ✅ |
 | Section Loop (Next) | ✅ | ✅ | ✅ |
 | Section Loop (Previous) | ✅ | ✅ | ✅ |
 | Section Sequence Selection (Next) | ✅ | ✅ | · |
 | Section Sequence Selection (Previous) | ✅ | ✅ | · |
 | Sectionizer... | ✅ | · | ✅ |
-| Select and Add Next Pattern in Section to Schedule | ✅ | · | · |
-| Select and Add Pattern 01 in Section to Schedule | ✅ | · | · |
-| Select and Add Previous Pattern in Section to Schedule | ✅ | · | · |
+| Select and Add Next Pattern in Section to Schedule | ✅ | ✅ | · |
+| Select and Add Pattern 01 in Section to Schedule | ✅ | ✅ | · |
+| Select and Add Previous Pattern in Section to Schedule | ✅ | ✅ | · |
 | Select and Loop Section (Next) | ✅ | · | · |
 | Select and Loop Section (Previous) | ✅ | · | · |
 | Select and Loop Sequence Section 01 | ✅ | · | · |
-| Select and Schedule Next Pattern in Section | ✅ | · | · |
-| Select and Schedule Pattern 01 in Section | ✅ | · | · |
-| Select and Schedule Previous Pattern in Section | ✅ | · | · |
-| Select and Trigger Pattern 01 in Current Section | ✅ | · | · |
+| Select and Schedule Next Pattern in Section | ✅ | ✅ | · |
+| Select and Schedule Pattern 01 in Section | ✅ | ✅ | · |
+| Select and Schedule Previous Pattern in Section | ✅ | ✅ | · |
+| Select and Trigger Pattern 01 in Current Section | ✅ | ✅ | · |
 | Select Automation Playmode (Next) | ✅ | ✅ | · |
 | Select Automation Playmode (Previous) | ✅ | ✅ | · |
 | Select Automation Playmode 01 Points | ✅ | ✅ | · |
@@ -2306,16 +2306,16 @@
 | Select Next Instrument | ✅ | ✅ | ✅ |
 | Select Next Instrument (2nd) | ✅ | · | · |
 | Select Next Loop Block (catch up) | ✅ | ✅ | ✅ |
-| Select Next Phrase | ✅ | · | ✅ |
-| Select Next Phrase (Phrase Editor) | ✅ | · | ✅ |
+| Select Next Phrase | ✅ | ✅ | ✅ |
+| Select Next Phrase (Phrase Editor) | ✅ | ✅ | ✅ |
 | Select Phrase 01 | ✅ | · | ✅ |
 | Select Phrase 01 (Phrase Editor) | ✅ | · | ✅ |
 | Select Previous Chunk (00..F0) | ✅ | · | · |
 | Select Previous Instrument | ✅ | ✅ | ✅ |
 | Select Previous Instrument (2nd) | ✅ | · | · |
 | Select Previous Loop Block (catch up) | ✅ | ✅ | ✅ |
-| Select Previous Phrase | ✅ | · | ✅ |
-| Select Previous Phrase (Phrase Editor) | ✅ | · | ✅ |
+| Select Previous Phrase | ✅ | ✅ | ✅ |
+| Select Previous Phrase (Phrase Editor) | ✅ | ✅ | ✅ |
 | Select Random Instrument (Sample,Plugin,MIDI) | ✅ | · | ✅ |
 | Select Sample Next | ✅ | ✅ | · |
 | Select Sample Previous | ✅ | ✅ | · |
@@ -2411,7 +2411,7 @@
 | Set Sample Slot 01 Velocity to 00 | ✅ | ✅ | · |
 | Set Sample Slot 01 Velocity to 7F | ✅ | ✅ | · |
 | Set Sample to One-Shot + NNA Continue | ✅ | · | · |
-| Set Section Loop and Schedule Section | ✅ | · | ✅ |
+| Set Section Loop and Schedule Section | ✅ | ✅ | ✅ |
 | Set Selected Instrument All Autofade On | ✅ | · | ✅ |
 | Set Selected Instrument All Autofade On/Off | ✅ | · | · |
 | Set Selected Instrument All Autoseek On | ✅ | · | ✅ |
@@ -2570,7 +2570,7 @@
 | Show/Hide Selected Track Device 01 | ✅ | ✅ | · |
 | Show/Hide SlotShow 01 on Master | ✅ | ✅ | · |
 | Show/Hide SlotShow 01 on Selected Track | ✅ | · | · |
-| Show/Hide Track DSP and FX Chain Device External Editors | ✅ | · | · |
+| Show/Hide Track DSP and FX Chain Device External Editors | ✅ | ✅ | · |
 | Show/Hide User Preference Devices Master Dialog (SlotShow)... | ✅ | · | ✅ |
 | Show/Hide VolumeStep on Selected Instrument | ✅ | · | ✅ |
 | Shuffle Oblique Strategies Cards | ✅ | · | · |
@@ -2587,11 +2587,11 @@
 | Simple Play Record Follow | ✅ | ✅ | · |
 | Simple Play Record Follow (2nd) | ✅ | · | · |
 | Slice Count From Selection | ✅ | · | ✅ |
-| Slice Step All Rows to Phrases Bank | ✅ | · | · |
-| Slice Step Cycle Output Mode | ✅ | · | · |
-| Slice Step Randomize to New Track | ✅ | · | · |
-| Slice Step Rearrange to New Track | ✅ | · | · |
-| Slice Step Row 1 to Phrase | ✅ | · | · |
+| Slice Step All Rows to Phrases Bank | ✅ | ✅ | · |
+| Slice Step Cycle Output Mode | ✅ | ✅ | · |
+| Slice Step Randomize to New Track | ✅ | ✅ | · |
+| Slice Step Rearrange to New Track | ✅ | ✅ | · |
+| Slice Step Row 1 to Phrase | ✅ | ✅ | · |
 | Slice to Pattern Sequencer Dialog... | ✅ | · | ✅ |
 | Slice Tools Dialog | ✅ | ✅ | ✅ |
 | SlicePro Apply | ✅ | ✅ | ✅ |
@@ -2599,7 +2599,7 @@
 | SlicePro Create Beat-Synced Phrases | ✅ | ✅ | · |
 | SlicePro Create Uniform Phrases | ✅ | ✅ | · |
 | SlicePro Silent Apply | ✅ | ✅ | ✅ |
-| Slices to Phrase Bank | ✅ | · | ✅ |
+| Slices to Phrase Bank | ✅ | ✅ | ✅ |
 | SliceSafely Dialog... | ✅ | ✅ | ✅ |
 | Smart Beatsync from Selection | ✅ | · | ✅ |
 | Snapshot All Devices on Selected Track to Automation | ✅ | ✅ | ✅ |
@@ -2615,25 +2615,25 @@
 | Squeeze Note Columns (Whole Song) | ✅ | ✅ | ✅ |
 | Stack All Samples in Instrument with Velocity Mapping Split | ✅ | · | ✅ |
 | Stacker Create Phrase Bank from Stacked | ✅ | · | · |
-| Stacker Create Phrase from Pattern | ✅ | · | · |
+| Stacker Create Phrase from Pattern | ✅ | ✅ | · |
 | Stacker Create Random Phrase (8 lines) | ✅ | · | · |
-| Stacker Create Random Velocity Phrase | ✅ | · | · |
-| Stacker Create Sparse Random Phrase | ✅ | · | · |
-| Stacker Create Velocity Cycle Phrase | ✅ | · | · |
-| Stacker Create Velocity Phrases | ✅ | · | · |
-| Stacker From Rendered Audio | ✅ | · | · |
-| Stacker Full Workflow | ✅ | · | · |
+| Stacker Create Random Velocity Phrase | ✅ | ✅ | · |
+| Stacker Create Sparse Random Phrase | ✅ | ✅ | · |
+| Stacker Create Velocity Cycle Phrase | ✅ | ✅ | · |
+| Stacker Create Velocity Phrases | ✅ | ✅ | · |
+| Stacker From Rendered Audio | ✅ | ✅ | · |
+| Stacker Full Workflow | ✅ | ✅ | · |
 | Stacker Phrase Studio Dialog... | ✅ | · | · |
 | Stacker Rearrange Velocity (Random) | ✅ | · | · |
 | Stacker Rearrange Velocity to Track | ✅ | · | · |
-| Stacker Render and Stack | ✅ | · | · |
+| Stacker Render and Stack | ✅ | ✅ | · |
 | Start Sampling and Sample Editor (Record) | ✅ | · | ✅ |
 | Start/Stop Column Cycling | ✅ | · | ✅ |
 | Start/Stop Playback (Continue) | ✅ | · | · |
 | Start/Stop Playback (First Row) | ✅ | · | · |
-| Start/Stop Playback Toggle | ✅ | · | · |
+| Start/Stop Playback Toggle | ✅ | ✅ | · |
 | Start/Stop Sample Recording and Pakettify | ✅ | · | · |
-| Stem Loader Create Phrases from Slices | ✅ | · | · |
+| Stem Loader Create Phrases from Slices | ✅ | ✅ | · |
 | Stem Slice Randomizer Dialog... | ✅ | · | · |
 | Step Sequencer FX Randomizer Dialog... | ✅ | · | · |
 | Store Current LFO to Slot 01 | ✅ | · | ✅ |
@@ -2744,7 +2744,7 @@
 | Toggle Sequence Selection 00 | ✅ | · | · |
 | Toggle Sequence Selection to Loop | ✅ | · | ✅ |
 | Toggle Solo Tracks | ✅ | ✅ | ✅ |
-| Toggle Sononym Auto-Transfer [Trigger] | ✅ | ✅ | · |
+| Toggle Sononym Auto-Transfer [Trigger] | ✅ | ✅ | ✅ |
 | Toggle Timed Require Debug | ✅ | · | ✅ |
 | Toggle Track Slot Mute 01 | ✅ | ✅ | · |
 | TouchOSC Pattern Editor | ✅ | · | · |
@@ -2849,7 +2849,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1603 functions  ·  ⌨ 0 · 🎛 838 · ☰ 886
+## (menu/midi only)  ·  1462 functions  ·  ⌨ 0 · 🎛 724 · ☰ 882
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -2925,11 +2925,6 @@
 | 31 | · | · | ✅ |
 | 32 | · | · | ✅ |
 | 4 (3/4→4/4 feel) | · | · | ✅ |
-| 8120 All Rows as Phrase Triggers [Trigger] | · | ✅ | · |
-| 8120 All Rows to Phrases Bank [Trigger] | · | ✅ | · |
-| 8120 Cycle Output Mode [Trigger] | · | ✅ | · |
-| 8120 Row 1 as Phrase Trigger [Trigger] | · | ✅ | · |
-| 8120 Row 1 to Phrase [Trigger] | · | ✅ | · |
 | A#0 | · | · | ✅ |
 | A#1 | · | · | ✅ |
 | A#2 | · | · | ✅ |
@@ -2950,9 +2945,6 @@
 | A8 | · | · | ✅ |
 | Absolute +000 | · | · | ✅ |
 | Add 1 | · | · | ✅ |
-| Add Next Pattern in Section to Schedule [Trigger] | · | ✅ | · |
-| Add Pattern 01 in Section to Schedule [Trigger] | · | ✅ | · |
-| Add Previous Pattern in Section to Schedule [Trigger] | · | ✅ | · |
 | Add Selected Device as Target | · | · | ✅ |
 | Add Selected Sample FX Chain Device as Target | · | · | ✅ |
 | Added - Major 6 Add 9 (4-3-2-5) | · | · | ✅ |
@@ -2968,10 +2960,8 @@
 | APC Demo — Light Show | · | · | ✅ |
 | APC Demo — Open (press pads to paint) | · | · | ✅ |
 | APC Light Up All Pads | · | ✅ | · |
-| APC Next Page | · | · | ✅ |
-| APC Next Page [Trigger] | · | ✅ | · |
-| APC Previous Page | · | · | ✅ |
-| APC Previous Page [Trigger] | · | ✅ | · |
+| APC Next Page [Trigger] | · | ✅ | ✅ |
+| APC Previous Page [Trigger] | · | ✅ | ✅ |
 | APC Probe — Close | · | · | ✅ |
 | APC Probe — Open (read pads to terminal) | · | · | ✅ |
 | APC Probe — Test pad LEDs | · | · | ✅ |
@@ -2981,8 +2971,7 @@
 | APC Test First 4 Pads OFF | · | ✅ | · |
 | APC Test First 4 Pads ON | · | ✅ | · |
 | APC Toggle ALL 8 Pads | · | ✅ | · |
-| APC Toggle Follow-Page Mode | · | · | ✅ |
-| APC Toggle Follow-Page Mode [Trigger] | · | ✅ | · |
+| APC Toggle Follow-Page Mode [Trigger] | · | ✅ | ✅ |
 | APC Toggle Pads 1-4 | · | ✅ | · |
 | APC Turn Off All Pads | · | ✅ | · |
 | APC — Fireworks | · | · | ✅ |
@@ -3034,7 +3023,6 @@
 | Auto-Start AKAI MidiMix Bridge | · | · | ✅ |
 | Auto-Start PakettiMCP | · | · | ✅ |
 | Auto-Zero-Crossing Selection Range in Sample Editor | · | · | ✅ |
-| Automate Last Touched Parameter [Trigger] | · | ✅ | · |
 | Automatic Rename Track Toggle | · | · | ✅ |
 | Automatically Open Selected Track Device Editors Toggle | · | · | ✅ |
 | Automation | · | · | ✅ |
@@ -3064,10 +3052,6 @@
 | Bass | · | · | ✅ |
 | Batch Convert RX2 to OT (WAV+.ot)... | · | · | ✅ |
 | Batch Convert SF2 to XRNI (Per Preset)... | · | · | ✅ |
-| Batch Convert SFZ to XRNI & Load [Trigger] | · | ✅ | · |
-| Batch Convert SFZ to XRNI (Save Only) [Trigger] | · | ✅ | · |
-| Batch Pakettify Wave Files in Folder to XRNI & Load [Trigger] | · | ✅ | · |
-| Batch Pakettify Wave Files in Folder to XRNI (Save Only) [Trigger] | · | ✅ | · |
 | BeatDetector Modified (Headless Mode) | · | · | ✅ |
 | Beatsync Lines Double (All) | · | ✅ | ✅ |
 | Beatsync Lines Double (Selected Sample) | · | ✅ | ✅ |
@@ -3159,12 +3143,10 @@
 | Command Wheel Index Prev x[Button] | · | ✅ | · |
 | Command Wheel Write x[Button] | · | ✅ | · |
 | Command Wheel... | · | · | ✅ |
-| Commit Preview | · | · | ✅ |
-| Commit Preview [Trigger] | · | ✅ | · |
+| Commit Preview [Trigger] | · | ✅ | ✅ |
 | Compressor | · | ✅ | ✅ |
 | Computer Keyboard Velocity Slider x[Knob] | · | ✅ | · |
 | Configure Plugin Slots... | · | ✅ | ✅ |
-| Continue Sequence From Same Line [Set Sequence] | · | ✅ | · |
 | Control Mixer Shown Parameter 01 (Relative) x[Knob] | · | ✅ | · |
 | Control Mixer Shown Parameter 01 x[Knob] | · | ✅ | · |
 | Control Selected Track Exposed Parameters | · | ✅ | · |
@@ -3253,12 +3235,10 @@
 | Debug Print Points | · | · | ✅ |
 | Decode Active Plugin ParameterChunk Amigo (AU) | · | · | ✅ |
 | Decrease All Track Volumes by 3dB | · | · | ✅ |
-| Default | · | · | ✅ |
 | Default Pattern (2,3,5,8) | · | · | ✅ |
 | Delay | · | ✅ | ✅ |
 | Delay Column (DEPRECATED) x[Slider] | · | ✅ | · |
 | Delete all Pattern Sequences | · | · | ✅ |
-| Detect and Select Silence in Zoom [Trigger] | · | ✅ | · |
 | Detect Gaps | · | · | ✅ |
 | Digitakt Export Sample Chain... | · | · | ✅ |
 | Digitakt Quick Export (Chain Mode)... | · | · | ✅ |
@@ -3283,12 +3263,10 @@
 | DSP Chain | · | · | ✅ |
 | Dump Available Effects/Plugins to Dialog... | · | ✅ | · |
 | Dump Complete Renoise API | · | · | ✅ |
-| Dump Phrase to Pattern at Cursor [Trigger] | · | ✅ | · |
 | Dump REX Structure to Text | · | · | ✅ |
 | Dump to Pattern at Cursor | · | · | ✅ |
 | Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog... | · | · | ✅ |
 | Dump VST/VST3/AU/Native Effects (Console) | · | · | ✅ |
-| Duplicate and Reverse Instrument [Trigger] | · | ✅ | · |
 | Duplicate Pattern | · | ✅ | · |
 | Duplicate Pattern Above & Clear Muted | · | ✅ | ✅ |
 | Duplicate Pattern Below & Clear Muted | · | ✅ | ✅ |
@@ -3344,20 +3322,12 @@
 | Fader | · | · | ✅ |
 | Fetch Pattern | · | ✅ | · |
 | Filename-Based Keyzone Mapping | · | · | ✅ |
-| Fill Effect Column with 0D00 [Trigger] | · | ✅ | · |
-| Fill Effect Column with 0G01+0D00 (From Cursor) [Trigger] | · | ✅ | · |
-| Fill Effect Column with 0G01+0D00 [Trigger] | · | ✅ | · |
-| Fill Effect Column with 0G01+0U00 (From Cursor) [Trigger] | · | ✅ | · |
-| Fill Effect Column with 0G01+0U00 [Trigger] | · | ✅ | · |
-| Fill Effect Column with 0U00 [Trigger] | · | ✅ | · |
 | Fill Empty Steps Slider | · | ✅ | · |
 | Filter | · | ✅ | ✅ |
 | Find Free KeyBindings... | · | · | ✅ |
 | Flanger 2 | · | ✅ | ✅ |
 | Flat | · | · | ✅ |
 | Flip | · | · | ✅ |
-| Flip Sample Buffer Selection Back [Trigger] | · | ✅ | · |
-| Flip Sample Buffer Selection Forward [Trigger] | · | ✅ | · |
 | Flood Fill from Slot 01 | · | · | ✅ |
 | Flood Fill Slices with Current Selection | · | · | ✅ |
 | Focused Row < | · | ✅ | · |
@@ -3374,7 +3344,6 @@
 | Follow Off | · | · | ✅ |
 | Follow Page Pattern Toggle | · | · | ✅ |
 | Formant | · | · | ✅ |
-| Full Render Stack Workflow [Trigger] | · | ✅ | · |
 | Full Stack Workflow | · | · | ✅ |
 | Fuzzy Search Track Dialog... | · | · | ✅ |
 | G#0 | · | · | ✅ |
@@ -3383,12 +3352,6 @@
 | Gate 2 | · | ✅ | ✅ |
 | Gate Pattern 1010 | · | · | ✅ |
 | Gated | · | · | ✅ |
-| Gater All to Phrases State [Trigger] | · | ✅ | · |
-| Gater Cycle Output Mode [Trigger] | · | ✅ | · |
-| Gater Panning to Phrase [Trigger] | · | ✅ | · |
-| Gater Playback to Phrase [Trigger] | · | ✅ | · |
-| Gater Retrig to Phrase [Trigger] | · | ✅ | · |
-| Gater Volume to Phrase [Trigger] | · | ✅ | · |
 | Generate .ot Drumkit (Force Mono) | · | · | ✅ |
 | Generate .ot Drumkit (Play to End) | · | · | ✅ |
 | Generate .ot Drumkit (Smart Mono/Stereo) | · | · | ✅ |
@@ -3414,9 +3377,7 @@
 | Generate Tuning History Wavetable | · | · | ✅ |
 | Glide | · | · | ✅ |
 | Glider Dialog... | · | · | ✅ |
-| Glider Toggle [Trigger] | · | ✅ | · |
 | Glitchy (Slot 01) | · | · | ✅ |
-| Global Pitch [Absolute] | · | ✅ | · |
 | Global Pitch [Relative] | · | ✅ | · |
 | Global Pitch Down [Trigger] | · | ✅ | · |
 | Global Pitch Up [Trigger] | · | ✅ | · |
@@ -3507,7 +3468,6 @@
 | Import Selected Sample to Selected Convolver | · | ✅ | ✅ |
 | Import STRD Bank... | · | · | ✅ |
 | Import Wavetable (.WT)... | · | · | ✅ |
-| Impulse Tracker CTRL-O Pattern to Sample [Trigger] | · | ✅ | · |
 | Impulse Tracker Toggle Marker Position (CTRL-F7) x[Toggle] | · | ✅ | · |
 | Insert Sidechain Doofer | · | ✅ | · |
 | Inspect Plugin (Console) | · | · | ✅ |
@@ -3522,9 +3482,6 @@
 | Inverse Restore | · | · | ✅ |
 | Invert | · | · | ✅ |
 | Jazz (Slot 01) | · | · | ✅ |
-| Jump to Pattern 01 in Section [Trigger] | · | ✅ | · |
-| Jump to Section (Next) [Trigger] | · | ✅ | · |
-| Jump to Section (Previous) [Trigger] | · | ✅ | · |
 | KapsLock Note Off x[Trigger] | · | ✅ | · |
 | Keep Sequence Sorted False | · | · | ✅ |
 | Keep Sequence Sorted True | · | · | ✅ |
@@ -3556,16 +3513,11 @@
 | Load Devices... | · | · | ✅ |
 | Load from File | · | · | ✅ |
 | Load IFF Sample File (8SVX/16SV)... | · | · | ✅ |
-| Load or Show Esa Ruoho ParaEQ (AU) | · | · | ✅ |
-| Load or Show Esa Ruoho ParaEQ (AU) [Trigger] | · | ✅ | · |
+| Load or Show Esa Ruoho ParaEQ (AU) [Trigger] | · | ✅ | ✅ |
 | Load Plugins Dialog... | · | ✅ | · |
 | Load Plugins... | · | · | ✅ |
 | Load Random 128 IFFs | · | · | ✅ |
-| Load RingMod Instrument [Trigger] | · | ✅ | · |
-| Load RingMod Legacy Instrument [Trigger] | · | ✅ | · |
 | Load Samples from .MOD | · | ✅ | ✅ |
-| Load Selected Sample from Sononym (No Prompt) | · | · | ✅ |
-| Load Selected Sample from Sononym (Prompt) | · | · | ✅ |
 | Load Selected Sample to Selected Slot | · | · | ✅ |
 | Load Sidechain Recipe... | · | ✅ | ✅ |
 | LofiMat 2 | · | ✅ | ✅ |
@@ -3575,10 +3527,8 @@
 | LPD8 Lights — Snake 1·2·3·4·8·7·6·5 | · | · | ✅ |
 | LPD8 Lights — Stars (random twinkle) | · | · | ✅ |
 | LPD8 Lights — Stop Animation | · | · | ✅ |
-| LPD8 Next Page | · | · | ✅ |
-| LPD8 Next Page [Trigger] | · | ✅ | · |
-| LPD8 Previous Page | · | · | ✅ |
-| LPD8 Previous Page [Trigger] | · | ✅ | · |
+| LPD8 Next Page [Trigger] | · | ✅ | ✅ |
+| LPD8 Previous Page [Trigger] | · | ✅ | ✅ |
 | LPD8 Probe — Close | · | · | ✅ |
 | LPD8 Probe — Open (read pads to terminal) | · | · | ✅ |
 | LPD8 Probe — Test pad LEDs | · | · | ✅ |
@@ -3586,10 +3536,8 @@
 | LPD8 Step Sequencer Toggle [Trigger] | · | ✅ | · |
 | LPD8 Step Sequencer — Start | · | · | ✅ |
 | LPD8 Step Sequencer — Stop | · | · | ✅ |
-| LPD8 Toggle 4Steps+4Probability Layout | · | · | ✅ |
-| LPD8 Toggle 4Steps+4Probability Layout [Trigger] | · | ✅ | · |
-| LPD8 Toggle Follow-Page Mode | · | · | ✅ |
-| LPD8 Toggle Follow-Page Mode [Trigger] | · | ✅ | · |
+| LPD8 Toggle 4Steps+4Probability Layout [Trigger] | · | ✅ | ✅ |
+| LPD8 Toggle Follow-Page Mode [Trigger] | · | ✅ | ✅ |
 | Master Low-Cut 200Hz Hold | · | ✅ | · |
 | Match EditStep with Delay Pattern | · | · | ✅ |
 | Match Effect Column EditStep with Note Placement | · | · | ✅ |
@@ -3702,13 +3650,10 @@
 | MIDI Write Row 01 | · | ✅ | · |
 | MidiMix Bridge Toggle (start headless LEDs) | · | · | ✅ |
 | MidiMix Bridge Toggle [Trigger] | · | ✅ | · |
-| MidiMix Next Page | · | · | ✅ |
-| MidiMix Next Page [Trigger] | · | ✅ | · |
-| MidiMix Previous Page | · | · | ✅ |
-| MidiMix Previous Page [Trigger] | · | ✅ | · |
+| MidiMix Next Page [Trigger] | · | ✅ | ✅ |
+| MidiMix Previous Page [Trigger] | · | ✅ | ✅ |
 | MidiMix Refresh LEDs [Trigger] | · | ✅ | · |
-| MidiMix Toggle Follow-Page Mode | · | · | ✅ |
-| MidiMix Toggle Follow-Page Mode [Trigger] | · | ✅ | · |
+| MidiMix Toggle Follow-Page Mode [Trigger] | · | ✅ | ✅ |
 | Min | · | · | ✅ |
 | Mirror | · | · | ✅ |
 | Mix-Paste from Slot 01 | · | · | ✅ |
@@ -3734,8 +3679,6 @@
 | Multi-Line Gxx Toggle | · | · | ✅ |
 | Multiband Send Device | · | · | ✅ |
 | Multitap | · | ✅ | ✅ |
-| Multitap Create Delay Phrase [Trigger] | · | ✅ | · |
-| Multitap Create Echo Phrase [Trigger] | · | ✅ | · |
 | Multitap Restore from PhraseGrid [Trigger] | · | ✅ | · |
 | Multitap Snapshot to PhraseGrid [Trigger] | · | ✅ | · |
 | Music Mouse BPM (Slider) | · | ✅ | · |
@@ -3744,14 +3687,10 @@
 | Music Mouse Tempo (Slider) | · | ✅ | · |
 | Music Mouse... | · | · | ✅ |
 | Natural | · | · | ✅ |
-| Next Instrument | · | · | ✅ |
-| Next Instrument [Trigger] | · | ✅ | · |
-| Next Instrument Folder | · | · | ✅ |
-| Next Instrument Folder [Trigger] | · | ✅ | · |
-| Next Sample | · | · | ✅ |
-| Next Sample [Trigger] | · | ✅ | · |
-| Next Sample Folder | · | · | ✅ |
-| Next Sample Folder [Trigger] | · | ✅ | · |
+| Next Instrument [Trigger] | · | ✅ | ✅ |
+| Next Instrument Folder [Trigger] | · | ✅ | ✅ |
+| Next Sample [Trigger] | · | ✅ | ✅ |
+| Next Sample Folder [Trigger] | · | ✅ | ✅ |
 | Ninth - Major 9 (4-3-4-3) | · | · | ✅ |
 | Ninth - Major 9 Simple (4-7-3) | · | · | ✅ |
 | Ninth - Minor 9 (3-4-3-3) | · | · | ✅ |
@@ -3892,43 +3831,14 @@
 | Phrase Length Increase by 8 | · | · | ✅ |
 | Phrase Length Increase by LPB | · | · | ✅ |
 | Phrase Map | · | · | ✅ |
-| Phrase Quantize Phrase [Trigger] | · | ✅ | · |
-| Phrase Quantize Selection [Trigger] | · | ✅ | · |
-| Phrase Recording Arm [Trigger] | · | ✅ | · |
-| Phrase Recording Start [Trigger] | · | ✅ | · |
-| Phrase Recording Stop [Trigger] | · | ✅ | · |
-| Phrase Recording Toggle [Trigger] | · | ✅ | · |
 | Phrase Replicate Above + Current (-12) | · | ✅ | · |
 | Phrase Replicate Above Current Row (-12) | · | ✅ | · |
-| PhraseGrid Create From Context [Trigger] | · | ✅ | · |
-| PhraseGrid Performance Hub [Trigger] | · | ✅ | · |
 | PhraseGrid Quick Capture [Trigger] | · | ✅ | · |
-| PhraseGrid Quick Capture State 1 [Trigger] | · | ✅ | · |
 | PhraseGrid Quick Recall [Trigger] | · | ✅ | · |
-| PhraseGrid Quick Recall State 1 [Trigger] | · | ✅ | · |
-| PhraseGrid Snapshot 8120 to Current State [Trigger] | · | ✅ | · |
 | PhraseGrid Snapshot All Sequencers [Trigger] | · | ✅ | · |
-| PhraseGrid Snapshot Gater to Current State [Trigger] | · | ✅ | · |
-| PhraseGrid Snapshot SliceStep to Current State [Trigger] | · | ✅ | · |
-| PhraseGrid Toggle Auto-Restore Sequencers [Trigger] | · | ✅ | · |
-| PhraseVoice Clear Pending Queue [Trigger] | · | ✅ | · |
-| PhraseVoice Kill All [Trigger] | · | ✅ | · |
-| PhraseVoice Kill Phrase 01 [Trigger] | · | ✅ | · |
-| PhraseVoice Smart Spawn Phrase 01 [Trigger] | · | ✅ | · |
-| PhraseVoice Spawn Phrase 01 [Trigger] | · | ✅ | · |
-| PhraseVoice State Recall 01 [Trigger] | · | ✅ | · |
-| PhraseVoice State Save 1 [Trigger] | · | ✅ | · |
-| PhraseVoice Toggle Auto-Spawn on Selection [Trigger] | · | ✅ | · |
-| PhraseVoice Toggle Operation Mode [Trigger] | · | ✅ | · |
-| PhraseVoice Toggle Output Mode [Trigger] | · | ✅ | · |
-| PhraseVoice Toggle Phase Lock [Trigger] | · | ✅ | · |
-| PhraseVoice Toggle Phrase 01 [Trigger] | · | ✅ | · |
 | Pick Up Slices | · | · | ✅ |
-| Place Note Off in All Visible Note Columns [Trigger] | · | ✅ | · |
-| Place Sample to End at Pattern End [Trigger] | · | ✅ | · |
 | Play Control | · | ✅ | · |
 | Play Current Line & Advance by EditStep x[Toggle] | · | ✅ | · |
-| Play Current Line in Phrase [Trigger] | · | ✅ | · |
 | Player Pro Effect Lower Value x[Knob] | · | ✅ | · |
 | PlayerPro Auto-Open Smart Dialog Toggle | · | · | ✅ |
 | PlayerPro Waveform Viewer | · | · | ✅ |
@@ -3946,14 +3856,10 @@
 | Polyend Slice Select (0-48) x[Knob] | · | ✅ | · |
 | Polyend Slice Switcher... | · | · | ✅ |
 | Prepare Sample for Slicing (Setup + First Slice + Write Note) | · | ✅ | ✅ |
-| Previous Instrument | · | · | ✅ |
-| Previous Instrument [Trigger] | · | ✅ | · |
-| Previous Instrument Folder | · | · | ✅ |
-| Previous Instrument Folder [Trigger] | · | ✅ | · |
-| Previous Sample | · | · | ✅ |
-| Previous Sample [Trigger] | · | ✅ | · |
-| Previous Sample Folder | · | · | ✅ |
-| Previous Sample Folder [Trigger] | · | ✅ | · |
+| Previous Instrument [Trigger] | · | ✅ | ✅ |
+| Previous Instrument Folder [Trigger] | · | ✅ | ✅ |
+| Previous Sample [Trigger] | · | ✅ | ✅ |
+| Previous Sample Folder [Trigger] | · | ✅ | ✅ |
 | Print Free KeyBindings to Terminal | · | · | ✅ |
 | Pure Sinewave 1000Hz | · | · | ✅ |
 | Pure Sinewave Custom Frequency | · | · | ✅ |
@@ -3975,12 +3881,10 @@
 | Quick Flicks Retrig R04 [Trigger] | · | ✅ | · |
 | Quick Flicks Slice Random [Trigger] | · | ✅ | · |
 | Quick Flicks Slice Sequential [Trigger] | · | ✅ | · |
-| Quick Flicks Toggle Output Mode [Trigger] | · | ✅ | · |
 | Quick Flicks Volume Ramp Down [Trigger] | · | ✅ | · |
 | Quick Flicks Volume Ramp Up [Trigger] | · | ✅ | · |
 | Quick Flood Fill (Slot 01) | · | · | ✅ |
 | Quick Import (Slot 01) | · | · | ✅ |
-| Quick Load Device Dialog... [Trigger] | · | ✅ | · |
 | Quick Mix-Paste (Slot 01) | · | · | ✅ |
 | Quick OctaCycle (C, Oct 1-7) | · | · | ✅ |
 | Quick Paste (Slot 01) | · | · | ✅ |
@@ -3993,8 +3897,6 @@
 | Quick Paste Effects Only (Slot 01) | · | · | ✅ |
 | Quick Paste Notes Only (Slot 01) | · | · | ✅ |
 | Quick Preview (Slot 01) | · | · | ✅ |
-| Quick Select Full Pattern [Trigger] | · | ✅ | · |
-| Quick Select Lines 1-16 [Trigger] | · | ✅ | · |
 | Quick Swap (Slot 01) | · | · | ✅ |
 | Random - Apply Random Chord | · | · | ✅ |
 | Random 01 | · | · | ✅ |
@@ -4030,15 +3932,11 @@
 | Rename with Drum Names (GM Kit) | · | · | ✅ |
 | Rename with Note Names (Melodic) | · | · | ✅ |
 | Render (8 slices) | · | · | ✅ |
-| Render Current State | · | · | ✅ |
-| Render Current State [Trigger] | · | ✅ | · |
+| Render Current State [Trigger] | · | ✅ | ✅ |
 | Render Pattern (16 slices) | · | · | ✅ |
-| Render Pattern to Phrases [Trigger] | · | ✅ | · |
-| Render Phrase to Sample [Trigger] | · | ✅ | · |
 | Render to Phrases | · | · | ✅ |
 | Renoise KeyBindings Dialog... | · | ✅ | ✅ |
 | Repeater | · | ✅ | ✅ |
-| Replace Selection with Phrase [Trigger] | · | ✅ | · |
 | Replicate Into Selection | · | · | ✅ |
 | Reset Delay Output Delay to 0ms | · | · | ✅ |
 | Reset Delay Output Delay to 0ms (ALL) | · | · | ✅ |
@@ -4091,26 +3989,11 @@
 | Scale 150% | · | · | ✅ |
 | Scale Signed → Unsigned | · | · | ✅ |
 | Scale Unsigned to Signed | · | ✅ | ✅ |
-| Schedule Next Pattern in Section [Trigger] | · | ✅ | · |
-| Schedule Pattern 01 in Section [Trigger] | · | ✅ | · |
-| Schedule Previous Pattern in Section [Trigger] | · | ✅ | · |
 | Scream Filter | · | ✅ | · |
-| Search Selected Sample in Sononym [Trigger] | · | ✅ | · |
-| Select and Add Next Pattern in Section to Schedule [Trigger] | · | ✅ | · |
-| Select and Add Pattern 01 in Section to Schedule [Trigger] | · | ✅ | · |
-| Select and Add Previous Pattern in Section to Schedule [Trigger] | · | ✅ | · |
-| Select and Schedule Next Pattern in Section [Trigger] | · | ✅ | · |
-| Select and Schedule Pattern 01 in Section [Trigger] | · | ✅ | · |
-| Select and Schedule Previous Pattern in Section [Trigger] | · | ✅ | · |
-| Select and Trigger Pattern 01 in Current Section [Trigger] | · | ✅ | · |
 | Select Beat Range 1.0.0 to 9.0.0 (Verification) | · | · | ✅ |
 | Select Next Chunk (00..FE) | · | ✅ | · |
-| Select Next Phrase (Phrase Editor) [Trigger] | · | ✅ | · |
-| Select Next Phrase [Trigger] | · | ✅ | · |
 | Select Pattern Within Section [Knob] | · | ✅ | · |
 | Select Previous Chunk (00..FE) | · | ✅ | · |
-| Select Previous Phrase (Phrase Editor) [Trigger] | · | ✅ | · |
-| Select Previous Phrase [Trigger] | · | ✅ | · |
 | Select Row (Knob 01-08) | · | ✅ | · |
 | Select Row (Knob 01-08) 1st Bind | · | ✅ | · |
 | Select Row (Knob 01-08) 2nd Bind | · | ✅ | · |
@@ -4184,7 +4067,6 @@
 | Selection Down->Center (Linear) | · | · | ✅ |
 | Selection Follow Start Toggle | · | · | ✅ |
 | Selection Follow to End Toggle | · | · | ✅ |
-| Selection to Phrase [Trigger] | · | ✅ | · |
 | Selection Up (Exp) | · | · | ✅ |
 | Selection Up (Exp) (One Pattern) | · | · | ✅ |
 | Selection Up (Linear) | · | · | ✅ |
@@ -4227,7 +4109,6 @@
 | Set Repeater Value Track 1 x[Knob] (2nd) | · | ✅ | · |
 | Set Repeater Value x[Knob] | · | ✅ | · |
 | Set Sample Folder | · | · | ✅ |
-| Set Section Loop and Schedule Section [Knob] | · | ✅ | · |
 | Set Selection by Hex Offset Dialog... | · | · | ✅ |
 | Set Selection by Hex Offset... | · | · | ✅ |
 | Set to Center | · | · | ✅ |
@@ -4266,7 +4147,6 @@
 | Show/Hide External Editor for Plugin | · | · | ✅ |
 | Show/Hide Slot 01 on Master | · | · | ✅ |
 | Show/Hide Slot 01 on Selected Track | · | ✅ | ✅ |
-| Show/Hide Track DSP and FX Chain Device External Editors [Trigger] | · | ✅ | · |
 | Shrink Selection Replicate [Trigger] | · | ✅ | · |
 | Shrink Selection Replicate Track 1 [Trigger] | · | ✅ | · |
 | Shrink Selection Replicate Tracks 1-8 [Trigger] | · | ✅ | · |
@@ -4277,12 +4157,6 @@
 | Slice Move Resolution x[Knob] | · | ✅ | · |
 | Slice Random | · | · | ✅ |
 | Slice Sequential | · | · | ✅ |
-| Slice Step All Rows to Phrases Bank [Trigger] | · | ✅ | · |
-| Slice Step Cycle Output Mode [Trigger] | · | ✅ | · |
-| Slice Step Randomize to New Track [Trigger] | · | ✅ | · |
-| Slice Step Rearrange to New Track [Trigger] | · | ✅ | · |
-| Slice Step Row 1 to Phrase [Trigger] | · | ✅ | · |
-| Slices to Phrase Bank [Trigger] | · | ✅ | · |
 | SliceSafely (002) | · | · | ✅ |
 | Slow | · | · | ✅ |
 | Smooth | · | · | ✅ |
@@ -4302,22 +4176,12 @@
 | Splitter | · | ✅ | ✅ |
 | Stack from Rendered Slices | · | · | ✅ |
 | Stacker Create Phrase Bank [Trigger] | · | ✅ | · |
-| Stacker Create Phrase from Pattern [Trigger] | · | ✅ | · |
 | Stacker Create Random Phrase 8 [Trigger] | · | ✅ | · |
-| Stacker Create Random Velocity Phrase [Trigger] | · | ✅ | · |
-| Stacker Create Sparse Random Phrase [Trigger] | · | ✅ | · |
-| Stacker Create Velocity Cycle Phrase [Trigger] | · | ✅ | · |
-| Stacker Create Velocity Phrases [Trigger] | · | ✅ | · |
-| Stacker From Rendered Audio [Trigger] | · | ✅ | · |
-| Stacker Full Workflow [Trigger] | · | ✅ | · |
 | Stacker Phrase Studio [Trigger] | · | ✅ | · |
 | Stacker Rearrange Velocity [Trigger] | · | ✅ | · |
-| Stacker Render and Stack [Trigger] | · | ✅ | · |
 | Start | · | · | ✅ |
 | Start Recording | · | · | ✅ |
 | Start/Stop Pattern Follow | · | · | ✅ |
-| Start/Stop Playback Toggle [Trigger] | · | ✅ | · |
-| Stem Loader Create Phrases from Slices [Trigger] | · | ✅ | · |
 | Step by EditStep (Wheel) x[Knob] | · | ✅ | · |
 | Step by EditStep Backward x[Trigger] | · | ✅ | · |
 | Step by EditStep Forward x[Trigger] | · | ✅ | · |
@@ -4371,21 +4235,16 @@
 | Toggle Automation Writing | · | · | ✅ |
 | Toggle BPM Randomization on New Songs On/Off | · | · | ✅ |
 | Toggle Global Groove on Startup On/Off | · | · | ✅ |
-| Toggle Global Lock | · | · | ✅ |
-| Toggle Global Lock [Trigger] | · | ✅ | · |
+| Toggle Global Lock [Trigger] | · | ✅ | ✅ |
 | Toggle Latch Mode | · | · | ✅ |
 | Toggle Loop End Parameter Monitor | · | · | ✅ |
 | Toggle Marker Position (CTRL-F7) | · | · | ✅ |
-| Toggle Note Off in All Visible Note Columns [Trigger] | · | ✅ | · |
-| Toggle Note Off on All Tracks on Current Row [Trigger] | · | ✅ | · |
 | Toggle Pattern Scanner | · | · | ✅ |
 | Toggle Phrase Auto-Spawn on Selection | · | ✅ | · |
 | Toggle Phrase Transport | · | ✅ | ✅ |
-| Toggle Preview Mode | · | · | ✅ |
-| Toggle Preview Mode [Trigger] | · | ✅ | · |
+| Toggle Preview Mode [Trigger] | · | ✅ | ✅ |
 | Toggle Slot 1 | · | · | ✅ |
 | Toggle Slot 1 Show/Hide | · | ✅ | · |
-| Toggle Sononym Auto-Transfer | · | · | ✅ |
 | Toggle Start/Stop | · | · | ✅ |
 | Toggle Step Mode (16/32) | · | ✅ | · |
 | Toggle Sustain Pedal (CC 64) | · | · | ✅ |
