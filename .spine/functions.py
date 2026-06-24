@@ -138,7 +138,7 @@ def write_json(by_area):
     for area, fns in by_area.items():
         out[area] = [{"function": f["label"], "kb": f["kb"], "midi": f["midi"], "menu": f["menu"]}
                      for f in fns]
-    return json.dumps(out, indent=1, ensure_ascii=False)
+    return json.dumps(out, ensure_ascii=False, separators=(",", ":"))   # compact (committed by CI)
 
 
 def main():

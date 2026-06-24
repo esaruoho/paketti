@@ -40,7 +40,7 @@ jobs:
           git config user.name "GitHub Action"
           # -f: docs/ is gitignored (the .gitignore 'Docs/' rule is case-insensitive on macOS),
           # so the tracked docs (like FEATURE-MAP.md) are all force-added. Match that.
-          git add -f docs/PAKETTI-FUNCTIONS.md
+          git add -f docs/PAKETTI-FUNCTIONS.md docs/paketti-functions.json
           if git diff --cached --quiet; then
             echo "function index unchanged — nothing to commit"
           else
