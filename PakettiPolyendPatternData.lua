@@ -1370,39 +1370,18 @@ local function export_pattern_to_mtp(pattern_index, output_path, track_count)
     
     print(string.format("-- Exporting pattern %d to MTP: %s (%d tracks)", pattern_index, output_path, track_count))
     
-    -- Write header (16 bytes)
-    file:write("--")  -- id_file (2 bytes) - placeholder, real MTP files use different IDs
-    
-    -- Write pattern type as little-endian uint16
-    file:write(string.char(2, 0))  -- pattern_type = 2
-    
-    -- Write firmware version (4 bytes) - use generic version
-    file:write(string.char(1, 0, 0, 0))  -- fw_version
-    
-    -- Write file structure version (4 bytes)
-    file:write(string.char(5, 0, 0, 0))  -- file_structure_version = 5
-    
-    -- Calculate and write file size (will need to update this)
-    local header_size = 16
-    local unused_size = 12
-    local track_header_size = 1
-    local step_size = 6
-    local steps_per_track = 128
-    local crc_size = 4
-    local total_size = header_size + unused_size + (track_count * (track_header_size + (step_size * steps_per_track))) + crc_size
-    
-    -- Write size as little-endian uint16 (this is wrong for large files, but matches format)
-    local size_low = total_size % 256
-    local size_high = math.floor(total_size / 256) % 256
-    file:write(string.char(size_low, size_high))
-    
-    -- Write padding (2 bytes)
-    file:write(string.char(0, 0))
-    
-    -- Write unused/reserved metadata (12 bytes) - all zeros
-    for i = 1, 12 do
-        file:write(string.char(0))
-    end
+    -- Header (28 bytes before track data), byte-faithful to REAL device .mtp files. Verified
+    -- against sandroid/Treasure Island/Bios Creatures patterns: id="KS" (the real Tracker
+    -- signature — NOT "PM"/"--"), type=2, fwVersion=1.9.1.1, fileStructureVersion=5.5.5.5,
+    -- size field = TOTAL file size, then 2 padding + 12 unused (2 float32 + 4 bytes), all zero.
+    local total_size = 28 + (track_count * 769) + 4   -- 16 trk = 12336, matches real device files
+    file:write("KS")                                   -- id_file (0x4B53)
+    file:write(string.char(2, 0))                      -- type = 2 (uint16 LE)
+    file:write(string.char(1, 9, 1, 1))                -- fwVersion 1.9.1.1
+    file:write(string.char(5, 5, 5, 5))                -- fileStructureVersion 5.5.5.5
+    write_uint16_le(file, total_size)                  -- size = total file size (uint16 LE)
+    file:write(string.char(0, 0))                      -- 2 padding bytes
+    for _ = 1, 12 do file:write(string.char(0)) end    -- 12 unused bytes (zeros)
     
     -- Get pattern length 
     local pattern_length = math.min(pattern.number_of_lines, 128)
@@ -1410,12 +1389,9 @@ local function export_pattern_to_mtp(pattern_index, output_path, track_count)
     
     -- Write track data
     for track_idx = 1, track_count do
-        -- Write lastStep byte (only meaningful for first track)
-        if track_idx == 1 then
-            file:write(string.char(last_step))
-        else
-            file:write(string.char(0))  -- Other tracks use 0
-        end
+        -- Write lastStep byte on EVERY track. Real device patterns store the same lastStep
+        -- (pattern_length - 1) on all 16 tracks, not just track 0 (verified on real files).
+        file:write(string.char(last_step))
         
         -- Get Renoise track if it exists
         local renoise_track = nil
@@ -1514,42 +1490,16 @@ local function export_pattern_to_mtp(pattern_index, output_path, track_count)
         end
     end
     
-    -- Calculate CRC32 over the track data
-    -- Re-read the file to compute CRC over bytes 28 to end (after header+unused, before CRC)
+    -- CRC32 (4 bytes, LE) at end of file. Real device .mtp files store 0x00000000 — the
+    -- hardware does not compute/verify it (every real file we checked is 0), and the official
+    -- tracker-lib also writes 0. So write 4 zero bytes to be byte-identical to real device files.
+    -- (The previous code never wrote these 4 bytes, then seek(end,-4) overwrote the last step's
+    -- data — producing a 4-byte-short, malformed file the device rejected.)
+    file:write(string.char(0, 0, 0, 0))
     file:close()
 
-    local crc_file = io.open(output_path, "rb")
-    if crc_file then
-        local all_data = crc_file:read("*a")
-        crc_file:close()
-
-        -- CRC32 is computed over bytes from offset 28 (after 16-byte header + 12 unused bytes)
-        -- to the end of track data (excluding the 4 CRC bytes we haven't written yet)
-        -- But we wrote placeholder zeros, so strip last 4 bytes
-        local data_for_crc = all_data:sub(29, -1)  -- From byte 29 (1-indexed) to end minus nothing since we wrote 4 zero bytes
-        -- Actually strip the 4 placeholder CRC bytes at the end
-        data_for_crc = all_data:sub(29, #all_data - 4)
-
-        local crc = compute_crc32(data_for_crc)
-
-        -- Rewrite the file with proper CRC
-        local rewrite = io.open(output_path, "r+b")
-        if rewrite then
-            rewrite:seek("end", -4)
-            -- Write CRC as little-endian uint32
-            rewrite:write(string.char(
-                bit.band(crc, 0xFF),
-                bit.band(bit.rshift(crc, 8), 0xFF),
-                bit.band(bit.rshift(crc, 16), 0xFF),
-                bit.band(bit.rshift(crc, 24), 0xFF)
-            ))
-            rewrite:close()
-        end
-
-        print(string.format("-- MTP CRC32: 0x%08X", crc))
-    end
-
-    print(string.format("-- MTP export complete: %s", output_path))
+    print(string.format("-- MTP export complete: %s (%d bytes, %d tracks, %d steps)",
+        output_path, total_size, track_count, pattern_length))
     return true
 end
 
