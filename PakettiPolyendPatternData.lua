@@ -1482,6 +1482,10 @@ function export_pattern_to_mtp(pattern_index, output_path, track_count, start_li
                         return 25, math.max(0, math.min(47, fx_val - 1))
                     elseif fx_cmd == "24" then  -- Filter Cutoff → Filter LP (27)
                         return 27, math.floor((fx_val / 255) * 100)
+                    elseif fx_cmd == "ZD" then  -- Set Groove → Swing (17), inverse of the import map
+                        return 17, math.max(25, math.min(75, math.floor(50 + ((fx_val - 128) / 127) * 25)))
+                    elseif fx_cmd == "0M" then  -- Fine Pitch → Micro-tune (34), inverse of the import map
+                        return 34, math.max(0, math.min(198, math.floor(99 + ((fx_val - 128) / 127) * 99)))
                     end
                     return 0, 0
                 end
