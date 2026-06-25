@@ -1386,20 +1386,31 @@ function export_pattern_to_mtp(pattern_index, output_path, track_count)
     file:write(string.char(0, 0))                      -- 2 padding bytes
     for _ = 1, 12 do file:write(string.char(0)) end    -- 12 unused bytes (zeros)
     
-    -- Get pattern length 
+    -- Get pattern length
     local pattern_length = math.min(pattern.number_of_lines, 128)
     local last_step = pattern_length - 1  -- 0-based
-    
+
+    -- Map Polyend tracks ONLY to Renoise SEQUENCER tracks. Master / Send / Group tracks
+    -- have no note columns, so indexing note_columns[1] on them crashes — collect the
+    -- sequencer-track indices and map Polyend track N to the Nth sequencer track.
+    local sequencer_track_indices = {}
+    for ti = 1, #song.tracks do
+        if song.tracks[ti].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            sequencer_track_indices[#sequencer_track_indices + 1] = ti
+        end
+    end
+
     -- Write track data
     for track_idx = 1, track_count do
         -- Write lastStep byte on EVERY track. Real device patterns store the same lastStep
         -- (pattern_length - 1) on all 16 tracks, not just track 0 (verified on real files).
         file:write(string.char(last_step))
-        
-        -- Get Renoise track if it exists
+
+        -- Get the Renoise sequencer track that maps to this Polyend track (if any)
         local renoise_track = nil
-        if track_idx <= #song.tracks then
-            renoise_track = pattern:track(track_idx)
+        local renoise_track_index = sequencer_track_indices[track_idx]
+        if renoise_track_index then
+            renoise_track = pattern:track(renoise_track_index)
         end
         
         -- Write all 128 steps

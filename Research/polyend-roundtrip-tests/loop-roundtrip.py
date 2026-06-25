@@ -63,6 +63,10 @@ CASES = [
      'local cmds={"0C","08","F0","0S","0B","05"} local c=cmds[((ti-1)%6)+1] if (i%8==1) then return mkline(60,"",ti,c,"20") else return mkline() end'),
     ("16trk_1_minimal",    16, 1,
      'if ti==1 then return mkline(60,"",0) else return mkline() end'),
+    # Regression: a real song has master + send tracks (no note columns). Export
+    # must skip them, not crash (this exact case crashed live Renoise at line 1417).
+    ("11seq+2send+master",  11, 16,
+     'if (i%4==1) then return mkline(48+ti,"",ti,"0C","40") else return mkline() end', 2),
 ]
 
 LUA_TEMPLATE = r'''
@@ -73,7 +77,9 @@ local preferences = nil
 {reader}
 {writer}
 
--- minimal Renoise stub
+-- minimal Renoise stub (with track TYPES, like real Renoise: master/send tracks
+-- have no note columns and must be skipped by the exporter).
+renoise = {{ Track = {{ TRACK_TYPE_SEQUENCER = 1, TRACK_TYPE_MASTER = 2, TRACK_TYPE_SEND = 3 }} }}
 local function mkline(nv, ns, inst, fxcmd, fxval)
   return {{ note_columns = {{{{ note_value = nv or 121, note_string = ns or "", instrument_value = inst or 255 }}}},
     effect_columns = {{ {{ number_string = fxcmd or "", amount_string = fxval or "00" }}, {{ number_string = "", amount_string = "00" }} }} }}
@@ -82,25 +88,33 @@ end
 local CASE = {case_lua}
 local function builder(ti, i) {builder} end
 local PLEN = CASE.len
+CASE.tc = CASE.seq
 local function mktrack(ti)
   local lines = {{}}
   for i=1,PLEN do lines[i] = builder(ti, i) end
-  return {{ line = function(_, n) return lines[n] end }}
+  return {{ type = renoise.Track.TRACK_TYPE_SEQUENCER, line = function(_, n) return lines[n] end }}
 end
-local _tracks = {{}}; for t=1,CASE.tc do _tracks[t]=mktrack(t) end
+-- A master/send track: no note_columns (indexing them would crash) — exporter must skip.
+local function mk_nonseq(tt)
+  return {{ type = tt, line = function(_, n) return {{ note_columns = {{}}, effect_columns = {{}} }} end }}
+end
+local _tracks = {{}}; for t=1,CASE.tc do _tracks[#_tracks+1]=mktrack(t) end
+for _=1,(CASE.sends or 0) do _tracks[#_tracks+1]=mk_nonseq(renoise.Track.TRACK_TYPE_SEND) end
+_tracks[#_tracks+1] = mk_nonseq(renoise.Track.TRACK_TYPE_MASTER)  -- every song has a master
 local _pattern = {{ number_of_lines = PLEN, track = function(_, ti) return _tracks[ti] end }}
-renoise = {{ song = function() return {{ patterns = {{ _pattern }}, tracks = _tracks }} end }}
+renoise.song = function() return {{ patterns = {{ _pattern }}, tracks = _tracks }} end
 
 local out = "{outfile}"
-local ok = export_pattern_to_mtp(1, out, CASE.tc)
+local ETC = CASE.export_tc
+local ok = export_pattern_to_mtp(1, out, ETC)
 -- re-read and self-check
 local p = read_pattern_file(out)
 local f = io.open(out, "rb"); local sz = #f:read("*a"); f:close()
-local expect_sz = 28 + CASE.tc*769 + 4
+local expect_sz = 28 + ETC*769 + 4
 local notes = 0
 for _,trk in ipairs(p.tracks) do for _,st in ipairs(trk) do if st.note >= 0 then notes = notes + 1 end end end
 print(string.format("RESULT ok=%s size=%d expect=%d tracks=%d/%d length=%d/%d notes=%d",
-  tostring(ok and sz==expect_sz), sz, expect_sz, p.track_count, CASE.tc, p.pattern_length, CASE.len, notes))
+  tostring(ok and sz==expect_sz), sz, expect_sz, p.track_count, ETC, p.pattern_length, CASE.len, notes))
 '''
 
 def main():
@@ -108,9 +122,13 @@ def main():
     tmpdir = tempfile.mkdtemp(prefix="polyloop_")
     results = []
     print(f"=== Looping round-trip harness ({len(CASES)} cases) — output in {tmpdir} ===\n")
-    for name, tc, length, builder in CASES:
+    for entry in CASES:
+        name, seq, length, builder = entry[:4]
+        sends = entry[4] if len(entry) > 4 else 0
+        export_tc = entry[5] if len(entry) > 5 else (16 if sends else seq)
+        tc = export_tc  # expected Polyend track count in the output file
         outfile = os.path.join(tmpdir, f"{name}.mtp")
-        case_lua = f"{{ tc={tc}, len={length} }}"
+        case_lua = f"{{ seq={seq}, sends={sends}, export_tc={export_tc}, len={length} }}"
         lua = LUA_TEMPLATE.format(consts=consts, helpers=helpers, reader=reader, writer=writer,
                                   case_lua=case_lua, builder=builder, outfile=outfile)
         luafile = os.path.join(tmpdir, f"{name}.lua")
