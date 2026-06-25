@@ -18,9 +18,11 @@
 --   - require specific selection state that we can't fake
 --   - have known irreversible side effects
 local SKIP_LIST = {
-  -- Native macOS font download was triggered by one of these — likely a CJK
-  -- glyph in a dialog title. Keep skip list empty by default; the user can
-  -- add labels here after a first run identifies the troublemakers.
+  -- Dialogs whose open() blocks on a native modal/sheet (file picker, font download,
+  -- etc.) — these freeze the batch run (the modal blocks Renoise's main thread, so the
+  -- ProcessSlicer can't yield past it). Add labels here as runs identify them.
+  -- 2026-06-26: the Screenshot-All run captured 1-40 cleanly then froze on this one.
+  "Paketti Action Selector",
 }
 
 local function in_skip_list(label)
@@ -293,6 +295,52 @@ function PakettiDialogOfDialogsSmokeTest()
   PakettiDialogOfDialogsSmokeTestSlicer.__process_func_args = {progress_vb, function() return progress_dialog end}
   PakettiDialogOfDialogsSmokeTestSlicer:start()
 end
+
+-- Open every Dialog-of-Dialogs entry in turn, SCREENSHOT it, then close it. Runs in a
+-- ProcessSlicer so the UI actually renders between open and capture; screencapture is
+-- fired DETACHED so it never blocks Renoise's main thread (a blocking capture trips the
+-- "tool not responding" guard). Renoise must stay FRONTMOST for the run — the captures
+-- show whatever is on screen. Files: <dir>/NNN_<label>.png.
+function PakettiScreenshotAllDialogs(output_dir)
+  output_dir = output_dir or "/tmp/paketti-dialog-screenshots"
+  os.execute('mkdir -p "' .. output_dir .. '"')
+  if type(create_button_list) ~= "function" then
+    renoise.app():show_error("Screenshot All Dialogs: create_button_list() not found (load PakettiMainMenuEntries first)")
+    return
+  end
+  local buttons = create_button_list()
+  local shot = 0
+  local function proc()
+    for i, entry in ipairs(buttons) do
+      local label  = entry[1] or ("unnamed_" .. i)
+      local target = entry[2]
+      local fn = (type(target) == "function") and target
+              or (type(target) == "string" and rawget(_G, target)) or nil
+      if fn and not in_skip_list(label) then
+        local opened = pcall(fn)                 -- open
+        coroutine.yield(); coroutine.yield()      -- let it render
+        if opened then
+          local safe = label:gsub("[^%w%-]+", "_"):gsub("^_+", ""):sub(1, 60)
+          local path = string.format("%s/%03d_%s.png", output_dir, i, safe)
+          os.execute(string.format('screencapture -x -o "%s" >/dev/null 2>&1 &', path))
+          shot = shot + 1
+          renoise.app():show_status(string.format("Screenshotting [%d/%d] %s", i, #buttons, label))
+          coroutine.yield(); coroutine.yield(); coroutine.yield()  -- capture settles; dialog still up
+          pcall(function() try_toggle_close(fn) end)                -- close (toggle)
+          coroutine.yield()
+        end
+      end
+    end
+    renoise.app():show_status(string.format("Screenshot All Dialogs: %d shots -> %s", shot, output_dir))
+    renoise.app():open_path(output_dir)
+  end
+  ProcessSlicer(proc):start()
+end
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Dialog of Dialogs Screenshot All",
+  invoke = function() PakettiScreenshotAllDialogs() end
+}
 
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Xperimental/WIP:Dialog of Dialogs Smoke Test",
