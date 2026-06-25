@@ -43,7 +43,7 @@ main.lua
 ```
 ## Structural hubs (refs · module — the most-imported = wiring backbone)
 ```
-    5  json
+    6  json
     3  cFilesystem
     2  slaxdom
     2  cValue
@@ -274,7 +274,8 @@ main.lua
 1 main -> base64float
 1 main -> legacy_v2_8_tools
 1 main -> process_slicer
-  ── 213 edges total ──
+1 manual-sync -> json
+  ── 214 edges total ──
 ```
 ## The wiring, drawn
 
@@ -493,6 +494,7 @@ graph LR
   main["main"] -->|1| base64float["base64float"]
   main["main"] -->|1| legacy_v2_8_tools["legacy_v2_8_tools"]
   main["main"] -->|1| process_slicer["process_slicer"]
+  manual_sync["manual-sync"] -->|1| json["json"]
 ```
 
 ## Orientation docs
