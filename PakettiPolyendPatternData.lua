@@ -271,7 +271,7 @@ local function read_pattern_metadata(filepath)
             patterns[pattern_count] = {
                 index = pattern_count,
                 name = name,
-                filename = string.format("pattern_%03d.mtp", pattern_count - 1)
+                filename = string.format("pattern_%02d.mtp", pattern_count)  -- device uses 1-based, 2-digit
             }
         end
     end
@@ -2025,111 +2025,95 @@ local function encode_float32_le(value)
     return string.char(b1, b2, b3, b4)
 end
 
-local function export_project_to_mt(output_path, playlist, playlist_pos)
+-- Embedded real-device project.mt template (a clean 2320-byte "ripe glass"
+-- project the Tracker itself wrote: fwVersion 1.9.x, fileStructureVersion 16,
+-- valid instrument/delay/reverb config). We patch playlist, tempo, names onto
+-- it so the exported project.mt is byte-shaped exactly like a device file —
+-- far more trustworthy than hand-rolling from zeros.
+local POLYEND_MT_TEMPLATE_B64 = "TVQAAAEJAf8QEBAQEAkDIAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8BAAAAQALGAgAMgD0AQAAZAAAAG8SAz/4dRABAAAAAAAAAAAAAAAAAAAAAAAAr0IAAAEAAQABAAEAAQABAAEAAQABAgMEBQYHCAkKCwwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkMgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVgEAAQABAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD8AAAA/AAAAP3sULj9UcmFjayAxAAAAAAAAAAAAAAAAAABUcmFjayAyAAAAAAAAAAAAAAAAAABUcmFjayAzAAAAAAAAAAAAAAAAAABUcmFjayA0AAAAAAAAAAAAAAAAAABUcmFjayA1AAAAAAAAAAAAAAAAAABUcmFjayA2AAAAAAAAAAAAAAAAAABUcmFjayA3AAAAAAAAAAAAAAAAAABUcmFjayA4AAAAAAAAAAAAAAAAAABWVlZWVlZWVlZWAAAAVgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwEAAAEAfwEFBwtAgAAAAAAAAAAAAX8BBQcLQIAAAAAAAAAAAAJ/AQUHC0CAAAAAAAAAAAADfwEFBwtAgAAAAAAAAAAABH8BBQcLQIAAAAAAAAAAAAV/AQUHC0CAAAAAAAAAAAAGfwEFBwtAgAAAAAAAAAAAB38BBQcLQIAAAAAAAAAAAAh/AQUHC0CAAAAAAAAAAAAJfwEFBwtAgAAAAAAAAAAACn8BBQcLQIAAAAAAAAAAAAt/AQUHC0CAAAAAAAAAAAAMfwEFBwtAgAAAAAAAAAAADX8BBQcLQIAAAAAAAAAAAA5/AQUHC0CAAAAAAAAAAAAPfwEFBwtAgAAAAAAAAAAAACBOAQEBTWlkaSA5AABNaWRpIDEwAE1pZGkgMTEATWlkaSAxMgBNaWRpIDEzAE1pZGkgMTQATWlkaSAxNQBNaWRpIDE2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABDBAQAAAAMAAAAAAAAASW5pdAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD8/AD8/PwAAAAAQwQEAAAAAAAAAAAAAAEluaXQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEMEBAAAAAgAAAAAAAABJbml0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAByaXBlIGdsYXNzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQcm9qZWN0cwAAAAAAAAAAAAAAdJYBIASdACAEnwAgxHQCICy8ACA3BgNggAAAAGeiCmCAAAAA+LcAIE0tCmD4twAgAAA6QOR8A2AAADpAwwAAAAAAOkDDAAAA+gAAAEYAAAAAAAAAAQAAABAAAABwfwUgCwAAAAAAAADDAAAAb38FIAAAOkD8IDAANLwAIAEAAAAAAAAAAQAAABAAAACgfwUgAAAAAAAAAABnfwUgn38FIPwgMAA0vAAgAQAAACy8ACAAABxAjsR50AAAAAABAAAAAAAAAIDaASAEAAAAAAAAAA=="
+
+local function polyend_b64decode(data)
+  local b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  data = data:gsub("[^"..b.."=]", "")
+  return (data:gsub(".", function(x)
+    if x == "=" then return "" end
+    local r, f = "", (b:find(x) - 1)
+    for i = 6, 1, -1 do r = r .. (f % 2^i - f % 2^(i-1) > 0 and "1" or "0") end
+    return r
+  end):gsub("%d%d%d?%d?%d?%d?%d?%d?", function(x)
+    if #x ~= 8 then return "" end
+    local c = 0
+    for i = 1, 8 do c = c + (x:sub(i,i) == "1" and 2^(8-i) or 0) end
+    return string.char(c)
+  end))
+end
+
+-- Global for headless testing (PakettiMCP) and programmatic project export.
+function export_project_to_mt(output_path, playlist, playlist_pos)
     local song = renoise.song()
 
-    -- MT files need to be large enough for all absolute offsets
-    -- Largest known offset: 0x80C + 32 = 0x82C (2092 bytes)
-    -- Add some extra for CRC at the end
-    local MT_FILE_SIZE = 0x82C + 4  -- 2096 bytes minimum
+    -- Start from the real-device template, then patch fields by absolute offset.
+    local template = polyend_b64decode(POLYEND_MT_TEMPLATE_B64)
+    if #template < 0x82C then
+        print("-- ERROR: project.mt template decode failed (" .. #template .. " bytes)")
+        return false
+    end
 
     local file = io.open(output_path, "wb")
     if not file then
         print("-- ERROR: Cannot create MT file: " .. output_path)
         return false
     end
+    file:write(template)
+    print(string.format("-- Exporting project.mt from template: %s (%d bytes, %d playlist entries)",
+        output_path, #template, #playlist))
 
-    print(string.format("-- Exporting project.mt: %s (%d playlist entries)", output_path, #playlist))
-
-    -- Write entire file as zeros first, then overwrite specific fields
-    file:write(string.rep("\0", MT_FILE_SIZE))
-
-    -- Seek back to beginning to write header
-    file:seek("set", 0)
-    file:write("MT")                          -- id_file (2 bytes)
-    write_uint16_le(file, 1)                  -- type = 1 (project)
-    file:write(string.char(1, 0, 0, 0))       -- fwVersion (4 bytes)
-    file:write(string.char(1, 0, 0, 0))       -- fileStructureVersion (4 bytes)
-    write_uint16_le(file, 256)                -- size = 256 (song data size)
-    file:write(string.char(0, 0))             -- padding (2 bytes)
-
-    -- Write song data: playlist array (255 bytes) at offset 16
+    -- Playlist (255 bytes @ 0x10) + position (1 byte @ 0x10F). Clear then write.
+    file:seek("set", 0x10)
     for i = 1, 255 do
-        if playlist[i] and playlist[i] > 0 then
-            file:write(string.char(math.min(255, playlist[i])))
-        else
-            file:write(string.char(0))
-        end
+        local v = (playlist[i] and playlist[i] > 0) and math.min(255, playlist[i]) or 0
+        file:write(string.char(v))
     end
-
-    -- Write playlist position (1 byte)
     file:write(string.char(math.min(254, playlist_pos or 0)))
 
-    -- Write BPM at offset 0x80
-    file:seek("set", 0x80)
+    -- Global tempo: float32 @ 0x1C0 (NOT 0x80 — verified against real device files
+    -- and the official project template; 0x80 is always 0.0).
+    file:seek("set", 0x1C0)
     file:write(encode_float32_le(song.transport.bpm))
-    print(string.format("-- Exported BPM: %d", song.transport.bpm))
+    print(string.format("-- Exported BPM: %g @ 0x1C0", song.transport.bpm))
 
-    -- Write delay parameters at absolute offsets
-    file:seek("set", 0x11A)
-    file:write(string.char(50))  -- delayFeedback default
-    file:seek("set", 0x11C)
-    write_uint16_le(file, 250)   -- delayTime default 250ms
-    file:seek("set", 0x11F)
-    file:write(string.char(0))   -- delayParams
-
-    -- Write reverb parameters at absolute offsets
-    file:seek("set", 0x418)
-    file:write(encode_float32_le(0.5))  -- reverb.size
-    file:seek("set", 0x41C)
-    file:write(encode_float32_le(0.5))  -- reverb.damp
-    file:seek("set", 0x420)
-    file:write(encode_float32_le(0.0))  -- reverb.predelay
-    file:seek("set", 0x424)
-    file:write(encode_float32_le(0.5))  -- reverb.diffusion
-
-    -- Write track names: first 8 at 21-byte intervals from 0x428
-    local track_name_offsets = {0x428, 0x43D, 0x452, 0x467, 0x47C, 0x491, 0x4A6, 0x4BB}
-    for i = 1, 8 do
-        if i <= #song.tracks and song.tracks[i].type == renoise.Track.TRACK_TYPE_SEQUENCER then
-            local name = song.tracks[i].name or ""
-            if #name > 20 then name = name:sub(1, 20) end
-            file:seek("set", track_name_offsets[i])
+    -- Track names. Clear each fixed-width field first, then write name+null so no
+    -- leftover template names ("ripe glass" tracks) bleed through.
+    local seq_indices = {}
+    for ti = 1, #song.tracks do
+        if song.tracks[ti].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            seq_indices[#seq_indices + 1] = ti
+        end
+    end
+    -- Tracks 1-8: 21-byte fields @ 0x428; tracks 9-16: 8-byte fields @ 0x603.
+    for slot = 1, 16 do
+        local off, width
+        if slot <= 8 then off = 0x428 + (slot - 1) * 21; width = 21
+        else off = 0x603 + (slot - 9) * 8; width = 8 end
+        file:seek("set", off)
+        file:write(string.rep("\0", width))  -- clear field
+        local ti = seq_indices[slot]
+        if ti then
+            local name = song.tracks[ti].name or ""
+            if #name > width - 1 then name = name:sub(1, width - 1) end
+            file:seek("set", off)
             file:write(name)
-            file:write(string.char(0))  -- null terminator
-            print(string.format("-- Exported track %d name: '%s'", i, name))
         end
     end
 
-    -- Write track names: next 8 at 8-byte intervals from 0x603
-    for i = 1, 8 do
-        local track_idx = 8 + i
-        if track_idx <= #song.tracks and song.tracks[track_idx].type == renoise.Track.TRACK_TYPE_SEQUENCER then
-            local name = song.tracks[track_idx].name or ""
-            if #name > 7 then name = name:sub(1, 7) end
-            file:seek("set", 0x603 + (i - 1) * 8)
-            file:write(name)
-            file:write(string.char(0))  -- null terminator
-            print(string.format("-- Exported track %d name: '%s'", track_idx, name))
-        end
-    end
-
-    -- Write reverb/delay volumes and mute flags
-    file:seek("set", 0x538)
-    file:write(string.char(100))  -- reverbVolume
-    file:seek("set", 0x539)
-    file:write(string.char(100))  -- delayVolume
-    file:seek("set", 0x53A)
-    file:write(string.char(0))    -- reverbMute (0=unmuted)
-    file:seek("set", 0x53B)
-    file:write(string.char(0))    -- delayMute (0=unmuted)
-
-    -- Write project name at offset 0x80C
+    -- Project name: char[32] @ 0x80C (template fileStructureVersion is 16 -> 0x80C,
+    -- matching the version-gated reader). Clear then write.
     local project_name = song.name or "Renoise Project"
     if #project_name > 31 then project_name = project_name:sub(1, 31) end
     file:seek("set", 0x80C)
+    file:write(string.rep("\0", 32))
+    file:seek("set", 0x80C)
     file:write(project_name)
-    file:write(string.char(0))
     print(string.format("-- Exported project name: '%s'", project_name))
 
     file:close()
@@ -2247,7 +2231,10 @@ function PakettiExportPolyendProject()
     table.sort(sorted_pattern_indices)
 
     for _, pat_idx in ipairs(sorted_pattern_indices) do
-        local mtp_filename = string.format("pattern_%03d.mtp", pat_idx - 1)
+        -- 1-based, 2-digit to match real device files AND the playlist (which references
+        -- Renoise pattern indices 1-based) AND Paketti's own auto-loader, so exported
+        -- projects reload correctly. (Was pattern_%03d 0-based — files the device/loader couldn't find.)
+        local mtp_filename = string.format("pattern_%02d.mtp", pat_idx)
         local mtp_path = patterns_folder .. separator .. mtp_filename
 
         if export_pattern_to_mtp(pat_idx, mtp_path, track_count) then
@@ -2294,7 +2281,7 @@ function PakettiExportPolyendPattern()
     local pattern_name = song.patterns[pattern_index].name
     
     -- Create default filename
-    local default_name = string.format("pattern_%03d", pattern_index - 1)
+    local default_name = string.format("pattern_%02d", pattern_index)
     if pattern_name and pattern_name ~= "" then
         default_name = pattern_name:gsub("[^%w%-%_]", "_")  -- Clean filename
     end
