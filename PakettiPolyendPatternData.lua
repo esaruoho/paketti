@@ -1439,11 +1439,13 @@ function export_pattern_to_mtp(pattern_index, output_path, track_count, start_li
                     note = POLYEND_CONSTANTS.NOTE_OFF_CUT
                 end
                 
-                -- Get instrument
-                -- Map Renoise instruments to match PTI loading: 02(hihat)->00, 03(snare)->01, etc. (Skip instrument 01 empty)
+                -- Instrument: direct device-correct mapping. The Polyend step byte is the
+                -- 0-based instrument index, which equals the Renoise instrument_value (0-based).
+                -- Instrument export writes "<value+1> <name>.pti", so step byte = value lines up
+                -- with the file the device loads. Clamp to Polyend's 0-47 range. (Was a fragile
+                -- "-2" offset that assumed one specific import slot scheme.)
                 if line.note_columns[1].instrument_value < 255 then
-                    local polyend_instrument_index = math.max(0, line.note_columns[1].instrument_value - 2)
-                    instrument = polyend_instrument_index
+                    instrument = math.max(0, math.min(47, line.note_columns[1].instrument_value))
                 end
                 
                 -- Convert effects (very basic - only handle a few Renoise -> Polyend mappings)
@@ -2218,15 +2220,20 @@ local function export_patterns_metadata(output_path, pattern_names)
     return true
 end
 
--- Export full Polyend project (all MTP patterns + project.mt + patternsMetadata)
+-- Export full Polyend project (all MTP patterns + project.mt + patternsMetadata + instruments)
 function PakettiExportPolyendProject()
-    local song = renoise.song()
-
-    -- Prompt for output folder
+    -- Prompt for output folder, then delegate to the headless exporter.
     local output_folder = renoise.app():prompt_for_path("Select Output Folder for Polyend Project")
     if not output_folder or output_folder == "" then
         return
     end
+    PakettiExportPolyendProjectToFolder(output_folder)
+end
+
+-- Headless project export to a given folder. Global so PakettiMCP can drive it and so it can
+-- be reused programmatically. Writes patterns/, patternsMetadata, instruments/*.pti, project.mt.
+function PakettiExportPolyendProjectToFolder(output_folder)
+    local song = renoise.song()
 
     -- Determine track count from dialog or default
     local track_count = 16  -- Default to Tracker Mini/Plus
@@ -2315,12 +2322,39 @@ function PakettiExportPolyendProject()
     local metadata_path = patterns_folder .. separator .. "patternsMetadata"
     export_patterns_metadata(metadata_path, pattern_names)
 
+    -- Export instruments as .pti so the project actually has SOUND on the device. Naming
+    -- "<N> <name>.pti" (N = 1-based instrument number) matches real device files; the pattern
+    -- step instrument byte is the 0-based Polyend index = N-1 = the Renoise instrument_value.
+    -- (Polyend holds 48 sample instruments, 0-47, so we cap at the first 48.)
+    local instruments_folder = output_folder .. separator .. "instruments"
+    if separator == "\\" then
+        os.execute('mkdir "' .. instruments_folder .. '" 2>nul')
+    else
+        os.execute('mkdir -p "' .. instruments_folder .. '"')
+    end
+    local saved_instrument_index = song.selected_instrument_index
+    local instruments_exported = 0
+    for ri = 1, math.min(48, #song.instruments) do
+        local inst = song.instruments[ri]
+        if #inst.samples > 0 and inst.samples[1].sample_buffer and inst.samples[1].sample_buffer.has_sample_data then
+            song.selected_instrument_index = ri
+            local safe = (inst.name or ""):gsub('[/\\:%*%?"<>|]', "_")
+            if safe == "" then safe = "Instrument" end
+            local pti_path = instruments_folder .. separator .. string.format("%d %s.pti", ri, safe)
+            if pti_savesample_to_path(pti_path) then
+                instruments_exported = instruments_exported + 1
+            end
+        end
+    end
+    song.selected_instrument_index = saved_instrument_index
+    print(string.format("-- Exported %d instrument(s) as .pti to %s", instruments_exported, instruments_folder))
+
     -- Export project.mt
     local mt_path = output_folder .. separator .. "project.mt"
     export_project_to_mt(mt_path, playlist, 0)
 
-    renoise.app():show_status(string.format("Polyend project exported: %d patterns, %d sequence entries to %s",
-        patterns_exported, #playlist, output_folder))
+    renoise.app():show_status(string.format("Polyend project exported: %d patterns, %d instruments, %d sequence entries to %s",
+        patterns_exported, instruments_exported, #playlist, output_folder))
 
     print("=== POLYEND PROJECT EXPORT COMPLETE ===")
 end
