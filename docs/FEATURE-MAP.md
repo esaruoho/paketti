@@ -2,11 +2,11 @@
 
 *Non-technical. Every Paketti capability as **a feature, in a place, reachable through one or more doors** — keyboard shortcut · MIDI mapping · menu entry. Parameter variants (e.g. Transpose −120…+120) are collapsed into the one feature they are. Auto-generated from the running code by `.spine/features.py`; do not hand-edit.*
 
-## 4,369 distinct features across 92 groups
+## 4,369 distinct features across 91 groups
 
 | Feature group | features | ⌨ keyboard | 🎛 MIDI | ☰ menu |
 |---|--:|--:|--:|--:|
-| **(top level)** | 2957 | 2245 | 2459 | 600 |
+| **(top level)** | 2963 | 2251 | 2463 | 606 |
 | **(misc)** | 290 | 180 | 154 | 170 |
 | **Paketti Groovebox 8120** | 65 | 0 | 65 | 0 |
 | **!Preferences** | 61 | 0 | 29 | 61 |
@@ -23,10 +23,10 @@
 | **Write Notes** | 30 | 30 | 30 | 30 |
 | **Phrases** | 30 | 25 | 29 | 30 |
 | **Pattern** | 28 | 23 | 22 | 28 |
-| **Instruments** | 28 | 5 | 15 | 28 |
 | **MPC Cycler** | 24 | 0 | 24 | 13 |
 | **Octatrack** | 23 | 5 | 23 | 23 |
 | **Load** | 23 | 20 | 17 | 23 |
+| **Instruments** | 23 | 0 | 12 | 23 |
 | **DSP** | 22 | 3 | 20 | 22 |
 | **Preset++** | 15 | 5 | 8 | 15 |
 | **Plugins/Devices** | 14 | 0 | 5 | 14 |
@@ -45,7 +45,7 @@
 | **Steppers** | 8 | 2 | 8 | 8 |
 | **Other Trackers** | 8 | 0 | 1 | 8 |
 | **Navigation** | 8 | 4 | 8 | 8 |
-| **06 Drive** | 8 | 0 | 3 | 8 |
+| **03 Pitch** | 8 | 0 | 3 | 8 |
 | **Transpose** | 7 | 4 | 4 | 7 |
 | **AKWF** | 7 | 7 | 2 | 7 |
 | **Transport** | 6 | 6 | 5 | 6 |
@@ -75,7 +75,7 @@
 
 ## Every feature, by group
 
-### (top level)  ·  2957 features  ·  ⌨2245 🎛2459 ☰600
+### (top level)  ·  2963 features  ·  ⌨2251 🎛2463 ☰606
 
 - **(Dxx) Selection Slide Pitch Down +1** — _MIDI · menu_
 - **(Gxx) Selection Glide +1** — _MIDI · menu_
@@ -132,6 +132,7 @@
 - **Apply 10-TET Decagono Lange Tuning** — _keyboard · MIDI_
 - **Apply 36-EDO Tuning** — _keyboard · MIDI_
 - **Apply Colundi Tuning** — _keyboard · MIDI_
+- **Apply Custom LFO Preset 01** — _keyboard · MIDI · menu_
 - **Apply Golden Pythagorean Tuning** — _keyboard · MIDI_
 - **Apply Heavy Swing (75%) to Phrase** — _keyboard · MIDI_
 - **Apply Humanize to Phrase** — _keyboard · MIDI_
@@ -679,6 +680,7 @@
 - **Double Double Beatsync Lines (Selected Sample)** — _keyboard · MIDI_
 - **Double Double BPM** — _keyboard_
 - **Double EditStep** — _keyboard · MIDI_
+- **Double LFO Envelope Resolution** — _keyboard · MIDI · menu_
 - **Double Slice Count** — _keyboard_
 - **Dump Available Effects/Plugins to Dialog...** — _MIDI_
 - **Dump Current Instrument parameters** — _keyboard · MIDI_
@@ -944,6 +946,7 @@
 - **Halve Halve Beatsync Lines (All)** — _keyboard · MIDI_
 - **Halve Halve Beatsync Lines (Selected Sample)** — _keyboard · MIDI_
 - **Halve Halve BPM** — _keyboard · MIDI_
+- **Halve LFO Envelope Resolution** — _keyboard · MIDI · menu_
 - **Halve Slice Count** — _keyboard_
 - **Hide All Effect Columns** — _keyboard · MIDI · menu_
 - **Hide All Instrument Properties** — _keyboard · menu_
@@ -1203,6 +1206,7 @@
 - **Load Devices Dialog...** — _MIDI_
 - **Load FabFilter One** — _keyboard_
 - **Load Instrument (.XRNI) Slot01** — _keyboard · menu_
+- **Load LFO from Slot 01** — _keyboard · menu_
 - **Load MIDI Mappings from File (Merge)...** — _keyboard · MIDI · menu_
 - **Load MIDI Mappings from File (Replace All)...** — _keyboard · MIDI · menu_
 - **Load Modulation Device (01 Volume) AHDSR** — _keyboard · MIDI_
@@ -1560,7 +1564,7 @@
 - **Nudge Phrase Up by 2 Steps** — _MIDI_
 - **Nudge Sequence Selection Down** — _keyboard · MIDI · menu_
 - **Nudge Sequence Selection Up** — _keyboard · MIDI · menu_
-- **Nudge Slice 01 by (+16)** — _keyboard_
+- **Nudge Slice 01 by (-10)** — _keyboard_
 - **Nudge Up** — _keyboard · MIDI_
 - **Nudge Up by Delay** — _keyboard · MIDI_
 - **Nudge Up by Row** — _keyboard · MIDI_
@@ -2668,6 +2672,7 @@
 - **Slice Step Row 1 to Phrase** — _keyboard · MIDI_
 - **Slice Step Row 1 to Phrase [Trigger]** — _MIDI_
 - **Slice to Pattern Sequencer Dialog...** — _keyboard · MIDI · menu_
+- **Slice Tools Dialog...** — _keyboard · MIDI · menu_
 - **SlicePro Create Beat-Synced Phrases** — _keyboard · MIDI_
 - **SlicePro Create Uniform Phrases** — _keyboard · MIDI_
 - **Slices to Pattern (beat sync only)** — _keyboard · MIDI · menu_
@@ -2749,6 +2754,7 @@
 - **Step Sequencer FX Randomizer...** — _MIDI · menu_
 - **Stop Playback (Panic) x[Toggle]** — _MIDI_
 - **Store as PhraseGrid State** — _MIDI · menu_
+- **Store Current LFO to Slot 01** — _keyboard · menu_
 - **Strip Silence from All Samples** — _keyboard · MIDI_
 - **Sub Column Command Absolute Control** — _MIDI_
 - **Sub Column Command Relative Control** — _MIDI_
@@ -4022,37 +4028,6 @@
 - **Wonkify Generate Chain** — _keyboard · MIDI · menu_
 - **Wonkify Settings...** — _menu_
 
-### Instruments  ·  28 features  ·  ⌨5 🎛15 ☰28
-
-- **Apply Custom LFO Preset 01** — _keyboard · MIDI · menu_
-- **Center** — _menu_
-- **Curve - Bell (Peak)** — _MIDI · menu_
-- **Curve - Double Peak** — _MIDI · menu_
-- **Curve - Double Valley** — _MIDI · menu_
-- **Curve - Exponential Down** — _MIDI · menu_
-- **Curve - Exponential Up** — _MIDI · menu_
-- **Curve - Linear Down** — _MIDI · menu_
-- **Curve - Linear Up** — _MIDI · menu_
-- **Curve - Logarithmic Down** — _MIDI · menu_
-- **Curve - Logarithmic Up** — _MIDI · menu_
-- **Curve - U-Shape (Valley)** — _MIDI · menu_
-- **Double LFO Envelope Resolution** — _keyboard · MIDI · menu_
-- **Dump REX Structure to Text** — _menu_
-- **Flip** — _menu_
-- **Global Volume Reduce Reduce All Samples by -4.5dB** — _MIDI · menu_
-- **Halve LFO Envelope Resolution** — _keyboard · MIDI · menu_
-- **Humanize** — _menu_
-- **Invert** — _menu_
-- **LFO Envelope Editor...** — _MIDI · menu_
-- **Load LFO from Slot 01** — _keyboard · menu_
-- **Max** — _menu_
-- **Min** — _menu_
-- **Mirror** — _menu_
-- **Randomize** — _menu_
-- **Scale 150%** — _menu_
-- **Slapback** — _menu_
-- **Store Current LFO to Slot 01** — _keyboard · menu_
-
 ### MPC Cycler  ·  24 features  ·  ⌨0 🎛24 ☰13
 
 - **Commit Preview** — _MIDI · menu_
@@ -4131,6 +4106,32 @@
 - **UIOWA Sample Importer** — _keyboard · MIDI · menu_
 - **UIOWA Sample Processor** — _keyboard · MIDI · menu_
 - **User-Defined Sample Folders...** — _keyboard · menu_
+
+### Instruments  ·  23 features  ·  ⌨0 🎛12 ☰23
+
+- **Center** — _menu_
+- **Curve - Bell (Peak)** — _MIDI · menu_
+- **Curve - Double Peak** — _MIDI · menu_
+- **Curve - Double Valley** — _MIDI · menu_
+- **Curve - Exponential Down** — _MIDI · menu_
+- **Curve - Exponential Up** — _MIDI · menu_
+- **Curve - Linear Down** — _MIDI · menu_
+- **Curve - Linear Up** — _MIDI · menu_
+- **Curve - Logarithmic Down** — _MIDI · menu_
+- **Curve - Logarithmic Up** — _MIDI · menu_
+- **Curve - U-Shape (Valley)** — _MIDI · menu_
+- **Dump REX Structure to Text** — _menu_
+- **Flip** — _menu_
+- **Global Volume Reduce Reduce All Samples by -4.5dB** — _MIDI · menu_
+- **Humanize** — _menu_
+- **Invert** — _menu_
+- **LFO Envelope Editor...** — _MIDI · menu_
+- **Max** — _menu_
+- **Min** — _menu_
+- **Mirror** — _menu_
+- **Randomize** — _menu_
+- **Scale 150%** — _menu_
+- **Slapback** — _menu_
 
 ### DSP  ·  22 features  ·  ⌨3 🎛20 ☰22
 
@@ -4397,7 +4398,7 @@
 - **Cycle Forward through Global View Presets** — _keyboard · MIDI · menu_
 - **Enable/Disable Auto-Capture Track** — _keyboard · MIDI · menu_
 
-### 06 Drive  ·  8 features  ·  ⌨0 🎛3 ☰8
+### 03 Pitch  ·  8 features  ·  ⌨0 🎛3 ☰8
 
 - ***LFO** — _MIDI · menu_
 - **AHDSR** — _menu_
@@ -4667,10 +4668,6 @@
 ### SliceSafely  ·  1 features  ·  ⌨0 🎛0 ☰1
 
 - **SliceSafely (002)** — _menu_
-
-### Slice Tools  ·  1 features  ·  ⌨1 🎛1 ☰1
-
-- **Slice Tools Dialog...** — _keyboard · MIDI · menu_
 
 ### Set Sample Zoom  ·  1 features  ·  ⌨0 🎛1 ☰1
 
