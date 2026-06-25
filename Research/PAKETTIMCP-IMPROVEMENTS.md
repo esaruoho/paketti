@@ -40,8 +40,8 @@ Note there are TWO distinct "reloads":
 |------|-------------|-------|
 | **`paketti_eval_json`** — `{ok,type,value,stdout,error}`, captures `print`. | HIGH | ✅ DONE & tested |
 | **`paketti_screenshot`** — fires `screencapture` DETACHED (`&`) so it never blocks the main thread (a blocking version tripped Renoise's not-responding guard — fixed). | MEDIUM | ✅ DONE & tested (captured a dialog) |
-| **Undo-checkpoint tool** — `describe_undo` before a test mutation so a run is one-click revertible. | HIGH | tiny |
-| **Render-to-file** — render the song/selection to wav so an agent can verify audio. | MEDIUM | `song:render()` is async (callback) |
+| **`paketti_undo_checkpoint`** — `song:describe_undo(label)`; revert via song_undo. | HIGH | ✅ DONE & tested |
+| **`paketti_render`** — `song:render` to WAV; GUI blocks during render so poll the file on disk. | MEDIUM | ✅ DONE & tested (1.2MB wav in ~1s) |
 | **`paketti_read_file` / `paketti_write_file`** | HIGH | ✅ DONE |
 
 ## TIER 3 — "slay"

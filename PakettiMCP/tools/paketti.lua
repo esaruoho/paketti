@@ -167,4 +167,37 @@ return {
       return text(string.format("ok: wrote %d bytes to %s", #c, p))
     end,
   },
+  {
+    name = "paketti_undo_checkpoint",
+    description = "Name the current undo step (song:describe_undo) so a test mutation can be reverted with a single Undo (the song_undo tool). Call it right AFTER making the change you want to be revertible.",
+    inputSchema = { type = "object", properties = { label = { type = "string", description = "Undo step label" } }, required = {} },
+    handler = function(args)
+      local ok, song = pcall(renoise.song)
+      if not ok or not song then return err("no song loaded") end
+      local label = (args and args.label) or "PakettiMCP checkpoint"
+      local ok2, e = pcall(function() song:describe_undo(label) end)
+      if not ok2 then return err(tostring(e)) end
+      return text("ok: undo step named '" .. label .. "' — revert with the song_undo tool")
+    end,
+  },
+  {
+    name = "paketti_render",
+    description = "Render the song to a WAV file. Starts immediately and returns the path; Renoise's GUI is BLOCKED during the render (so MCP won't answer until it finishes) — poll the file on disk for completion, not MCP. Default options render the whole song at 44100/16-bit.",
+    inputSchema = { type = "object", properties = { path = { type = "string", description = "Output WAV path (default /tmp/paketti_render.wav)" }, sample_rate = { type = "number" }, bit_depth = { type = "number" } }, required = {} },
+    handler = function(args)
+      local ok, song = pcall(renoise.song)
+      if not ok or not song then return err("no song loaded") end
+      if song.rendering then return err("a render is already in progress") end
+      local path = (args and args.path) or "/tmp/paketti_render.wav"
+      local options = {
+        sample_rate = (args and args.sample_rate) or 44100,
+        bit_depth   = (args and args.bit_depth) or 16,
+      }
+      local ok2, e = pcall(function()
+        return song:render(options, path, function() end)
+      end)
+      if not ok2 then return err("render failed to start: " .. tostring(e)) end
+      return text("ok: render started to " .. path .. " (GUI blocks until done; poll the file on disk)")
+    end,
+  },
 }
