@@ -356,21 +356,47 @@ local function restart_server()
   if srv then
     M.socket_srv = srv
     srv:run(make_notifier())
+    M.rebind_failures = 0
     log("Server restarted on http://localhost:" .. M.port .. "/mcp")
   else
-    log("Failed to restart: " .. tostring(err))
-    M.running = false
+    -- Watchdog: DON'T give up. The port may be in a transient TIME_WAIT / not-yet-
+    -- released state; keep needs_restart set so the next throttled poll tick retries.
+    -- Stays running so safe_poll_clients keeps the heal loop alive.
+    M.rebind_failures = (M.rebind_failures or 0) + 1
+    M.needs_restart   = true
+    log(string.format("Rebind attempt %d failed: %s (will retry)", M.rebind_failures, tostring(err)))
   end
 end
 
 -- ============================================================
 
+-- Watchdog: reap half-open clients that never completed a request, so a dropped or
+-- stalled connection can't leak into M.clients forever. Counts poll ticks (100 ms
+-- each); ~30 s without completing -> close + remove. Tick-based (not wall-clock) so
+-- it survives reloads and doesn't depend on os.clock semantics.
+local function reap_stale_clients()
+  local reap = {}
+  for key, info in pairs(M.clients) do
+    info.ticks = (info.ticks or 0) + 1
+    if info.state ~= "done" and info.ticks > 300 then
+      reap[#reap + 1] = key
+    end
+  end
+  for _, key in ipairs(reap) do
+    log("watchdog: reaping stale client " .. key)
+    remove_client(key, true)
+  end
+end
+
 local function safe_poll_clients()
+  M.tick = (M.tick or 0) + 1
   if M.running and M.socket_srv then
     -- Wrap is_running: accessing a dead socket object can throw.
     local srv_running = true
     pcall(function() srv_running = M.socket_srv.is_running end)
-    if M.needs_restart or not srv_running then
+    -- Throttle rebind attempts to ~1 s (every 10th 100 ms tick) so a port that is
+    -- briefly unavailable doesn't get hammered, while still healing within a second.
+    if (M.needs_restart or not srv_running) and (M.tick % 10 == 0) then
       restart_server()
     end
   end
@@ -378,6 +404,7 @@ local function safe_poll_clients()
   if not ok then
     log("poll_clients error: " .. tostring(err))
   end
+  pcall(reap_stale_clients)
 end
 
 -- ============================================================

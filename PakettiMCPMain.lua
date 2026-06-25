@@ -122,24 +122,25 @@ renoise.tool():add_timer(paketti_mcp_autostart_boot, 1200)
 -- reopening the dialog — useful right after adding/editing a tool file such as
 -- composition.lua. Mirrors the dialog's "Reload Tools" but headless.
 function PakettiMCPReloadTools()
-  local ok_s, server = pcall(require, "PakettiMCP.server")
-  local was_running = ok_s and server and server.running
-  if was_running then server.stop() end
-  package.loaded["PakettiMCP.server"] = nil
-  package.loaded["PakettiMCP.router"] = nil
-  package.loaded["PakettiMCP.json"]   = nil
-  for k in pairs(package.loaded) do
-    if type(k) == "string" and k:match("^PakettiMCP%.tools%.") then package.loaded[k] = nil end
+  -- Reload ONLY the tool files, IN PLACE. Do NOT re-require or restart the server
+  -- module. Re-requiring PakettiMCP.server creates a fresh module table while the OLD
+  -- bound socket is orphaned (still holding port 19714 + its callbacks), so the new
+  -- module's create_server can't bind — the socket stays LISTEN but never answers
+  -- ("the wedge", 2026-06-25). router.load_tools_dir already clears each tool's
+  -- package.loaded entry and re-registers into the LIVE router table, so the running
+  -- socket serves the new tool code with zero churn — no stop, no rebind, no wedge.
+  local ok_r, router = pcall(require, "PakettiMCP.router")
+  if not ok_r or type(router) ~= "table" then
+    renoise.app():show_status("PakettiMCP: reload failed (router not loaded)")
+    return 0
   end
-  local ok_r, router  = pcall(require, "PakettiMCP.router")
-  local ok2, server2  = pcall(require, "PakettiMCP.server")
-  if not (ok_r and ok2) then
-    renoise.app():show_status("PakettiMCP: reload failed to load core")
-    return
+  local n, errors = router.load_tools_dir(renoise.tool().bundle_path)
+  if errors and #errors > 0 then
+    renoise.app():show_status(string.format("PakettiMCP: reloaded %d tools in place (%d error(s))", n, #errors))
+  else
+    renoise.app():show_status(string.format("PakettiMCP: reloaded %d tools in place (no restart)", n))
   end
-  local n = router.load_tools_dir(renoise.tool().bundle_path)
-  if was_running or PakettiMCPAutoStartEnabled() then server2.start() end
-  renoise.app():show_status(string.format("PakettiMCP: reloaded %d tools", n))
+  return n
 end
 
 PakettiAddMenuEntry{
