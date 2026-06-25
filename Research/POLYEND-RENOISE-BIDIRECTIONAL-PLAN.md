@@ -115,6 +115,23 @@ Menu entries (un-bury from Xperimental/WIP if desired), keybindings (3-part!), M
 
 ---
 
+## STATUS: ALL PHASES SHIPPED (2026-06-25)
+- ✅ **Phase 0** — oracle (tracker-lib) + looping harness (`loop-roundtrip.py`, 7/7) + corpus
+  import test (`corpus-import-test.py`, 208 .mtp + 8 project.mt ALL PASS). Durable, re-runnable.
+- ✅ **Phase 1** — import BPM 0x80→0x1C0 + name version-gating. Validated across the whole corpus.
+- ✅ **Phase 2** — pattern .mtp export byte-identical to device + oracle-validated; master/send-track
+  crash fixed (caught live).
+- ✅ **Phase 3** — project.mt export rewritten on a real-device template; tempo @ 0x1C0 from Renoise
+  BPM; pattern filenames 1-based so projects reload. Verified live + offline.
+- ✅ **Phase 4** — selection / clipboard → single .mtp (line-range export). Verified live.
+- ✅ **Phase 5** — long-pattern auto-split (>128 lines → multiple .mtp parts). Verified live.
+- ✅ **Phase 6** — menu entries + 5 MIDI mappings (check.py clean). 
+- 🎁 **tracker-lib bug** — branch `fix/pattern-unused-size-8-12-track` + handoff for Sandroid.
+- ⚠️ **note-cut fidelity** — INHERENT LIMITATION, not fixable: Renoise's note column has only OFF
+  (120), no separate CUT value, so Polyend FADE(-2)/CUT(-3)/OFF(-4) all import as Renoise OFF, and
+  Renoise OFF exports as Polyend FADE. The fade/cut distinction can't round-trip through Renoise's
+  note column. (FX-based note-cut, e.g. Cxx, is a possible future enhancement but lossy/complex.)
+
 ## PROGRESS (2026-06-25)
 - ✅ **Phase 0 — oracle**: `tracker-lib` built; durable validator in `Research/polyend-roundtrip-tests/`.
 - ✅ **Phase 1 — import BPM/name** (commit `3b42aa6f`): tempo 0x80→0x1C0 (proven on real 140/170/130
