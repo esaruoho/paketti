@@ -1353,15 +1353,18 @@ end
 -- Global so it can be driven headlessly (PakettiMCP test harness) and reused
 -- programmatically (clipboard/selection export). Writes pattern `pattern_index`
 -- (1-based Renoise) to `output_path` as a byte-faithful .mtp with `track_count` tracks.
-function export_pattern_to_mtp(pattern_index, output_path, track_count)
+function export_pattern_to_mtp(pattern_index, output_path, track_count, start_line, num_lines)
     track_count = track_count or 16  -- Default to 16 tracks for Tracker Mini/Plus
-    
+    start_line = start_line or 1      -- 1-based first Renoise line to export (for splitting
+                                      -- long patterns / exporting a selection into one .mtp)
+    -- num_lines: optional explicit length (for selection export); else to end of pattern.
+
     local song = renoise.song()
     if pattern_index > #song.patterns then
         print("-- ERROR: Pattern index out of range")
         return false
     end
-    
+
     local pattern = song.patterns[pattern_index]
     
     -- Open output file
@@ -1387,7 +1390,10 @@ function export_pattern_to_mtp(pattern_index, output_path, track_count)
     for _ = 1, 12 do file:write(string.char(0)) end    -- 12 unused bytes (zeros)
     
     -- Get pattern length
-    local pattern_length = math.min(pattern.number_of_lines, 128)
+    -- Number of lines to export from start_line, capped at the Polyend 128-step max.
+    local lines_remaining = pattern.number_of_lines - (start_line - 1)
+    if num_lines then lines_remaining = math.min(lines_remaining, num_lines) end
+    local pattern_length = math.max(0, math.min(lines_remaining, 128))
     local last_step = pattern_length - 1  -- 0-based
 
     -- Map Polyend tracks ONLY to Renoise SEQUENCER tracks. Master / Send / Group tracks
@@ -1422,7 +1428,7 @@ function export_pattern_to_mtp(pattern_index, output_path, track_count)
             
             -- Get data from Renoise if step exists and track exists
             if step <= pattern_length and renoise_track then
-                local line = renoise_track:line(step)
+                local line = renoise_track:line(start_line + step - 1)
                 
                 -- Convert note
                 if line.note_columns[1].note_value < 120 then
@@ -1515,6 +1521,51 @@ function export_pattern_to_mtp(pattern_index, output_path, track_count)
     print(string.format("-- MTP export complete: %s (%d bytes, %d tracks, %d steps)",
         output_path, total_size, track_count, pattern_length))
     return true
+end
+
+-- Split a Renoise pattern longer than Polyend's 128-step max into multiple .mtp files.
+-- A 256-line pattern -> two 128-step parts; returns the list of files written. The caller
+-- chains them in the playlist so the song plays back identically on the device.
+function PakettiPolyendExportPatternSplit(pattern_index, output_dir, base_name, track_count)
+    local song = renoise.song()
+    local pat = song.patterns[pattern_index]
+    if not pat then return {} end
+    local sep = package.config:sub(1, 1)
+    local parts = math.max(1, math.ceil(pat.number_of_lines / 128))
+    local written = {}
+    for part = 1, parts do
+        local start_line = (part - 1) * 128 + 1
+        local name = (parts > 1) and string.format("%s_part%02d.mtp", base_name, part)
+                                  or  (base_name .. ".mtp")
+        local path = output_dir .. sep .. name
+        if export_pattern_to_mtp(pattern_index, path, track_count, start_line, 128) then
+            written[#written + 1] = path
+        end
+    end
+    print(string.format("-- Split pattern %d (%d lines) into %d .mtp file(s)",
+        pattern_index, pat.number_of_lines, #written))
+    return written
+end
+
+-- Export the current pattern selection's line range (clipboard-style) to a single .mtp.
+-- Polyend patterns are whole-step, so column selection is ignored — the selected LINE
+-- range becomes a 1..N-step pattern (capped at 128). With no selection, exports the
+-- whole selected pattern.
+function PakettiPolyendExportSelectionToMTP(output_path, track_count)
+    local song = renoise.song()
+    local pi = song.selected_pattern_index
+    local sel = song.selection_in_pattern
+    local start_line, num_lines
+    if sel then
+        start_line = sel.start_line
+        num_lines = sel.end_line - sel.start_line + 1
+    else
+        start_line = 1
+        num_lines = song.patterns[pi].number_of_lines
+    end
+    print(string.format("-- Export selection: pattern %d lines %d..%d (%d lines)",
+        pi, start_line, start_line + num_lines - 1, num_lines))
+    return export_pattern_to_mtp(pi, output_path, track_count or 16, start_line, num_lines)
 end
 
 -- Scan for available patterns
@@ -2302,14 +2353,44 @@ function PakettiExportPolyendPattern()
     end
 end
 
+-- Interactive wrapper: export the current pattern selection (or whole pattern) to one .mtp.
+function PakettiPolyendExportSelectionDialog()
+    local path = renoise.app():prompt_for_filename_to_write("mtp", "Export Selection to Polyend MTP")
+    if not path or path == "" then return end
+    if PakettiPolyendExportSelectionToMTP(path, 16) then
+        renoise.app():show_status("Paketti: exported selection to " .. path)
+    else
+        renoise.app():show_error("Paketti: failed to export selection to MTP")
+    end
+end
+
+-- Interactive wrapper: export the selected pattern, auto-splitting if it exceeds 128 lines.
+function PakettiPolyendExportPatternSplitDialog()
+    local song = renoise.song()
+    local pi = song.selected_pattern_index
+    local dir = renoise.app():prompt_for_path("Select folder for split Polyend MTP files")
+    if not dir or dir == "" then return end
+    local files = PakettiPolyendExportPatternSplit(pi, dir, string.format("pattern_%02d", pi), 16)
+    renoise.app():show_status(string.format("Paketti: pattern %d exported as %d MTP file(s)", pi, #files))
+end
+
 -- Menu entries and keybindings
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Project", invoke=PakettiImportPolyendProject}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Pattern to MTP", invoke=PakettiExportPolyendPattern}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Selection to MTP", invoke=PakettiPolyendExportSelectionDialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Pattern to MTP (auto-split >128)", invoke=PakettiPolyendExportPatternSplitDialog}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Export Polyend Project", invoke=PakettiExportPolyendProject}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import MT Project File", invoke=function() PakettiImportPolyendMTProject() end}
+
+-- MIDI mappings: drive Polyend import/export from a controller (fire on button press).
+renoise.tool():add_midi_mapping{name="Paketti:Import Polyend MT Project File", invoke=function(message) if message:is_trigger() then PakettiImportPolyendMTProject() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Export Pattern to Polyend MTP", invoke=function(message) if message:is_trigger() then PakettiExportPolyendPattern() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Export Selection to Polyend MTP", invoke=function(message) if message:is_trigger() then PakettiPolyendExportSelectionDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Export Pattern to Polyend MTP (auto-split)", invoke=function(message) if message:is_trigger() then PakettiPolyendExportPatternSplitDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Export Polyend Project", invoke=function(message) if message:is_trigger() then PakettiExportPolyendProject() end end}
 --[[
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend WIP:Import Polyend Project", invoke=PakettiImportPolyendProject}
