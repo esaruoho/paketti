@@ -2269,57 +2269,53 @@ function PakettiExportPolyendProjectToFolder(output_folder)
         os.execute('mkdir -p "' .. patterns_folder .. '"')
     end
 
-    -- Build playlist from Renoise pattern sequence
-    local playlist = {}
-    local pattern_names = {}
-    local unique_patterns = {}
+    -- Assign Polyend pattern numbers, splitting any Renoise pattern longer than 128 lines
+    -- into multiple parts, then build the device playlist by expanding each sequence entry
+    -- into its part numbers — so long patterns play back in order on the device.
+    -- Files are pattern_NN.mtp, 1-based, sequential (matches the device + auto-loader).
+    local pattern_parts = {}        -- renoise_pat_idx -> { polyend_num per 128-line part }
+    local part_meta = {}            -- polyend_num -> name
+    local patterns_exported = 0
+    local next_polyend_num = 0
 
+    -- Number patterns in first-appearance order within the sequence (stable, device-like).
+    local seen, ordered = {}, {}
     for seq_idx = 1, #song.sequencer.pattern_sequence do
         local pat_idx = song.sequencer.pattern_sequence[seq_idx]
-        playlist[seq_idx] = pat_idx
+        if not seen[pat_idx] then seen[pat_idx] = true; ordered[#ordered + 1] = pat_idx end
+    end
 
-        -- Track unique patterns for MTP export
-        if not unique_patterns[pat_idx] then
-            unique_patterns[pat_idx] = true
+    for _, pat_idx in ipairs(ordered) do
+        local nlines = song.patterns[pat_idx].number_of_lines
+        local nparts = math.max(1, math.ceil(nlines / 128))
+        local base_name = song.patterns[pat_idx].name
+        if not base_name or base_name == "" then base_name = string.format("Pattern %d", pat_idx) end
+        pattern_parts[pat_idx] = {}
+        for part = 1, nparts do
+            next_polyend_num = next_polyend_num + 1
+            pattern_parts[pat_idx][part] = next_polyend_num
+            local fpath = patterns_folder .. separator .. string.format("pattern_%02d.mtp", next_polyend_num)
+            if export_pattern_to_mtp(pat_idx, fpath, track_count, (part - 1) * 128 + 1, 128) then
+                patterns_exported = patterns_exported + 1
+            end
+            part_meta[next_polyend_num] = (nparts > 1)
+                and string.format("%s (%d/%d)", base_name, part, nparts) or base_name
         end
     end
 
-    -- Export each unique pattern as MTP
-    local patterns_exported = 0
-    local sorted_pattern_indices = {}
-    for pat_idx, _ in pairs(unique_patterns) do
-        table.insert(sorted_pattern_indices, pat_idx)
-    end
-    table.sort(sorted_pattern_indices)
-
-    for _, pat_idx in ipairs(sorted_pattern_indices) do
-        -- 1-based, 2-digit to match real device files AND the playlist (which references
-        -- Renoise pattern indices 1-based) AND Paketti's own auto-loader, so exported
-        -- projects reload correctly. (Was pattern_%03d 0-based — files the device/loader couldn't find.)
-        local mtp_filename = string.format("pattern_%02d.mtp", pat_idx)
-        local mtp_path = patterns_folder .. separator .. mtp_filename
-
-        if export_pattern_to_mtp(pat_idx, mtp_path, track_count) then
-            patterns_exported = patterns_exported + 1
+    -- Device playlist: expand each Renoise sequence entry into its pattern's part numbers.
+    local playlist = {}
+    for seq_idx = 1, #song.sequencer.pattern_sequence do
+        local pat_idx = song.sequencer.pattern_sequence[seq_idx]
+        for _, pnum in ipairs(pattern_parts[pat_idx] or {}) do
+            playlist[#playlist + 1] = pnum
         end
     end
 
-    -- Collect pattern names for metadata
-    -- We need names for all patterns that exist, indexed sequentially
-    local max_pattern = 0
-    for pat_idx, _ in pairs(unique_patterns) do
-        if pat_idx > max_pattern then max_pattern = pat_idx end
-    end
-
-    for i = 1, max_pattern do
-        local name = ""
-        if i <= #song.patterns then
-            name = song.patterns[i].name or ""
-        end
-        if name == "" then
-            name = string.format("Pattern %d", i)
-        end
-        pattern_names[i] = name
+    -- Pattern names for metadata, indexed by Polyend number.
+    local pattern_names = {}
+    for pnum = 1, next_polyend_num do
+        pattern_names[pnum] = part_meta[pnum] or string.format("Pattern %d", pnum)
     end
 
     -- Export patternsMetadata
