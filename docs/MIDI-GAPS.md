@@ -8,11 +8,11 @@
 
 | Feature group | no MIDI | has MIDI | total | coverage |
 |---|--:|--:|--:|--:|
-| **(top level)** | **479** | 2424 | 2903 | 83% |
+| **(top level)** | **480** | 2446 | 2926 | 84% |
 | **(misc)** | **136** | 154 | 290 | 53% |
 | **!Preferences** | **32** | 29 | 61 | 48% |
 | **MetaSynth** | **31** | 10 | 41 | 24% |
-| **Instruments** | **29** | 49 | 78 | 63% |
+| **Instruments** | **31** | 57 | 88 | 65% |
 | **Automation** | **15** | 30 | 45 | 67% |
 | **Xperimental/WIP** | **14** | 21 | 35 | 60% |
 | **Microtonal Tunings** | **14** | 22 | 36 | 61% |
@@ -38,7 +38,6 @@
 | **Save** | **3** | 10 | 13 | 77% |
 | **Samples** | **3** | 8 | 11 | 73% |
 | **Polyend** | **3** | 3 | 6 | 50% |
-| **Order Notes** | **3** | 1 | 4 | 25% |
 | **Initialize** | **3** | 0 | 3 | 0% |
 | **Export** | **3** | 0 | 3 | 0% |
 | **Effect Columns** | **3** | 3 | 6 | 50% |
