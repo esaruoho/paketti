@@ -200,4 +200,33 @@ return {
       return text("ok: render started to " .. path .. " (GUI blocks until done; poll the file on disk)")
     end,
   },
+  {
+    name = "paketti_introspect",
+    description = "Discover callable Paketti global functions matching a filter, with their parameter count, vararg flag, and source file:line (via debug.getinfo). Returns JSON. Use it to find what to call with paketti_eval.",
+    inputSchema = { type = "object", properties = { filter = { type = "string", description = "Lua pattern matched against function names (default 'Paketti')" }, limit = { type = "number", description = "Max functions returned (default 200)" } }, required = {} },
+    handler = function(args)
+      local filter = (args and args.filter) or "Paketti"
+      local limit  = (args and args.limit) or 200
+      local results = {}
+      for name, v in pairs(_G) do
+        if type(v) == "function" and type(name) == "string" then
+          local ok_match, matched = pcall(function() return name:find(filter) end)
+          if ok_match and matched then
+            local info = debug and debug.getinfo and debug.getinfo(v, "uS")
+            results[#results + 1] = {
+              name   = name,
+              params = (info and info.nparams) or json.null,
+              vararg = (info and info.isvararg) or false,
+              source = (info and info.short_src) or json.null,
+              line   = (info and info.linedefined) or json.null,
+            }
+          end
+        end
+      end
+      table.sort(results, function(a, b) return a.name < b.name end)
+      local out = {}
+      for i = 1, math.min(#results, limit) do out[i] = results[i] end
+      return text(json.encode({ count = #results, shown = #out, functions = out }))
+    end,
+  },
 }

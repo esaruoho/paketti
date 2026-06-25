@@ -47,7 +47,7 @@ Note there are TWO distinct "reloads":
 ## TIER 3 — "slay"
 | Item | Feasibility | Notes |
 |------|-------------|-------|
-| **Capability/schema introspection** — a tool listing Paketti globals + signatures. | MEDIUM | |
+| **`paketti_introspect`** — lists Paketti globals matching a filter + param count + vararg + source file:line (debug.getinfo). | MEDIUM | ✅ DONE & tested |
 | **Server-initiated notifications** (pattern/transport change push). | LOW | MCP supports it, but our HTTP-`Connection: close` transport is request/response; needs SSE/streaming the client also supports. Document, don't build yet. |
 
 ## LOW / NOT FEASIBLE (documented, not attempted)
