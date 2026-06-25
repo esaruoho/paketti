@@ -21654,3 +21654,131 @@ If you liked what you're seeing here, please consider supporting. Every bit help
 - [Bandcamp](http://lackluster.bandcamp.com/) and [Bandcamp](http://hler.bandcamp.com/) - You can just buy the music from these.
 
 📖 **Navigation:** [Paketti README](index.html) | [Changeslog](CHANGESLOG.html) | Experimental (You are here)
+
+---
+
+## 📋 Auto-Generated Function Reference
+
+*Zero-token, regenerated from the code on every commit by `.spine/manual-sync.py` — never hand-edit
+between the `AUTO` markers. ⌨ = KeyBinding · 🎛 = MidiMapping · ☰ = MenuEntry.*
+
+**Coverage:** <!-- AUTO:counts -->
+⌨ **10,866** keybindings · 🎛 **7,245** midimappings · ☰ **6,704** menu entries → **4,261** functions
+<!-- /AUTO -->
+
+### 🧪 Experimental / WIP
+
+<!-- AUTO:experimental -->
+_110 experimental / WIP functions, listed straight from the code:_
+
+- ☰ 2 (Triplet feel)
+- ☰ 3 (4/4→3/4 feel)
+- ☰ 3 (From triplet)
+- ☰ 4 (3/4→4/4 feel)
+- ☰ Advanced Dialog
+- ☰ Advanced Subdivision Calculator
+- ☰ Align Instrument Names
+- ☰ Audio Processing Tools...
+- ☰ Auto Control Disk Browser on Song Load
+- ☰ Auto Correlate Loop
+- ☰ Auto Detect Single-Cycle Loop
+- ☰ BeatDetector Modified (Headless Mode)
+- ☰ BeatDetector Modified...
+- ☰ Block Loop Snap to Cursor (Manual)
+- ☰ Block Loop Toggle & Snap to Cursor
+- ☰ BPM Calculation Debug (Comprehensive)
+- ☰ Create Random Distributed Slices
+- ☰ Crossfade Loop
+- ☰ Cycle Frequency Analysis Cycles (1/2/4/8/16)
+- ☰ Decode Active Plugin ParameterChunk Amigo (AU)
+- ☰ Detect Sample BPM
+- ☰ Detect Zero Crossings
+- ☰ Dialog of Dialogs Smoke Test
+- ☰ EQ10 XY Control...
+- ☰ Expand to Triplets (Note every row, note every 2nd row)
+- ⌨ 🎛 Experimental Block Loop Follow (Auto) Toggle
+- ⌨ 🎛 Experimental Block Loop Snap to Cursor (Manual)
+- ⌨ 🎛 Experimental Block Loop Toggle & Snap to Cursor
+- ⌨ ☰ 🎛 Experimental Sample FX Render
+- ☰ Export Pattern to MTP
+- ☰ Export Pattern to MTP (auto-split >128)
+- ☰ Export Polyend Project
+- ☰ Export Sample Chain...
+- ☰ Export Samples for Kontakt
+- ☰ Export Selected Sample to Amigo (AU)
+- ☰ Export Selection to MTP
+- ☰ Hotelsinus Matrix Overview
+- ☰ Hotelsinus Step Sequencer
+- ☰ Import Active Plugin Wavefile Amigo (AU)
+- ☰ Import Embedded Amigo (AU) WAV into Sample
+- ☰ Import MT Project File
+- ☰ Import Polyend Pattern
+- ☰ Import Polyend Pattern Tracks
+- ☰ Import Polyend Project
+- ☰ Load 2 Random AKWF as 12st_WT Wavetable
+- ⌨ Load Device Chain EQ10 Macro Experimental
+- ☰ Match EditStep with Delay Pattern
+- ☰ Match Effect Column EditStep with Note Placement
+- ☰ Match Note Column EditStep with Note Placement
+- ☰ Metric Modulation Calculator
+- ☰ Move Slice End +1/16 Beat
+- ☰ Move Slice End +1/32 Beat
+- ☰ Move Slice End +1/4 Beat
+- ☰ Move Slice End +1/8 Beat
+- ☰ Move Slice End -1/16 Beat
+- ☰ Move Slice End -1/32 Beat
+- ☰ Move Slice End -1/4 Beat
+- ☰ Move Slice End -1/8 Beat
+- ☰ Move Slice Start +1/16 Beat
+- ☰ Move Slice Start +1/32 Beat
+- ☰ Move Slice Start +1/4 Beat
+- ☰ Move Slice Start +1/8 Beat
+- ☰ Move Slice Start -1/16 Beat
+- ☰ Move Slice Start -1/32 Beat
+- ☰ Move Slice Start -1/4 Beat
+- ☰ Move Slice Start -1/8 Beat
+- ☰ Multitap Experiment
+- ☰ Open Amigo (AU) Sample Path
+- ☰ Paketti Automation Hack
+- ☰ Paketti EQ30 Unused Note Frequency Reduction Flavor
+- ☰ Paketti EQ64 Unused Note Frequency Reduction Flavor
+- ☰ Paketti Tuplet Writer Dialog...
+- ☰ Paketti XRNS Probe
+- ☰ Paketti XRNS Probe (Browse)
+- ☰ Paketti YT-DLP Downloader...
+- ☰ Pattern Browser
+- ☰ PitchStepper Demo
+- ☰ Quick Export (Chain Mode)
+- ☰ Quick Export (Digitakt 2 Stereo)
+- ☰ Quick Export (Digitakt Mono)
+- ☰ Quick Sample to New Track & Instrument (Sync Off)
+- ☰ Quick Sample to New Track & Instrument (Sync On + 0G01)
+- ☰ Quick Sample to New Track & Instrument (Toggle)
+- ☰ Randomize Existing Slices
+- ☰ Rename with Drum Names (GM Kit)
+- ☰ Rename with Note Names (Melodic)
+- ☰ Sample Cycle Tuning Calculator...
+- ☰ SBx Loop Playback
+- ☰ Selected Instrument 1 Cycle Tuning
+- ☰ Selected Sample 1 Cycle Tuning
+- ☰ Set Active Plugin Pathname Amigo (AU)
+- ☰ Set BeatSyncLines 01024
+- ☰ Set BeatSyncLines 02048
+- ☰ Set BeatSyncLines 04096
+- ☰ Set BeatSyncLines 08192
+- ☰ Set BeatSyncLines 16384
+- ☰ Set BeatSyncLines 32768
+- ☰ Set BeatSyncLines Dialog...
+- ☰ Snap Selection to Zero Crossings
+- ☰ Sort by Base Note
+- ☰ Sort by Name
+- ☰ Sort by Note->Velocity->Name
+- ☰ Sort by Velocity
+- ☰ Test Peak Detection
+- ☰ Toggle Frequency Analysis
+- ☰ Toggle Sampling & Write Trigger to Pattern
+- ☰ Transpose Blocks Dialog...
+- ⌨ Triple (Experimental)
+- ☰ Waveform Viewer
+- ☰ XY Pad Sound Mixer
+<!-- /AUTO -->

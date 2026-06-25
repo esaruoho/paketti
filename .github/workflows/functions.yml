@@ -34,17 +34,21 @@ jobs:
       - name: Generate the function index (zero-token, for-loops resolved)
         run: python3 .spine/functions.py "$GITHUB_WORKSPACE"
 
-      - name: Commit the index if it changed
+      - name: Sync the manual (fill AUTO blocks zero-token, prose untouched)
+        run: python3 .spine/manual-sync.py "$GITHUB_WORKSPACE"
+
+      - name: Commit the index + manual if they changed
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           # -f: docs/ is gitignored (the .gitignore 'Docs/' rule is case-insensitive on macOS),
-          # so the tracked docs (like FEATURE-MAP.md) are all force-added. Match that.
+          # so the tracked docs (like FEATURE-MAP.md) are all force-added. manual/ is tracked normally.
           git add -f docs/PAKETTI-FUNCTIONS.md docs/paketti-functions.json
+          git add manual/Experimental.md
           if git diff --cached --quiet; then
-            echo "function index unchanged — nothing to commit"
+            echo "function index + manual unchanged — nothing to commit"
           else
             # [skip ci] so this commit does not re-trigger the workflow (no loop)
-            git commit -m "docs: regenerate Paketti function index [skip ci]"
+            git commit -m "docs: regenerate function index + sync manual [skip ci]"
             git push origin HEAD:${{ github.ref_name }}
           fi
