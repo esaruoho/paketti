@@ -302,7 +302,9 @@ end
 -- "tool not responding" guard). Renoise must stay FRONTMOST for the run — the captures
 -- show whatever is on screen. Files: <dir>/NNN_<label>.png.
 function PakettiScreenshotAllDialogs(output_dir)
-  output_dir = output_dir or "/tmp/paketti-dialog-screenshots"
+  -- Default into the user's Downloads (NOT /tmp, which is throwaway + invisible).
+  output_dir = output_dir or ((os.getenv("HOME") or os.getenv("USERPROFILE") or "")
+                              .. "/Downloads/Paketti Dialog Screenshots")
   os.execute('mkdir -p "' .. output_dir .. '"')
   if type(create_button_list) ~= "function" then
     renoise.app():show_error("Screenshot All Dialogs: create_button_list() not found (load PakettiMainMenuEntries first)")
