@@ -37,13 +37,16 @@ jobs:
       - name: Sync the manual (fill AUTO blocks zero-token, prose untouched)
         run: python3 .spine/manual-sync.py "$GITHUB_WORKSPACE"
 
+      - name: Feed the changelog into per-feature descriptions (precise, zero-token)
+        run: python3 .spine/changelog-manual.py "$GITHUB_WORKSPACE"
+
       - name: Commit the index + manual if they changed
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           # -f: docs/ is gitignored (the .gitignore 'Docs/' rule is case-insensitive on macOS),
           # so the tracked docs (like FEATURE-MAP.md) are all force-added. manual/ is tracked normally.
-          git add -f docs/PAKETTI-FUNCTIONS.md docs/paketti-functions.json
+          git add -f docs/PAKETTI-FUNCTIONS.md docs/paketti-functions.json docs/FEATURE-DESCRIPTIONS.md
           git add manual/Experimental.md
           if git diff --cached --quiet; then
             echo "function index + manual unchanged — nothing to commit"
