@@ -21663,13 +21663,13 @@ If you liked what you're seeing here, please consider supporting. Every bit help
 between the `AUTO` markers. ⌨ = KeyBinding · 🎛 = MidiMapping · ☰ = MenuEntry.*
 
 **Coverage:** <!-- AUTO:counts -->
-⌨ **10,866** keybindings · 🎛 **7,245** midimappings · ☰ **6,704** menu entries → **4,261** functions
+⌨ **10,866** keybindings · 🎛 **7,245** midimappings · ☰ **6,699** menu entries → **4,256** functions
 <!-- /AUTO -->
 
 ### 🧪 Experimental / WIP
 
 <!-- AUTO:experimental -->
-_110 experimental / WIP functions, listed straight from the code:_
+_105 experimental / WIP functions, listed straight from the code:_
 
 - ☰ 2 (Triplet feel)
 - ☰ 3 (4/4→3/4 feel)
@@ -21690,9 +21690,9 @@ _110 experimental / WIP functions, listed straight from the code:_
 - ☰ Create Random Distributed Slices
 - ☰ Crossfade Loop
 - ☰ Cycle Frequency Analysis Cycles (1/2/4/8/16)
-- ☰ Decode Active Plugin ParameterChunk Amigo (AU)
 - ☰ Detect Sample BPM
 - ☰ Detect Zero Crossings
+- ☰ Dialog of Dialogs Screenshot All
 - ☰ Dialog of Dialogs Smoke Test
 - ☰ EQ10 XY Control...
 - ☰ Expand to Triplets (Note every row, note every 2nd row)
@@ -21705,12 +21705,9 @@ _110 experimental / WIP functions, listed straight from the code:_
 - ☰ Export Polyend Project
 - ☰ Export Sample Chain...
 - ☰ Export Samples for Kontakt
-- ☰ Export Selected Sample to Amigo (AU)
 - ☰ Export Selection to MTP
 - ☰ Hotelsinus Matrix Overview
 - ☰ Hotelsinus Step Sequencer
-- ☰ Import Active Plugin Wavefile Amigo (AU)
-- ☰ Import Embedded Amigo (AU) WAV into Sample
 - ☰ Import MT Project File
 - ☰ Import Polyend Pattern
 - ☰ Import Polyend Pattern Tracks
@@ -21738,7 +21735,6 @@ _110 experimental / WIP functions, listed straight from the code:_
 - ☰ Move Slice Start -1/4 Beat
 - ☰ Move Slice Start -1/8 Beat
 - ☰ Multitap Experiment
-- ☰ Open Amigo (AU) Sample Path
 - ☰ Paketti Automation Hack
 - ☰ Paketti EQ30 Unused Note Frequency Reduction Flavor
 - ☰ Paketti EQ64 Unused Note Frequency Reduction Flavor
@@ -21761,7 +21757,6 @@ _110 experimental / WIP functions, listed straight from the code:_
 - ☰ SBx Loop Playback
 - ☰ Selected Instrument 1 Cycle Tuning
 - ☰ Selected Sample 1 Cycle Tuning
-- ☰ Set Active Plugin Pathname Amigo (AU)
 - ☰ Set BeatSyncLines 01024
 - ☰ Set BeatSyncLines 02048
 - ☰ Set BeatSyncLines 04096
