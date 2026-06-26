@@ -21782,3 +21782,14 @@ _110 experimental / WIP functions, listed straight from the code:_
 - ☰ Waveform Viewer
 - ☰ XY Pad Sound Mixer
 <!-- /AUTO -->
+
+---
+
+## Dialog Screenshot Gallery
+
+Clean window-cropped screenshots of **155 Paketti dialogs** live in
+[`dialog-screenshots/`](dialog-screenshots/) — see the full grid in
+[`DIALOG-GALLERY.md`](DIALOG-GALLERY.md). Each is named `NNN_<Dialog Name>.png`.
+`dialog-screenshots/manifest.json` maps `"Dialog Name" -> image path` so PakettiAskBot
+can look up and attach the right screenshot. Captured via PakettiMCP + macOS window-ID
+capture (tooling in `../Research/dialog-screenshot-tools/`).
