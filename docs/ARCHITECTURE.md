@@ -5,26 +5,26 @@
 ## Composition (tracked files by type)
 ```
    4358 wav
-   1032 png
+   1187 png
     701 xrnc
     247 lua
     210 gif
     133 txt
      49 xrni
-     43 md
+     46 md
      20 xml
      14 feature
+     13 py
      12 xrdp
-     10 xrnt
 ```
 ## Top-level modules (file count · dir)
 ```
    4426 AKWF
-   1171 manual
+   1329 manual
     701 Themes
      78 images
      55 Presets
-     43 Research
+     49 Research
      32 Sononymph
      27 ccizer
      18 features
@@ -43,7 +43,7 @@ main.lua
 ```
 ## Structural hubs (refs · module — the most-imported = wiring backbone)
 ```
-    7  json
+   10  json
     3  cFilesystem
     2  slaxdom
     2  cValue
@@ -68,6 +68,7 @@ main.lua
 1 AppMain -> cDebug
 1 AppMain -> cFileMonitor
 1 AppMain -> cLib
+1 batch_clean -> json
 1 build -> json
 1 cConfig -> cFilesystem
 1 cConfig -> cParseXML
@@ -276,7 +277,9 @@ main.lua
 1 main -> legacy_v2_8_tools
 1 main -> process_slicer
 1 manual-sync -> json
-  ── 215 edges total ──
+1 pmcp -> json
+1 recapture -> json
+  ── 218 edges total ──
 ```
 ## The wiring, drawn
 
@@ -289,6 +292,7 @@ graph LR
   AppMain["AppMain"] -->|1| cDebug["cDebug"]
   AppMain["AppMain"] -->|1| cFileMonitor["cFileMonitor"]
   AppMain["AppMain"] -->|1| cLib["cLib"]
+  batch_clean["batch_clean"] -->|1| json["json"]
   build["build"] -->|1| json["json"]
   cConfig["cConfig"] -->|1| cFilesystem["cFilesystem"]
   cConfig["cConfig"] -->|1| cParseXML["cParseXML"]
@@ -497,6 +501,8 @@ graph LR
   main["main"] -->|1| legacy_v2_8_tools["legacy_v2_8_tools"]
   main["main"] -->|1| process_slicer["process_slicer"]
   manual_sync["manual-sync"] -->|1| json["json"]
+  pmcp["pmcp"] -->|1| json["json"]
+  recapture["recapture"] -->|1| json["json"]
 ```
 
 ## Orientation docs
