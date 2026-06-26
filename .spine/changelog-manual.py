@@ -51,8 +51,13 @@ def base_features():
     return sorted(names)
 
 
+def _norm(s):
+    """'Player Pro'≡'PlayerPro', 'Cheat Sheet'≡'CheatSheet' — the variants that broke matching."""
+    return s.lower().replace("player pro", "playerpro").replace("cheat sheet", "cheatsheet")
+
+
 def words_of(s):
-    return {w for w in re.findall(r"[a-z0-9]{3,}", s.lower()) if w not in GENERIC}
+    return {w for w in re.findall(r"[a-z0-9]{3,}", _norm(s)) if w not in GENERIC}
 
 
 def describe(feature, entries):
@@ -60,14 +65,14 @@ def describe(feature, entries):
     near-exact phrase at the START of the heading. Fuzzy word-overlap produced wrong descriptions
     (Auto-Open → 'Toggle Mute/Unmute Tracks'), which is the bullshitting we're killing. Precision over
     recall: a feature with no confident match is honestly undocumented, for the teach loop to fill."""
-    core = re.sub(r"[.…]+$", "", feature).strip().lower()
+    core = _norm(re.sub(r"[.…]+$", "", feature).strip())
     relaxed = re.sub(r"^(paketti |playerpro )+", "", core)
     cores = [core] + ([relaxed] if relaxed != core else [])
     hits = []
     for e in entries:
         if e["kind"] not in ("Feature", "Improvement"):
             continue
-        head = e["head"].lower()
+        head = _norm(e["head"])
         pos = min((head.find(c) for c in cores if c in head), default=-1)
         if 0 <= pos <= 30:                     # the feature LEADS the heading = it's the subject
             rank = 0 if e["kind"] == "Feature" else 1
