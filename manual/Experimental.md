@@ -21787,9 +21787,1103 @@ _110 experimental / WIP functions, listed straight from the code:_
 
 ## Dialog Screenshot Gallery
 
-Clean window-cropped screenshots of **155 Paketti dialogs** live in
-[`dialog-screenshots/`](dialog-screenshots/) — see the full grid in
-[`DIALOG-GALLERY.md`](DIALOG-GALLERY.md). Each is named `NNN_<Dialog Name>.png`.
-`dialog-screenshots/manifest.json` maps `"Dialog Name" -> image path` so PakettiAskBot
-can look up and attach the right screenshot. Captured via PakettiMCP + macOS window-ID
-capture (tooling in `../Research/dialog-screenshot-tools/`).
+Clean window-cropped screenshots of all **157 Paketti dialogs**, each with a short description. Auto-captured via PakettiMCP + macOS window-ID capture; also used by PakettiAskBot (it attaches the matching image when you ask about a dialog) and the dialog-tour video. Files live in [dialog-screenshots/](dialog-screenshots/); [manifest.json](dialog-screenshots/manifest.json) maps each name to its image.
+
+### 001 · About Paketti Donations
+- The about box for Paketti, by Esa Ruoho (2009-2026).
+- Shows version info and links to support development.
+- Patreon, Ko-fi, Buy Me a Coffee, PayPal donation links.
+
+![About Paketti Donations](dialog-screenshots/001_About_Paketti_Donations.png)
+
+### 002 · Paketti Preferences
+- The central settings panel for the whole tool.
+- Tune loader defaults, random BPM range, workflow options.
+- Settings persist across sessions once saved.
+
+![Paketti Preferences](dialog-screenshots/002_Paketti_Preferences.png)
+
+### 003 · Paketti Menu Configuration
+- Enable or disable Paketti menu entries per context.
+- Tidy the Instrument Box, Sample Editor and other menus.
+- Keep only the entries you actually use in view.
+
+![Paketti Menu Configuration](dialog-screenshots/003_Paketti_Menu_Configuration.png)
+
+### 004 · Paketti Pattern Phrase Init Prefs
+- Set what a fresh pattern or phrase starts out with.
+- Pick a device chain file to auto-load on init.
+- Combined two-column setup for pattern and phrase defaults.
+
+![Paketti Pattern Phrase Init Prefs](dialog-screenshots/004_Paketti_Pattern_Phrase_Init_Prefs.png)
+
+### 005 · AKWF Load 04 Samples XY
+- Loads four random Adventure Kid single-cycle waveforms.
+- Opens an XY pad to blend between the four sample voices.
+- Instant 2D wavetable morphing for sound design.
+
+![AKWF Load 04 Samples XY](dialog-screenshots/005_AKWF_Load_04_Samples_XY.png)
+
+### 006 · AM Sine Wave Generator
+- Generates an amplitude-modulated sine wave sample.
+- Set base frequency, modulation multiplier and depth.
+- Build tones and FM-style timbres straight into a sample.
+
+![AM Sine Wave Generator](dialog-screenshots/006_AM_Sine_Wave_Generator.png)
+
+### 007 · Audio Processing
+- A toolbox of sample-buffer processing operations.
+- Apply effects and transforms to the selected sample.
+- Quick destructive editing without leaving Renoise.
+
+![Audio Processing](dialog-screenshots/007_Audio_Processing.png)
+
+### 008 · Automation Value Dialog
+- Write precise fixed automation values into a lane.
+- Set exact points from 0.00 to 1.00, or max/middle/min.
+- For exact automation levels instead of mouse drawing.
+
+![Automation Value Dialog](dialog-screenshots/008_Automation_Value_Dialog.png)
+
+### 009 · Batch Sample Adjust
+- Adjust properties across many samples at once.
+- Batch-convert and retune every sample in an instrument.
+- Runs as a background worker with a progress display.
+
+![Batch Sample Adjust](dialog-screenshots/009_Batch_Sample_Adjust.png)
+
+### 010 · Beat Structure Editor
+- Reshape the song's time signature and beat grid.
+- Adjusts LPB and pattern length within Renoise limits.
+- Auto-halves values that exceed the maximum bounds.
+
+![Beat Structure Editor](dialog-screenshots/010_Beat_Structure_Editor.png)
+
+### 011 · BeatDetector
+- Analyzes a sample and inserts slice markers on beats.
+- Transient detection with zero-crossing snapping.
+- Turn any loop into clean, beat-aligned slices.
+
+![BeatDetector](dialog-screenshots/011_BeatDetector.png)
+
+### 012 · BeatSyncHack BeatSyncLines 512
+- Pushes beatsync line counts past the 512-line API limit.
+- Injects values like 8192 via an instrument roundtrip.
+- Restores a safe value so saved songs stay valid.
+
+![BeatSyncHack BeatSyncLines 512](dialog-screenshots/012_BeatSyncHack_BeatSyncLines_512.png)
+
+### 013 · BPM From Sample Length
+- Sets the song tempo to match the selected sample.
+- Reads the sample's beatsync lines and length to find BPM.
+- Sync your project instantly to an imported loop.
+
+![BPM From Sample Length](dialog-screenshots/013_BPM_From_Sample_Length.png)
+
+### 014 · BPM to MS Delay Calculator
+- Shows millisecond delay times for note values at your BPM.
+- Whole down to 128th notes, with dotted and triplet variants.
+- Dial in delay and reverb pre-delay times by ear and number.
+
+![BPM to MS Delay Calculator](dialog-screenshots/014_BPM_to_MS_Delay_Calculator.png)
+
+### 015 · Configure Launch App Selection Path
+- Set up an external editor to open samples in.
+- Sends the selected sample out for editing, auto-reloads it.
+- Round-trip audio through your favorite wave editor.
+
+![Configure Launch App Selection Path](dialog-screenshots/015_Configure_Launch_App_Selection_Path.png)
+
+### 016 · Convolver Dialog
+- Manage Renoise Convolver impulse responses.
+- Import and export IRs, insert Convolver as first or last.
+- Load custom reverb and cabinet impulses fast.
+
+![Convolver Dialog](dialog-screenshots/016_Convolver_Dialog.png)
+
+### 017 · Debug Available Device Information
+- Lists every audio device available to Renoise.
+- A developer reference of native and plugin effects.
+- Inspect exact device names for scripting and loading.
+
+![Debug Available Device Information](dialog-screenshots/017_Debug_Available_Device_Information.png)
+
+### 018 · Debug Available Plugin Information
+- Lists every instrument plugin available to Renoise.
+- A developer reference of VST, VST3 and AU plugins.
+- Inspect exact plugin names for scripting and loading.
+
+![Debug Available Plugin Information](dialog-screenshots/018_Debug_Available_Plugin_Information.png)
+
+### 019 · Debug Squiggler
+- A tiny dialog holding the squiggle character.
+- Copy the wavy symbol to your clipboard for naming.
+- A playful one-off helper for labels and text.
+
+![Debug Squiggler](dialog-screenshots/019_Debug_Squiggler.png)
+
+### 020 · Dynamic Views 1-3
+- Single-press context switching between Renoise views.
+- Each slot cycles a saved sequence of editor panels.
+- Slots 1-3 cover composing, mixing and sound design.
+
+![Dynamic Views 1-3](dialog-screenshots/020_Dynamic_Views_1-3.png)
+
+### 021 · Dynamic Views 4-6
+- Single-press context switching between Renoise views.
+- Jump through saved sequences of editor panels per slot.
+- Map slots to MIDI pads for instant workflow switching.
+
+![Dynamic Views 4-6](dialog-screenshots/021_Dynamic_Views_4-6.png)
+
+### 022 · Dynamic Views 7-9
+- Single-press context switching between Renoise views.
+- Cycle through your own arrangements of editor panels.
+- Replace long key sequences with one button press.
+
+![Dynamic Views 7-9](dialog-screenshots/022_Dynamic_Views_7-9.png)
+
+### 023 · EditStep Dialog
+- Sets EditStep and record quantization together.
+- Direct values 0-32, plus or minus one, power-of-two jumps.
+- Keeps quantize state intact while you change the step.
+
+![EditStep Dialog](dialog-screenshots/023_EditStep_Dialog.png)
+
+### 024 · Effect Column CheatSheet
+- A reference and writer for pattern effect commands.
+- Insert and randomize effect-column commands quickly.
+- Learn and apply tracker FX without memorizing codes.
+
+![Effect Column CheatSheet](dialog-screenshots/024_Effect_Column_CheatSheet.png)
+
+### 025 · Enhanced Automation Curves
+- Draw curves directly into automation envelopes.
+- Sine, triangle, saw, square shapes with loop and fill modes.
+- A 1x-8x multiplier repeats patterns, plus fades and smoothing.
+
+![Enhanced Automation Curves](dialog-screenshots/025_Enhanced_Automation_Curves.png)
+
+### 026 · eSpeak Text-to-Speech
+- Turn typed text into speech samples via eSpeak.
+- 130+ languages, 80+ voices, pitch and speed control.
+- Make vocal samples, announcements and robotic textures.
+
+![eSpeak Text-to-Speech](dialog-screenshots/026_eSpeak_Text-to-Speech.png)
+
+### 027 · Find Free KeyBindings
+- Shows which keyboard shortcuts are still unassigned.
+- Pick modifier combinations and list the free keys.
+- Find open slots before binding your own shortcuts.
+
+![Find Free KeyBindings](dialog-screenshots/027_Find_Free_KeyBindings.png)
+
+### 028 · Fuzzy Search Track
+- Jump to any track by typing part of its name.
+- Case-insensitive fuzzy matching filters as you type.
+- Navigate large songs without scrolling the mixer.
+
+![Fuzzy Search Track](dialog-screenshots/028_Fuzzy_Search_Track.png)
+
+### 029 · Hotelsinus Matrix Overview
+- A standalone pattern matrix viewer for the step sequencer.
+- Color-coded grid shows which tracks hold notes.
+- See your whole pattern at a glance, updating live.
+
+![Hotelsinus Matrix Overview](dialog-screenshots/029_Hotelsinus_Matrix_Overview.png)
+
+### 030 · Hotelsinus Stepsequencer
+- A visual 16- or 32-step sequencer with a clickable grid.
+- Per-track note, instrument, velocity and step toggles.
+- Writes straight into the pattern as you click steps.
+
+![Hotelsinus Stepsequencer](dialog-screenshots/030_Hotelsinus_Stepsequencer.png)
+
+### 031 · Keyzone Distributor
+- Spread samples across the keyboard automatically.
+- Map by note range, with transpose and velocity layers.
+- Build multisampled instruments fast from many samples.
+
+![Keyzone Distributor](dialog-screenshots/031_Keyzone_Distributor.png)
+
+### 032 · Merge Instruments
+- Combine samples and keymaps from two instruments.
+- Copies full sample properties with safety validation.
+- Refuses to merge if the target already has slices.
+
+![Merge Instruments](dialog-screenshots/032_Merge_Instruments.png)
+
+### 033 · Midi Mappings
+- Lists every Paketti MIDI mapping, pulled live from code.
+- Filter by name and group mappings by category.
+- Trigger a mapping from the dialog to test it.
+
+![Midi Mappings](dialog-screenshots/033_Midi_Mappings.png)
+
+### 035 · Native VST VST3 AU Devices
+- A loader for native, VST, VST3 and AU effect devices.
+- Browse and add effects to the selected track's chain.
+- Grouped by device type for fast insertion.
+
+![Native VST VST3 AU Devices](dialog-screenshots/035_Native_VST_VST3_AU_Devices.png)
+
+### 036 · New Song Dialog
+- An Impulse Tracker-style Ctrl-N new song dialog.
+- Keep or clear patterns, instruments, plugins and DSPs.
+- Choose exactly what carries over into the fresh song.
+
+![New Song Dialog](dialog-screenshots/036_New_Song_Dialog.png)
+
+### 037 · Oblique Strategies
+- Eno and Schmidt's creative prompts inside Renoise.
+- Draw a lateral-thinking card to break a creative block.
+- Can greet you with a fresh strategy on startup.
+
+![Oblique Strategies](dialog-screenshots/037_Oblique_Strategies.png)
+
+### 038 · OctaMED Note Echo
+- Creates echo and delay note patterns from a note.
+- Set echo count, spacing, volume decay and transpose.
+- Echo into the same column, next columns or next track.
+
+![OctaMED Note Echo](dialog-screenshots/038_OctaMED_Note_Echo.png)
+
+### 039 · OctaMED Pick Put Row
+- OctaMED-style clipboard for rapid note entry.
+- Pick a note plus instrument into one of 16 slots.
+- Put it back anywhere, advancing by your edit step.
+
+![OctaMED Pick Put Row](dialog-screenshots/039_OctaMED_Pick_Put_Row.png)
+
+### 040 · Output Routings
+- Manage track and instrument audio output routings.
+- Reassign destinations or reset everything to Master.
+- Set up multi-output and submix routing fast.
+
+![Output Routings](dialog-screenshots/040_Output_Routings.png)
+
+### 041 · Paketti Action Selector
+- A searchable command palette for every Paketti function.
+- Type to fuzzy-filter keybindings, menus and dialogs.
+- Launch any feature without hunting through menus.
+
+![Paketti Action Selector](dialog-screenshots/041_Paketti_Action_Selector.png)
+
+### 042 · Paketti Calculator
+- A pop-up calculator built right into Renoise.
+- Type math with sin, cos, sqrt, hex (0x) and constants like pi.
+- Use bpm() and lpb() in formulas, reuse the last answer with ans.
+
+![Paketti Calculator](dialog-screenshots/042_Paketti_Calculator.png)
+
+### 043 · Paketti EQ10 XY Control Dialog
+- Visual XY pad control for all 10 bands of Renoise's EQ 10.
+- Drag horizontally for frequency, vertically for gain per band.
+- Bandwidth knobs below each pad; changes apply live, EQ auto-created.
+
+![Paketti EQ10 XY Control Dialog](dialog-screenshots/043_Paketti_EQ10_XY_Control_Dialog.png)
+
+### 044 · Paketti Formula Device Manual
+- Quick reference and loader for Renoise's native Formula device.
+- Inserts or finds a Formula device on track or sample FX chain.
+- Helps you set up math-driven signal processing fast.
+
+![Paketti Formula Device Manual](dialog-screenshots/044_Paketti_Formula_Device_Manual.png)
+
+### 045 · Paketti Gater
+- A 16/32-step gate sequencer that writes rhythmic patterns.
+- Per-step note, volume, panning and retrigger via a visual grid.
+- Toggle 16 or 32 steps to chop loops and build stutter rhythms.
+
+![Paketti Gater](dialog-screenshots/045_Paketti_Gater.png)
+
+### 046 · Paketti Global Volume Adjustment
+- Adjust the volume of every sample in an instrument at once.
+- Balance levels across a kit or multisample in one move.
+- Saves clicking through samples one by one.
+
+![Paketti Global Volume Adjustment](dialog-screenshots/046_Paketti_Global_Volume_Adjustment.png)
+
+### 047 · Paketti Groovebox 8120
+- A groovebox-style sequencer: 8 rows of 16 or 32 steps.
+- Per-row instrument, pitch control and real-time recording.
+- Build beats hardware-style with beatsync integration.
+
+![Paketti Groovebox 8120](dialog-screenshots/047_Paketti_Groovebox_8120.png)
+
+### 048 · Paketti KeyBindings
+- Browse and search every keyboard shortcut Paketti adds.
+- Find the shortcut for any feature without leaving Renoise.
+- A quick reference for the whole tool's key commands.
+
+![Paketti KeyBindings](dialog-screenshots/048_Paketti_KeyBindings.png)
+
+### 049 · Paketti Offset Dialog
+- Reshape the selected sample's waveform by offset or multiply.
+- Slide the amount and pick subtract or multiply as the operation.
+- Quick way to scale or shift sample buffer values.
+
+![Paketti Offset Dialog](dialog-screenshots/049_Paketti_Offset_Dialog.png)
+
+### 050 · Paketti Pattern Phrase Length Dialog
+- Set pattern or phrase length, whichever you're editing.
+- One-click presets: 16, 32, 64, 128, 256, 512 lines.
+- Expand or shrink while preserving or clearing the data.
+
+![Paketti Pattern Phrase Length Dialog](dialog-screenshots/050_Paketti_Pattern_Phrase_Length_Dialog.png)
+
+### 051 · Paketti Sample Adjust
+- All-in-one sample converter in a single dialog.
+- Change channels, sample rate, bit depth and invert channels.
+- Every conversion happens in one pass with no quality loss.
+
+![Paketti Sample Adjust](dialog-screenshots/051_Paketti_Sample_Adjust.png)
+
+### 052 · Paketti Sequencer Settings Dialog
+- Controls how cloned patterns get named in the sequencer.
+- Set prefix, suffix and auto-numbering format for new patterns.
+- Choose to keep, clear, or re-prefix names and auto-select clones.
+
+![Paketti Sequencer Settings Dialog](dialog-screenshots/052_Paketti_Sequencer_Settings_Dialog.png)
+
+### 053 · Paketti Stacker
+- Stack one sample into a layered multi-instrument setup.
+- Ramps, phrases, pitch steppers and loop modes per layer.
+- Auto-stack from a pattern; transpose with volume bars.
+
+![Paketti Stacker](dialog-screenshots/053_Paketti_Stacker.png)
+
+### 054 · Paketti Steppers Dialog
+- Master control for Renoise's sample modulation steppers.
+- Edit Pitch, Volume, Cutoff, Resonance, Drive and Panning steps.
+- Visual step editing with presets, randomize and live preview.
+
+![Paketti Steppers Dialog](dialog-screenshots/054_Paketti_Steppers_Dialog.png)
+
+### 055 · Paketti Tuplet Writer
+- Fit any number of notes evenly into a span of rows.
+- Uses the delay column to place triplets and odd groupings.
+- Live preview shows the exact pattern before you print it.
+
+![Paketti Tuplet Writer](dialog-screenshots/055_Paketti_Tuplet_Writer.png)
+
+### 057 · PitchStepper Demo
+- Demonstrates the Pitch stepper for generative melodies.
+- Modes: random, octave jumps, hard detune and subtle flurries.
+- Turn pitch steps into arpeggios, basslines and happy accidents.
+
+![PitchStepper Demo](dialog-screenshots/057_PitchStepper_Demo.png)
+
+### 058 · PlayerPro Effect Dialog
+- Insert effect commands the classic PlayerPro tracker way.
+- Maps PlayerPro effect codes to their Renoise equivalents.
+- Fast effect entry for those used to old Mac trackers.
+
+![PlayerPro Effect Dialog](dialog-screenshots/058_PlayerPro_Effect_Dialog.png)
+
+### 059 · PlayerPro Main Dialog
+- PlayerPro-style workflow tools for the pattern editor.
+- Transpose rows, selections or note columns with playback preview.
+- Brings classic Mac-tracker note entry into Renoise.
+
+![PlayerPro Main Dialog](dialog-screenshots/059_PlayerPro_Main_Dialog.png)
+
+### 060 · PlayerPro Note Dropdown Grid
+- A clickable grid for entering notes without the keyboard.
+- Pick octave and note from dropdowns for quick mouse entry.
+- Handy for laying down melodies pad-style.
+
+![PlayerPro Note Dropdown Grid](dialog-screenshots/060_PlayerPro_Note_Dropdown_Grid.png)
+
+### 061 · Polyend Buddy
+- A dedicated browser for Polyend Tracker .pti instruments.
+- Browse folders, preview, and load PTI files into Renoise.
+- Remembers recent folders for managing your PTI library.
+
+![Polyend Buddy](dialog-screenshots/061_Polyend_Buddy.png)
+
+### 062 · Protracker MOD modulation Dialog
+- Apply classic Amiga Protracker modulation to a sample.
+- Vibrato, tremolo, arpeggio and portamento, MOD-accurate.
+- Period-based pitch and 4-bit depth for authentic Amiga sound.
+
+![Protracker MOD modulation Dialog](dialog-screenshots/062_Protracker_MOD_modulation_Dialog.png)
+
+### 063 · Quick Load Device
+- Fast device picker with live search and categories.
+- Filter native effects, VST, VST3 and AU by name as you type.
+- Star favorites and load a device with Enter or double-click.
+
+![Quick Load Device](dialog-screenshots/063_Quick_Load_Device.png)
+
+### 064 · Randomize Plugins Devices
+- Randomize parameters of plugins and devices in one place.
+- Set per-slot percentage amounts to control how wild it gets.
+- Show or hide all plugin editors for quick tweaking.
+
+![Randomize Plugins Devices](dialog-screenshots/064_Randomize_Plugins_Devices.png)
+
+### 065 · Renoise KeyBindings
+- Browse and search Renoise's own keyboard shortcuts.
+- Look up any built-in key command without the preferences menu.
+- A fast reference for Renoise's native shortcuts.
+
+![Renoise KeyBindings](dialog-screenshots/065_Renoise_KeyBindings.png)
+
+### 066 · Sample Cycle Tuning Calculator
+- Auto-detect the pitch of a single-cycle waveform.
+- Shows note name, frequency and cents deviation, then tunes it.
+- Batch mode corrects every off-pitch sample in the instrument.
+
+![Sample Cycle Tuning Calculator](dialog-screenshots/066_Sample_Cycle_Tuning_Calculator.png)
+
+### 067 · Sample Pitch Modifier Dialog
+- Adjust sample transpose and finetune with live preview.
+- Sliders for -48 to +48 semitones and cent-level finetune.
+- See the waveform and hear changes instantly while tuning.
+
+![Sample Pitch Modifier Dialog](dialog-screenshots/067_Sample_Pitch_Modifier_Dialog.png)
+
+### 068 · SBX Playback Handler
+- Follows SBx sample-offset loops during playback.
+- Enable monitoring to keep sliced loops looping correctly.
+- Useful when testing patterns built from sample offsets.
+
+![SBX Playback Handler](dialog-screenshots/068_SBX_Playback_Handler.png)
+
+### 069 · Set Selection by Hex Offset
+- Select part of a sample by hex offset, tracker-style.
+- Line up selections with S-command offset values precisely.
+- Bridges hex offsets and sample-editor selections.
+
+![Set Selection by Hex Offset](dialog-screenshots/069_Set_Selection_by_Hex_Offset.png)
+
+### 070 · Show Largest Samples
+- Lists the 40 biggest samples in your song.
+- Spot what's bloating your file size at a glance.
+- Jump to heavy samples to trim or resample them.
+
+![Show Largest Samples](dialog-screenshots/070_Show_Largest_Samples.png)
+
+### 071 · Sine Wave Generator
+- Generate a clean sine wave at any frequency, 1 to 20000 Hz.
+- Type a frequency and render a tone into a sample.
+- Great for test tones, sub bass and synthesis building blocks.
+
+![Sine Wave Generator](dialog-screenshots/071_Sine_Wave_Generator.png)
+
+### 072 · Slice- Pattern Sequencer Dialog
+- Turn a sliced sample into a full pattern automatically.
+- Set BPM, LPB and pattern length; slices print to notes.
+- Instantly build drum or melody patterns from one break.
+
+![Slice- Pattern Sequencer Dialog](dialog-screenshots/072_Slice-_Pattern_Sequencer_Dialog.png)
+
+### 073 · SlotShow
+- Assign your 10 favorite DSP devices to quick-load slots.
+- Show or hide preferred devices on the selected track fast.
+- Cuts out hunting through the full device list each time.
+
+![SlotShow](dialog-screenshots/073_SlotShow.png)
+
+### 074 · Speed and Tempo to BPM
+- Convert old-school Speed/Tempo values into real BPM.
+- Live calculator using BPM = Tempo / (Speed / 6).
+- Validates the 20-999 range and can apply it to the song.
+
+![Speed and Tempo to BPM](dialog-screenshots/074_Speed_and_Tempo_to_BPM.png)
+
+### 075 · Switch Note Instrument Dialog
+- Remap which instrument plays the notes in a pattern.
+- Shows the current note-to-instrument assignments to edit.
+- Updates live as you change your selections.
+
+![Switch Note Instrument Dialog](dialog-screenshots/075_Switch_Note_Instrument_Dialog.png)
+
+### 076 · Theme Selector
+- Browse, preview and apply any installed Renoise theme.
+- Mark favorites and build a curated theme collection.
+- Pick a random theme to refresh your view and break ruts.
+
+![Theme Selector](dialog-screenshots/076_Theme_Selector.png)
+
+### 077 · TimeStretch Dialog
+- Time-stretch samples without changing their pitch.
+- Percussion and texture modes with fast-to-high quality presets.
+- Match loops to BPM or create extreme slow-down effects.
+
+![TimeStretch Dialog](dialog-screenshots/077_TimeStretch_Dialog.png)
+
+### 079 · Track DSP Device Instrument Loader
+- Save and recall device chains (.XRNT) and instruments (.XRNI).
+- Ten slots each: Browse, Save and Load per slot.
+- Reuse your favorite effect chains and instruments across songs.
+
+![Track DSP Device Instrument Loader](dialog-screenshots/079_Track_DSP_Device_Instrument_Loader.png)
+
+### 080 · Track Renamer
+- Rename the selected track from a simple text dialog.
+- Type the new name and confirm with Enter.
+- Faster than renaming inline in the pattern editor.
+
+![Track Renamer](dialog-screenshots/080_Track_Renamer.png)
+
+### 082 · Value Interpolation Looper Dialog
+- Smoothly ramp volume, panning or delay across notes.
+- Set start and end values; notes interpolate between them.
+- Ping-pong mode sweeps to the end and back for looping fades.
+
+![Value Interpolation Looper Dialog](dialog-screenshots/082_Value_Interpolation_Looper_Dialog.png)
+
+### 083 · Volume Delay Pan Slider Controls
+- Sixteen sliders each for volume, delay and panning columns.
+- Draw level, timing and pan shapes, then write them to a pattern.
+- Randomize, shift left/right and read values back from the pattern.
+
+![Volume Delay Pan Slider Controls](dialog-screenshots/083_Volume_Delay_Pan_Slider_Controls.png)
+
+### 086 · YT-DLP Downloader
+- Download audio from YouTube, SoundCloud, Bandcamp and more.
+- Paste a URL or search a phrase; powered by yt-dlp.
+- Saves files to a folder you choose for sampling. macOS and Linux.
+
+![YT-DLP Downloader](dialog-screenshots/086_YT-DLP_Downloader.png)
+
+### 088 · Sample Offset Slice Step Sequencer
+- A visual step grid for programming sliced instruments.
+- Pick which slice plays per step, with per-step velocity.
+- Writes slice-offset effects and auto-builds the pattern.
+
+![Sample Offset Slice Step Sequencer](dialog-screenshots/088_Sample_Offset_Slice_Step_Sequencer.png)
+
+### 089 · Automation Stack
+- Edit many automation envelopes at once in one window.
+- Volume, panning, sends and any device parameter together.
+- Link, offset, scale or mirror parameters; save as presets.
+
+![Automation Stack](dialog-screenshots/089_Automation_Stack.png)
+
+### 090 · Canvas Font Preview
+- Previews the custom vector font used in Paketti canvases.
+- Shows every glyph A-Z, 0-9 plus arrows and modifier keys.
+- Renders horizontally and vertically for canvas designers.
+
+![Canvas Font Preview](dialog-screenshots/090_Canvas_Font_Preview.png)
+
+### 091 · Chebyshev Polynomial Waveshaper
+- Waveshapes samples using Chebyshev polynomials.
+- 16 sliders (T1-T16) each add a specific harmonic.
+- Sculpt warm even or hollow odd harmonics in real time.
+
+![Chebyshev Polynomial Waveshaper](dialog-screenshots/091_Chebyshev_Polynomial_Waveshaper.png)
+
+### 092 · EQ Dialog
+- A multi-band drawable EQ for shaping a track's tone.
+- Adjust bands visually and hear changes immediately.
+- Tame or boost frequency ranges across the spectrum.
+
+![EQ Dialog](dialog-screenshots/092_EQ_Dialog.png)
+
+### 093 · Equation Calculator
+- Generates volume, delay or pan patterns from a formula.
+- Type math using x for line number, sin, cos, sqrt and more.
+- Live graph preview; scale output to a chosen line range.
+
+![Equation Calculator](dialog-screenshots/093_Equation_Calculator.png)
+
+### 094 · Multitap
+- A live-jam performance canvas for the Multitap Delay.
+- Drag on the canvas to drive delay taps in real time.
+- Several control modes for hands-on delay manipulation.
+
+![Multitap](dialog-screenshots/094_Multitap.png)
+
+### 095 · Paketti Device Parameter Editor
+- Draw a device's parameters as bars with the mouse.
+- A/B compare two states and crossfade between them.
+- Read/write automation live and randomize with strength.
+
+![Paketti Device Parameter Editor](dialog-screenshots/095_Paketti_Device_Parameter_Editor.png)
+
+### 096 · Paketti Enhanced Phrase Generator
+- Generates phrases from 28 scales and rhythm patterns.
+- Choose note ordering: random, ascending, descending, mixed.
+- Stepper-based editing for straight, dotted or triplet feel.
+
+![Paketti Enhanced Phrase Generator](dialog-screenshots/096_Paketti_Enhanced_Phrase_Generator.png)
+
+### 097 · Paketti HyperEdit
+- An 8-row step sequencer, one device parameter per row.
+- Each row picks its own device and parameter to modulate.
+- Draw steps (16/32/64) and write the automation to pattern.
+
+![Paketti HyperEdit](dialog-screenshots/097_Paketti_HyperEdit.png)
+
+### 098 · Paketti PCM Writer
+- Draw and write single-cycle waveforms into a sample.
+- Live pickup loads the current sample for editing.
+- Auto pitch-corrects exports to the nearest musical note.
+
+![Paketti PCM Writer](dialog-screenshots/098_Paketti_PCM_Writer.png)
+
+### 099 · Phrase Grid Performance
+- A clip-launcher style hub for triggering phrases live.
+- Recall multi-voice states with groove-safe switching.
+- Mute groups and a live voice count for performance.
+
+![Phrase Grid Performance](dialog-screenshots/099_Phrase_Grid_Performance.png)
+
+### 100 · Phrase Grid
+- Save and recall multi-voice phrase configurations.
+- Store up to 32 states with 8 mute groups for arranging.
+- Clip-launcher workflow with follow actions and banks.
+
+![Phrase Grid](dialog-screenshots/100_Phrase_Grid.png)
+
+### 101 · PlayerPro Canvas Main
+- PlayerPro-style effect entry on a clickable canvas.
+- Click to compose effect commands and write them to pattern.
+- Part of Paketti's classic Mac-tracker workflow suite.
+
+![PlayerPro Canvas Main](dialog-screenshots/101_PlayerPro_Canvas_Main.png)
+
+### 102 · Sample Effect Generator
+- Draw a sample from scratch on three canvases.
+- Sketch the waveform, pitch modulation and volume envelope.
+- Preset shapes plus live preview of the generated sample.
+
+![Sample Effect Generator](dialog-screenshots/102_Sample_Effect_Generator.png)
+
+### 103 · Unused Note EQ
+- Analyzes a track and EQs the notes you are NOT using.
+- Builds EQ bands at the frequencies of unused note pitches.
+- Carves space so your played notes sit cleaner in the mix.
+
+![Unused Note EQ](dialog-screenshots/103_Unused_Note_EQ.png)
+
+### 104 · Unused Note EQ64
+- The 64-band version of the Unused Note EQ.
+- Finds unused note frequencies on the selected track.
+- More bands for finer frequency-cleanup of unused pitches.
+
+![Unused Note EQ64](dialog-screenshots/104_Unused_Note_EQ64.png)
+
+### 105 · V3.5 GUI Demo
+- A demo showcasing Renoise 3.5 GUI elements.
+- Sliders, rotaries, switches, choosers and scrollbars.
+- A reference playground for Paketti dialog building.
+
+![V3.5 GUI Demo](dialog-screenshots/105_V3.5_GUI_Demo.png)
+
+### 106 · PlayerPro Waveform Viewer
+- Shows a sample's waveform synced to the pattern cursor.
+- A red line marks the live playback position.
+- Note markers, selection display and zoom controls.
+
+![PlayerPro Waveform Viewer](dialog-screenshots/106_PlayerPro_Waveform_Viewer.png)
+
+### 107 · Advanced Subdivision Calculator
+- Calculates note subdivisions with a visual timeline.
+- Triplets, quintuplets, septuplets and custom ratios.
+- Shows frame counts, timing in ms and LPB suggestions.
+
+![Advanced Subdivision Calculator](dialog-screenshots/107_Advanced_Subdivision_Calculator.png)
+
+### 108 · Automation Curve Fill
+- Fills an automation lane with a chosen curve shape.
+- Linear, exponential, logarithmic and parabola curves.
+- Fast way to draw smooth automation across a range.
+
+![Automation Curve Fill](dialog-screenshots/108_Automation_Curve_Fill.png)
+
+### 110 · BPM-Based Slice
+- Slices a sample by musical beats instead of by count.
+- Set the sample BPM and beats-per-slice to cut cleanly.
+- Great for chopping loops into tempo-aligned slices.
+
+![BPM-Based Slice](dialog-screenshots/110_BPM-Based_Slice.png)
+
+### 114 · Clipboard
+- Paketti's clipboard for copying and recalling content.
+- Store and reuse pattern or automation data quickly.
+- Speeds up repetitive copy/paste arranging tasks.
+
+![Clipboard](dialog-screenshots/114_Clipboard.png)
+
+### 115 · Digitakt Sample Chain
+- Exports sample chains for the Elektron Digitakt.
+- Supports Digitakt 1 (mono) and Digitakt 2 (stereo).
+- Multiple export modes for hardware-ready sample sets.
+
+![Digitakt Sample Chain](dialog-screenshots/115_Digitakt_Sample_Chain.png)
+
+### 116 · Dynamic Macro Toolbar
+- A configurable 10-button toolbar for your commands.
+- Save and load preset button layouts; edit mode included.
+- Dynamic mode plus MIDI mappings for fast access.
+
+![Dynamic Macro Toolbar](dialog-screenshots/116_Dynamic_Macro_Toolbar.png)
+
+### 117 · Effect Column Curve Fill
+- Fills effect-column values using a curve shape.
+- Targets Volume, Panning or Delay columns over a range.
+- Linear, log, exponential and parabola shapes available.
+
+![Effect Column Curve Fill](dialog-screenshots/117_Effect_Column_Curve_Fill.png)
+
+### 120 · Frame Calculator Song Length
+- Shows your song's total length measured in frames.
+- Converts between BPM, frames and real-time duration.
+- Useful for video sync and precise timing planning.
+
+![Frame Calculator Song Length](dialog-screenshots/120_Frame_Calculator_Song_Length.png)
+
+### 121 · Frame Calculator
+- A real-time timing calculator for your song.
+- Converts BPM to frames; shows pattern and sequence length.
+- Displays cursor-position timing in frames and time.
+
+![Frame Calculator](dialog-screenshots/121_Frame_Calculator.png)
+
+### 123 · Hold To Fill
+- OctaMED-style hold-a-key-to-fill-notes entry mode.
+- Hold a note key and it fills at the edit step interval.
+- Works with QWERTY or a MIDI keyboard; optional clearing.
+
+![Hold To Fill](dialog-screenshots/123_Hold_To_Fill.png)
+
+### 124 · Humanize
+- Adds natural variation to a selection of notes.
+- Randomizes timing, velocity and pitch within set ranges.
+- Makes programmed drums and quantized parts feel live.
+
+![Humanize](dialog-screenshots/124_Humanize.png)
+
+### 126 · Instrument Info
+- Displays full details about the selected instrument.
+- Sample count, modulation and FX chains, plugin settings.
+- Also lists phrase data; adjustable dialog height.
+
+![Instrument Info](dialog-screenshots/126_Instrument_Info.png)
+
+### 127 · Instrument Rename
+- A quick dialog to rename the selected instrument.
+- Type the new name and press Enter to apply instantly.
+- Pre-fills with the current name for fast edits.
+
+![Instrument Rename](dialog-screenshots/127_Instrument_Rename.png)
+
+### 128 · Instrument Transpose Dialog
+- Set the selected instrument's transpose precisely.
+- Relative or absolute, in octaves from -120 to +120.
+- MIDI-knob control and quick octave-shift buttons.
+
+![Instrument Transpose Dialog](dialog-screenshots/128_Instrument_Transpose_Dialog.png)
+
+### 131 · LFO Envelope Editor
+- A visual editor for building custom LFO shapes.
+- Point-by-point control with transformation presets.
+- Real-time preview and XML export for reuse.
+
+![LFO Envelope Editor](dialog-screenshots/131_LFO_Envelope_Editor.png)
+
+### 133 · Metric Modulation
+- Calculates BPM for tempo and rhythmic relationships.
+- Convert one note value into another to keep timing.
+- Preset ratios like 3:2, 4:3, 5:4 for metric modulation.
+
+![Metric Modulation](dialog-screenshots/133_Metric_Modulation.png)
+
+### 134 · MIDI Effect Writer
+- Turns live MIDI input into pattern effect commands.
+- Aftertouch or a single CC drives effects like 0A/0V/0D.
+- Writes into your selection in 0-7F or 0-FF range.
+
+![MIDI Effect Writer](dialog-screenshots/134_MIDI_Effect_Writer.png)
+
+### 135 · Mixer Parameter Exposer
+- Choose which device parameters show in the Mixer.
+- Per-parameter checkboxes plus Show All / Hide All.
+- Humanize exposed parameters and auto-expose automated ones.
+
+![Mixer Parameter Exposer](dialog-screenshots/135_Mixer_Parameter_Exposer.png)
+
+### 136 · MPC Cycler
+- MPC-style cycling through samples and instrument folders.
+- Audition folders quickly with preview as you browse.
+- Preferences and MIDI mappings for hands-free cycling.
+
+![MPC Cycler](dialog-screenshots/136_MPC_Cycler.png)
+
+### 137 · OctaCycle Generator
+- Builds chromatic sample sets for Elektron Octatrack.
+- Pick root note and 1-7 octaves; generates up to 84 samples.
+- Exports WAV plus matching .ot metadata files.
+
+![OctaCycle Generator](dialog-screenshots/137_OctaCycle_Generator.png)
+
+### 139 · Offset Sample Buffer
+- Math-shift every sample frame in the selected sample.
+- Subtract a DC offset or multiply to scale amplitude.
+- Quick destructive buffer surgery with a slider and apply.
+
+![Offset Sample Buffer](dialog-screenshots/139_Offset_Sample_Buffer.png)
+
+### 140 · OpenMPT Linear Keyboard Layer
+- Turns your QWERTY keyboard into a chromatic instrument.
+- Four keyboard rows become four linear octaves of semitones.
+- Set each row's base octave for split bass and melody play.
+
+![OpenMPT Linear Keyboard Layer](dialog-screenshots/140_OpenMPT_Linear_Keyboard_Layer.png)
+
+### 142 · Paketti Arpeggiator
+- Musical chord-progression arpeggiator with live playback.
+- Church modes, auto triads, per-chord modal interchange.
+- Visual pattern preview, writes the result into the pattern.
+
+![Paketti Arpeggiator](dialog-screenshots/142_Paketti_Arpeggiator.png)
+
+### 143 · Paketti Capture Last Take
+- Records and organizes your recording takes in 20 slots.
+- Auto-captures after recording; audition any take in-dialog.
+- Add notes per take and write the chosen take to the pattern.
+
+![Paketti Capture Last Take](dialog-screenshots/143_Paketti_Capture_Last_Take.png)
+
+### 144 · Paketti Chords - Progression Player
+- Build and play chord progressions across 8 slots.
+- 13 chord types: triads, sevenths, sus, augmented.
+- Per-slot strum, velocity, duration and extra notes.
+
+![Paketti Chords - Progression Player](dialog-screenshots/144_Paketti_Chords_-_Progression_Player.png)
+
+### 146 · Paketti Fill Dialog
+- Fills pattern columns with values across the selection.
+- Spread, ramp or repeat effect and note-column data fast.
+- Great for building sweeps, gates and rhythmic patterns.
+
+![Paketti Fill Dialog](dialog-screenshots/146_Paketti_Fill_Dialog.png)
+
+### 147 · Paketti Golden Chord Library
+- Insert chords built on the golden ratio (phi) intervals.
+- Golden Major, Minor, Power, Sixth, Sus and stacked thirds.
+- Microtonal voicings for otherworldly harmonic colour.
+
+![Paketti Golden Chord Library](dialog-screenshots/147_Paketti_Golden_Chord_Library.png)
+
+### 148 · Paketti Golden Ratio Tempo Rhythm
+- Derive new tempos from your BPM via the golden ratio (phi).
+- Shows BPM x phi and BPM / phi as ready-to-apply tempos.
+- Suggests phi-divided pattern lengths for organic rhythm.
+
+![Paketti Golden Ratio Tempo Rhythm](dialog-screenshots/148_Paketti_Golden_Ratio_Tempo_Rhythm.png)
+
+### 151 · Paketti Minimize Cheatsheet
+- A compact pop-up of pattern-effect commands and meanings.
+- Horizontal or vertical layout to stay out of your way.
+- Quick reference and one-click writing of effect commands.
+
+![Paketti Minimize Cheatsheet](dialog-screenshots/151_Paketti_Minimize_Cheatsheet.png)
+
+### 152 · Paketti Randomize Delay Column
+- Randomizes the note delay (0Dxx) column to humanize timing.
+- Set min and max delay range, apply to selection or track.
+- Loosen up stiff grids for natural, shuffled feel.
+
+![Paketti Randomize Delay Column](dialog-screenshots/152_Paketti_Randomize_Delay_Column.png)
+
+### 153 · Paketti Sectionizer
+- Organize your patterns into named, color-coded sections.
+- Label song parts: Intro, Verse, Chorus, Bridge, Outro.
+- Browse and auto-arrange sections to shape song structure.
+
+![Paketti Sectionizer](dialog-screenshots/153_Paketti_Sectionizer.png)
+
+### 154 · Paketti Split Note into N Equal Pieces
+- Splits one note into N evenly-spaced retriggers.
+- Calculates the delay values so pieces space out exactly.
+- Instant ratchets, rolls and stutters across the lines.
+
+![Paketti Split Note into N Equal Pieces](dialog-screenshots/154_Paketti_Split_Note_into_N_Equal_Pieces.png)
+
+### 155 · Paketti RePitch
+- Sample cycle tuning calculator that detects pitch.
+- Enter cycle count, it computes and sets the correct pitch.
+- Batch-analyze and retune every sample in the instrument.
+
+![Paketti RePitch](dialog-screenshots/155_Paketti_RePitch.png)
+
+### 156 · Paketti Deactivator
+- Master control over which Paketti registrations load.
+- Enable or disable menus, keybindings and MIDI mappings.
+- Trim Renoise's menus to only the tools you actually use.
+
+![Paketti Deactivator](dialog-screenshots/156_Paketti_Deactivator.png)
+
+### 157 · Paketti XYPad Sample Rotator
+- An XY pad that rotates sample buffer content live.
+- Drag to shift the waveform forward or back in frames.
+- MIDI-knob mappable for performable buffer-rotation effects.
+
+![Paketti XYPad Sample Rotator](dialog-screenshots/157_Paketti_XYPad_Sample_Rotator.png)
+
+### 158 · Pattern Delay Viewer
+- Visual analyzer of pattern delay (0Dxx) values in a pattern.
+- Timeline view with per-track bars and color-coded ranges.
+- Stats and histogram, plus batch editing of delay values.
+
+![Pattern Delay Viewer](dialog-screenshots/158_Pattern_Delay_Viewer.png)
+
+### 160 · Player Pro Note Selector
+- Click-to-place note grid with EditStep advance.
+- Pick any pitch and write it straight into the column.
+- Mouse-driven note entry for melodies and chords.
+
+![Player Pro Note Selector](dialog-screenshots/160_Player_Pro_Note_Selector.png)
+
+### 161 · PlayerPro Traditional Main
+- Classic Player Pro tracker dialog for notes and effects.
+- Dropdown selectors for note columns and effect commands.
+- Mouse-friendly editing across the track's columns.
+
+![PlayerPro Traditional Main](dialog-screenshots/161_PlayerPro_Traditional_Main.png)
+
+### 163 · Plugin Slots Configuration
+- Assign five instrument plugins to show/hide slots.
+- Any VST, VST3, AU, LADSPA or DSSI synth, saved per session.
+- One key loads, shows or hides the plugin's editor.
+
+![Plugin Slots Configuration](dialog-screenshots/163_Plugin_Slots_Configuration.png)
+
+### 165 · Polyend Slice Switcher
+- Real-time melodic slice switching for Polyend-style kits.
+- Velocity mapping picks which of up to 48 slices is active.
+- MIDI knob and next/previous step through slices live.
+
+![Polyend Slice Switcher](dialog-screenshots/165_Polyend_Slice_Switcher.png)
+
+### 166 · Quick Flicks
+- Fast one-click phrase and volume shaping tools.
+- Volume ramp up/down and rhythmic gate patterns (1010, 1100).
+- Instantly add movement and dynamics to phrase data.
+
+![Quick Flicks](dialog-screenshots/166_Quick_Flicks.png)
+
+### 167 · Sample Visualizer
+- Canvas waveform display of the selected sample (Renoise 3.5+).
+- Auto-updates as the sample changes for a live overview.
+- See your audio shape clearly while editing.
+
+![Sample Visualizer](dialog-screenshots/167_Sample_Visualizer.png)
+
+### 169 · Set Pattern Phrase Length
+- Set the length of the current pattern or phrase.
+- One dialog adapts to pattern editor or phrase editor.
+- Quickly resize without hunting through Renoise menus.
+
+![Set Pattern Phrase Length](dialog-screenshots/169_Set_Pattern_Phrase_Length.png)
+
+### 170 · Slab o Patterns
+- Build and manage reusable pattern slabs by section.
+- Name and append presets to assemble song arrangements.
+- Config persists so your slab library survives sessions.
+
+![Slab o Patterns](dialog-screenshots/170_Slab_o_Patterns.png)
+
+### 171 · SlicePro Config
+- Configurable slice processor with multiple modes in one.
+- Wipe&Slice, Curve Slice, Oldschool Slice and Slice-to-Pattern.
+- Also creates beat-synced or uniform phrases from slices.
+
+![SlicePro Config](dialog-screenshots/171_SlicePro_Config.png)
+
+### 172 · SliceSafely
+- Non-destructive slicing for multi-sample instruments.
+- Slices the chosen sample into a fresh new instrument.
+- Keeps all the other original samples fully intact.
+
+![SliceSafely](dialog-screenshots/172_SliceSafely.png)
+
+### 173 · Sononymph
+- Bidirectional bridge to the Sononym sample browser.
+- Transfer samples and trigger AI similarity searches.
+- Configure Sononym path, database and polling interval.
+
+![Sononymph](dialog-screenshots/173_Sononymph.png)
+
+### 174 · Stem Slice Randomizer
+- Randomizes slice triggers across your loaded stems.
+- Independent or synchronized modes, even and odd step sizes.
+- Per-pattern or selection, with duplicate-to-new-pattern.
+
+![Stem Slice Randomizer](dialog-screenshots/174_Stem_Slice_Randomizer.png)
+
+### 175 · Stem Slicer
+- AI stem separation into drums, bass, vocals and other.
+- Each stem gets its own instrument and optional auto-slicing.
+- Detects BPM and can write the sliced stems to a pattern.
+
+![Stem Slicer](dialog-screenshots/175_Stem_Slicer.png)
+
+### 176 · Subdivision Calculator
+- Tempo and subdivision calculator with a visual timeline.
+- Whole to 32nd notes, triplets, quintuplets, custom ratios.
+- For metric modulation and polyrhythmic pattern planning.
+
+![Subdivision Calculator](dialog-screenshots/176_Subdivision_Calculator.png)
+
+### 177 · Switch Note Instrument Dialog
+- Remap which instrument plays the notes in a pattern.
+- Shows the current note-to-instrument assignments to edit.
+- Updates live as you change your selections.
+
+![Switch Note Instrument Dialog](dialog-screenshots/177_Switch_Note_Instrument_Dialog.png)
+
+### 178 · Switcharoo
+- Reharmonize chord progressions read from the pattern.
+- Apply voicing, inversion and circle-of-fifths transposition.
+- Audition original vs transformed, then replace in place.
+
+![Switcharoo](dialog-screenshots/178_Switcharoo.png)
+
+### 179 · Transpose Block
+- Transpose a selected block of notes with fine control.
+- Independent octave, semitone and cent adjustment.
+- Shows note count, tracks and columns being affected.
+
+![Transpose Block](dialog-screenshots/179_Transpose_Block.png)
+
+### 181 · Wavetable
+- AKWF wavetable generator from 4,000+ single-cycle waves.
+- Combines random cycles into seamless 32-256 cycle tables.
+- Looped or non-looped, built into Paketti, no install needed.
+
+![Wavetable](dialog-screenshots/181_Wavetable.png)
+
+### 182 · Wonkify Advanced
+- Full control over reproducible 'wonky' pattern variations.
+- Tune timing, pitch, velocity and note-density randomization.
+- Chain multiple patterns into evolving arrangements.
+
+![Wonkify Advanced](dialog-screenshots/182_Wonkify_Advanced.png)
+
+### 183 · Wonkify Quick
+- One-stop dialog for fast wonky pattern variations.
+- Quick controlled randomization of timing, pitch and velocity.
+- Wonkify the current pattern or duplicate-and-wonkify it.
+
+![Wonkify Quick](dialog-screenshots/183_Wonkify_Quick.png)
+
+### 184 · ZDxx Pattern Delay
+- Writes the ZDxx command to delay (pause) a pattern.
+- xx is the number of lines to wait, in hexadecimal.
+- Ensures effect columns are visible before writing.
+
+![ZDxx Pattern Delay](dialog-screenshots/184_ZDxx_Pattern_Delay.png)
+
+### 185 · Zero Crossings Advanced
+- Click-free slicing based on zero-crossing detection.
+- Threshold and slice-count control with waveform preview.
+- Snap selections to zero crossings to kill loop clicks.
+
+![Zero Crossings Advanced](dialog-screenshots/185_Zero_Crossings_Advanced.png)

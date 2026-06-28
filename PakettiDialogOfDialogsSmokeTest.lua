@@ -310,9 +310,27 @@ function PakettiScreenshotAllDialogs(output_dir)
     renoise.app():show_error("Screenshot All Dialogs: create_button_list() not found (load PakettiMainMenuEntries first)")
     return
   end
+  -- Clean per-window capture: a bundled helper resolves the FRONT dialog's window ID and
+  -- captures just that window (no desktop / menu-bar / other-app clutter). If the helper is
+  -- missing (e.g. swiftc unavailable), it falls back to a full-screen grab on its own.
+  local cap_script = renoise.tool().bundle_path .. "Research/dialog-screenshot-tools/capture-front-window.sh"
+  local have_helper = io.exists(cap_script)
+  local function fire_capture(path)
+    if have_helper then
+      os.execute(string.format('bash "%s" "%s" >/dev/null 2>&1 &', cap_script, path))
+    else
+      os.execute(string.format('screencapture -x -o "%s" >/dev/null 2>&1 &', path))
+    end
+  end
   local buttons = create_button_list()
   local shot = 0
   local function proc()
+    -- Pre-compile the window-lister once so per-dialog captures are fast (avoids a race
+    -- where the dialog closes before a first-time swiftc compile finishes).
+    if have_helper then
+      os.execute(string.format('bash "%s" --precompile >/dev/null 2>&1 &', cap_script))
+      for _ = 1, 40 do coroutine.yield() end
+    end
     for i, entry in ipairs(buttons) do
       local label  = entry[1] or ("unnamed_" .. i)
       local target = entry[2]
@@ -324,16 +342,16 @@ function PakettiScreenshotAllDialogs(output_dir)
         if opened then
           local safe = label:gsub("[^%w%-]+", "_"):gsub("^_+", ""):sub(1, 60)
           local path = string.format("%s/%03d_%s.png", output_dir, i, safe)
-          os.execute(string.format('screencapture -x -o "%s" >/dev/null 2>&1 &', path))
+          fire_capture(path)
           shot = shot + 1
           renoise.app():show_status(string.format("Screenshotting [%d/%d] %s", i, #buttons, label))
-          coroutine.yield(); coroutine.yield(); coroutine.yield()  -- capture settles; dialog still up
+          for _ = 1, 8 do coroutine.yield() end   -- let the detached capture finish before close
           pcall(function() try_toggle_close(fn) end)                -- close (toggle)
           coroutine.yield()
         end
       end
     end
-    renoise.app():show_status(string.format("Screenshot All Dialogs: %d shots -> %s", shot, output_dir))
+    renoise.app():show_status(string.format("Screenshot All Dialogs: %d clean shots -> %s", shot, output_dir))
     renoise.app():open_path(output_dir)
   end
   ProcessSlicer(proc):start()

@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-06-28 - Feature: Dialog screenshot gallery in the manual + clean window-only capture
+Every Paketti dialog now has a clean, window-cropped screenshot (157 dialogs), embedded directly into the **Experimental** manual — each with a three-line description — and exposed as a JSON manifest so **PakettiAskBot** attaches the matching picture when you ask about a dialog. The "Dialog of Dialogs — Screenshot All" tool was upgraded from full-screen grabs to **clean per-window capture**: it resolves the front dialog's window ID via a tiny bundled helper (`Research/dialog-screenshot-tools/`) and captures just that window (no desktop/menu-bar clutter), falling back to full-screen if unavailable. Added two dialogs the batch had missed (Keyzone Distributor, Stacker). Menu: `Main Menu:Tools:Paketti:Xperimental/WIP:Dialog of Dialogs Screenshot All`. Gallery: `manual/DIALOG-GALLERY.md` and the embedded section in `Experimental.html`.
+
 ### 2026-06-25 - Improvement: Polyend FX export — Swing and Micro-tune now round-trip (reverse map symmetric)
 The Renoise→Polyend effect mapping gained the two cases it was missing versus the import map, so the common mappable effects now round-trip in both directions: Renoise **Set Groove (`ZD`)** → Polyend **Swing (17)**, and Renoise **Fine Pitch (`0M`)** → Polyend **Micro-tune/Pitchbend (34)**, each the exact inverse of the existing import scaling. Verified by a new offline round-trip test (`Research/polyend-roundtrip-tests/fx-roundtrip-test.py`) that exports a pattern carrying each mapped effect and asserts the Polyend FX type on re-read — 16/16 effects pass.
 

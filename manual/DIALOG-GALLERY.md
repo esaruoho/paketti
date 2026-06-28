@@ -1,8 +1,6 @@
 # Paketti Dialogs — Screenshot Gallery
 
-155 clean, window-cropped, lossless screenshots of Paketti dialogs — auto-captured via PakettiMCP + macOS window-ID capture. Source of truth for the manual, the Gumroad page, PakettiAskBot dialog attachments, and video production.
-
-Regenerate via `Tools > Paketti > Xperimental/WIP > Dialog of Dialogs Screenshot All`.
+157 clean, window-cropped, lossless screenshots of Paketti dialogs — auto-captured via PakettiMCP + macOS window-ID capture. Source of truth for the manual, the Gumroad page, PakettiAskBot dialog attachments, and video production.
 
 | # | Dialog | Screenshot |
 |---|--------|-----------|
@@ -36,6 +34,7 @@ Regenerate via `Tools > Paketti > Xperimental/WIP > Dialog of Dialogs Screenshot
 | 028 | Fuzzy Search Track | ![Fuzzy Search Track](dialog-screenshots/028_Fuzzy_Search_Track.png) |
 | 029 | Hotelsinus Matrix Overview | ![Hotelsinus Matrix Overview](dialog-screenshots/029_Hotelsinus_Matrix_Overview.png) |
 | 030 | Hotelsinus Stepsequencer | ![Hotelsinus Stepsequencer](dialog-screenshots/030_Hotelsinus_Stepsequencer.png) |
+| 031 | Keyzone Distributor | ![Keyzone Distributor](dialog-screenshots/031_Keyzone_Distributor.png) |
 | 032 | Merge Instruments | ![Merge Instruments](dialog-screenshots/032_Merge_Instruments.png) |
 | 033 | Midi Mappings | ![Midi Mappings](dialog-screenshots/033_Midi_Mappings.png) |
 | 035 | Native VST VST3 AU Devices | ![Native VST VST3 AU Devices](dialog-screenshots/035_Native_VST_VST3_AU_Devices.png) |
@@ -56,6 +55,7 @@ Regenerate via `Tools > Paketti > Xperimental/WIP > Dialog of Dialogs Screenshot
 | 050 | Paketti Pattern Phrase Length Dialog | ![Paketti Pattern Phrase Length Dialog](dialog-screenshots/050_Paketti_Pattern_Phrase_Length_Dialog.png) |
 | 051 | Paketti Sample Adjust | ![Paketti Sample Adjust](dialog-screenshots/051_Paketti_Sample_Adjust.png) |
 | 052 | Paketti Sequencer Settings Dialog | ![Paketti Sequencer Settings Dialog](dialog-screenshots/052_Paketti_Sequencer_Settings_Dialog.png) |
+| 053 | Paketti Stacker | ![Paketti Stacker](dialog-screenshots/053_Paketti_Stacker.png) |
 | 054 | Paketti Steppers Dialog | ![Paketti Steppers Dialog](dialog-screenshots/054_Paketti_Steppers_Dialog.png) |
 | 055 | Paketti Tuplet Writer | ![Paketti Tuplet Writer](dialog-screenshots/055_Paketti_Tuplet_Writer.png) |
 | 057 | PitchStepper Demo | ![PitchStepper Demo](dialog-screenshots/057_PitchStepper_Demo.png) |
