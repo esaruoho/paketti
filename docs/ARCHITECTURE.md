@@ -5,7 +5,7 @@
 ## Composition (tracked files by type)
 ```
    4358 wav
-   1187 png
+   1189 png
     701 xrnc
     247 lua
     210 gif
@@ -20,11 +20,11 @@
 ## Top-level modules (file count · dir)
 ```
    4426 AKWF
-   1329 manual
+   1331 manual
     701 Themes
      78 images
      55 Presets
-     49 Research
+     50 Research
      32 Sononymph
      27 ccizer
      18 features
