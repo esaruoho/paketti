@@ -140,6 +140,12 @@
 82. [Automation Stack](#automation-stack)
 
 ### Views & Navigation
+
+![Dynamic Views 1-3](dialog-screenshots/020_Dynamic_Views_1-3.png)
+
+![Dynamic Views 4-6](dialog-screenshots/021_Dynamic_Views_4-6.png)
+
+![Dynamic Views 7-9](dialog-screenshots/022_Dynamic_Views_7-9.png)
 83. [Dynamic View Cycling](#dynamic-view-cycling)
 84. [Theme Selector](#theme-selector)
 85. [PlayerPro Waveform Viewer](#playerpro-waveform-viewer)
@@ -244,6 +250,8 @@ Guide to Paketti's BPM analysis, calculation, and manipulation features for temp
 **Source:** `PakettiBPM.lua` | **Keybindings:** 14
 
 ## BPM to MS Delay Calculator
+
+![BPM to MS Delay Calculator](dialog-screenshots/014_BPM_to_MS_Delay_Calculator.png)
 
 ### Paketti BPM to MS Delay Calculator Dialog
 **Shortcut:** `Global:Paketti:Paketti BPM to MS Delay Calculator Dialog...` ⌨️
@@ -563,6 +571,8 @@ Collection of Paketti's workflow control shortcuts for editing, playback, naviga
 Allows you to "be on the same page" as the song playback — the Pattern Editor scrolls to show the currently playing page, but doesn't follow line-by-line. Different from Follow Pattern which tracks every line.
 
 ### Block Loop Follows Edit Cursor (NEW - Feb 2026)
+
+![Transpose Block](dialog-screenshots/179_Transpose_Block.png)
 **Keybinding:** `Global:Paketti:Block Loop Follows Edit Cursor Toggle` ⌨️
 
 Toggles a mode where the block loop range automatically follows the edit cursor position. When enabled, the loop range updates as you move through the pattern.
@@ -1036,6 +1046,8 @@ Toggles solo on current track. If not in Pattern Editor or Mixer, switches to Pa
 Jumps to instrument 01, displays instrument name in status.
 
 #### Speed and Tempo to BPM Dialog
+
+![Speed and Tempo to BPM](dialog-screenshots/074_Speed_and_Tempo_to_BPM.png)
 **Shortcut:** `Global:Paketti:Paketti Speed and Tempo to BPM Dialog...` ⌨️
 
 Interactive calculator for Speed/Tempo → BPM conversion. Shows real BPM based on formula: `BPM = Tempo / (Speed / 6)`. Validates BPM range (20-999), can apply BPM to song.
@@ -1143,6 +1155,8 @@ OctaMED (Amiga tracker) workflow features including Pick/Put, Note Spread, Note 
 
 ### Pick/Put System
 
+![OctaMED Pick Put Row](dialog-screenshots/039_OctaMED_Pick_Put_Row.png)
+
 **Shortcut:** `Pattern Editor:Paketti:OctaMED Pick/Put Dialog...` ⌨️
 
 Visual dialog for Pick/Put note/instrument operations - OctaMED's clipboard system for rapid note entry.
@@ -1175,6 +1189,8 @@ Visual dialog for Pick/Put note/instrument operations - OctaMED's clipboard syst
 **Example:** Spread 04 = note every 4 lines (16th notes at LPB 4)
 
 ### Note Echo
+
+![OctaMED Note Echo](dialog-screenshots/038_OctaMED_Note_Echo.png)
 
 **Shortcut:** `Pattern Editor:Paketti:OctaMED Note Echo Dialog...` ⌨️
 
@@ -1212,6 +1228,8 @@ Direct track mute shortcuts by track number - instant mute/unmute without naviga
 ---
 
 ## OpenMPT Linear Keyboard Layer
+
+![OpenMPT Linear Keyboard Layer](dialog-screenshots/140_OpenMPT_Linear_Keyboard_Layer.png)
 
 **Source:** `PakettiOpenMPTLinearKeyboardLayer.lua` | **Features:** 1
 
@@ -1628,6 +1646,8 @@ Creates curves/ramps from center (0.5) to bottom (0.0) or vice versa.
 - Randomize Automation Envelopes for Device
 
 ## Automation Value Operations
+
+![Automation Value Dialog](dialog-screenshots/008_Automation_Value_Dialog.png)
 - Show Automation Value Dialog
 - Write Automation Value (fixed values 0.00-1.00)
 - Set Automation Range (Max 1.0, Middle 0.5, Min 0.0)
@@ -1652,6 +1672,8 @@ Record Device Snapshot to Automation.
 ---
 
 ## Enhanced Automation Curves Dialog (NEW - Jan 2026)
+
+![Enhanced Automation Curves](dialog-screenshots/025_Enhanced_Automation_Curves.png)
 
 **Source:** `PakettiAutomationCurves.lua`
 
@@ -1686,6 +1708,8 @@ Integrated into the Enhanced Automation Curves dialog. When the "Write to LFO Cu
 ---
 
 ## Automation Clipboard (NEW - Jan 2026)
+
+![Clipboard](dialog-screenshots/114_Clipboard.png)
 
 **Source:** `PakettiAutomationCurves.lua`
 
@@ -1856,6 +1880,8 @@ Collection of experimental and utility features - advanced operations, batch con
 Automatically shows/hides disk browser when loading songs based on preference.
 
 ### Instrument Info
+
+![Instrument Info](dialog-screenshots/126_Instrument_Info.png)
 
 **Shortcuts:**
 - `Global:Paketti:Show Instrument Info (Status)` ⌨️ - Status bar display
@@ -2248,6 +2274,8 @@ Exports current Renoise instrument to Impulse Tracker .ITI (Impulse Tracker Inst
 
 ## Stem Slicer
 
+![Stem Slicer](dialog-screenshots/175_Stem_Slicer.png)
+
 **Source:** `PakettiStemSlicer.lua` | **Features:** 2
 
 Advanced stem separation and slicing tool - separate audio into stems (drums, bass, vocals, other) then slice each stem independently.
@@ -2366,6 +2394,8 @@ Comprehensive stem loading system that imports multiple audio files (stems) into
 
 ### Stem Slice Randomizer Dialog
 
+![Stem Slice Randomizer](dialog-screenshots/174_Stem_Slice_Randomizer.png)
+
 **Shortcut:** `Global:Paketti:Stem Slice Randomizer Dialog...` ⌨️
 
 Opens comprehensive dialog for randomizing slice triggers across loaded stems.
@@ -2476,6 +2506,8 @@ Applies Sample FX Chain to individual slices, rendering each slice with effects 
 # Utility Tools
 
 ## Steppers
+
+![Paketti Steppers Dialog](dialog-screenshots/054_Paketti_Steppers_Dialog.png)
 
 **Source:** `PakettiSteppers.lua` | **Features:** 18+
 
@@ -2948,6 +2980,8 @@ Randomly selects and applies a theme from your favorites list. Uses your curated
 
 # Audio Processing & Effects
 
+![Audio Processing](dialog-screenshots/007_Audio_Processing.png)
+
 Complete guide to Paketti's audio processing, silence removal, channel inversion, phase manipulation, and creative effects.
 
 ---
@@ -3113,6 +3147,10 @@ Inverts only the right channel of stereo sample.
 ---
 
 ## DC Offset Removal
+
+![Paketti Offset Dialog](dialog-screenshots/049_Paketti_Offset_Dialog.png)
+
+![Sample Offset Slice Step Sequencer](dialog-screenshots/088_Sample_Offset_Slice_Step_Sequencer.png)
 
 ### Recursive Remove DC Offset
 **Shortcut:** `Sample Editor:Process:Recursive Remove DC Offset` ⌨️
@@ -3823,6 +3861,8 @@ One-key interpolation that auto-detects which subcolumn the cursor is on (Volume
 ## Humanization
 
 ### Humanize Dialog
+
+![Humanize](dialog-screenshots/124_Humanize.png)
 **Shortcut:** `Pattern Editor:Paketti:Humanize Selection...` ⌨️
 
 Opens comprehensive humanization dialog with:
@@ -4627,6 +4667,8 @@ Use a MIDI knob to trigger different patterns within the current section. Automa
 
 ## Performance Lock Features
 
+![Phrase Grid Performance](dialog-screenshots/099_Phrase_Grid_Performance.png)
+
 ### Select Section with Performance Lock (MIDI Knob)
 **MIDI Mapping:** `Paketti:Select Section with Performance Lock [Knob]`
 
@@ -5237,6 +5279,10 @@ Batch converts all samples in instrument:
 
 ## Sample Adjust Dialog
 
+![Batch Sample Adjust](dialog-screenshots/009_Batch_Sample_Adjust.png)
+
+![Paketti Sample Adjust](dialog-screenshots/051_Paketti_Sample_Adjust.png)
+
 **Shortcuts:**
 - `Sample Editor:Paketti:Paketti Sample Adjust Dialog...` ⌨️ 📋
 - `Global:Paketti:Paketti Sample Adjust Dialog...` ⌨️ 📋
@@ -5335,6 +5381,8 @@ Comprehensive guide to sample buffer manipulation, processing, and transformatio
 7. [Frequency Analysis](#frequency-analysis)
 
 ## Sample Buffer Rotation
+
+![Offset Sample Buffer](dialog-screenshots/139_Offset_Sample_Buffer.png)
 
 ### Rotate Sample Buffer (Fixed Amounts)
 **Shortcuts:**
@@ -5544,6 +5592,8 @@ Live slice marker insertion while sample plays. Perfect for manual slicing to au
 
 ## BPM-Based Sample Slicer
 
+![BPM-Based Slice](dialog-screenshots/110_BPM-Based_Slice.png)
+
 **Keybinding:**
 - `Global:Paketti:BPM-Based Sample Slicer Dialog...` ⌨️
 
@@ -5596,6 +5646,8 @@ Intelligent slicer that creates slice markers based on BPM and beat divisions. P
 ---
 
 ## Slice to Pattern Sequencer
+
+![Slice- Pattern Sequencer Dialog](dialog-screenshots/072_Slice-_Pattern_Sequencer_Dialog.png)
 
 **Keybindings:**
 - `Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing` ⌨️
@@ -6259,6 +6311,10 @@ Randomizes the selected device's parameters across all Sample FX Chains in the i
 
 ## Switch Note Instrument Dialog (NEW - Jan 2026)
 
+![Switch Note Instrument Dialog](dialog-screenshots/075_Switch_Note_Instrument_Dialog.png)
+
+![Switch Note Instrument Dialog](dialog-screenshots/177_Switch_Note_Instrument_Dialog.png)
+
 **Source:** `PakettiRequests.lua`
 
 Dialog for switching which instrument is assigned to notes in the pattern. Reads the pattern, shows the note-instrument assignments, and lets you remap them. Updates dynamically as you change selections.
@@ -6280,6 +6336,8 @@ Dialog for switching which instrument is assigned to notes in the pattern. Reads
 **Menu:** `Instrument Box:Paketti:Transpose Dialog...` 📋
 
 ### Global Volume Adjustment Dialog
+
+![Paketti Global Volume Adjustment](dialog-screenshots/046_Paketti_Global_Volume_Adjustment.png)
 **Shortcut:** `Global:Paketti:Paketti Global Volume Adjustment...` ⌨️ 📋
 **Menu:** `Instrument Box:Paketti Gadgets:Paketti Global Volume Adjustment...` 📋
 
@@ -6354,6 +6412,8 @@ Inserts Mono device (Stereo Expander) and sets hard panning for dual-mono studio
 
 ## LPB (Lines Per Beat) Control
 
+![Beat Structure Editor](dialog-screenshots/010_Beat_Structure_Editor.png)
+
 ### Double/Halve LPB
 **Shortcuts:**
 - `Global:Paketti:Double LPB` - Multiply by 2
@@ -6368,6 +6428,8 @@ Constraints: LPB 1-256, halving only works with even values.
 # Generative Tools
 
 ## Musical Chord Progression Arpeggiator
+
+![Paketti Arpeggiator](dialog-screenshots/142_Paketti_Arpeggiator.png)
 
 **Source:** `PakettiArpeggiator.lua` | **Inspired by Jake Albaugh's CodePen**
 
@@ -6642,6 +6704,8 @@ Advanced 16/32-step gate sequencer with per-step note/volume/panning/retrig cont
 
 ## Enhanced Phrase Generator
 
+![Paketti Enhanced Phrase Generator](dialog-screenshots/096_Paketti_Enhanced_Phrase_Generator.png)
+
 **Source:** `PakettiPhraseGenerator.lua` | **Depends on:** `PakettiSteppers.lua`
 
 Comprehensive phrase creation tool with 28 musical scales, multiple rhythm patterns, note ordering options, and stepper-based editing interface.
@@ -6869,6 +6933,10 @@ Central configuration dialog for all Paketti features. Contains hundreds of pref
 ---
 
 ## Paketti Wonkify
+
+![Wonkify Advanced](dialog-screenshots/182_Wonkify_Advanced.png)
+
+![Wonkify Quick](dialog-screenshots/183_Wonkify_Quick.png)
 
 **Source:** `PakettiWonkify.lua`
 
@@ -7300,6 +7368,8 @@ All seven presets have corresponding MIDI mappings:
 
 ## AKWF Wavetable Generator
 
+![Wavetable](dialog-screenshots/181_Wavetable.png)
+
 **Source:** `PakettiWavetabler.lua`
 
 Creates random wavetables from Adventure Kid Waveforms (AKWF) library - 4,000+ single-cycle waveforms combined into seamless wavetables. This library is actually included inside Paketti, so you don't need to install it. The loading is hardcoded to access the AKWF library from within Paketti.
@@ -7520,6 +7590,8 @@ Automatic pitch detection and correction for single-cycle waveforms. Analyzes wa
 
 # Slab'o'Patterns (Time Signature Generator)
 
+![Slab o Patterns](dialog-screenshots/170_Slab_o_Patterns.png)
+
 **Source:** `PakettiSlabOPatterns.lua` | **Features:** 2
 
 **Shortcuts:**
@@ -7594,6 +7666,10 @@ Perfect for building extended sections quickly.
 - Generated patterns named: "Section 01", "Section 02", etc.
 
 ## Configuration Persistence
+
+![Paketti Menu Configuration](dialog-screenshots/003_Paketti_Menu_Configuration.png)
+
+![Plugin Slots Configuration](dialog-screenshots/163_Plugin_Slots_Configuration.png)
 
 Pattern list saved to `slab_o_patterns.txt` in tool bundle path. Configuration persists across sessions.
 
@@ -8077,6 +8153,8 @@ Opens a visual parameter editor for the currently selected device with real-time
 
 ## EQ30/EQ64 Visual Equalizer
 
+![Unused Note EQ64](dialog-screenshots/104_Unused_Note_EQ64.png)
+
 **Source:** `PakettiEQ30.lua` | **Features:** 5
 
 Advanced visual EQ system using multiple EQ10 devices for 30-band or 64-band parametric EQ with canvas-based drawing.
@@ -8434,6 +8512,8 @@ Visual step sequencer with grid-based editing for sliced instruments.
 ---
 
 ## Stacker
+
+![Paketti Stacker](dialog-screenshots/053_Paketti_Stacker.png)
 
 **Source:** `PakettiStacker.lua` | **Features:** 6
 
@@ -8987,6 +9067,8 @@ Exports currently selected sample/slice as melodic slice PTI.
 ---
 
 ## Polyend Slice Switcher
+
+![Polyend Slice Switcher](dialog-screenshots/165_Polyend_Slice_Switcher.png)
 
 **Source:** `PakettiPolyendSliceSwitcher.lua`
 
@@ -9962,6 +10044,8 @@ Enables/disables MIDI input following the current octave setting in Renoise.
 
 # eSpeak Text-to-Speech Generator
 
+![eSpeak Text-to-Speech](dialog-screenshots/026_eSpeak_Text-to-Speech.png)
+
 **Source:** `PakettieSpeak.lua` | **Requirements:** eSpeak or eSpeak-ng installed
 
 Generate speech samples from text using eSpeak text-to-speech engine. Perfect for vocal samples, announcements, experimental music, and sound design.
@@ -10157,6 +10241,8 @@ Advanced experimental features - EQ control, sample rotation, effect randomizati
 
 ## EQ10 XY Control Dialog
 
+![Paketti EQ10 XY Control Dialog](dialog-screenshots/043_Paketti_EQ10_XY_Control_Dialog.png)
+
 **Keybinding:** `Global:Paketti:Show EQ10 XY Control Dialog...` ⌨️
 
 Visual XY pad controller for all 10 bands of Renoise's EQ 10 device with real-time parameter manipulation.
@@ -10197,6 +10283,8 @@ Quick shortcuts to set sample beatsync lines values (02-16).
 ## Transport & Playback
 
 ### Reset SBx and Start Playback
+
+![SBX Playback Handler](dialog-screenshots/068_SBX_Playback_Handler.png)
 
 **Keybinding:** `Global:Transport:Reset SBx and Start Playback` ⌨️
 
@@ -10281,6 +10369,8 @@ Direct MIDI transpose control for first 16 instruments regardless of selection.
 ## Effect Column Randomization
 
 ### Randomize Effect Column (Smatter Mode)
+
+![Paketti Randomize Delay Column](dialog-screenshots/152_Paketti_Randomize_Delay_Column.png)
 
 **"Smatter"** = Sparse randomization (not every line)
 
@@ -10613,6 +10703,8 @@ Detects and marks zero-crossing points in selected sample. Identifies points whe
 Advanced zero-crossing based slicing with BPM-synced slice movement, randomization, and intelligent wipe & slice operations.
 
 ## Zero Crossings Advanced Dialog
+
+![Zero Crossings Advanced](dialog-screenshots/185_Zero_Crossings_Advanced.png)
 
 **Keybindings:**
 - `Global:Paketti:Zero Crossings Advanced Dialog` ⌨️
@@ -10984,6 +11076,8 @@ Advanced BPM calculation, beatsync-to-pitch conversion, and sample pitch modific
 
 ## Set BPM from Sample Length
 
+![BPM From Sample Length](dialog-screenshots/013_BPM_From_Sample_Length.png)
+
 **Keybindings:**
 - `Global:Paketti:Set BPM from Sample Length` ⌨️
 - `Sample Editor:Paketti:Set BPM from Sample Length` ⌨️
@@ -11053,6 +11147,8 @@ Converts sample's beatsync setting to equivalent pitch/transpose offset, then di
 **Use Case:** Convert beatsync samples to pitch-based playback for stability.
 
 ## Sample Pitch Modifier Dialog
+
+![Sample Pitch Modifier Dialog](dialog-screenshots/067_Sample_Pitch_Modifier_Dialog.png)
 
 **Keybindings:**
 - `Global:Paketti:Sample Pitch Modifier Dialog...` ⌨️
@@ -11328,6 +11424,12 @@ Parameter 3: CC 22
 ---
 
 # PlayerPro Waveform Viewer
+
+![PlayerPro Effect Dialog](dialog-screenshots/058_PlayerPro_Effect_Dialog.png)
+
+![PlayerPro Main Dialog](dialog-screenshots/059_PlayerPro_Main_Dialog.png)
+
+![PlayerPro Waveform Viewer](dialog-screenshots/106_PlayerPro_Waveform_Viewer.png)
 
 **Source:** `PakettiPlayerProWaveformViewer.lua` | **Features:** 16
 
@@ -11615,6 +11717,8 @@ Sets loop start/end points to match selected slice boundaries.
 ---
 
 # Elektron Digitakt Export Suite
+
+![Digitakt Sample Chain](dialog-screenshots/115_Digitakt_Sample_Chain.png)
 
 **Source:** `PakettiDigitakt.lua` | **Features:** 16
 
@@ -12827,6 +12931,8 @@ Enables/disables real-time tuning for incoming MIDI notes.
 
 # Theme Selector
 
+![Theme Selector](dialog-screenshots/076_Theme_Selector.png)
+
 **Source:** `PakettiThemeSelector.lua` | **Features:** 3
 
 Visual theme browser with favorites system and random theme selection for Renoise GUI customization.
@@ -12847,6 +12953,10 @@ Comprehensive theme selection interface with preview and management.
 - **Sort Options** - Name, date, favorites
 
 ### Theme Information
+
+![Debug Available Device Information](dialog-screenshots/017_Debug_Available_Device_Information.png)
+
+![Debug Available Plugin Information](dialog-screenshots/018_Debug_Available_Plugin_Information.png)
 For each theme:
 - Theme name
 - Author
@@ -13101,6 +13211,10 @@ Dialog shows:
 
 # Volume Delay Pan Equation Calculator
 
+![Paketti Calculator](dialog-screenshots/042_Paketti_Calculator.png)
+
+![Equation Calculator](dialog-screenshots/093_Equation_Calculator.png)
+
 **Source:** `PakettiEquationCalculator.lua` | **Features:** 2
 
 Mathematical formula evaluator for generating volume, delay, and panning patterns in the pattern editor.
@@ -13171,6 +13285,10 @@ Result: Smooth left-right panning
 ```
 
 ### Exponential Curve
+
+![Automation Curve Fill](dialog-screenshots/108_Automation_Curve_Fill.png)
+
+![Effect Column Curve Fill](dialog-screenshots/117_Effect_Column_Curve_Fill.png)
 ```
 Formula: (x / 64)^2 * 128
 Result: Accelerating curve (slow start, fast end)
@@ -13222,6 +13340,8 @@ Exponential decay like ADSR envelope
 ---
 
 # Chebyshev Polynomial Waveshaper
+
+![Chebyshev Polynomial Waveshaper](dialog-screenshots/091_Chebyshev_Polynomial_Waveshaper.png)
 
 **Source:** `PakettiChebyshevWaveshaper.lua` | **Features:** 2
 
@@ -13586,6 +13706,8 @@ Import samples from classic Amiga ProTracker .MOD files (4-channel tracker modul
 **Import:** Drag Amiga IFF file → converts to WAV, preserves loop points
 
 ### .CSV (PCM Writer Data)
+
+![Paketti PCM Writer](dialog-screenshots/098_Paketti_PCM_Writer.png)
 **Extensions:** `.csv`
 **Category:** Sample
 **Import:** Drag .csv file → loads PCM waveform data from CSV format
@@ -13899,6 +14021,8 @@ Deletes all tracks that contain no pattern data.
 
 ## Remove Empty Tracks (No Notes, No DSP)
 
+![Track DSP Device Instrument Loader](dialog-screenshots/079_Track_DSP_Device_Instrument_Loader.png)
+
 **Keybinding:** `Global:Paketti:Remove Empty Tracks (No Notes, No DSP)` ⌨️
 
 Stricter cleanup - deletes tracks with no notes AND no DSP devices.
@@ -13953,6 +14077,8 @@ Resets all sample effect column assignments across all samples in the current dr
 ---
 
 # Metric Modulation
+
+![Metric Modulation](dialog-screenshots/133_Metric_Modulation.png)
 
 **Source:** `PakettiMetricModulation.lua` | **Features:** 9
 
@@ -14048,6 +14174,10 @@ Converts 4/4 pattern to 3/4 time feel (or vice versa).
 - Progressive timing
 
 ## Advanced Subdivision Calculator
+
+![Advanced Subdivision Calculator](dialog-screenshots/107_Advanced_Subdivision_Calculator.png)
+
+![Subdivision Calculator](dialog-screenshots/176_Subdivision_Calculator.png)
 
 **Keybinding:** `Global:Paketti:Advanced Subdivision Calculator` ⌨️
 
@@ -14188,6 +14318,8 @@ Test functions for first 4 pads (troubleshooting).
 
 ## Sectionizer
 
+![Paketti Sectionizer](dialog-screenshots/153_Paketti_Sectionizer.png)
+
 **Keybinding:** `Global:Paketti:Sectionizer...` ⌨️
 
 Visual dialog for organizing patterns into named sections.
@@ -14238,6 +14370,8 @@ Experimental filter with unconventional/chaotic behavior.
 ---
 
 # Device Parameter Control (Parama Param)
+
+![Paketti Device Parameter Editor](dialog-screenshots/095_Paketti_Device_Parameter_Editor.png)
 
 **Source:** `PakettiDeviceValues.lua` | **Features:** 6
 
@@ -14319,6 +14453,8 @@ Direct keyboard selection of device slots in DSP chain.
 ---
 
 # Canvas Parameter Editor
+
+![PlayerPro Canvas Main](dialog-screenshots/101_PlayerPro_Canvas_Main.png)
 
 **Source:** `PakettiCanvasExperiments.lua` | **Features:** 10+
 
@@ -14423,6 +14559,8 @@ Inspired by hardware synthesizers, allows comparison between two parameter state
 ---
 
 # Mixer Parameter Exposer
+
+![Mixer Parameter Exposer](dialog-screenshots/135_Mixer_Parameter_Exposer.png)
 
 **Source:** `PakettiMixerParameterExposer.lua` | **Features:** 6
 
@@ -14637,6 +14775,10 @@ Maps MIDI CC knob (0-127) to sample loop length (0-100% of sample).
 
 # OctaMED Hold-to-Fill Mode
 
+![Hold To Fill](dialog-screenshots/123_Hold_To_Fill.png)
+
+![Paketti Fill Dialog](dialog-screenshots/146_Paketti_Fill_Dialog.png)
+
 **Source:** `PakettiHoldToFill.lua` | **Features:** 1
 
 OctaMED-style "hold key to fill notes" workflow - hold keyboard key and notes fill automatically at edit step.
@@ -14812,6 +14954,8 @@ Set in Paketti Preferences → AutoSamplify section
 ---
 
 # Instrument Transpose System
+
+![Instrument Transpose Dialog](dialog-screenshots/128_Instrument_Transpose_Dialog.png)
 
 **Source:** `PakettiInstrumentTranspose.lua` | **Features:** 15
 
@@ -15023,6 +15167,8 @@ Rebuilds MIDI mapping cache from source files.
 
 # MIDI Mappings File Management (NEW - Mar 2026)
 
+![Midi Mappings](dialog-screenshots/033_Midi_Mappings.png)
+
 **Source:** `PakettiMIDIMappings.lua` | **Features:** 7
 
 Full MIDI mapping file management — save your controller setup to an `.xrnm` file, load it into any song, merge mappings from multiple files, or do a clean replace. Switch between different MIDI controllers or share setups between projects.
@@ -15201,6 +15347,8 @@ Loads all currently favorited plugin instruments into the song.
 
 # Quick Load Device Dialog
 
+![Quick Load Device](dialog-screenshots/063_Quick_Load_Device.png)
+
 **Source:** `PakettiLoadDevices.lua` | **Features:** 11+
 
 Fast device loader with favorites, search, and one-click insertion of VST/AU/Native devices.
@@ -15319,6 +15467,8 @@ Opens fast device selection dialog with search and categories.
 ---
 
 # Automation Stack
+
+![Automation Stack](dialog-screenshots/089_Automation_Stack.png)
 
 **Source:** `PakettiAutomationStack.lua` | **Features:** 11
 
@@ -15445,6 +15595,8 @@ Prints all automation point data to console (debugging).
 
 # HyperEdit (8-Row Step Sequencer)
 
+![Paketti HyperEdit](dialog-screenshots/097_Paketti_HyperEdit.png)
+
 **Source:** `PakettiHyperEdit.lua` | **Features:** 6
 
 Visual 8-row step sequencer with per-row device and parameter selection for complex automation patterns.
@@ -15551,6 +15703,8 @@ Duplicates current HyperEdit automation setup to next pattern.
 ---
 
 # Keyzone Distributor
+
+![Keyzone Distributor](dialog-screenshots/031_Keyzone_Distributor.png)
 
 **Source:** `PakettiKeyzoneDistributor.lua` | **Features:** 4
 
@@ -15885,6 +16039,10 @@ renoise.app():show_status("Sample transposed +12")
 
 # Pattern/Phrase Length Control
 
+![Paketti Pattern Phrase Length Dialog](dialog-screenshots/050_Paketti_Pattern_Phrase_Length_Dialog.png)
+
+![Set Pattern Phrase Length](dialog-screenshots/169_Set_Pattern_Phrase_Length.png)
+
 **Source:** `PakettiPatternLength.lua` | **Features:** 8
 
 Quick pattern and phrase length adjustment with dialog and keyboard shortcuts.
@@ -16086,6 +16244,8 @@ Also registered in Dialog of Dialogs — search for "plugin slots" or "slot" to 
 
 # Pattern Delay Viewer
 
+![Pattern Delay Viewer](dialog-screenshots/158_Pattern_Delay_Viewer.png)
+
 **Source:** `PakettiPatternDelayViewer.lua` | **Features:** 3
 
 Visual pattern delay (0Dxx) analyzer and editor with delay visualization and batch editing.
@@ -16192,6 +16352,8 @@ Prompts for delay value and applies to all matching notes in track.
 ---
 
 # Effect Command CheatSheet
+
+![Effect Column CheatSheet](dialog-screenshots/024_Effect_Column_CheatSheet.png)
 
 **Source:** `PakettiPatternEditorCheatSheet.lua` | **Features:** 5
 
@@ -16438,6 +16600,8 @@ Real-world usage examples:
 - **Close** - Close the dialog
 
 ## Minimize Cheatsheet (Horizontal)
+
+![Paketti Minimize Cheatsheet](dialog-screenshots/151_Paketti_Minimize_Cheatsheet.png)
 
 **Keybinding:** `Global:Paketti:Show Minimize Cheatsheet Horizontal` ⌨️
 
@@ -16759,6 +16923,8 @@ Unified dialog for various audio processing operations.
 
 ## Protracker MOD Modulation
 
+![Protracker MOD modulation Dialog](dialog-screenshots/062_Protracker_MOD_modulation_Dialog.png)
+
 **Keybinding:** `Sample Editor:Paketti:Protracker MOD Modulation...` ⌨️
 
 Applies classic Protracker-style modulation effects.
@@ -16999,6 +17165,8 @@ Unified dialog for sample parameter adjustment.
 
 # Action Selector
 
+![Paketti Action Selector](dialog-screenshots/041_Paketti_Action_Selector.png)
+
 **Source:** `PakettiActionSelector.lua` | **Features:** 1
 
 Searchable command palette for all Paketti functions.
@@ -17085,6 +17253,8 @@ Finds:
 ---
 
 # XRNS Probe (Song File Inspector)
+
+![New Song Dialog](dialog-screenshots/036_New_Song_Dialog.png)
 
 **Source:** `PakettiXRNSProbe.lua` | **Features:** 2
 
@@ -17216,6 +17386,8 @@ Support for Zyklus MPS-1 hardware sampler format.
 
 # KeyBindings Management
 
+![Paketti KeyBindings](dialog-screenshots/048_Paketti_KeyBindings.png)
+
 **Source:** `PakettiKeyBindings.lua` | **Features:** 5
 
 Advanced keybinding browser and manager for Paketti and Renoise.
@@ -17248,6 +17420,8 @@ Displays all Paketti keybindings in searchable list.
 - ○ Unassigned - Gray
 
 ## Show Renoise KeyBindings Dialog
+
+![Renoise KeyBindings](dialog-screenshots/065_Renoise_KeyBindings.png)
 
 **Keybinding:** `Global:Paketti:Show Renoise KeyBindings Dialog...` ⌨️
 
@@ -17474,6 +17648,8 @@ Opens master dialog listing all Paketti dialogs.
 
 ## About Paketti/Donations
 
+![About Paketti Donations](dialog-screenshots/001_About_Paketti_Donations.png)
+
 **Keybinding:** `Global:Paketti:About Paketti/Donations...` ⌨️
 
 Opens Paketti about dialog with version info and donation links.
@@ -17490,6 +17666,8 @@ Opens Paketti about dialog with version info and donation links.
 ---
 
 # Sononymph Integration
+
+![Sononymph](dialog-screenshots/173_Sononymph.png)
 
 **Source:** `Sononymph/AppMain.lua`, `App.lua`, `AppUI.lua` | **Features:** 9
 
@@ -17753,6 +17931,8 @@ Opens comprehensive step sequencer interface with visual grid.
 - **Step Count Toggle** - Switch 16/32
 
 ## Hotelsinus Matrix Overview
+
+![Hotelsinus Matrix Overview](dialog-screenshots/029_Hotelsinus_Matrix_Overview.png)
 
 **Keybinding:** `Global:Paketti:Hotelsinus Matrix Overview` ⌨️
 
@@ -18157,6 +18337,8 @@ For batch generation of 50 or 200 instruments, MetaSynth uses Renoise's ProcessS
 
 # Paketti 8120 Groovebox
 
+![Paketti Groovebox 8120](dialog-screenshots/047_Paketti_Groovebox_8120.png)
+
 **Source:** `PakettiEightOneTwenty.lua` | **Features:** ~150+
 
 Complete groovebox-style sequencer interface with 8 rows of 16/32-step patterns, per-row instrument selection, real-time recording, pitch control, and advanced beat sync integration.
@@ -18430,6 +18612,8 @@ Two modes for global pitch adjustment:
 
 # Merge Instruments
 
+![Merge Instruments](dialog-screenshots/032_Merge_Instruments.png)
+
 **Source:** `PakettiMergeInstruments.lua` | **Features:** 1
 
 Merges samples and keymaps from one instrument to another with validation and safety checks.
@@ -18482,6 +18666,8 @@ Opens dialog to merge samples from source instrument to target instrument.
 ---
 
 # Switcharoo (Chord Reharmonization)
+
+![Switcharoo](dialog-screenshots/178_Switcharoo.png)
 
 **Source:** `PakettiSwitcharoo.lua` | **Features:** 1
 
@@ -18795,6 +18981,8 @@ If `preferences.pakettiSwitcharooAutoGrab.value` is enabled:
 
 # YT-DLP Downloader
 
+![YT-DLP Downloader](dialog-screenshots/086_YT-DLP_Downloader.png)
+
 **Source:** `PakettiYTDLP.lua` | **Features:** 1
 
 YouTube and multi-platform audio downloader integration using yt-dlp, with automatic import to Renoise instruments.
@@ -19093,6 +19281,10 @@ All settings saved to preferences:
 Visual tuplet and polyrhythm pattern generator with real-time preview and automatic pattern writing.
 
 ## Paketti Tuplet Writer Dialog
+
+![Paketti Tuplet Writer](dialog-screenshots/055_Paketti_Tuplet_Writer.png)
+
+![MIDI Effect Writer](dialog-screenshots/134_MIDI_Effect_Writer.png)
 
 **Keybinding:** `Global:Paketti:Paketti Tuplet Writer Dialog...` ⌨️
 
@@ -19721,6 +19913,8 @@ plutil -convert binary1 -o output.bin input.xml
 
 # Paketti Gater
 
+![Paketti Gater](dialog-screenshots/045_Paketti_Gater.png)
+
 **Source:** `PakettiGater.lua` | **Features:** 4
 
 Advanced 16/32-step gater with 4 independent gating engines - Volume, Retrig, Playback Direction, and Panning. Real-time pattern writing with playhead tracking, per-gater step control, and multiple operation modes.
@@ -19749,6 +19943,8 @@ Advanced 16/32-step gater with 4 independent gating engines - Volume, Retrig, Pl
 4. **Print Once Mode** - Write pattern once from current line position
 
 ## Checkbox Grid Interface
+
+![Phrase Grid](dialog-screenshots/100_Phrase_Grid.png)
 
 **For Each Gater:**
 - 16 or 32 checkboxes for step programming
@@ -19859,11 +20055,15 @@ Auto-grabs parameters and quickly moves you to the Automation Frame Layer. When 
 
 # Sample Cycle Tuning (RePitch)
 
+![Paketti RePitch](dialog-screenshots/155_Paketti_RePitch.png)
+
 **Source:** `PakettiRePitch.lua` | **Features:** 3
 
 Advanced single-cycle waveform tuning calculator with frequency analysis, automatic pitch correction, and batch processing. Accurately analyzes sample frequency and applies precise transpose and fine-tune corrections.
 
 ## Sample Cycle Tuning Calculator Dialog
+
+![Sample Cycle Tuning Calculator](dialog-screenshots/066_Sample_Cycle_Tuning_Calculator.png)
 
 **Keybinding (Global):** `Global:Paketti:Sample Cycle Tuning Calculator...` ⌨️  
 **Keybinding (Sample Editor):** `Sample Editor:Paketti:Sample Cycle Tuning Calculator...` ⌨️
@@ -19945,6 +20145,8 @@ Advanced single-cycle waveform tuning calculator with frequency analysis, automa
 ---
 
 # Sample Effect Generator
+
+![Sample Effect Generator](dialog-screenshots/102_Sample_Effect_Generator.png)
 
 **Source:** `PakettiSampleEffectGenerator.lua` | **Features:** 1
 
@@ -20112,6 +20314,8 @@ Convert Renoise's Global Groove settings to delay column values on selected trac
 
 ## Conversion Formula
 
+![Paketti Formula Device Manual](dialog-screenshots/044_Paketti_Formula_Device_Manual.png)
+
 ```lua
 delay = (groove_percentage × 170) × scale_factor
 ```
@@ -20164,6 +20368,8 @@ delay = (groove_percentage × 170) × scale_factor
 Configure up to 6 external applications and 3 smart/backup folders for sample export. Dynamic menu generation with sample sending and folder saving capabilities.
 
 ## Configure Launch App Selection Dialog
+
+![Configure Launch App Selection Path](dialog-screenshots/015_Configure_Launch_App_Selection_Path.png)
 
 **Keybinding:** `Global:Paketti:Configure Launch App Selection...` ⌨️
 
@@ -20265,6 +20471,8 @@ Configure up to 6 external applications and 3 smart/backup folders for sample ex
 
 # Frame Calculator
 
+![Frame Calculator](dialog-screenshots/121_Frame_Calculator.png)
+
 **Source:** `PakettiFrameCalculator.lua` | **Features:** 8
 
 Calculate audio frames, duration, and timing information for patterns, sequences, and selected lines. Multiple calculation modes with live updates and detailed analysis.
@@ -20350,6 +20558,8 @@ Sequence: [count] patterns | [sec]s | [frames] frames @ 44100Hz | [MM]:[SS.MS]
 - Total duration from song start
 
 ## Show Song Length
+
+![Frame Calculator Song Length](dialog-screenshots/120_Frame_Calculator_Song_Length.png)
 
 **Keybinding:** `Global:Paketti:Show Song Length` ⌨️  
 **Menu Entries:** Pattern Matrix, Pattern Sequencer, Pattern Editor, Mixer 📋
@@ -20583,6 +20793,8 @@ Advanced pattern sequencer tools for cloning, duplicating, section management, a
 
 ## Sequencer Settings Dialog
 
+![Paketti Sequencer Settings Dialog](dialog-screenshots/052_Paketti_Sequencer_Settings_Dialog.png)
+
 **Keybinding:** `Pattern Sequencer:Paketti:Show Paketti Sequencer Settings Dialog` ⌨️
 
 Opens a comprehensive settings dialog for controlling pattern sequencer behavior.
@@ -20799,6 +21011,8 @@ Exports the selected Renoise instrument to FastTracker II .xi format.
 
 # Octatrack OctaCycle Generator
 
+![OctaCycle Generator](dialog-screenshots/137_OctaCycle_Generator.png)
+
 **Source:** `PakettiOctaCycle.lua` | **Features:** 9
 
 Creates multiple octave versions of single-cycle waveforms optimized for Elektron Octatrack. Extends Octatrack's ±1 octave pitch range by generating pre-pitched samples across multiple octaves.
@@ -20882,6 +21096,10 @@ Exports the generated OctaCycle to Octatrack-compatible WAV format.
 ---
 
 # Capture Last Take & EditStep MIDI Gate
+
+![EditStep Dialog](dialog-screenshots/023_EditStep_Dialog.png)
+
+![Paketti Capture Last Take](dialog-screenshots/143_Paketti_Capture_Last_Take.png)
 
 **Source:** `PakettiCaptureLastTake.lua` | **Features:** 4
 
@@ -20973,6 +21191,8 @@ Enables/disables EditStep-based MIDI gating for controlled note entry.
 ---
 
 # Polyend Buddy (PTI File Browser)
+
+![Polyend Buddy](dialog-screenshots/061_Polyend_Buddy.png)
 
 **Source:** `PakettiPolyendSuite.lua` | **Features:** 2
 
@@ -21275,6 +21495,8 @@ Loads a stored LFO preset from preferences.
 
 ## LFO Envelope Resolution Control
 
+![LFO Envelope Editor](dialog-screenshots/131_LFO_Envelope_Editor.png)
+
 **Keybindings:**
 - `Global:Paketti:Double LFO Envelope Resolution` ⌨️
 - `Global:Paketti:Halve LFO Envelope Resolution` ⌨️
@@ -21403,6 +21625,8 @@ Quick envelope transformation operations applied to selected LFO device.
 
 # Paketti Preferences System
 
+![Paketti Preferences](dialog-screenshots/002_Paketti_Preferences.png)
+
 **Source:** `Paketti0G01_Loader.lua` | **Features:** 1
 
 The core preferences system for Paketti, managing all global settings, tool configuration, and user preferences. This file also defines the comprehensive Paketti Preferences dialog.
@@ -21506,6 +21730,8 @@ Opens the comprehensive Paketti Preferences dialog with all settings organized i
 Advanced chord progression player with 13 chord types, per-slot settings, strum control, extra notes, preset progressions, and real-time playback.
 
 ## Paketti Chords - Progression Player
+
+![Paketti Chords - Progression Player](dialog-screenshots/144_Paketti_Chords_-_Progression_Player.png)
 
 **Keybinding:** `Global:Paketti:Paketti Chords - Progression Player...` ⌨️  
 **MIDI Mapping:** `Paketti:Paketti Chords - Progression Player` 🎹  
