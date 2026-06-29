@@ -13,8 +13,8 @@
      49 xrni
      46 md
      20 xml
+     14 py
      14 feature
-     13 py
      12 xrdp
 ```
 ## Top-level modules (file count · dir)
@@ -33,7 +33,7 @@
      13 rx2
      13 docs
      13 PakettiMCP
-     10 .spine
+     11 .spine
 ```
 ## Entry points
 ```
@@ -43,7 +43,7 @@ main.lua
 ```
 ## Structural hubs (refs · module — the most-imported = wiring backbone)
 ```
-   10  json
+   11  json
     3  cFilesystem
     2  slaxdom
     2  cValue
@@ -279,7 +279,8 @@ main.lua
 1 manual-sync -> json
 1 pmcp -> json
 1 recapture -> json
-  ── 218 edges total ──
+1 vault-to-manual -> json
+  ── 219 edges total ──
 ```
 ## The wiring, drawn
 
@@ -503,6 +504,7 @@ graph LR
   manual_sync["manual-sync"] -->|1| json["json"]
   pmcp["pmcp"] -->|1| json["json"]
   recapture["recapture"] -->|1| json["json"]
+  vault_to_manual["vault-to-manual"] -->|1| json["json"]
 ```
 
 ## Orientation docs
