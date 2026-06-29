@@ -17,6 +17,7 @@ from pathlib import Path
 
 PAKETTI = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/Users/esaruoho/work/paketti")
 MANUAL = PAKETTI / "manual" / "Experimental.md"
+README = PAKETTI / "README.md"
 VAULT = Path.home() / "work" / "comms" / "queue" / "paketti-faq" / "vault.jsonl"
 AUTO_RE = re.compile(r"(<!-- AUTO:certified -->)(.*?)(<!-- /AUTO -->)", re.S)
 
@@ -32,6 +33,24 @@ certified answer instead.*
 
 <!-- AUTO:certified -->(run vault-to-manual)<!-- /AUTO -->
 """
+
+README_STARTER = """
+
+---
+
+## 🎛️ Flagship Features
+
+*One-line definitions, certified by the maintainer via pakettiaskbot. Auto-generated — see the
+[Experimental manual](manual/Experimental.html) for the full write-ups.*
+
+<!-- AUTO:certified -->(run vault-to-manual)<!-- /AUTO -->
+"""
+
+
+def _one_liner(a: str) -> str:
+    a = re.sub(r"(?m)^\s*#{1,6}\s+.*$", "", a).strip()        # drop any heading lines
+    m = re.match(r"(.+?[.!?])(\s|$)", a.replace("\n", " "))
+    return (m.group(1) if m else a[:220]).strip()
 
 
 def _heading(q: str) -> str:
@@ -66,6 +85,17 @@ def main():
     text = AUTO_RE.sub(lambda m: f"{m.group(1)}\n{body}\n{m.group(3)}", text)
     MANUAL.write_text(text, encoding="utf-8")
     print(f"synced {len(items)} certified descriptions → manual/Experimental.md")
+
+    # README gets a CONCISE flagship list — feature DEFINITIONS only (skip how-tos), one line each.
+    defs = [e for e in items if re.match(
+        r"(?i)^(what is|what does|what'?s|explain|describe|tell me about)\b", e.get("q", "").strip())]
+    rbody = "\n".join(f"- {_one_liner(e.get('a', ''))}" for e in defs) or "_(none certified yet)_"
+    rtext = README.read_text(encoding="utf-8")
+    if not AUTO_RE.search(rtext):
+        rtext = rtext.rstrip() + README_STARTER
+    rtext = AUTO_RE.sub(lambda m: f"{m.group(1)}\n{rbody}\n{m.group(3)}", rtext)
+    README.write_text(rtext, encoding="utf-8")
+    print(f"synced {len(defs)} flagship one-liners → README.md")
     return 0
 
 

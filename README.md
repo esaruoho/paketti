@@ -75,3 +75,18 @@ For more details, read the full text of the [GNU General Public License v3.0](ht
 Thanks to @lpn (Brothomstates) for suggesting that I could pick up and learn LUA,
 that it would not be beyond me. Really appreciate your (sometimes misplaced and
 ahead-of-time) faith in me. And thanks for the inspiration.
+
+---
+
+## 🎛️ Flagship Features
+
+*One-line definitions, certified by the maintainer via pakettiaskbot. Auto-generated — see the
+[Experimental manual](manual/Experimental.html) for the full write-ups.*
+
+<!-- AUTO:certified -->
+- **Groovebox 8120** is Esa Ruoho's own original creation — an **8-part step-sequencer drum-machine groovebox** inside Paketti (a Lua tool for Renoise).
+- **HyperEdit** is Paketti's automation step-sequencer — an old-school **re-take of the HyperEdit from Logic Audio Platinum 5.5.1** (Esa brought that classic idea into Renoise).
+- **Polyend Buddy** is a **file-management system for the Polyend Tracker, Tracker+ and Tracker Mini** — built into Paketti so you manage your hardware tracker straight from Renoise over USB.
+- **Paketti Stacker** loads a sample, splits it into mathematically‑defined slices, and builds a new instrument where each slice is assigned to a different velocity layer—so the velocity you play determines which slice sounds.
+- The **Player Pro Scanner (Start/Stop)** is a Paketti feature that allows you to scan through pattern lines in Renoise and play them automatically, one by one, based on a selection.
+<!-- /AUTO -->
