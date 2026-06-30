@@ -23223,4 +23223,8 @@ This is useful for **manually scanning through a sequence of pattern lines** to 
 > 🔍 **Source reference**: The full Lua function is available in the Paketti source code under `pakettiPlayerProScanner()` — it includes detailed logic for selection, solo state, line triggering, and stopping.
 
 This is **not** a real-time playback tool or a loop player — it's a **line-by-line scanner** that plays selected pattern lines in sequence, triggered by a user action.
+
+### ”How do I obtain the correct bpm of the file?”
+
+To obtain the correct BPM of a WAV file, use the Paketti Stem Loader feature. As documented in the 2025-12-18 changelog, this feature "read[s] the BPM from the Wavefile header, or read[s] the BPM from the folder the files are in" when processing files. For a single WAV file, it obtains the BPM directly from the file's header. — changelog 2025-12-18
 <!-- /AUTO -->
