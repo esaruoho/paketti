@@ -61,9 +61,9 @@ Paketti is a **24,871-action layer** bolted onto Renoise. *Where* those actions 
 | &nbsp;&nbsp;Modulation Set | 0 | 48 | 0 | 48 |
 | &nbsp;&nbsp;Sononymph | 0 | 0 | 5 | 5 |
 | &nbsp;&nbsp;Instrument Phrases | 0 | 4 | 0 | 4 |
-| &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; Sample FX Mixer | 0 | 1 | 0 | 1 |
+| &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
 
 ## Robustness: 195/195 files load clean, 0 brittle
 
