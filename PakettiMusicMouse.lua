@@ -917,8 +917,13 @@ local function mm_update_from_mouse()
   if mm.frozen or not mm.mouse_active then return end   -- SPACE pause: mouse no longer follows
   local fx = (mm.mx)              -- 0..1 left->right (treble up to the right)
   local fy = (1 - mm.my)          -- invert: top of canvas = high pitch
-  mm.deg_x = mm_frac_to_degree(fx)
-  mm.deg_y = mm_frac_to_degree(fy)
+  local ndx = mm_frac_to_degree(fx)
+  local ndy = mm_frac_to_degree(fy)
+  -- Only fire when the quantized chord POSITION actually changes. Pointer "move" events stream in
+  -- many times per grid cell; without this, entering a cell re-triggered the same chord 2-5 times.
+  local changed = (ndx ~= mm.deg_x) or (ndy ~= mm.deg_y)
+  mm.deg_x = ndx
+  mm.deg_y = ndy
   -- (no auto-snap: the mouse moves freely so you can place/modify seeds anywhere;
   --  the diamonds are reached by Gravity Play, not by magnetism)
   if mm.keyjazz then
@@ -927,9 +932,13 @@ local function mm_update_from_mouse()
     if mm_canvas then mm_canvas:update() end
     return
   end
+  if not changed then
+    if mm_canvas then mm_canvas:update() end
+    return                        -- same cell -> no re-trigger (one hit per grid entry)
+  end
   local notes = mm_compute_voices()
   if mm.treatment == 1 then
-    mm_play_chord(notes)          -- chord mode: every move sounds the chord
+    mm_play_chord(notes)          -- chord mode: sounds once when you enter a new cell
   else
     mm.last_notes = notes         -- arp/line/improvise: timer sequences these
   end
@@ -2179,13 +2188,20 @@ function pakettiMusicMouseShow()
       },
       vb:row{
         spacing = 4,
-        vb:text{ text = "Hide pianos", style = "strong" },
-        vb:checkbox{ id = "mm_hidepianos_check", value = mm.hide_pianos,
-          notifier = function(b) if mm_ui_busy then return end mm.hide_pianos = b; if mm_canvas then mm_canvas:update() end end },
-        vb:text{ text = "Hide details", style = "strong" },
-        vb:checkbox{ id = "mm_hidedetails_check", value = mm.hide_details,
-          notifier = function(b) if mm_ui_busy then return end mm.hide_details = b
-            if vb.views["mm_details_col"] then vb.views["mm_details_col"].visible = not b end end },
+        vb:button{ id = "mm_hidepianos_btn", text = "Hide Pianos", width = 145,
+          color = mm.hide_pianos and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
+          notifier = function()
+            mm.hide_pianos = not mm.hide_pianos
+            if vb.views["mm_hidepianos_btn"] then vb.views["mm_hidepianos_btn"].color = mm.hide_pianos and { 0x50, 0x54, 0x66 } or { 0, 0, 0 } end
+            if mm_canvas then mm_canvas:update() end
+          end },
+        vb:button{ id = "mm_hidedetails_btn", text = "Hide Details", width = 145,
+          color = mm.hide_details and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
+          notifier = function()
+            mm.hide_details = not mm.hide_details
+            if vb.views["mm_hidedetails_btn"] then vb.views["mm_hidedetails_btn"].color = mm.hide_details and { 0x50, 0x54, 0x66 } or { 0, 0, 0 } end
+            if vb.views["mm_details_col"] then vb.views["mm_details_col"].visible = not mm.hide_details end
+          end },
       },
     },
     -- vertical Row slider (record-to-row): spans 0..pattern length; drag to a row, or hit a quarter.
