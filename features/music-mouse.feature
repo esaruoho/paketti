@@ -127,3 +127,104 @@ Context: Global
     Then the Loudness is restored
     And a stored 0 (silent) falls back to an audible default instead of booting near-mute
     # @built @user-verified
+
+  # ============================================================================
+  # 2026-07-02 feedback pass (commit a9bd4907). Loaded live (dialog opens clean via
+  # pakettiMusicMouseShow); behaviours below are @built, live-verification in progress.
+  # ============================================================================
+
+  Scenario: Changing a control never re-strikes the chord (and never sounds while frozen)
+    Given the Music Mouse dialog is open with a chord ringing
+    When the user changes Voices, Harmonic Mode, Voicing Format, Transposition,
+      Mouse Movement, Pattern Applies, or any dropdown / checkbox / switch
+    Then the target notes are recomputed and the grid redraws WITHOUT re-triggering the chord
+    And the new state is heard only on the next mouse move or i/o/p punch
+    And while frozen (space) nothing is ever triggered
+    # @built — via mm_requiet(); state keys q-y / d / f / v also quiet
+
+  Scenario: Chord changes are batched so there is no MIDI jitter
+    Given a chord is sounding
+    When the mouse moves to a new chord
+    Then the note-offs and note-ons are each sent as a SINGLE chord trigger call (no per-voice flam)
+    And voices whose note is unchanged are left ringing (no boundary jitter)
+    # @built — mm_play_chord batches trigger_instrument_note_off/on tables (API confirmed via MCP)
+
+  Scenario: Pattern Applies = Melody sequences one voice over a sustained chord (no flood)
+    Given Pattern is on, Treatment = Chord, and Pattern Applies = Melody
+    When the pattern timer advances each beat
+    Then only the melody voice steps its note; the chord voices are struck once then left ringing
+    And the whole chord is NOT re-triggered on every melody step
+    # @built @mcp-verified 2026-07-02 — recorded live: Melody mode wrote 1 note/line across 32
+    #   lines (a stepping contour); All mode wrote 4-note chords. mm_tick apply-mask path.
+
+  Scenario: Recording auto-widens the track to the voice count
+    Given Voices = 6 and Record to Pattern is armed
+    Then the selected track's visible note columns grow to at least 6 so the chord writes across columns
+    # @built @mcp-verified 2026-07-02 — columns went 1 -> 4 the instant Record armed at 4 voices
+
+  Scenario: space is owned by Music Mouse and never bleeds to the pattern editor
+    Given the Music Mouse dialog is focused (even with the mouse off the grid, or while recording)
+    When the user presses space
+    Then Music Mouse freezes/unfreezes and consumes the key before any passthrough
+    And Renoise transport / pattern editor never receives it
+    # @built — space handled at the very top of mm_keyhandler
+
+  Scenario: Gravity Play beat divisor
+    Given gravitation seeds exist and Gravity Play is on
+    When the divisor is set to Every 4th / 8th / 16th
+    Then a seed is hit only every Nth base beat instead of every beat
+    # @built — mm.gravity_div + gravity_beat counter
+
+  Scenario: Arpeggiate has Up / Down / Scatter / Strum
+    Given Treatment = Arpeggiate
+    When the Arp Mode is Up / Down / Scatter
+    Then the timer steps one voice per beat in that order (pitch-sorted; Scatter is random)
+    When the Arp Mode is Strum and the user presses a sound key
+    Then the chord is written on one line across note columns with rising delay-column offsets
+    # @built
+
+  Scenario: i / o / p punch saved favorite waveforms; å = current; shift-i round-robin
+    Given the user picked three favorite waveforms in the panel (persisted)
+    When the user presses i / o / p (in keyjazz punch or normally)
+    Then the chord is punched with favorite 1 / 2 / 3 (keeping Bell/Sustain), not a fixed shape
+    When the user presses å
+    Then the currently selected sound re-triggers without switching waveform
+    When the user presses shift-i
+    Then the next favorite is chosen round-robin and punched
+    # @built — mm.fav_waves saved via pakettiMusicMouseFav1..3
+
+  Scenario: Tuning dropdown and < > transpose
+    Given the Music Mouse dialog is open
+    When the user picks a tuning from the Tuning dropdown
+    Then that microtonal preset is applied to the selected instrument (tab still cycles)
+    When the user presses < or >
+    Then the pitch transposes down / up by the interval (alongside z / x)
+    # @built — PakettiMicrotonalSetTuning / PakettiMicrotonalTuningNames
+
+  Scenario: Layout polish and width toggles
+    Given the Music Mouse dialog is open
+    Then labels are strong proportional (not wide mono); the mute row is tight
+    And Waveform + Mode + Create New share one aligned row ("Waveform"); the Pattern popup width is matched
+    And Record to Pattern is a button that is RED when armed, grey when off
+    And Launchpad / help text lives in tooltips
+    When the user ticks Hide pianos
+    Then only the woven grid draws (the 4 edge keyboards are skipped)
+    When the user ticks Hide details
+    Then the control panel + pattern editor collapse, leaving the grid for a narrow window
+    # @built
+
+  Scenario: Pattern contour up to 64 steps with a length switch
+    Given the melodic-pattern editor
+    When the user picks 8 / 16 / 32 / 64 on the length switch (or Len +)
+    Then the contour grows/truncates to that length (max 64)
+    And Len + reports a status when the maximum is reached
+    # @built
+
+  Scenario: Keyboard Map is clickable and MIDI-mappable
+    Given the "Keys / MIDI Map..." dialog
+    Then keys are buttons grouped under bold headings with even alignment and a de-duped title (no em-dash)
+    When the user clicks a key button
+    Then it fires the exact same keyhandler path as pressing the key
+    When the user enters cmd-M MIDI-map mode, clicks a button and moves a MIDI control
+    Then that Music Mouse action binds to the control (each button has a registered Paketti:Music Mouse Key mapping)
+    # @built — buttons drive mm_keyhandler; per-key add_midi_mapping registered
