@@ -444,7 +444,7 @@ local function write_digitakt_wav(filename, sample_data, sample_rate, bit_depth,
 end
 
 -- Main export function
-local function export_digitakt_chain(params)
+function export_digitakt_chain(params)
   local song = renoise.song()
   local instrument = song.selected_instrument
   
@@ -534,8 +534,11 @@ local function export_digitakt_chain(params)
   last_export_info.channels = config.channels
   last_export_info.sample_rate = config.sample_rate
   
-  -- Prompt for filename
-  local filename = renoise.app():prompt_for_filename_to_write("WAV", "digitakt_chain.wav")
+  -- Prompt for filename (batch mode supplies params.output_path to skip the dialog)
+  local filename = params.output_path
+  if not filename or filename == "" then
+    filename = renoise.app():prompt_for_filename_to_write("WAV", "digitakt_chain.wav")
+  end
   if not filename or filename == "" then
     renoise.app():show_status("Export cancelled")
     return false

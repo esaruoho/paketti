@@ -806,7 +806,7 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Convert WAV to IFF...",invo
 
 
 -- Function to save current selected sample as IFF (28604 Hz 8-bit mono .iff)
-function saveCurrentSampleAsIFF()
+function saveCurrentSampleAsIFF(output_path_override)
   local song = renoise.song()
   
   -- Check if we have a selected instrument and sample
@@ -840,8 +840,11 @@ function saveCurrentSampleAsIFF()
   else
     ext = "*.iff"  -- macOS/Linux: asterisk + dot
   end
-  local output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as IFF File")
-  
+  local output_path = output_path_override
+  if not output_path or output_path == "" then
+    output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as IFF File")
+  end
+
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
     return
@@ -1053,7 +1056,7 @@ function convert_aiff_to_buffer(aiff_path)
 end
 
 -- Function to save current selected sample as 8SVX (28604 Hz 8-bit mono .8svx)
-function saveCurrentSampleAs8SVX()
+function saveCurrentSampleAs8SVX(output_path_override)
   local song = renoise.song()
   
   if not song.selected_instrument_index or song.selected_instrument_index == 0 then
@@ -1086,8 +1089,11 @@ function saveCurrentSampleAs8SVX()
   else
     ext = "*.8svx"  -- macOS/Linux: asterisk + dot
   end
-  local output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as 8SVX File")
-  
+  local output_path = output_path_override
+  if not output_path or output_path == "" then
+    output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as 8SVX File")
+  end
+
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
     return
@@ -1191,7 +1197,7 @@ function saveCurrentSampleAs8SVX()
 end
 
 -- Function to save current selected sample as 16SV (28604 Hz 16-bit mono .16sv)
-function saveCurrentSampleAs16SV()
+function saveCurrentSampleAs16SV(output_path_override)
   local song = renoise.song()
   
   if not song.selected_instrument_index or song.selected_instrument_index == 0 then
@@ -1224,8 +1230,11 @@ function saveCurrentSampleAs16SV()
   else
     ext = "*.16sv"  -- macOS/Linux: asterisk + dot
   end
-  local output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as 16SV File")
-  
+  local output_path = output_path_override
+  if not output_path or output_path == "" then
+    output_path = renoise.app():prompt_for_filename_to_write(ext, "Save Sample as 16SV File")
+  end
+
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
     return

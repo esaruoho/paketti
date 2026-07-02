@@ -1178,7 +1178,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Octatrack Generate Dru
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Octatrack Set .ot Loop to Slice",invoke=function() PakettiOTSetLoopToSlice() end}
 
 
-function PakettiOTExport()
+function PakettiOTExport(output_path_override)
     -- Temporarily disable AutoSamplify monitoring to prevent interference
     local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
     
@@ -1247,14 +1247,17 @@ function PakettiOTExport()
     -- Check slice count and warn if over 64 (Octatrack limit)
     local slice_count = sample.slice_markers and #sample.slice_markers or 0
     if slice_count > 64 then
-        local result = renoise.app():show_prompt("Slice Limit Warning", 
-            "Sample has " .. slice_count .. " slices, but Octatrack only supports 64.\n" ..
-            "Only the first 64 slices will be exported.\n\nContinue?", 
-            {"Continue", "Cancel"})
-        if result == "Cancel" then
-            renoise.app():show_status("Export cancelled")
-            print("PakettiOTExport: Export cancelled due to slice count")
-            return
+        -- In batch mode (output path supplied) never block on a dialog - just proceed.
+        if not (output_path_override and output_path_override ~= "") then
+            local result = renoise.app():show_prompt("Slice Limit Warning",
+                "Sample has " .. slice_count .. " slices, but Octatrack only supports 64.\n" ..
+                "Only the first 64 slices will be exported.\n\nContinue?",
+                {"Continue", "Cancel"})
+            if result == "Cancel" then
+                renoise.app():show_status("Export cancelled")
+                print("PakettiOTExport: Export cancelled due to slice count")
+                return
+            end
         end
         print("PakettiOTExport: Warning - Exporting only first 64 of " .. slice_count .. " slices")
     end
@@ -1290,8 +1293,11 @@ function PakettiOTExport()
     print("PakettiOTExport: All safety checks passed, proceeding with export")
     
     local ot = make_ot_table(sample)
-    local filename = renoise.app():prompt_for_filename_to_write("*.wav", "Save sample...")
-    
+    local filename = output_path_override
+    if not filename or filename == "" then
+        filename = renoise.app():prompt_for_filename_to_write("*.wav", "Save sample...")
+    end
+
     -- Check if user cancelled the file dialog
     if not filename or filename == "" then
         renoise.app():show_status("Export cancelled")

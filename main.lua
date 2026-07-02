@@ -1317,6 +1317,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiSlice")
   timed_require("PakettiGlider")
   timed_require("PakettiPTILoader")
+  timed_require("PakettiBatchExport")
   timed_require("PakettiPolyendSuite")
   timed_require("PakettiPolyendSliceSwitcher")
   timed_require("PakettiPolyendMelodicSliceExport")
