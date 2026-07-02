@@ -4974,6 +4974,15 @@ function create_polyend_buddy_dialog(vb)
           -- Call the universal REX/ITI/RX2 to PTI conversion function
           universal_to_pti_convert()
         end
+      },
+      vb:button{
+        text = "XRNI Folder→PTI (Batch)",
+        width = polyendButtonWidth*2,
+        tooltip = "Pick a folder of .xrni instruments (recurses subfolders). Each .xrni is converted to a .pti written right beside it, preserving your folder structure.",
+        notifier = function()
+          -- Batch-convert a whole folder tree of .xrni files to .pti in place
+          PakettiBatchXRNIToPTI()
+        end
       }
     },
     

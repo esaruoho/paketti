@@ -1329,12 +1329,15 @@ function extractModulationForPTIExport(renoise_instrument)
           release = device.release.value,
         }
       elseif dname:find("LFO") then
-        -- LFO parameters are mode / phase / frequency / amount / delay.
-        -- There is NO .amplitude on an LFO modulation device — use .amount.
+        -- LFO parameters (probed live on SampleLfoModulationDevice) are
+        -- mode / frequency / amplitude / delay. There is NO .amount and NO
+        -- .phase on an LFO device — reading device.amount THROWS and aborts the
+        -- whole PTI export. Renoise's depth control is .amplitude; the PTI header
+        -- field is named "amount", so read .amplitude here and store it as amount.
         result.lfos[env_idx] = {
           mode = device.mode,
           frequency = device.frequency.value,
-          amount = device.amount.value,
+          amount = device.amplitude.value,
         }
       end
       -- Stepper / Envelope / Fader / Key Tracking / Operand / Velocity Tracking
@@ -2646,9 +2649,126 @@ function PakettiExportSubfoldersAsDrumSlices()
   print(string.format("-- PTI Subfolder Export: Completed drum slices export - %d PTIs created", exported_count))
 end
 
+-- Batch XRNI Folder -> PTI Converter (GLOBAL)
+-- Recursively walks a folder for .xrni files, loads each into a temp instrument,
+-- exports it as .pti IN PLACE (right beside the .xrni), then removes the temp
+-- instrument so the 255-instrument cap is never hit. Folder structure is preserved
+-- for free because .pti files are written next to their source .xrni.
+-- Reuses pti_savesample_to_path() (which already handles single-sample, drumkit,
+-- and melodic-slice instruments) - no PTI writer is duplicated.
+function PakettiCollectXRNIFilesRecursive(folder)
+  local results = {}
+  local sep = package.config:sub(1, 1)
+
+  -- .xrni files directly in this folder
+  local ok_files, files = pcall(os.filenames, folder, "*.xrni")
+  if ok_files and files then
+    for _, fn in ipairs(files) do
+      table.insert(results, folder .. sep .. fn)
+    end
+  end
+
+  -- recurse into subfolders (skip hidden/system folders)
+  local ok_dirs, dirs = pcall(os.dirnames, folder)
+  if ok_dirs and dirs then
+    for _, d in ipairs(dirs) do
+      if not d:match("^%.") then
+        local sub_results = PakettiCollectXRNIFilesRecursive(folder .. sep .. d)
+        for _, p in ipairs(sub_results) do
+          table.insert(results, p)
+        end
+      end
+    end
+  end
+
+  return results
+end
+
+function PakettiBatchXRNIToPTI()
+  local song = renoise.song()
+
+  local parent_folder = renoise.app():prompt_for_path("Select folder of .xrni files to batch-convert to .PTI (recurses subfolders)")
+  if not parent_folder or parent_folder == "" then
+    renoise.app():show_status("Batch XRNI->PTI: No folder selected")
+    return
+  end
+
+  local xrni_files = PakettiCollectXRNIFilesRecursive(parent_folder)
+  if #xrni_files == 0 then
+    renoise.app():show_status("Batch XRNI->PTI: No .xrni files found in folder or subfolders")
+    return
+  end
+
+  table.sort(xrni_files, function(a, b) return a:lower() < b:lower() end)
+
+  print("------------")
+  print(string.format("-- Batch XRNI->PTI: Found %d .xrni files under %s", #xrni_files, parent_folder))
+
+  local converted = 0
+  local failed = 0
+  local failed_files = {}
+
+  for i, xrni_path in ipairs(xrni_files) do
+    -- .pti output path lives right beside the .xrni (preserves folder structure)
+    local pti_path = xrni_path:gsub("%.[xX][rR][nN][iI]$", ".pti")
+
+    local load_ok, load_err = pcall(function()
+      -- Insert + select a temp instrument slot, load the .xrni into it
+      if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then
+        error("maximum of 255 instruments reached")
+      end
+      song.selected_instrument_index = song.selected_instrument_index + 1
+      renoise.app():load_instrument(xrni_path)
+    end)
+
+    if load_ok then
+      local export_ok = pti_savesample_to_path(pti_path)
+
+      -- Remove the temp instrument so we don't pile up / hit the 255 cap
+      pcall(function()
+        if #song.instruments > 1 then
+          song:delete_instrument_at(song.selected_instrument_index)
+        end
+      end)
+
+      if export_ok then
+        converted = converted + 1
+        print(string.format("-- [%d/%d] %s -> %s", i, #xrni_files, xrni_path, pti_path))
+      else
+        failed = failed + 1
+        table.insert(failed_files, xrni_path .. " (PTI export failed)")
+      end
+    else
+      failed = failed + 1
+      table.insert(failed_files, xrni_path .. " (" .. tostring(load_err) .. ")")
+      if tostring(load_err):match("maximum of 255") then
+        renoise.app():show_status("Batch XRNI->PTI: Hit 255-instrument cap - stopping")
+        break
+      end
+    end
+
+    renoise.app():show_status(string.format("Batch XRNI->PTI: %d/%d converted...", converted, #xrni_files))
+  end
+
+  local msg = string.format("Batch XRNI->PTI complete: %d/%d converted", converted, #xrni_files)
+  if failed > 0 then msg = msg .. string.format(" (%d failed)", failed) end
+  renoise.app():show_status(msg)
+  print("-- " .. msg)
+  if failed > 0 then
+    print("-- Batch XRNI->PTI failures:")
+    for _, f in ipairs(failed_files) do print("   - " .. f) end
+  end
+  print("------------")
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:PTI Export",invoke = pti_savesample}
 renoise.tool():add_keybinding{name="Global:Paketti:Export Subfolders as Melodic Slices",invoke = PakettiExportSubfoldersAsMelodicSlices}
 renoise.tool():add_keybinding{name="Global:Paketti:Export Subfolders as Drum Slices",invoke = PakettiExportSubfoldersAsDrumSlices}
+renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert XRNI Folder to PTI",invoke = PakettiBatchXRNIToPTI}
+renoise.tool():add_midi_mapping{name="Paketti:Batch Convert XRNI Folder to PTI",invoke=function(message) if message:is_trigger() then PakettiBatchXRNIToPTI() end end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Polyend (PTI) Batch Convert XRNI Folder to PTI...",invoke = PakettiBatchXRNIToPTI}
+PakettiAddMenuEntry{name="Disk Browser:Paketti:Import/Export:Batch Convert XRNI Folder to PTI...",invoke = PakettiBatchXRNIToPTI}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Instruments:Batch Convert XRNI Folder to PTI...",invoke = PakettiBatchXRNIToPTI}
 
 
 
