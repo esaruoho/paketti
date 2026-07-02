@@ -622,14 +622,16 @@ local function mm_sync_recrow_ui()
   local song = renoise.song(); if not song then return end
   local n = song.selected_pattern.number_of_lines
   mm_ui_busy = true
+  local mx = math.max(1, n - 1)
   pcall(function()
     local sl = vb.views["mm_recrow_slider"]
-    sl.max = math.max(1, n - 1)                 -- slider spans 0..(pattern length-1); resizes per pattern
+    sl.max = mx                                 -- slider spans 0..(pattern length-1); resizes per pattern
     if mm.rec_row > n - 1 then mm.rec_row = n - 1 end
-    sl.value = mm.rec_row
+    sl.value = mx - mm.rec_row                  -- INVERT: row 0 sits at the TOP, like a tracker
   end)
   if vb.views["mm_recrow_text"] then
-    pcall(function() vb.views["mm_recrow_text"].text = string.format("Row %02X", mm.rec_row) end)
+    -- show BOTH: 1-based row count (human) and 0-based hex (Renoise), e.g. "Row 64 (3F)"
+    pcall(function() vb.views["mm_recrow_text"].text = string.format("Row %d (%02X)", mm.rec_row + 1, mm.rec_row) end)
   end
   mm_ui_busy = false
 end
@@ -2207,14 +2209,14 @@ function pakettiMusicMouseShow()
     -- vertical Row slider (record-to-row): spans 0..pattern length; drag to a row, or hit a quarter.
     -- While recording + STOPPED, triggers write to this row and advance by Edit Step (0 = overwrite).
     vb:column{ spacing = 4,
-      vb:text{ id = "mm_recrow_text", text = string.format("Row %02X", mm.rec_row), style = "strong", align = "center", width = 44 },
+      vb:text{ id = "mm_recrow_text", text = string.format("Row %d (%02X)", mm.rec_row + 1, mm.rec_row), style = "strong", align = "center", width = 90 },
       vb:row{ spacing = 4,
         vb:slider{ id = "mm_recrow_slider", width = 24, height = 512,
-          min = 0, max = math.max(1, mm_recrow_max()), value = mm.rec_row,
-          tooltip = "Record row. While recording+stopped, chords write here; Edit Step advances it.",
-          notifier = function(v) if mm_ui_busy then return end mm_set_rec_row(math.floor(v + 0.5)) end },
+          min = 0, max = math.max(1, mm_recrow_max()), value = math.max(1, mm_recrow_max()) - mm.rec_row,
+          tooltip = "Record row (top = row 1, like a tracker). While recording+stopped, chords write here; Edit Step advances it.",
+          notifier = function(v) if mm_ui_busy then return end mm_set_rec_row(mm_recrow_max() - math.floor(v + 0.5)) end },
         vb:column{ spacing = 3,
-          vb:button{ text = "0", width = 34, tooltip = "Top", notifier = function() mm_set_rec_row(0) end },
+          vb:button{ text = "Top", width = 34, tooltip = "Row 1 (top)", notifier = function() mm_set_rec_row(0) end },
           vb:button{ text = "1/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.25)) end },
           vb:button{ text = "2/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.50)) end },
           vb:button{ text = "3/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.75)) end },
