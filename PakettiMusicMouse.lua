@@ -28,6 +28,7 @@ local mm_canvas = nil
 local mm_pat_canvas = nil   -- the melodic-pattern editor canvas
 local mm_update_panel       -- forward decl (assigned in the panel section)
 local mm_record_write       -- forward decl (assigned in the recorder section)
+local mm_ui_busy = false    -- guard so programmatic control updates don't re-fire notifiers
 
 -- harmony scale tables, transcribed from Spiegel's running implementation (intervals are the
 -- repeating step pattern of the scale; voiceSteps give the scale-degree offsets of the two
@@ -117,6 +118,7 @@ local mm = {
   frozen      = false,        -- SPACE: pause sound + mouse-follow + auto-play (keys still drive it)
   keyjazz     = false,        -- punch mode: mouse aims silently; i/o/p triggers (and records)
   record      = false,        -- right-shift: imprint current notes to the pattern at the playhead
+  rec_row     = 0,            -- manual write row (0-based line) when recording while stopped; slider-driven
   held        = {},           -- ENTER-locked notes that keep ringing (compose buffer)
   seeds       = {},           -- gravitation seeds: click-dropped attractor positions {dx,dy}
   gravity_play = false,       -- when on, the timer steps through the seeds in recorded order
@@ -607,15 +609,64 @@ local function mm_stamp_to_line(seq, line, notelist)
   end
 end
 
+-- current selected-pattern length + slider max (0-based rows)
+local function mm_recrow_len()
+  local song = renoise.song()
+  return (song and song.selected_pattern and song.selected_pattern.number_of_lines) or 64
+end
+local function mm_recrow_max() return math.max(1, mm_recrow_len() - 1) end
+
+-- sync the vertical Row slider (and its range) to the current pattern + mm.rec_row
+local function mm_sync_recrow_ui()
+  if not (vb and vb.views and vb.views["mm_recrow_slider"]) then return end
+  local song = renoise.song(); if not song then return end
+  local n = song.selected_pattern.number_of_lines
+  mm_ui_busy = true
+  pcall(function()
+    local sl = vb.views["mm_recrow_slider"]
+    sl.max = math.max(1, n - 1)                 -- slider spans 0..(pattern length-1); resizes per pattern
+    if mm.rec_row > n - 1 then mm.rec_row = n - 1 end
+    sl.value = mm.rec_row
+  end)
+  if vb.views["mm_recrow_text"] then
+    pcall(function() vb.views["mm_recrow_text"].text = string.format("Row %02X", mm.rec_row) end)
+  end
+  mm_ui_busy = false
+end
+
+-- move the manual write row (0-based), clamp to the pattern, move the edit cursor, refresh UI
+local function mm_set_rec_row(r)
+  local song = renoise.song(); if not song then return end
+  local n = song.selected_pattern.number_of_lines
+  if r < 0 then r = 0 elseif r > n - 1 then r = n - 1 end
+  mm.rec_row = r
+  pcall(function() song.selected_line_index = r + 1 end)   -- move the pattern-editor cursor to match
+  mm_sync_recrow_ui()
+  if mm_canvas then mm_canvas:update() end
+end
+
 -- WRITE-ON-TRIGGER: called from the note-trigger points (timer beat, key press, mouse step).
--- Writes the just-triggered notes to the playhead line — obeys the trigger/timer, so sustained
--- chords are NOT re-stamped on every Renoise line.
+-- While PLAYING it imprints at the playhead (and the Row slider mirrors it). While STOPPED it
+-- writes to the slider-selected Row; if Edit Step > 0 the row then advances by that step (Edit
+-- Step 0 keeps overwriting the same row). So you can step-enter chords row by row with the slider.
 mm_record_write = function(notelist)
   if not mm.record then return end
   local song = renoise.song()
-  if not song or not song.transport.playing then return end
-  local pos = song.transport.playback_pos
-  pcall(function() mm_stamp_to_line(pos.sequence, pos.line, notelist) end)
+  if not song then return end
+  if song.transport.playing then
+    local pos = song.transport.playback_pos
+    mm.rec_row = pos.line - 1
+    pcall(function() mm_stamp_to_line(pos.sequence, pos.line, notelist) end)
+    mm_sync_recrow_ui()
+  else
+    local n = song.selected_pattern.number_of_lines
+    local line = math.max(1, math.min(n, mm.rec_row + 1))
+    pcall(function() mm_stamp_to_line(song.selected_sequence_index, line, notelist) end)
+    local step = song.transport.edit_step or 0
+    if step > 0 then mm.rec_row = (mm.rec_row + step) % n end
+    pcall(function() song.selected_line_index = math.min(n, mm.rec_row + 1) end)
+    mm_sync_recrow_ui()
+  end
 end
 
 -- Right-Shift / checkbox: toggle the first-class Paketti recording context.
@@ -1211,7 +1262,7 @@ local function mm_apply_waveform()
   end
 end
 
-local mm_ui_busy = false   -- guard against programmatic control updates re-firing notifiers
+mm_ui_busy = false   -- (declared up top) guard against programmatic control updates re-firing notifiers
 
 function mm_wave_index_value()
   for i, w in ipairs(MM_WAVEFORMS) do if w == mm.waveform then return i end end
@@ -1486,6 +1537,7 @@ mm_update_panel = function()
   if v["mm_wave_popup"] then v["mm_wave_popup"].value = mm_wave_index_value() end
   if v["mm_mode_switch"] then v["mm_mode_switch"].value = mm.bell and 2 or 1 end
   mm_ui_busy = false
+  mm_sync_recrow_ui()   -- keep the Row slider range/value in step with the current pattern
 end
 
 --------------------------------------------------------------------------------
@@ -1888,7 +1940,7 @@ function mm_reinit()
   mm.treatment = 1; mm.arp_mode = "Up"; mm.gravity_div = 1
   mm.mute = { false, false, false, false, false, false, false, false, false }
   mm.tempo_basic = 100; mm.tempo_alt = 200; mm.tempo_use_alt = false
-  mm.frozen = false
+  mm.frozen = false; mm.rec_row = 0
   mm_all_notes_off()
   mm_rebuild_axis()
   mm.deg_x = mm_frac_to_degree(mm.mx); mm.deg_y = mm_frac_to_degree(1 - mm.my)
@@ -2091,9 +2143,28 @@ function pakettiMusicMouseShow()
             if vb.views["mm_details_col"] then vb.views["mm_details_col"].visible = not b end end },
       },
     },
+    -- vertical Row slider (record-to-row): spans 0..pattern length; drag to a row, or hit a quarter.
+    -- While recording + STOPPED, triggers write to this row and advance by Edit Step (0 = overwrite).
+    vb:column{ spacing = 4,
+      vb:text{ id = "mm_recrow_text", text = string.format("Row %02X", mm.rec_row), style = "strong", align = "center", width = 44 },
+      vb:row{ spacing = 4,
+        vb:slider{ id = "mm_recrow_slider", width = 24, height = 512,
+          min = 0, max = math.max(1, mm_recrow_max()), value = mm.rec_row,
+          tooltip = "Record row. While recording+stopped, chords write here; Edit Step advances it.",
+          notifier = function(v) if mm_ui_busy then return end mm_set_rec_row(math.floor(v + 0.5)) end },
+        vb:column{ spacing = 3,
+          vb:button{ text = "0", width = 34, tooltip = "Top", notifier = function() mm_set_rec_row(0) end },
+          vb:button{ text = "1/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.25)) end },
+          vb:button{ text = "2/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.50)) end },
+          vb:button{ text = "3/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.75)) end },
+          vb:button{ text = "End", width = 34, notifier = function() mm_set_rec_row(mm_recrow_len() - 1) end },
+        },
+      },
+    },
     vb:column{ mm_canvas },
   }
 
+  mm_sync_recrow_ui()
   dialog = renoise.app():show_custom_dialog("Music Mouse - An Intelligent Instrument - Laurie Spiegel 1986", content, mm_keyhandler)
   mm_start_timer()
   renoise.app():show_status("Music Mouse: click 'Generate New Pakettified Instrument' (or select one), then move the mouse over the grid to play.")
