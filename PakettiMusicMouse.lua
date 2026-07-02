@@ -645,33 +645,44 @@ local function mm_set_rec_row(r)
   if mm_canvas then mm_canvas:update() end
 end
 
--- WRITE-ON-TRIGGER: called from the note-trigger points (timer beat, key press, mouse step).
--- While PLAYING it imprints at the playhead (and the Row slider mirrors it). While STOPPED it
--- writes to the slider-selected Row; if Edit Step > 0 the row then advances by that step (Edit
--- Step 0 keeps overwriting the same row). So you can step-enter chords row by row with the slider.
+-- LIVE (follow) record: only while PLAYING. Imprints continuously at the playhead and the Row
+-- slider mirrors it. When STOPPED this does nothing — stopped writing is a deliberate STEP commit
+-- (mm_step_commit) so continuous mouse motion never floods the pattern.
 mm_record_write = function(notelist)
   if not mm.record then return end
   local song = renoise.song()
-  if not song then return end
-  if song.transport.playing then
-    local pos = song.transport.playback_pos
-    mm.rec_row = pos.line - 1
-    pcall(function() mm_stamp_to_line(pos.sequence, pos.line, notelist) end)
-    mm_sync_recrow_ui()
-  else
-    local n = song.selected_pattern.number_of_lines
-    local line = math.max(1, math.min(n, mm.rec_row + 1))
-    pcall(function() mm_stamp_to_line(song.selected_sequence_index, line, notelist) end)
-    local step = song.transport.edit_step or 0
-    if step > 0 then mm.rec_row = (mm.rec_row + step) % n end
-    pcall(function() song.selected_line_index = math.min(n, mm.rec_row + 1) end)
-    mm_sync_recrow_ui()
-  end
+  if not song or not song.transport.playing then return end
+  local pos = song.transport.playback_pos
+  mm.rec_row = pos.line - 1
+  pcall(function() mm_stamp_to_line(pos.sequence, pos.line, notelist) end)
+  mm_sync_recrow_ui()
 end
 
--- Right-Shift / checkbox: toggle the first-class Paketti recording context.
--- ON  -> show Pattern Editor, Edit Mode on, Follow Pattern on, start playback, arm imprint.
--- OFF -> stop imprinting (leaves your transport/edit/follow as they are).
+-- STEP commit: stamp the CURRENT chord to the slider Row, then advance by Edit Step (0 = overwrite
+-- the same row). Fired only by deliberate actions — punching i/o/p/å or clicking the grid — while
+-- recording + stopped, so you step-record row by row WITHOUT ever starting playback.
+local function mm_step_commit()
+  if not mm.record then return end
+  local song = renoise.song()
+  if not song or song.transport.playing then return end
+  local notes = mm_compute_voices()
+  local rl = {}
+  for v = 1, #notes do if not mm.mute[v] then rl[#rl + 1] = notes[v] end end
+  if #rl == 0 then return end
+  local n = song.selected_pattern.number_of_lines
+  local line = math.max(1, math.min(n, mm.rec_row + 1))
+  pcall(function() mm_stamp_to_line(song.selected_sequence_index, line, rl) end)
+  local step = song.transport.edit_step or 0
+  if step > 0 then mm.rec_row = (mm.rec_row + step) % n end
+  pcall(function() song.selected_line_index = math.min(n, mm.rec_row + 1) end)
+  mm_sync_recrow_ui()
+  renoise.app():show_status(string.format("Music Mouse: wrote chord to row %02X (Edit Step %d)", line - 1, step))
+end
+
+-- Right-Shift / button: arm the Paketti recording context. Does NOT force playback, so it is
+-- ONE mode that works both ways: if you press Renoise Play it live-records at the playhead; if you
+-- stay stopped it STEP-records — punch/click writes the chord to the Row slider and advances by
+-- Edit Step. No start/stop dance needed to step-enter.
 local function mm_set_record(on)
   mm.record = on
   local song = renoise.song()
@@ -681,8 +692,7 @@ local function mm_set_record(on)
     end)
     if song then
       song.transport.edit_mode = true
-      song.transport.follow_player = true
-      if not song.transport.playing then song.transport.playing = true end
+      song.transport.follow_player = true      -- only affects the view while playing
       -- widen the track so a full chord writes across columns (not just column 1)
       pcall(function()
         local trk = song.selected_track
@@ -700,8 +710,9 @@ local function mm_set_record(on)
   end
   if mm_canvas then mm_canvas:update() end
   if mm_update_panel then mm_update_panel() end
-  renoise.app():show_status("Music Mouse: Record to Pattern " ..
-    (on and "ON — playing + edit mode + follow + pattern editor" or "OFF (imprint stopped)"))
+  renoise.app():show_status("Music Mouse: Record " ..
+    (on and "ARMED — Play = live-record; stopped = STEP-record (punch/click writes the Row, Edit Step advances)"
+         or "OFF (imprint stopped)"))
 end
 
 --------------------------------------------------------------------------------
@@ -849,8 +860,13 @@ local function mm_tick()
   elseif mm.treatment == 2 or mm.treatment == 3 then
     mm_arp_step(notes)
   elseif mm.treatment == 4 then
+    -- Music Mouse "Improvise" = 4-beat suspension: each voice re-enters on its OWN beat of a
+    -- rolling 4-beat cycle and then sustains, so the voices overlap and suspend against one
+    -- another (a moving line rather than a block chord). Voice v fires when (v-1) mod 4 == beat.
+    mm.seq_i = mm.seq_i + 1
+    local beat = (mm.seq_i - 1) % 4
     for v = 1, #notes do
-      if mm_rand() < 0.45 then mm_play_one(v, notes[v]) end
+      if ((v - 1) % 4) == beat then mm_play_one(v, notes[v]) end
     end
   end
 
@@ -981,7 +997,14 @@ function mm_mouse_handler(ev)
   -- play on down / move / drag (any pointer motion over the play area sounds the voices)
   if ev.type == "down" or ev.type == "move" or ev.type == "drag" then
     mm_update_from_mouse()
-    if ev.type == "down" and ev.button == "left" then mm_add_seed() end  -- click drops a gravitation seed
+    if ev.type == "down" and ev.button == "left" then
+      local song = renoise.song()
+      if mm.record and song and not song.transport.playing then
+        mm_step_commit()      -- step-record: left-click writes the chord to the Row + advances
+      else
+        mm_add_seed()         -- otherwise: click drops a gravitation seed
+      end
+    end
   else
     if mm_canvas then mm_canvas:update() end
   end
@@ -1907,12 +1930,12 @@ function mm_keyhandler(dlg, key)
   -- Sound triggers. i / o / p punch the chord with the 3 SAVED favorite waveforms (not a fixed
   -- shape) — pick your favorites in the panel; they persist. u stays classic Triangle. å (Finnish)
   -- re-triggers the CURRENTLY selected sound without switching it. Each keeps the Bell/Sustain mode.
-  if name == "u" then mm_set_waveform("Triangle"); return nil end
-  if name == "i" then mm_set_waveform(mm.fav_waves[1] or "Triangle"); return nil end
-  if name == "o" then mm_set_waveform(mm.fav_waves[2] or "Square"); return nil end
-  if name == "p" then mm_set_waveform(mm.fav_waves[3] or "Saw"); return nil end
+  if name == "u" then mm_set_waveform("Triangle"); mm_step_commit(); return nil end
+  if name == "i" then mm_set_waveform(mm.fav_waves[1] or "Triangle"); mm_step_commit(); return nil end
+  if name == "o" then mm_set_waveform(mm.fav_waves[2] or "Square"); mm_step_commit(); return nil end
+  if name == "p" then mm_set_waveform(mm.fav_waves[3] or "Saw"); mm_step_commit(); return nil end
   if name == "å" or name == "aring" or name == "adiaeresis" then
-    mm_set_waveform(mm.waveform); return nil            -- trigger the current sound as-is
+    mm_set_waveform(mm.waveform); mm_step_commit(); return nil   -- trigger the current sound (and step-write it)
   end
   if name == "m" then  -- cycle through the full waveform palette
     local idx = mm_wave_index_value() % #MM_WAVEFORMS + 1
@@ -2360,6 +2383,14 @@ end
 function PakettiMusicMouseLaunchpadCycleMode()
   local nxt = { off = "play", play = "raindrops", raindrops = "off" }
   PakettiMusicMouseLaunchpadSetMode(nxt[mm_lp.mode] or "play")
+end
+
+-- set the Arpeggiate sub-mode by name (Up/Down/Scatter/Strum) — used by the panel, MIDI, and tests
+function PakettiMusicMouseSetArpMode(name)
+  for _, n in ipairs(MM_ARP_ITEMS) do
+    if n == name then mm.arp_mode = name; if mm_update_panel then mm_update_panel() end; return name end
+  end
+  return mm.arp_mode
 end
 
 --------------------------------------------------------------------------------
