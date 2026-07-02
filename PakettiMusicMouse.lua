@@ -743,7 +743,29 @@ local function mm_arp_order(notes)
   return idx
 end
 
--- one arpeggiate/line beat. Up / Down / Scatter step one voice; Strum fires the whole chord.
+-- LIVE strum: fire the chord's notes low-to-high with a small real-time delay between each,
+-- using one-shot timers, so you actually HEAR the strum (not a block chord). Voice 1 sounds now;
+-- the rest are scheduled a few ms apart. Each timer plays its note once and removes itself.
+local MM_STRUM_MS = 28
+local function mm_strum_live(notes)
+  local order = mm_arp_order(notes)
+  if #order == 0 then return end
+  for i, v in ipairs(order) do
+    if i == 1 then
+      mm_play_one(v, notes[v])
+    else
+      local vi, nt = v, notes[v]
+      local fn
+      fn = function()
+        if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
+        if dialog and dialog.visible then mm_play_one(vi, nt) end
+      end
+      renoise.tool():add_timer(fn, MM_STRUM_MS * (i - 1))
+    end
+  end
+end
+
+-- one arpeggiate/line beat. Up / Down / Scatter step one voice; Strum time-staggers the chord.
 -- (Line = treatment 3 = plain ascending, independent of the Arp sub-mode.)
 local function mm_arp_step(notes)
   local order = mm_arp_order(notes)
@@ -751,7 +773,7 @@ local function mm_arp_step(notes)
   if n == 0 then return end
   local mode = (mm.treatment == 3) and "Up" or mm.arp_mode
   if mode == "Strum" then
-    mm_play_chord(notes)                 -- strum: block chord live (delay stagger is applied on write)
+    mm_strum_live(notes)                 -- real-time strum (low->high, a few ms apart)
     return
   end
   mm.seq_i = mm.seq_i + 1
@@ -1312,7 +1334,7 @@ local MM_ARTIC_ITEMS = { "Staccato", "Half Legato", "Full Legato" }
 local MM_PATTERN_ITEMS = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
 local MM_PATTARGET_ITEMS = { "All voices", "Melody (top)", "Bass (bottom)" }
 local MM_PATTARGET_KEYS = { "all", "melody", "bass" }
-local LBL = 120  -- label column width
+local LBL = 106  -- label column width — snug to the widest label ("Pattern Movement")
 
 local function mm_pattarget_index()
   for i, k in ipairs(MM_PATTARGET_KEYS) do if k == mm.pat_target then return i end end
@@ -1404,7 +1426,7 @@ local function mm_controls_column(vbx)
         tooltip = "Arpeggiate direction: Up / Down / Scatter (random) / Strum (delay-staggered chord)",
         notifier = function(i) if mm_ui_busy then return end mm.arp_mode = MM_ARP_ITEMS[i]; mm.seq_i = 0 end } },
     vbx:row{ spacing = 4, lbl("Tuning"),
-      vbx:popup{ id = "mm_tuning_popup", width = 252,
+      vbx:popup{ id = "mm_tuning_popup", width = 250,   -- matches Treatment row: Chord(150)+gap(4)+Arp(96)
         items = (PakettiMicrotonalTuningNames and PakettiMicrotonalTuningNames()) or { "12-TET" },
         value = (rawget(_G, "PakettiMicrotonalCurrentPresetIndex")) or 1,
         tooltip = "Microtonal tuning applied to the selected instrument (12-TET first). tab cycles this too.",
@@ -1414,7 +1436,7 @@ local function mm_controls_column(vbx)
       vbx:valuebox{ id = "mm_transpose_box", width = 150, min = -48, max = 48, value = mm.transpose,
         notifier = function(v) if mm_ui_busy then return end mm.transpose = v; mm_reseat_axis(); mm_requiet() end },
       hint("z/x or < >") },
-    vbx:row{ spacing = 4, lbl("Interval Transp"),
+    vbx:row{ spacing = 4, lbl("Interval", "semitones per z / x transpose step"),
       vbx:valuebox{ id = "mm_interval_box", width = 150, min = 1, max = 24, value = mm.interval,
         notifier = function(v) if mm_ui_busy then return end mm.interval = v end } },
     vbx:row{ spacing = 4, lbl("Pattern"),
@@ -1426,7 +1448,7 @@ local function mm_controls_column(vbx)
       vbx:popup{ id = "mm_pattarget_popup", width = 150, items = MM_PATTARGET_ITEMS, value = mm_pattarget_index(),
         tooltip = "Melody/Bass: the contour sequences ONLY that voice over a sustained chord (no flood).",
         notifier = function(i) if mm_ui_busy then return end mm.pat_target = MM_PATTARGET_KEYS[i]; mm_requiet() end } },
-    vbx:row{ spacing = 4, lbl("Record -> Pattern"),
+    vbx:row{ spacing = 4, lbl("Record", "right-shift also toggles: play + edit mode + follow + imprint. RED = armed."),
       vbx:button{ id = "mm_record_button", width = 150,
         text = mm.record and "● RECORDING" or "○ Record to Pattern",
         color = mm.record and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 },
@@ -1451,7 +1473,7 @@ local function mm_controls_column(vbx)
     vbx:row{ spacing = 4, lbl("Loudness"),
       vbx:valuebox{ id = "mm_loudness_box", width = 150, min = 0, max = 127, value = math.floor(mm.loudness * 127 + 0.5),
         notifier = function(v) if mm_ui_busy then return end mm.loudness = v / 127; mm_save_prefs() end } },
-    vbx:row{ spacing = 4, lbl("Tempo (free/alt)", "Main = free-run speed when Sync is off. Alt = the \\ alternate speed. Sync overrides both."),
+    vbx:row{ spacing = 4, lbl("Tempo", "Main = free-run speed when Sync is off. Alt = the \\ alternate speed. Sync overrides both."),
       vbx:valuebox{ id = "mm_tempo1_box", width = 60, min = 20, max = 400, value = mm.tempo_basic,
         tooltip = "Main free-run tempo (used when Sync is off)",
         notifier = function(v) if mm_ui_busy then return end mm.tempo_basic = v; mm_restart_timer(); mm_save_prefs() end },
@@ -1480,9 +1502,9 @@ local function mm_controls_column(vbx)
         notifier = function(i) if not mm_ui_busy then mm_set_waveform(MM_WAVEFORMS[i]) end end },
       vbx:switch{ id = "mm_mode_switch", width = 118, items = { "Sustain", "Bell" }, value = (mm.bell and 2 or 1),
         notifier = function(i) if not mm_ui_busy then mm_set_bell(i == 2) end end },
-      vbx:button{ text = "Create New", width = 92, tooltip = "Generate a fresh Pakettified Music Mouse instrument",
+      vbx:button{ text = "Create New", width = 66, tooltip = "Generate a fresh Pakettified Music Mouse instrument",
         notifier = pakettiMusicMouseGenerateInstrument } },
-    vbx:row{ spacing = 4, lbl("Favorites i/o/p", "The 3 waveforms punched by i / o / p (saved). å = current; shift-i = round-robin."),
+    vbx:row{ spacing = 4, lbl("Favorites", "The 3 waveforms punched by i / o / p (saved). å = current; shift-i = round-robin."),
       vbx:popup{ id = "mm_fav1_popup", width = 82, items = MM_WAVEFORMS, value = mm_wave_idx(mm.fav_waves[1]),
         tooltip = "i", notifier = function(i) if mm_ui_busy then return end mm.fav_waves[1] = MM_WAVEFORMS[i]; mm_save_prefs() end },
       vbx:popup{ id = "mm_fav2_popup", width = 82, items = MM_WAVEFORMS, value = mm_wave_idx(mm.fav_waves[2]),
@@ -1745,18 +1767,18 @@ function mm_keyhandler(dlg, key)
     mm_update_panel(); if mm_canvas then mm_canvas:update() end
     return nil
   end
-  -- Transposition z x c : plain = transpose, shift = interval, cmd = quiet
-  if name == "z" then
-    if has_shift then mm.interval = math.max(1, mm.interval - 1) else mm_transpose(-mm.interval, has_cmd) end
+  -- Transposition z x c : plain = transpose, shift = interval. cmd-z/x/c are LEFT ALONE so
+  -- Renoise's Undo / Cut / Copy still work in the pattern editor while Music Mouse is focused.
+  if name == "z" and not has_cmd then
+    if has_shift then mm.interval = math.max(1, mm.interval - 1) else mm_transpose(-mm.interval, false) end
     mm_update_panel(); return nil
   end
-  if name == "x" then
-    if has_shift then mm.interval = mm.interval + 1 else mm_transpose(mm.interval, has_cmd) end
+  if name == "x" and not has_cmd then
+    if has_shift then mm.interval = mm.interval + 1 else mm_transpose(mm.interval, false) end
     mm_update_panel(); return nil
   end
-  if name == "c" then
-    if has_shift then mm.interval = 1
-    else mm.transpose = 0; if not has_cmd then mm_play_chord(mm_compute_voices()) end end
+  if name == "c" and not has_cmd then
+    if has_shift then mm.interval = 1 else mm.transpose = 0; mm_requiet() end
     mm_update_panel(); return nil
   end
   -- Articulation / (shift = half/full legato) ; Loudness , . (shift = extremes)
