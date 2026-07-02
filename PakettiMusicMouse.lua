@@ -117,8 +117,9 @@ local mm = {
   key_probe   = false,        -- key-name diagnostic logger (off)
   frozen      = false,        -- SPACE: pause sound + mouse-follow + auto-play (keys still drive it)
   keyjazz     = false,        -- punch mode: mouse aims silently; i/o/p triggers (and records)
-  record      = false,        -- right-shift: imprint current notes to the pattern at the playhead
-  rec_row     = 0,            -- manual write row (0-based line) when recording while stopped; slider-driven
+  record      = false,        -- "Record to Pattern": right-shift; auto-play + follow + imprint at playhead
+  rec_to_row  = false,        -- "Record to Row": punch/click writes to the slider Row, playback-agnostic
+  rec_row     = 0,            -- the slider Row (0-based line) that Record-to-Row writes to
   held        = {},           -- ENTER-locked notes that keep ringing (compose buffer)
   seeds       = {},           -- gravitation seeds: click-dropped attractor positions {dx,dy}
   gravity_play = false,       -- when on, the timer steps through the seeds in recorded order
@@ -660,13 +661,13 @@ mm_record_write = function(notelist)
   mm_sync_recrow_ui()
 end
 
--- STEP commit: stamp the CURRENT chord to the slider Row, then advance by Edit Step (0 = overwrite
--- the same row). Fired only by deliberate actions — punching i/o/p/å or clicking the grid — while
--- recording + stopped, so you step-record row by row WITHOUT ever starting playback.
+-- STEP commit for "Record to Row": stamp the CURRENT chord to the slider Row, then advance by Edit
+-- Step (0 = overwrite the same row). Fired only by deliberate actions — punching i/o/p/å or clicking
+-- the grid. Playback state is IGNORED: it always writes to the Row you point at.
 local function mm_step_commit()
-  if not mm.record then return end
+  if not mm.rec_to_row then return end
   local song = renoise.song()
-  if not song or song.transport.playing then return end
+  if not song then return end
   local notes = mm_compute_voices()
   local rl = {}
   for v = 1, #notes do if not mm.mute[v] then rl[#rl + 1] = notes[v] end end
@@ -681,10 +682,9 @@ local function mm_step_commit()
   renoise.app():show_status(string.format("Music Mouse: wrote chord to row %02X (Edit Step %d)", line - 1, step))
 end
 
--- Right-Shift / button: arm the Paketti recording context. Does NOT force playback, so it is
--- ONE mode that works both ways: if you press Renoise Play it live-records at the playhead; if you
--- stay stopped it STEP-records — punch/click writes the chord to the Row slider and advances by
--- Edit Step. No start/stop dance needed to step-enter.
+-- "Record to Pattern" (right-shift / button): the original first-class recording context.
+-- ON  -> show Pattern Editor, Edit Mode on, Follow Pattern on, START PLAYBACK, imprint at the playhead.
+-- OFF -> stop imprinting (leaves transport/edit/follow as they are).
 local function mm_set_record(on)
   mm.record = on
   local song = renoise.song()
@@ -694,8 +694,8 @@ local function mm_set_record(on)
     end)
     if song then
       song.transport.edit_mode = true
-      song.transport.follow_player = true      -- only affects the view while playing
-      -- widen the track so a full chord writes across columns (not just column 1)
+      song.transport.follow_player = true
+      if not song.transport.playing then song.transport.playing = true end   -- auto-play, as it used to
       pcall(function()
         local trk = song.selected_track
         if trk.type == renoise.Track.TRACK_TYPE_SEQUENCER then
@@ -712,9 +712,29 @@ local function mm_set_record(on)
   end
   if mm_canvas then mm_canvas:update() end
   if mm_update_panel then mm_update_panel() end
-  renoise.app():show_status("Music Mouse: Record " ..
-    (on and "ARMED — Play = live-record; stopped = STEP-record (punch/click writes the Row, Edit Step advances)"
-         or "OFF (imprint stopped)"))
+  renoise.app():show_status("Music Mouse: Record to Pattern " ..
+    (on and "ON — playing + edit mode + follow + imprint at the playhead" or "OFF (imprint stopped)"))
+end
+
+-- "Record to Row" (button): a SEPARATE mode. When on, punching i/o/p/å or left-clicking the grid
+-- writes the current chord to the slider Row and advances by Edit Step — regardless of whether the
+-- transport is playing. No playback or follow is forced; it just writes to the row you point at.
+local function mm_set_rec_to_row(on)
+  mm.rec_to_row = on
+  local song = renoise.song()
+  if on and song then
+    pcall(function()
+      local trk = song.selected_track
+      if trk.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local need = math.min(12, math.max(mm.num_voices, 1))
+        if trk.visible_note_columns < need then trk.visible_note_columns = need end
+      end
+    end)
+  end
+  if mm_canvas then mm_canvas:update() end
+  if mm_update_panel then mm_update_panel() end
+  renoise.app():show_status("Music Mouse: Record to Row " ..
+    (on and "ON — punch/click writes to the Row slider (Edit Step advances); playback ignored" or "OFF"))
 end
 
 --------------------------------------------------------------------------------
@@ -1009,9 +1029,8 @@ function mm_mouse_handler(ev)
   if ev.type == "down" or ev.type == "move" or ev.type == "drag" then
     mm_update_from_mouse()
     if ev.type == "down" and ev.button == "left" then
-      local song = renoise.song()
-      if mm.record and song and not song.transport.playing then
-        mm_step_commit()      -- step-record: left-click writes the chord to the Row + advances
+      if mm.rec_to_row then
+        mm_step_commit()      -- Record to Row: left-click writes the chord to the Row + advances
       else
         mm_add_seed()         -- otherwise: click drops a gravitation seed
       end
@@ -1570,6 +1589,10 @@ mm_update_panel = function()
     v["mm_record_button"].text  = mm.record and "● RECORDING" or "○ Record to Pattern"
     v["mm_record_button"].color = mm.record and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 }
   end
+  if v["mm_rectorow_btn"] then
+    v["mm_rectorow_btn"].text  = mm.rec_to_row and "● Rec to Row" or "Rec to Row"
+    v["mm_rectorow_btn"].color = mm.rec_to_row and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 }
+  end
   if v["mm_keyjazz_check"] then v["mm_keyjazz_check"].value = mm.keyjazz end
   if v["mm_arp_popup"] then v["mm_arp_popup"].value = mm_arp_index() end
   if v["mm_gravdiv_popup"] then v["mm_gravdiv_popup"].value = mm_gravdiv_index() end
@@ -1996,7 +2019,7 @@ function mm_reinit()
   mm.treatment = 1; mm.arp_mode = "Up"; mm.gravity_div = 1
   mm.mute = { false, false, false, false, false, false, false, false, false }
   mm.tempo_basic = 100; mm.tempo_alt = 200; mm.tempo_use_alt = false
-  mm.frozen = false; mm.rec_row = 0
+  mm.frozen = false; mm.rec_row = 0; mm.rec_to_row = false
   mm_all_notes_off()
   mm_rebuild_axis()
   mm.deg_x = mm_frac_to_degree(mm.mx); mm.deg_y = mm_frac_to_degree(1 - mm.my)
@@ -2209,6 +2232,18 @@ function pakettiMusicMouseShow()
     -- vertical Row slider (record-to-row): spans 0..pattern length; drag to a row, or hit a quarter.
     -- While recording + STOPPED, triggers write to this row and advance by Edit Step (0 = overwrite).
     vb:column{ spacing = 4,
+      vb:button{ id = "mm_rectorow_btn", width = 90,
+        text = mm.rec_to_row and "● Rec to Row" or "Rec to Row",
+        color = mm.rec_to_row and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 },
+        tooltip = "Record to Row: punch i/o/p/å or click the grid to write the chord to this Row; Edit Step advances it. Playback is ignored.",
+        notifier = function()
+          mm_set_rec_to_row(not mm.rec_to_row)
+          if vb.views["mm_rectorow_btn"] then
+            local b = vb.views["mm_rectorow_btn"]
+            b.text = mm.rec_to_row and "● Rec to Row" or "Rec to Row"
+            b.color = mm.rec_to_row and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 }
+          end
+        end },
       vb:text{ id = "mm_recrow_text", text = string.format("Row %d (%02X)", mm.rec_row + 1, mm.rec_row), style = "strong", align = "center", width = 90 },
       vb:row{ spacing = 4,
         vb:slider{ id = "mm_recrow_slider", width = 24, height = 512,
