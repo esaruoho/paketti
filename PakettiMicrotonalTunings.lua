@@ -748,6 +748,24 @@ function PakettiMicrotonalCycleTuning(direction)
   return (p and p.name) or "?", PakettiMicrotonalCurrentPresetIndex
 end
 
+-- ordered list of every tuning preset name (index 1 = 12-TET reset). For dropdown UIs.
+function PakettiMicrotonalTuningNames()
+  local names = {}
+  for i, p in ipairs(tuning_presets) do names[i] = p.name or ("Tuning " .. i) end
+  return names
+end
+
+-- apply a tuning by its 1-based preset index (used by Music Mouse's tuning dropdown)
+function PakettiMicrotonalSetTuning(index)
+  local n = #tuning_presets
+  if n < 1 then return "12-TET", 1 end
+  if index < 1 then index = 1 elseif index > n then index = n end
+  PakettiMicrotonalCurrentPresetIndex = index
+  apply_tuning_to_instrument(index)
+  local p = tuning_presets[index]
+  return (p and p.name) or "?", index
+end
+
 -- ========================================
 -- SHIMMERING WAVETABLE GENERATORS
 -- ========================================
