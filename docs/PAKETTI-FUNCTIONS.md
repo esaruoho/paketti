@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,255 functions** · 10,866 keybindings · 7,240 midimappings · 6,702 menu entries.
+**4,301 functions** · 10,866 keybindings · 7,306 midimappings · 6,699 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -2849,7 +2849,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1462 functions  ·  ⌨ 0 · 🎛 724 · ☰ 882
+## (menu/midi only)  ·  1508 functions  ·  ⌨ 0 · 🎛 774 · ☰ 879
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -3233,13 +3233,13 @@
 | Debug Logging Toggle | · | · | ✅ |
 | Debug Matching Logic... | · | · | ✅ |
 | Debug Print Points | · | · | ✅ |
-| Decode Active Plugin ParameterChunk Amigo (AU) | · | · | ✅ |
 | Decrease All Track Volumes by 3dB | · | · | ✅ |
 | Default Pattern (2,3,5,8) | · | · | ✅ |
 | Delay | · | ✅ | ✅ |
 | Delay Column (DEPRECATED) x[Slider] | · | ✅ | · |
 | Delete all Pattern Sequences | · | · | ✅ |
 | Detect Gaps | · | · | ✅ |
+| Dialog of Dialogs Screenshot All | · | · | ✅ |
 | Digitakt Export Sample Chain... | · | · | ✅ |
 | Digitakt Quick Export (Chain Mode)... | · | · | ✅ |
 | Digitakt Quick Export (Mono)... | · | · | ✅ |
@@ -3308,9 +3308,13 @@
 | Export Convolver IR into New Instrument | · | · | ✅ |
 | Export Current Sample as IFF... | · | · | ✅ |
 | Export Pattern to MTP | · | · | ✅ |
-| Export Polyend Project | · | · | ✅ |
+| Export Pattern to MTP (auto-split >128) | · | · | ✅ |
+| Export Pattern to Polyend MTP | · | ✅ | · |
+| Export Pattern to Polyend MTP (auto-split) | · | ✅ | · |
+| Export Polyend Project | · | ✅ | ✅ |
 | Export Sample Chain... | · | · | ✅ |
-| Export Selected Sample to Amigo (AU) | · | · | ✅ |
+| Export Selection to MTP | · | · | ✅ |
+| Export Selection to Polyend MTP | · | ✅ | · |
 | Export to Octatrack (.ot only) | · | · | ✅ |
 | Export Wavetable (.WT)... | · | · | ✅ |
 | Expose/Hide Selected Device Parameters | · | · | ✅ |
@@ -3459,9 +3463,8 @@
 | Import .RX2 | · | · | ✅ |
 | Import .RX2 (ReCycle v2.0 Format) | · | · | ✅ |
 | Import .SF2 (Single XRNI per Preset) | · | · | ✅ |
-| Import Active Plugin Wavefile Amigo (AU) | · | · | ✅ |
-| Import Embedded Amigo (AU) WAV into Sample | · | · | ✅ |
 | Import MT Project File | · | · | ✅ |
+| Import Polyend MT Project File | · | ✅ | · |
 | Import Polyend Pattern | · | · | ✅ |
 | Import Polyend Pattern Tracks | · | · | ✅ |
 | Import Polyend Project | · | · | ✅ |
@@ -3683,6 +3686,51 @@
 | Multitap Snapshot to PhraseGrid [Trigger] | · | ✅ | · |
 | Music Mouse BPM (Slider) | · | ✅ | · |
 | Music Mouse Gravity Play (Toggle) | · | ✅ | · |
+| Music Mouse Key Alt tempo - | · | ✅ | · |
+| Music Mouse Key Applies All/Mel/Bass | · | ✅ | · |
+| Music Mouse Key Articulation | · | ✅ | · |
+| Music Mouse Key Bell/Sustain | · | ✅ | · |
+| Music Mouse Key Chord-mel/Pairs | · | ✅ | · |
+| Music Mouse Key Chromatic | · | ✅ | · |
+| Music Mouse Key Clear seeds | · | ✅ | · |
+| Music Mouse Key cmd-Arpeggiate | · | ✅ | · |
+| Music Mouse Key cmd-Chord | · | ✅ | · |
+| Music Mouse Key cmd-Improvise | · | ✅ | · |
+| Music Mouse Key cmd-Line | · | ✅ | · |
+| Music Mouse Key Cycle palette | · | ✅ | · |
+| Music Mouse Key Cycle treatment | · | ✅ | · |
+| Music Mouse Key Cycle tuning | · | ✅ | · |
+| Music Mouse Key Diatonic | · | ✅ | · |
+| Music Mouse Key Disconnect mouse | · | ✅ | · |
+| Music Mouse Key Favorite 1 | · | ✅ | · |
+| Music Mouse Key Freeze | · | ✅ | · |
+| Music Mouse Key Gravity Play | · | ✅ | · |
+| Music Mouse Key Keyjazz punch | · | ✅ | · |
+| Music Mouse Key Lock notes | · | ✅ | · |
+| Music Mouse Key Loudness - | · | ✅ | · |
+| Music Mouse Key Mid-East | · | ✅ | · |
+| Music Mouse Key Mouse motion | · | ✅ | · |
+| Music Mouse Key Octatonic | · | ✅ | · |
+| Music Mouse Key Pattern 1 | · | ✅ | · |
+| Music Mouse Key Pattern motion | · | ✅ | · |
+| Music Mouse Key Patterning on/off | · | ✅ | · |
+| Music Mouse Key Pentatonic | · | ✅ | · |
+| Music Mouse Key Quartal | · | ✅ | · |
+| Music Mouse Key Re-Init | · | ✅ | · |
+| Music Mouse Key Reset transpose | · | ✅ | · |
+| Music Mouse Key Reverse mutes | · | ✅ | · |
+| Music Mouse Key shift-Fav round-robin | · | ✅ | · |
+| Music Mouse Key shift-Interval - | · | ✅ | · |
+| Music Mouse Key shift-Mute v1 | · | ✅ | · |
+| Music Mouse Key shift-Release held | · | ✅ | · |
+| Music Mouse Key Staccato/Legato | · | ✅ | · |
+| Music Mouse Key Sync to BPM | · | ✅ | · |
+| Music Mouse Key Tempo - | · | ✅ | · |
+| Music Mouse Key Theme | · | ✅ | · |
+| Music Mouse Key Transpose - | · | ✅ | · |
+| Music Mouse Key Transpose - (ISO) | · | ✅ | · |
+| Music Mouse Key Triangle | · | ✅ | · |
+| Music Mouse Key Use main/alt | · | ✅ | · |
 | Music Mouse LaunchPad Mini Do Nothing 01 | · | ✅ | · |
 | Music Mouse Tempo (Slider) | · | ✅ | · |
 | Music Mouse... | · | · | ✅ |
@@ -3738,7 +3786,6 @@
 | Octatrack Import (.ot) | · | ✅ | ✅ |
 | Octatrack Quick OctaCycle (C, Oct 1-7) | · | ✅ | ✅ |
 | OFF | · | · | ✅ |
-| Open Amigo (AU) Sample Path | · | · | ✅ |
 | Open Architecture Designer... | · | · | ✅ |
 | Open CCizer Dialog | · | · | ✅ |
 | Open Dialog | · | · | ✅ |
@@ -4081,7 +4128,6 @@
 | Sequential RandomLoadAll (1 folder, all 8 rows)… | · | · | ✅ |
 | Sequential RandomLoadAll [Trigger] | · | ✅ | · |
 | Set .ot Loop to Slice | · | · | ✅ |
-| Set Active Plugin Pathname Amigo (AU) | · | · | ✅ |
 | Set All Beatsync Values for Instrument x[Knob] | · | ✅ | · |
 | Set Beatsync Value for Selected Sample x[Knob] | · | ✅ | · |
 | Set Delay (+1) x[Toggle] | · | ✅ | · |
