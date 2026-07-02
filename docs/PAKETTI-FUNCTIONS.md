@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,303 functions** · 10,867 keybindings · 7,307 midimappings · 6,702 menu entries.
+**4,301 functions** · 10,866 keybindings · 7,306 midimappings · 6,699 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (-32) | ✅ | · | · |
+| Nudge Slice 01 by (+1) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2093 functions  ·  ⌨ 2093 · 🎛 798 · ☰ 656
+## Global  ·  2092 functions  ·  ⌨ 2092 · 🎛 797 · ☰ 655
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -877,7 +877,6 @@
 | Batch Convert WAV to IFF... | ✅ | · | ✅ |
 | Batch Convert WAV/AIFF to 16SV... | ✅ | · | ✅ |
 | Batch Convert WAV/AIFF to 8SVX... | ✅ | · | ✅ |
-| Batch Convert XRNI Folder to PTI | ✅ | ✅ | ✅ |
 | Batch Pakettify Wave Files in Folder to XRNI & Load... | ✅ | ✅ | ✅ |
 | Batch Pakettify Wave Files in Folder to XRNI (Save Only)... | ✅ | ✅ | ✅ |
 | Batch Sample Adjust Dialog... | ✅ | ✅ | ✅ |
@@ -2850,7 +2849,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1509 functions  ·  ⌨ 0 · 🎛 774 · ☰ 880
+## (menu/midi only)  ·  1508 functions  ·  ⌨ 0 · 🎛 774 · ☰ 879
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -3891,7 +3890,6 @@
 | PlayerPro Auto-Open Smart Dialog Toggle | · | · | ✅ |
 | PlayerPro Waveform Viewer | · | · | ✅ |
 | Pluck | · | · | ✅ |
-| Polyend (PTI) Batch Convert XRNI Folder to PTI... | · | · | ✅ |
 | Polyend (PTI) Create 48 Slice Drumkit (Mono)... | · | · | ✅ |
 | Polyend (PTI) Create 48 Slice Drumkit (Stereo)... | · | · | ✅ |
 | Polyend (PTI) Export Subfolders as Drum Slices... | · | · | ✅ |
