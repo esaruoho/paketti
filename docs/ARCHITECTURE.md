@@ -7,7 +7,7 @@
    4358 wav
    1195 png
     701 xrnc
-    247 lua
+    248 lua
     210 gif
     133 txt
      49 xrni
@@ -105,6 +105,7 @@ main.lua
 1 main -> PakettiAutomationCurves
 1 main -> PakettiAutomationStack
 1 main -> PakettiBPM
+1 main -> PakettiBatchExport
 1 main -> PakettiBeatDetect
 1 main -> PakettiBeatstructureEditor
 1 main -> PakettiBeatsyncSeamless
@@ -280,7 +281,7 @@ main.lua
 1 pmcp -> json
 1 recapture -> json
 1 vault-to-manual -> json
-  ── 219 edges total ──
+  ── 220 edges total ──
 ```
 ## The wiring, drawn
 
@@ -330,6 +331,7 @@ graph LR
   main["main"] -->|1| PakettiAutomationCurves["PakettiAutomationCurves"]
   main["main"] -->|1| PakettiAutomationStack["PakettiAutomationStack"]
   main["main"] -->|1| PakettiBPM["PakettiBPM"]
+  main["main"] -->|1| PakettiBatchExport["PakettiBatchExport"]
   main["main"] -->|1| PakettiBeatDetect["PakettiBeatDetect"]
   main["main"] -->|1| PakettiBeatstructureEditor["PakettiBeatstructureEditor"]
   main["main"] -->|1| PakettiBeatsyncSeamless["PakettiBeatsyncSeamless"]
