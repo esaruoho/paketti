@@ -122,6 +122,8 @@ local mm = {
   record      = false,        -- "Record to Pattern": right-shift; auto-play + follow + imprint at playhead
   rec_to_row  = false,        -- "Record to Row": punch/click writes to the slider Row, playback-agnostic
   rec_row     = 0,            -- the slider Row (0-based line) that Record-to-Row writes to
+  rec_col     = 1,            -- next note column for the arpeggiate/strum recorder (round-robins across columns)
+  rec_last_line = -1,         -- last playhead line the recorder wrote to (column cursor resets on a new line)
   held        = {},           -- ENTER-locked notes that keep ringing (compose buffer)
   seeds       = {},           -- gravitation seeds: click-dropped attractor positions {dx,dy}
   gravity_play = false,       -- when on, the timer steps through the seeds in recorded order
@@ -640,6 +642,30 @@ local function mm_stamp_to_line(seq, line, notelist)
   end
 end
 
+-- Append ONE note to the next note column of a line (round-robin), resetting to column 1 on a
+-- new line. This is what makes the arpeggiate/strum recorder land its notes ACROSS columns so
+-- they ring together, instead of every note overwriting column 1 (which cut each note off).
+local function mm_stamp_note_append(seq, line, note)
+  if not note then return end
+  local song = renoise.song()
+  local ti = song.selected_track_index
+  local track = song.tracks[ti]
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then return end
+  if mm.rec_last_line ~= line then mm.rec_last_line = line; mm.rec_col = 1 end   -- new line -> col 1
+  local maxcol = math.min(12, math.max(1, mm.num_voices))
+  local col_i = mm.rec_col
+  if col_i > maxcol then col_i = 1 end
+  if track.visible_note_columns < col_i then track.visible_note_columns = math.min(12, col_i) end
+  local patt_idx = song.sequencer.pattern_sequence[seq]
+  if not patt_idx then return end
+  local col = song.patterns[patt_idx]:track(ti):line(line):note_column(col_i)
+  col.note_value = note
+  col.instrument_value = song.selected_instrument_index - 1
+  col.volume_value = math.max(1, math.min(127, math.floor(mm.loudness * 127 + 0.5)))
+  mm.rec_col = col_i + 1
+  if mm.rec_col > maxcol then mm.rec_col = 1 end
+end
+
 -- current selected-pattern length + slider max (0-based rows)
 local function mm_recrow_len()
   local song = renoise.song()
@@ -687,7 +713,15 @@ mm_record_write = function(notelist)
   if not song or not song.transport.playing then return end
   local pos = song.transport.playback_pos
   mm.rec_row = pos.line - 1
-  pcall(function() mm_stamp_to_line(pos.sequence, pos.line, notelist) end)
+  if mm.treatment == 2 or mm.treatment == 3 then
+    -- arpeggiate / line / strum: spread the individually-struck notes across note columns so the
+    -- recorded pattern strums and rings, instead of flooding column 1 and cutting each note off
+    for _, n in ipairs(notelist) do
+      pcall(function() mm_stamp_note_append(pos.sequence, pos.line, n) end)
+    end
+  else
+    pcall(function() mm_stamp_to_line(pos.sequence, pos.line, notelist) end)
+  end
   mm_sync_recrow_ui()
 end
 
@@ -717,6 +751,7 @@ end
 -- OFF -> stop imprinting (leaves transport/edit/follow as they are).
 local function mm_set_record(on)
   mm.record = on
+  mm.rec_col = 1; mm.rec_last_line = -1   -- fresh column cursor for the arpeggiate/strum recorder
   local song = renoise.song()
   if on then
     pcall(function()

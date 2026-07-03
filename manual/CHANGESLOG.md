@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Fix: Music Mouse — Arpeggiate/Strum recording now spreads across note columns (no more column-1 flood/cutoff)
+When Record to Pattern was on in Arpeggiate, Line, or Strum mode, every individually-struck note was written to note column 1 at the playhead line — so notes hitting the same line overwrote each other and cut off, and the pattern just filled column 1. The recorder now round-robins each note across note columns (resetting to column 1 on each new line), so an arpeggio/strum lands across multiple columns and rings together, exactly like a strum should. Block-chord recording is unchanged. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
+
 ### 2026-07-03 - Improvement: Music Mouse — Show/Hide toggles moved to a minimal top bar; window shrinks to fit
 Reworked the Music Mouse layout so hiding sections actually reclaims the space instead of leaving an empty gap. The three toggles now live in a minimal top row (they read "Hide Pianos / Details / Rec to Row" when shown and flip to "Show …" when hidden), alongside Light/Dark, Keys/MIDI Map, Re-Init and Close. Hiding a section now rebuilds the dialog so the window resizes down to just the visible parts — hide everything and you get the bare "buttons on top, piano+grid below" view with no wasted space. State persists across close+reopen. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 
