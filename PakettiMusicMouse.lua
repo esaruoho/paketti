@@ -116,6 +116,7 @@ local mm = {
   disp_lo     = 24,           -- grid low note (Renoise value); the display/pitch range is disp_lo..disp_hi
   disp_hi     = 96,           -- grid high note; narrow this to shrink the grid + reduce dead positions
   strum_ms    = 28,           -- ms between successive strummed notes (live audio AND recorded delay spacing)
+  strum       = false,        -- Strum chords: Chord treatment rakes the notes (live + recorded) instead of a block
 
   -- runtime
   mouse_active = true,        -- delete key disconnects
@@ -181,6 +182,7 @@ local function mm_load_prefs()
     local s = preferences.pakettiMusicMouseStrumMs.value
     if s and s >= 1 then mm.strum_ms = s end
   end
+  if preferences.pakettiMusicMouseStrum then mm.strum = preferences.pakettiMusicMouseStrum.value end
 end
 
 local function mm_save_prefs()
@@ -210,6 +212,7 @@ local function mm_save_prefs()
   if preferences.pakettiMusicMouseStrumMs then
     preferences.pakettiMusicMouseStrumMs.value = mm.strum_ms
   end
+  if preferences.pakettiMusicMouseStrum then preferences.pakettiMusicMouseStrum.value = mm.strum end
   preferences:save_as("preferences.xml")
 end
 
@@ -550,7 +553,29 @@ local function mm_play_chord(notes)
   if #offs > 0 then pcall(function() song:trigger_instrument_note_off(ii, ti, offs) end) end
   if #ons > 0 then
     local vel = math.max(0.01, math.min(1, mm.loudness))
-    pcall(function() song:trigger_instrument_note_on(ii, ti, ons, vel) end)
+    if mm.strum and #ons > 1 then
+      -- Strum chords: rake the note-ons low->high a few ms apart (releases + voice tracking already
+      -- done above; only the audible strike is staggered). Spacing = the Strum spacing control.
+      local ords = {}
+      for _, n in ipairs(ons) do ords[#ords + 1] = n end
+      table.sort(ords)
+      local sp = mm.strum_ms or MM_STRUM_MS
+      for i, nt in ipairs(ords) do
+        if i == 1 then
+          pcall(function() song:trigger_instrument_note_on(ii, ti, { nt }, vel) end)
+        else
+          local note = nt
+          local fn
+          fn = function()
+            if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
+            if dialog and dialog.visible then pcall(function() renoise.song():trigger_instrument_note_on(ii, ti, { note }, vel) end) end
+          end
+          renoise.tool():add_timer(fn, sp * (i - 1))
+        end
+      end
+    else
+      pcall(function() song:trigger_instrument_note_on(ii, ti, ons, vel) end)
+    end
   end
   mm.last_notes = notes
   if mm_record_write then
@@ -789,9 +814,10 @@ mm_record_write = function(notelist)
   if not song or not song.transport.playing then return end
   local pos = song.transport.playback_pos
   mm.rec_row = pos.line - 1
-  if mm.treatment == 2 or mm.treatment == 3 then
-    -- arpeggiate / line / strum: spread the individually-struck notes across note columns so the
-    -- recorded pattern strums and rings, instead of flooding column 1 and cutting each note off
+  if mm.treatment ~= 1 or mm.strum then
+    -- Arpeggiate / Line / Improvise, or a strummed Chord: spread the individually-struck notes
+    -- across note columns so the recorded pattern rings/strums instead of flooding column 1 and
+    -- cutting each note off. (Plain Chord without Strum stays a block chord in columns 1..N.)
     for _, n in ipairs(notelist) do
       pcall(function() mm_stamp_note_append(pos.sequence, pos.line, n) end)
     end
@@ -994,16 +1020,42 @@ local mm_timer_fn  -- forward declaration
 local function mm_tick()
   if not dialog or not dialog.visible then return end
   if mm.frozen or not mm.sound_on then mm_beat_accum = 0; return end
+  local song = renoise.song()
 
-  -- accumulate real time; fire a beat when enough has passed (beat length read live from BPM)
-  mm_beat_accum = mm_beat_accum + MM_TICK_MS
-  local beat = mm_beat_ms()
-  -- arpeggiate subdivides by 4 (Strum stays on the base beat), Gravity Play uses the base beat
-  if mm.treatment == 2 and mm.arp_mode ~= "Strum" and not mm.gravity_play then beat = beat / 4 end
-  if beat < 8 then beat = 8 end
-  if mm_beat_accum < beat then return end
-  mm_beat_accum = mm_beat_accum - beat
-  if mm_beat_accum > beat * 4 then mm_beat_accum = 0 end   -- clamp runaway
+  -- Decide whether a MM beat fires this tick. When Sync is ON and the transport is PLAYING we
+  -- PHASE-LOCK to the pattern grid: a MM beat is exactly one pattern LINE (fired the moment the
+  -- playhead crosses into a new line), so what you hear lines up with the pattern rhythm and with
+  -- what gets recorded — no drift. Arpeggiate still subdivides: its 3 extra sub-steps are spaced
+  -- evenly inside the line. Otherwise (Sync off, or transport stopped) the clock free-runs on its
+  -- own accumulator at the Tempo speed / synced line length.
+  local is_arp_sub = (mm.treatment == 2 and mm.arp_mode ~= "Strum" and not mm.gravity_play)
+  local synced_playing = mm.sync_bpm and song and song.transport.playing
+  local fire = false
+  if synced_playing then
+    local line = song.transport.playback_pos.line
+    if mm.last_play_line ~= line then
+      mm.last_play_line = line       -- crossed into a new line -> a beat, aligned to the grid
+      mm_beat_accum = 0
+      fire = true
+    elseif is_arp_sub then
+      mm_beat_accum = mm_beat_accum + MM_TICK_MS
+      local sub = mm_beat_ms() / 4   -- the in-between arp steps, evenly within the current line
+      if sub < 8 then sub = 8 end
+      if mm_beat_accum >= sub then mm_beat_accum = mm_beat_accum - sub; fire = true end
+    end
+  else
+    mm.last_play_line = nil          -- re-arm the phase lock for when playback next starts
+    mm_beat_accum = mm_beat_accum + MM_TICK_MS
+    local beat = mm_beat_ms()
+    if is_arp_sub then beat = beat / 4 end
+    if beat < 8 then beat = 8 end
+    if mm_beat_accum >= beat then
+      mm_beat_accum = mm_beat_accum - beat
+      if mm_beat_accum > beat * 4 then mm_beat_accum = 0 end   -- clamp runaway
+      fire = true
+    end
+  end
+  if not fire then return end
 
   -- GRAVITY PLAY: step through the dropped seeds in recorded order, one chord per beat
   if mm.gravity_play and #mm.seeds > 0 then
@@ -1695,7 +1747,10 @@ local function mm_controls_column(vbx)
     vbx:row{ spacing = 4, lbl("Strum spacing", "Milliseconds between successive strummed notes. Drives BOTH the live audio strum AND the delay-column spacing written into the pattern when recording."),
       vbx:valuebox{ id = "mm_strum_box", width = 60, min = 1, max = 250, value = mm.strum_ms,
         notifier = function(v) if mm_ui_busy then return end mm.strum_ms = v; mm_save_prefs() end },
-      hint("ms — live strum + recorded delays") },
+      hint("ms"),
+      vbx:checkbox{ id = "mm_strum_check", value = mm.strum,
+        notifier = function(b) if mm_ui_busy then return end mm.strum = b; mm_save_prefs() end },
+      hint("Strum chords (rake instead of block)") },
     vbx:row{ spacing = 4, lbl("Tuning"),
       vbx:popup{ id = "mm_tuning_popup", width = 250,   -- matches Treatment row: Chord(150)+gap(4)+Arp(96)
         items = (PakettiMicrotonalTuningNames and PakettiMicrotonalTuningNames()) or { "12-TET" },
@@ -2156,6 +2211,9 @@ function mm_keyhandler(dlg, key)
   if name:match("^[0-9]$") then
     local num = tonumber(name)
     mm.pattern_idx = (num == 0) and 10 or num
+    mm.pattern_on = true          -- pressing a pattern number STARTS it (was: only selected it; you had to also hit 'a'/the Pattern box)
+    mm.pat_step = 1
+    mm_restart_timer()
     mm_update_panel(); if mm_pat_canvas then mm_pat_canvas:update() end; return nil
   end
   if name == "a" then mm.pattern_on = not mm.pattern_on; mm.pat_step = 1; mm_restart_timer(); mm_update_panel(); return nil end
