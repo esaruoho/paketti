@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Improvement: Music Mouse — adjustable grid pitch range (shrinks the grid, cuts dead positions)
+Added a "Grid Range" control (two octave valueboxes + a live note-name label, e.g. "C-3 .. C-6") in the Music Mouse control panel. The grid used to be a fixed 6-octave span; now you can narrow it — down to a single octave — and the whole grid physically shrinks (the play area is sized to the number of white keys), so there are far fewer "in-between" positions that snap to the same notes. The chosen range is saved and restored across close/reopen. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
+
 ### 2026-07-03 - Improvement: Music Mouse — recorded/stamped strums now use tempo-aware delay-column notes
 The arpeggiate/strum recorder (and the Strum arp-stamp) now writes delay-column values and turns the delay column on, so a recorded strum is a real strum in the pattern: the chord's notes sit on one line across note columns, each nudged later in time via the delay column. The spacing is computed from the song's BPM and LPB — one pattern line is 60000/(BPM×LPB) ms and the delay column spans that whole line as 00..FF, so each note is offset by the ~28 ms live-strum gap converted to delay units (clamped so the whole strum stays inside the line). Faster tempo → larger delay fraction, so it always reads as the same strum you hear. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 

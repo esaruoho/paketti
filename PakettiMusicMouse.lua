@@ -113,6 +113,8 @@ local mm = {
   hide_details = false,       -- collapse the control panel (grid + pianos only) for a narrow window
   hide_recrow = false,        -- hide the vertical "Rec to Row" slider column entirely
   preview_wave = false,       -- when true, changing the waveform re-strikes the chord to preview it (default: silent)
+  disp_lo     = 24,           -- grid low note (Renoise value); the display/pitch range is disp_lo..disp_hi
+  disp_hi     = 96,           -- grid high note; narrow this to shrink the grid + reduce dead positions
 
   -- runtime
   mouse_active = true,        -- delete key disconnects
@@ -169,6 +171,11 @@ local function mm_load_prefs()
     mm.hide_recrow  = preferences.pakettiMusicMouseHideRecRow.value
     mm.preview_wave = preferences.pakettiMusicMousePreviewWave.value
   end
+  if preferences.pakettiMusicMouseDispLo then
+    local lo = preferences.pakettiMusicMouseDispLo.value
+    local hi = preferences.pakettiMusicMouseDispHi.value
+    if lo and hi and hi - lo >= 12 then mm.disp_lo, mm.disp_hi = lo, hi end
+  end
 end
 
 local function mm_save_prefs()
@@ -191,24 +198,30 @@ local function mm_save_prefs()
     preferences.pakettiMusicMouseHideRecRow.value  = mm.hide_recrow
     preferences.pakettiMusicMousePreviewWave.value = mm.preview_wave
   end
+  if preferences.pakettiMusicMouseDispLo then
+    preferences.pakettiMusicMouseDispLo.value = mm.disp_lo
+    preferences.pakettiMusicMouseDispHi.value = mm.disp_hi
+  end
   preferences:save_as("preferences.xml")
 end
 
--- canvas geometry (mutable: the widget shrinks when the pianos are hidden)
-local MM_FULL = 660                   -- full canvas edge length (grid + the 4 edge keyboards)
+-- canvas geometry (mutable: the widget shrinks when the pianos are hidden AND when the pitch
+-- range is narrowed — fewer white keys => a smaller play area, so a tighter range = a smaller grid)
+local MM_FULL = 660                   -- reference full canvas edge length
 local EDGE = 40                       -- thickness of the edge piano keyboards
 local MM_HIDDEN_MARGIN = 2            -- thin frame margin that replaces the surround when hidden
+local MM_KEY_PX = 14                  -- pixels per white key; the play area is (#white keys * this)
+local mm_play_px = MM_FULL - 2 * EDGE -- current play-area edge length (updated when the range changes)
 local MM_W, MM_H = MM_FULL, MM_FULL
 local PLAY_X0, PLAY_Y0 = EDGE, EDGE
 local PLAY_X1, PLAY_Y1 = MM_W - EDGE, MM_H - EDGE
 
--- Recompute canvas + play-area geometry from mm.hide_pianos. Hiding the pianos drops the
--- 40px keyboard surround on all four sides entirely, so the whole widget is 80px narrower
--- and 80px shorter — the play grid itself is unchanged, it just stops wasting space on the
--- (now hidden) keyboards. Call this whenever hide_pianos flips, then resize mm_canvas.
+-- Recompute canvas + play-area geometry from mm.hide_pianos and the current play size. Hiding the
+-- pianos drops the 40px keyboard surround on all four sides; a narrower pitch range shrinks the
+-- square play area (mm_play_px). Call this whenever either changes, then resize mm_canvas.
 local function mm_apply_geom()
   local edge = mm.hide_pianos and MM_HIDDEN_MARGIN or EDGE
-  local play = MM_FULL - 2 * EDGE            -- play area is constant (580) regardless of mode
+  local play = mm_play_px
   MM_W = play + 2 * edge
   MM_H = play + 2 * edge
   PLAY_X0, PLAY_Y0 = edge, edge
@@ -236,6 +249,15 @@ local function mm_build_keyboard_layout()
       mm_white_notes[#mm_white_notes + 1] = nn
     end
   end
+  -- size the square play area to the key count, so a narrower range = a smaller grid
+  mm_play_px = math.max(168, math.min(700, #mm_white_notes * MM_KEY_PX))
+end
+
+-- Renoise note value (0..119) -> display name like "C-2" / "F#5" (C-0 = note 0)
+local MM_NOTE_NAMES = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" }
+local function mm_note_name(n)
+  n = math.max(0, math.min(119, math.floor(n + 0.5)))
+  return MM_NOTE_NAMES[(n % 12) + 1] .. "-" .. math.floor(n / 12)
 end
 
 -- note -> fraction 0..1 along the keyboard axis (white-key spacing; black keys sit between)
@@ -304,6 +326,9 @@ end
 
 -- Rebuild the ordered scale-degree list (those whose transposed note sits in the display range)
 local function mm_rebuild_axis()
+  if mm.disp_lo and mm.disp_hi then          -- keep the display range in sync with saved state
+    DISPLAY_LO, DISPLAY_HI, DISPLAY_SPAN = mm.disp_lo, mm.disp_hi, mm.disp_hi - mm.disp_lo
+  end
   mm_build_keyboard_layout()
   mm.axis = {}
   for d = -120, 120 do
@@ -331,6 +356,21 @@ end
 -- degree -> normalized fraction (positions the cursor on the real key)
 local function mm_degree_to_frac(degree)
   return mm_note_frac(mm_degree_note(degree))
+end
+
+-- Set the grid's chromatic range (Renoise note values). Fewer octaves => fewer white keys =>
+-- a smaller grid and fewer "in-between" positions. Rebuilds the axis, resizes the canvas, saves.
+local function mm_set_display_range(lo, hi)
+  lo = math.max(0, math.min(119, math.floor(lo)))
+  hi = math.max(0, math.min(119, math.floor(hi)))
+  if hi - lo < 12 then hi = math.min(119, lo + 12) end   -- keep at least one octave
+  mm.disp_lo, mm.disp_hi = lo, hi
+  mm_rebuild_axis()                       -- syncs DISPLAY_*, rebuilds layout (sets mm_play_px) + axis
+  mm.deg_x = mm_frac_to_degree(mm.mx)     -- re-quantize the cursor to the new range
+  mm.deg_y = mm_frac_to_degree(1 - mm.my)
+  mm_apply_geom()
+  if mm_canvas then mm_canvas.size = { width = MM_W, height = MM_H }; mm_canvas:update() end
+  mm_save_prefs()
 end
 
 --------------------------------------------------------------------------------
@@ -1563,6 +1603,18 @@ local function mm_gravdiv_index() for i, v in ipairs(MM_GRAVDIV) do if v == mm.g
 local function mm_wave_idx(w) for i, n in ipairs(MM_WAVEFORMS) do if n == w then return i end end return 1 end
 
 -- build the live control panel (dropdowns / valueboxes / checkboxes), two-way synced with the keyboard
+-- reflect the current grid range back into its valueboxes + label (mm_set_display_range may clamp)
+local function mm_sync_range_ui()
+  if not (vb and vb.views) then return end
+  mm_ui_busy = true
+  pcall(function()
+    if vb.views["mm_rangelo_box"] then vb.views["mm_rangelo_box"].value = math.floor(mm.disp_lo / 12) end
+    if vb.views["mm_rangehi_box"] then vb.views["mm_rangehi_box"].value = math.floor(mm.disp_hi / 12) end
+    if vb.views["mm_range_text"] then vb.views["mm_range_text"].text = mm_note_name(mm.disp_lo) .. " .. " .. mm_note_name(mm.disp_hi) end
+  end)
+  mm_ui_busy = false
+end
+
 local function mm_controls_column(vbx)
   -- title labels: proportional + strong (no wide mono), optional tooltip
   local function lbl(t, tip)
@@ -1585,6 +1637,16 @@ local function mm_controls_column(vbx)
       vbx:switch{ id = "mm_voices_switch", width = 150, items = { "4", "5", "6", "7", "8", "9" }, value = mm.num_voices - 3,
         notifier = function(i) if mm_ui_busy then return end mm_set_num_voices(i + 3) end },
       hint("5+ = rich") },
+    vbx:row{ spacing = 4, lbl("Grid Range", "Octaves the grid spans (C of low octave .. C of high octave). Narrow it to shrink the grid and cut the dead in-between positions."),
+      vbx:valuebox{ id = "mm_rangelo_box", width = 46, min = 0, max = 9, value = math.floor(mm.disp_lo / 12),
+        tooltip = "Lowest octave",
+        notifier = function(v) if mm_ui_busy then return end mm_set_display_range(v * 12, mm.disp_hi); mm_sync_range_ui() end },
+      vbx:text{ text = "to", width = 14 },
+      vbx:valuebox{ id = "mm_rangehi_box", width = 46, min = 0, max = 9, value = math.floor(mm.disp_hi / 12),
+        tooltip = "Highest octave",
+        notifier = function(v) if mm_ui_busy then return end mm_set_display_range(mm.disp_lo, v * 12); mm_sync_range_ui() end },
+      vbx:text{ id = "mm_range_text", width = 90, style = "strong",
+        text = mm_note_name(mm.disp_lo) .. " .. " .. mm_note_name(mm.disp_hi) } },
     vbx:row(mute_row),
     vbx:row{ spacing = 4, lbl("Harmonic Mode"),
       vbx:popup{ id = "mm_harmony_popup", width = 150, items = MM_HARMONY_ITEMS, value = mm_scale_index(),
