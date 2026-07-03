@@ -122,6 +122,29 @@ function PakettiBatchExportEachSample(inst, base, saver, ext)
 end
 
 -- ── Per-format entry points ─────────────────────────────────────────────
+-- WAV with CUE points. Renoise's sample_buffer:save_as(path, "wav") natively
+-- embeds the sample's slice markers as standard WAV CUE points (verified: 4
+-- slice markers -> 4 cues at exact frame positions), so no separate cue writer
+-- is needed - and adding one would duplicate the first marker. One WAV per sample.
+function PakettiBatchXRNIToWAV()
+  PakettiBatchXRNIExportRun{ label = "WAV (with CUE)", export = function(inst, base)
+    local song = renoise.song()
+    local n = 0
+    local nsamp = #inst.samples
+    for s = 1, nsamp do
+      local smp = inst.samples[s]
+      if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
+        song.selected_sample_index = s
+        local path = (nsamp == 1) and (base .. ".wav")
+                                  or (string.format("%s-%02d.wav", base, s))
+        smp.sample_buffer:save_as(path, "wav")
+        n = n + 1
+      end
+    end
+    return n
+  end }
+end
+
 function PakettiBatchXRNITo8SVX()
   PakettiBatchXRNIExportRun{ label = "8SVX", export = function(inst, base)
     return PakettiBatchExportEachSample(inst, base, saveCurrentSampleAs8SVX, "8svx")
@@ -175,6 +198,7 @@ end
 
 -- ── Registrations ───────────────────────────────────────────────────────
 local batch_export_formats = {
+  { fmt = "WAV (with CUE)",    fn = PakettiBatchXRNIToWAV },
   { fmt = "8SVX",              fn = PakettiBatchXRNITo8SVX },
   { fmt = "16SV",              fn = PakettiBatchXRNITo16SV },
   { fmt = "IFF",               fn = PakettiBatchXRNIToIFF },
