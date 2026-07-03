@@ -258,7 +258,8 @@ local row_steps = {}  -- [row] = step count for this row (individual per row)
 --   * a keyboard shortcut (TOGGLE — Renoise gives no reliable key-up)
 --   * a MIDI button (momentary via note/CC release, or toggle for trigger mappings)
 -- Values are 0..1 internally (127 thought of as 1.0); knobs are -127..127.
-local SCULPT_MODES = {"Regular", "Sculpt ABS", "Sculpt REL", "Random ABS", "Random REL"}
+local SCULPT_MODES = {"Regular", "Sculpt ABS", "Sculpt REL", "Random ABS", "Random REL", "Ramp"}
+local SCULPT_RAMP_MODE = 6       -- positional gradient across the ganged set (Cirklon "gang ramp")
 local sculpt_mode = 1            -- index into SCULPT_MODES (1 = Regular = off)
 local sculpt_knob_a = 0          -- -127..127
 local sculpt_knob_b = 0          -- -127..127
@@ -347,6 +348,7 @@ end
 -- set moves together, live. Only runs while gang is on and sculpt is engaged.
 function PakettiHyperEditGangApply()
   if not gang_enabled or sculpt_mode <= 1 or not sculpt_active then return end
+  if sculpt_mode == SCULPT_RAMP_MODE then PakettiHyperEditRampApplyFromKnobs(); return end
   for row = 1, NUM_ROWS do
     if sculpt_armed[row] and row_parameters[row] then
       local len = row_steps[row] or 16
@@ -363,6 +365,58 @@ function PakettiHyperEditGangApply()
       PakettiHyperEditWriteAutomationPattern(row)
       if row_canvases[row] then row_canvases[row]:update() end
     end
+  end
+end
+
+-- RAMP (Cirklon "gang ramp"): write a straight linear gradient across the target steps
+-- of every armed row — the ganged steps when Gang is on, otherwise the whole row. v0 is
+-- the value at the first target step, v1 the value at the last (both 0..1). One gesture
+-- paints a slope (e.g. 0 -> 1 rising, or 1 -> 0 falling) instead of the flat set that the
+-- other gang modes write. Returns the number of rows it touched.
+function PakettiHyperEditRampApply(v0, v1)
+  if v0 < 0 then v0 = 0 elseif v0 > 1 then v0 = 1 end
+  if v1 < 0 then v1 = 0 elseif v1 > 1 then v1 = 1 end
+  local touched = 0
+  for row = 1, NUM_ROWS do
+    if sculpt_armed[row] and row_parameters[row] then
+      local len = row_steps[row] or 16
+      step_active[row] = step_active[row] or {}
+      step_data[row] = step_data[row] or {}
+      -- Ordered target steps: the ganged subset (Gang on) or the whole row (Gang off).
+      local targets = {}
+      for s = 1, len do
+        if (not gang_enabled) or PakettiHyperEditIsGanged(s) then targets[#targets + 1] = s end
+      end
+      local m = #targets
+      for i = 1, m do
+        local t = (m > 1) and ((i - 1) / (m - 1)) or 0   -- 0..1 across the target set by position
+        step_active[row][targets[i]] = true
+        step_data[row][targets[i]] = v0 + (v1 - v0) * t
+      end
+      PakettiHyperEditWriteAutomationPattern(row)
+      if row_canvases[row] then row_canvases[row]:update() end
+      touched = touched + 1
+    end
+  end
+  return touched
+end
+
+-- Ramp using the A/B knobs as endpoints (A = first step, B = last step). Knobs are
+-- -127..127 mapped to -1..1, clamped into 0..1 for the ramp. Used by the Ramp sculpt mode.
+function PakettiHyperEditRampApplyFromKnobs()
+  return PakettiHyperEditRampApply((sculpt_knob_a or 0) / 127, (sculpt_knob_b or 0) / 127)
+end
+
+-- One-click ramp for the toolbar / keybindings / MIDI: paint 00->127 (rising) or
+-- 127->00 (falling) across the ganged set (or whole row) of every armed row, no hold needed.
+function PakettiHyperEditRampGanged(rising)
+  local n = rising and PakettiHyperEditRampApply(0, 1) or PakettiHyperEditRampApply(1, 0)
+  local scope = gang_enabled and ("ganged every " .. gang_every .. " step(s)") or "whole row"
+  if n == 0 then
+    renoise.app():show_status("HyperEdit Ramp: no armed (S) rows — arm a row first.")
+  else
+    renoise.app():show_status(string.format("HyperEdit Ramp %s across %s of %d armed row(s).",
+      rising and "00->127" or "127->00", scope, n))
   end
 end
 
@@ -414,6 +468,7 @@ function PakettiHyperEditSculptHoldTick()
   local song = renoise.song()
   if not song then return end
   if gang_enabled then
+    if sculpt_mode == SCULPT_RAMP_MODE then PakettiHyperEditRampApplyFromKnobs(); return end
     -- accumulate over the ganged set from each step's CURRENT value (stopped or playing)
     for row = 1, NUM_ROWS do
       if sculpt_armed[row] and row_parameters[row] then
@@ -474,7 +529,7 @@ end
 function PakettiHyperEditSculptUpdateKnobVisibility()
   if not dialog_vb then return end
   local show_a = sculpt_mode > 1
-  local show_b = (sculpt_mode == 4 or sculpt_mode == 5)
+  local show_b = (sculpt_mode == 4 or sculpt_mode == 5 or sculpt_mode == SCULPT_RAMP_MODE)
   if dialog_vb.views["sculpt_knob_a"] then dialog_vb.views["sculpt_knob_a"].visible = show_a end
   if dialog_vb.views["sculpt_knob_sep"] then dialog_vb.views["sculpt_knob_sep"].visible = show_b end
   if dialog_vb.views["sculpt_knob_b"] then dialog_vb.views["sculpt_knob_b"].visible = show_b end
@@ -491,7 +546,11 @@ function PakettiHyperEditSculptSetActive(on)
     renoise.app():show_status(string.format(
       "HyperEdit Sculpt: %s ENGAGED (A=%d B=%d)%s", SCULPT_MODES[sculpt_mode] or "?",
       sculpt_knob_a, sculpt_knob_b, scope))
-    if gang_enabled then
+    if sculpt_mode == SCULPT_RAMP_MODE then
+      -- Ramp: paint the gradient across the ganged set (or whole row) from the A/B knobs,
+      -- whether Gang is on or off. The hold-timer keeps it re-applied (idempotent).
+      PakettiHyperEditRampApplyFromKnobs()
+    elseif gang_enabled then
       -- Gang: snapshot the ganged steps' base values, then shape the whole set now.
       PakettiHyperEditGangCaptureBase()
       PakettiHyperEditGangApply()
@@ -4418,12 +4477,21 @@ function PakettiHyperEditCreateDialog()
       items = SCULPT_MODES,
       value = sculpt_mode,
       width = 110,
-      tooltip = "Cirklon-style sculpt mode (overlaid on Effect/Stepper). Regular = off. ABS overwrites the playing step with knob A; REL offsets it by knob A cumulatively each pass; Random picks/offsets within the A..B range.",
+      tooltip = "Cirklon-style sculpt mode (overlaid on Effect/Stepper). Regular = off. ABS overwrites the playing step with knob A; REL offsets it by knob A cumulatively each pass; Random picks/offsets within the A..B range. Ramp = paint a positional GRADIENT (A at the first step -> B at the last) across the ganged set (or whole row) of every armed row — this is the 'gang ramp' (e.g. 00->127 rising).",
       notifier = function(idx)
         sculpt_mode = idx
         if preferences and preferences.PakettiHyperEditSculptMode then
           preferences.PakettiHyperEditSculptMode.value = idx
           preferences:save_as("preferences.xml")
+        end
+        -- Ramp needs an end value: default B to 127 (full) the first time so it reads 00->127.
+        if idx == SCULPT_RAMP_MODE and sculpt_knob_b == 0 then
+          sculpt_knob_b = 127
+          if dialog_vb and dialog_vb.views["sculpt_knob_b"] then dialog_vb.views["sculpt_knob_b"].value = 127 end
+          if preferences and preferences.PakettiHyperEditSculptKnobB then
+            preferences.PakettiHyperEditSculptKnobB.value = 127
+            preferences:save_as("preferences.xml")
+          end
         end
         PakettiHyperEditSculptUpdateKnobVisibility()
         renoise.app():show_status("HyperEdit Sculpt mode: " .. (SCULPT_MODES[idx] or "?"))
@@ -4443,12 +4511,12 @@ function PakettiHyperEditCreateDialog()
         PakettiHyperEditGangApply()   -- live: move the whole ganged set when gang is engaged
       end
     },
-    vb:text { id = "sculpt_knob_sep", text = "<>", style = "strong", font = "bold", visible = (sculpt_mode == 4 or sculpt_mode == 5) },
+    vb:text { id = "sculpt_knob_sep", text = "<>", style = "strong", font = "bold", visible = (sculpt_mode == 4 or sculpt_mode == 5 or sculpt_mode == SCULPT_RAMP_MODE) },
     vb:valuebox {
       id = "sculpt_knob_b",
       min = -127, max = 127, value = sculpt_knob_b, width = 60,
-      visible = (sculpt_mode == 4 or sculpt_mode == 5),
-      tooltip = "Random modes only: the other end of the A..B range. (-127..127)",
+      visible = (sculpt_mode == 4 or sculpt_mode == 5 or sculpt_mode == SCULPT_RAMP_MODE),
+      tooltip = "Random modes: the other end of the A..B range. Ramp mode: the END value (last step) of the gradient — A is the start (first step). (-127..127, 127 = 1.0)",
       notifier = function(v)
         sculpt_knob_b = v
         if preferences and preferences.PakettiHyperEditSculptKnobB then
@@ -4467,6 +4535,20 @@ function PakettiHyperEditCreateDialog()
       tooltip = "Hold while the pattern plays to shape the playing step of every armed (S) row. Also: keyboard 'HyperEdit Toggle Sculpt Hold' (toggle), MIDI 'Paketti HyperEdit Sculpt Hold' (momentary), or ALT+drag on a row's canvas (mouse-Y = live knob A). A plain drag still draws normally.",
       pressed = function() PakettiHyperEditSculptSetActive(true) end,
       released = function() PakettiHyperEditSculptSetActive(false) end
+    },
+    vb:button {
+      text = "Ramp 00>127",
+      width = 84,
+      midi_mapping = "Paketti:HyperEdit Ramp Ganged 00 to 127",
+      tooltip = "One click: paint a rising 00->127 gradient across the ganged steps (or the whole row if Gang is off) of every armed (S) row. No hold needed. (cmd-M then click to MIDI-learn.)",
+      notifier = function() PakettiHyperEditRampGanged(true) end
+    },
+    vb:button {
+      text = "Ramp 127>00",
+      width = 84,
+      midi_mapping = "Paketti:HyperEdit Ramp Ganged 127 to 00",
+      tooltip = "One click: paint a falling 127->00 gradient across the ganged steps (or the whole row if Gang is off) of every armed (S) row. No hold needed. (cmd-M then click to MIDI-learn.)",
+      notifier = function() PakettiHyperEditRampGanged(false) end
     },
     vb:button {
       text = "Arm All",
@@ -5229,6 +5311,12 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit (Stepper
 
 -- HyperEdit Pattern Functions
 renoise.tool():add_keybinding {name = "Global:Paketti:HyperEdit Duplicate to Next Pattern",invoke = PakettiHyperEditDuplicateToNextPattern}
+
+-- HyperEdit gang ramp (one-click rising/falling gradient across the ganged set of armed rows)
+renoise.tool():add_keybinding {name = "Global:Paketti:HyperEdit Ramp Ganged 00 to 127",invoke = function() PakettiHyperEditRampGanged(true) end}
+renoise.tool():add_keybinding {name = "Global:Paketti:HyperEdit Ramp Ganged 127 to 00",invoke = function() PakettiHyperEditRampGanged(false) end}
+renoise.tool():add_midi_mapping {name = "Paketti:HyperEdit Ramp Ganged 00 to 127",invoke = function(message) if message:is_trigger() then PakettiHyperEditRampGanged(true) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:HyperEdit Ramp Ganged 127 to 00",invoke = function(message) if message:is_trigger() then PakettiHyperEditRampGanged(false) end end}
 
 -- ============================================================================
 -- Live MIDI Write

@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Feature: HyperEdit Gang Ramp — paint a 00→127 gradient across the ganged set
+The Gang tools could only shape the ganged steps as a flat set (ABS overwrites all to one value, REL offsets each, Random scatters) — there was no way to make a rising/falling gradient. Added a positional **Ramp** that paints a straight linear slope across the ganged steps (or the whole row when Gang is off) of every armed ("S") row, distributing values from a start at the first step to an end at the last. Two ways to use it: (1) a new **"Ramp"** entry in the Sculpt dropdown — engage HOLD SCULPT and it paints A→B (knob A = start, knob B = end; switching to Ramp defaults B to 127 so it reads 00→127), works with Gang on (ganged subset) or off (whole row); (2) two one-click toolbar buttons **"Ramp 00>127"** (rising) and **"Ramp 127>00"** (falling) that fill the ganged set of every armed row in a single click — no hold needed, and MIDI-learnable by clicking them in cmd-M mode. For a full-row 00→127 ramp, set Gang every 1 (or turn Gang off). Keybindings: `Global:Paketti:HyperEdit Ramp Ganged 00 to 127`, `Global:Paketti:HyperEdit Ramp Ganged 127 to 00`. MIDI Mappings: `Paketti:HyperEdit Ramp Ganged 00 to 127`, `Paketti:HyperEdit Ramp Ganged 127 to 00`.
+
 ### 2026-07-03 - Fix: HyperEdit Mode and Sculpt dropdowns now align
 The "Mode" and "Sculpt" popups on the first two rows of the HyperEdit dialog now line up vertically. The "Mode" label was 36px wide while "Sculpt" was 44px, so the two popups started at different x positions; both labels are now 44px so the dropdowns align.
 
