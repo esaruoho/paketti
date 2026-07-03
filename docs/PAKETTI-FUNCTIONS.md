@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,320 functions** · 10,880 keybindings · 7,328 midimappings · 6,720 menu entries.
+**4,301 functions** · 10,866 keybindings · 7,306 midimappings · 6,699 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (-32) | ✅ | · | · |
+| Nudge Slice 01 by (+1) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2105 functions  ·  ⌨ 2105 · 🎛 806 · ☰ 664
+## Global  ·  2092 functions  ·  ⌨ 2092 · 🎛 797 · ☰ 655
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -877,14 +877,6 @@
 | Batch Convert WAV to IFF... | ✅ | · | ✅ |
 | Batch Convert WAV/AIFF to 16SV... | ✅ | · | ✅ |
 | Batch Convert WAV/AIFF to 8SVX... | ✅ | · | ✅ |
-| Batch Convert XRNI Folder to 16SV | ✅ | ✅ | ✅ |
-| Batch Convert XRNI Folder to 8SVX | ✅ | ✅ | ✅ |
-| Batch Convert XRNI Folder to Digitakt Chain | ✅ | ✅ | ✅ |
-| Batch Convert XRNI Folder to IFF | ✅ | ✅ | ✅ |
-| Batch Convert XRNI Folder to ITI | ✅ | ✅ | ✅ |
-| Batch Convert XRNI Folder to Octatrack (WAV+.ot) | ✅ | ✅ | ✅ |
-| Batch Convert XRNI Folder to PTI | ✅ | ✅ | ✅ |
-| Batch Convert XRNI Folder to WAV (with CUE) | ✅ | ✅ | ✅ |
 | Batch Pakettify Wave Files in Folder to XRNI & Load... | ✅ | ✅ | ✅ |
 | Batch Pakettify Wave Files in Folder to XRNI (Save Only)... | ✅ | ✅ | ✅ |
 | Batch Sample Adjust Dialog... | ✅ | ✅ | ✅ |
@@ -986,7 +978,7 @@
 | Computer Keyboard Velocity (-1) | ✅ | · | · |
 | Computer Keyboard Velocity (Double) | ✅ | ✅ | · |
 | Computer Keyboard Velocity (Halve) | ✅ | ✅ | · |
-| Configure Launch App Selection... | ✅ | · | ✅ |
+| Configure Launch App Selection... | ✅ | · | · |
 | Continue Sequence 00 From Same Line | ✅ | ✅ | ✅ |
 | Contour Shuttle Record Off, Follow On | ✅ | · | · |
 | Contour Shuttle Record On, Follow Off | ✅ | · | · |
@@ -1338,7 +1330,6 @@
 | Hotelsinus Step Sequencer | ✅ | · | ✅ |
 | Humanize Selection... | ✅ | · | ✅ |
 | HyperEdit Duplicate to Next Pattern | ✅ | · | · |
-| HyperEdit Ramp Ganged 00 to 127 | ✅ | ✅ | · |
 | HyperEdit Toggle Sculpt Hold | ✅ | · | · |
 | Import Wavetable | ✅ | · | ✅ |
 | Impulse Tracker 8 Play Current Line & Advance by EditStep | ✅ | · | · |
@@ -1858,10 +1849,6 @@
 | Paketti Groovebox 8120 APC Toggle Follow Page | ✅ | · | · |
 | Paketti Groovebox 8120 Canvas View | ✅ | · | · |
 | Paketti Groovebox 8120 Eight 120-fy Instrument | ✅ | · | ✅ |
-| Paketti Groovebox 8120 Hapax Probe Close | ✅ | · | · |
-| Paketti Groovebox 8120 Hapax Probe Open | ✅ | · | · |
-| Paketti Groovebox 8120 Hapax Probe Window | ✅ | · | · |
-| Paketti Groovebox 8120 Hapax Test LEDs | ✅ | · | · |
 | Paketti Groovebox 8120 Kit | ✅ | · | · |
 | Paketti Groovebox 8120 LPD8 Lights Snake | ✅ | · | · |
 | Paketti Groovebox 8120 LPD8 Lights Stop | ✅ | · | · |
@@ -2862,7 +2849,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1514 functions  ·  ⌨ 0 · 🎛 776 · ☰ 883
+## (menu/midi only)  ·  1508 functions  ·  ⌨ 0 · 🎛 774 · ☰ 879
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -3419,9 +3406,6 @@
 | Groovebox 8120 LPD8 Toggle Follow-Page Mode | · | ✅ | · |
 | Groovebox 8120 MidiMix Toggle Follow-Page Mode | · | ✅ | · |
 | Halve Beatsync Line | · | · | ✅ |
-| Hapax Probe — Close | · | · | ✅ |
-| Hapax Probe — Open Window (read pads, copyable) | · | · | ✅ |
-| Hapax Probe — Test grid LEDs (empirical) | · | · | ✅ |
 | Hat Trigger | · | · | ✅ |
 | Hipass | · | · | ✅ |
 | Hold Device 01 (Delay) x[Button] | · | ✅ | · |
@@ -3906,7 +3890,6 @@
 | PlayerPro Auto-Open Smart Dialog Toggle | · | · | ✅ |
 | PlayerPro Waveform Viewer | · | · | ✅ |
 | Pluck | · | · | ✅ |
-| Polyend (PTI) Batch Convert XRNI Folder to PTI... | · | · | ✅ |
 | Polyend (PTI) Create 48 Slice Drumkit (Mono)... | · | · | ✅ |
 | Polyend (PTI) Create 48 Slice Drumkit (Stereo)... | · | · | ✅ |
 | Polyend (PTI) Export Subfolders as Drum Slices... | · | · | ✅ |
@@ -4137,8 +4120,6 @@
 | Selection Up (Linear) (One Pattern) | · | · | ✅ |
 | Selection Up->Center (Linear) | · | · | ✅ |
 | Send Device | · | · | ✅ |
-| Send Sample Range to App Slot 1 | · | ✅ | · |
-| Send Selected Sample to App Slot 1 | · | ✅ | · |
 | SeparateSyncLFO (Beatsgo LFO) | · | · | ✅ |
 | Sequential Load (8 folders)… | · | · | ✅ |
 | Sequential Load [Trigger] | · | ✅ | · |
