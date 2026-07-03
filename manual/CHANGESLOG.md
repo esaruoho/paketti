@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Improvement: Music Mouse — sound keys trigger a foreign sample instead of overwriting it
+If the selected instrument is NOT a Music Mouse instrument (any other loaded sample, recognised by instrument name), the sound keys (u / i / o / p, å, cycle) and the Bell/Sustain switch no longer regenerate a Music Mouse waveform over it — they now just punch-jazz/trigger that sample and leave it completely untouched. So you can point Music Mouse at any instrument and play it as-is. Music Mouse instruments still switch waveform as before, an empty instrument still auto-creates one on first press, and "Create New" always builds a fresh Music Mouse instrument. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
+
 ### 2026-07-03 - Fix: Music Mouse — Arpeggiate/Strum recording now spreads across note columns (no more column-1 flood/cutoff)
 When Record to Pattern was on in Arpeggiate, Line, or Strum mode, every individually-struck note was written to note column 1 at the playhead line — so notes hitting the same line overwrote each other and cut off, and the pattern just filled column 1. The recorder now round-robins each note across note columns (resetting to column 1 on each new line), so an arpeggio/strum lands across multiple columns and rings together, exactly like a strum should. Block-chord recording is unchanged. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 

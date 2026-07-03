@@ -1365,6 +1365,14 @@ local function mm_current_is_mm_instrument()
   return instr and instr.name:find("Music Mouse") and #instr.samples > 0
 end
 
+-- A "foreign" sample is any loaded instrument that ISN'T a Music Mouse one (recognised by name).
+-- When one is selected, the sound keys must NOT overwrite/regenerate it — they just trigger it.
+-- (An empty instrument with no samples is NOT foreign, so first-press auto-create still works.)
+local function mm_has_foreign_sample()
+  local instr = renoise.song().selected_instrument
+  return instr and #instr.samples > 0 and not instr.name:find("Music Mouse")
+end
+
 -- create a fresh pakettified Music Mouse instrument: load the Paketti default, then render the wavefile
 function pakettiMusicMouseGenerateInstrument()
   local song = renoise.song()
@@ -1427,6 +1435,17 @@ end
 -- stays SILENT unless the "Preview" checkbox is on, so tweaking the timbre while composing
 -- doesn't blast the held chord.
 local function mm_set_waveform(shape, from_ui)
+  -- A non-Music-Mouse sample is loaded: the sound key becomes a PURE TRIGGER — punch-jazz the
+  -- chord with that sample and never overwrite/regenerate it. (Create New still builds an MM
+  -- instrument; an empty instrument still auto-creates one below.)
+  if mm_has_foreign_sample() then
+    if (not from_ui) or mm.preview_wave then
+      mm_retrigger()
+      if mm.treatment == 2 then mm_stamp_arpeggio() end
+    end
+    if mm_canvas then mm_canvas:update() end
+    return
+  end
   local changed = (shape ~= mm.waveform) or not mm_current_is_mm_instrument()
   mm.waveform = shape           -- mm.bell is left untouched: Bell stays Bell, Sustain stays Sustain
   mm_sync_wave_ui()
@@ -1442,7 +1461,7 @@ end
 local function mm_set_bell(is_bell)
   mm.bell = is_bell
   mm_sync_wave_ui()
-  mm_apply_waveform()
+  if not mm_has_foreign_sample() then mm_apply_waveform() end   -- don't overwrite a foreign sample
   mm_retrigger()                -- re-strike so you hear the new articulation immediately
   if mm_canvas then mm_canvas:update() end
 end
