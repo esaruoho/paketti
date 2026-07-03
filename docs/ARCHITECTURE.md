@@ -13,7 +13,7 @@
      49 xrni
      48 md
      20 xml
-     15 py
+     16 py
      14 feature
      12 xrdp
 ```
@@ -33,7 +33,7 @@
      13 rx2
      13 docs
      13 PakettiMCP
-     11 .spine
+     12 .spine
 ```
 ## Entry points
 ```
