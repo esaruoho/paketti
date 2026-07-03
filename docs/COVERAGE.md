@@ -7,16 +7,16 @@
 | reachable by | count | meaning |
 |---|--:|---|
 | **KME** | 383 | all three |
-| **KE** | 910 | keyboard + menu (no MIDI) |
+| **KE** | 911 | keyboard + menu (no MIDI) |
 | **KM** | 3,643 | keyboard + MIDI (no menu) |
 | **ME** | 145 | MIDI + menu (no keyboard) |
-| **K** | 2,672 | keyboard ONLY |
+| **K** | 2,671 | keyboard ONLY |
 | **E** | 1,685 | menu ONLY (mouse-only) |
 | **M** | 2,373 | MIDI ONLY |
 
-- Keyboard 7,608 · MIDI 6,544 · Menu 3,123
+- Keyboard 7,608 · MIDI 6,544 · Menu 3,124
 - **Shortcut but NO MIDI:** 3,582 (controller users can't reach)
-- **Shortcut but NO menu:** 6,315 (undiscoverable by browsing)
+- **Shortcut but NO menu:** 6,314 (undiscoverable by browsing)
 - **Menu but NO shortcut:** 1,830 (mouse-only)
 
 ## Per region — keyboard shortcuts vs the other doors

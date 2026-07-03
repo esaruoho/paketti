@@ -4,21 +4,21 @@
 
 ## Where Paketti touches Renoise
 
-- **24,904 unique registration points**
+- **24,905 unique registration points**
   - **10,874 keyboard shortcuts**
-  - **6,716 menu entries**
+  - **6,717 menu entries**
   - **7,314 MIDI mappings**
 
-**Validation:** Paketti's own runtime counters say 10,869 keybindings / 7,313 MIDI / 6,713 menus — matching.
+**Validation:** Paketti's own runtime counters say 10,869 keybindings / 7,313 MIDI / 6,714 menus — matching.
 
 ## What Paketti does for Renoise
 
-Paketti is a **24,904-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
+Paketti is a **24,905-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
 
 - **Keyboard- and MIDI-first.** 7,051 shortcuts fire *anywhere* (the Global region) and 7,314 actions are MIDI-mappable — most of Paketti is reachable without ever opening a menu. It's built for speed and for hardware.
 - **Pattern-centric.** ~3,842 actions live in the Pattern Editor / Matrix / Sequencer / Phrase views — the tracker grid where you actually make the music is where Paketti is heaviest.
 - **A sample & instrument powerhouse.** ~4,167 actions across the Sample Editor, Navigator, Keyzone, Mappings and Instrument Box — a whole sampler workflow grafted on.
-- **Menus are the catalogue.** 6,716 menu entries make every feature browsable when you don't remember the shortcut.
+- **Menus are the catalogue.** 6,717 menu entries make every feature browsable when you don't remember the shortcut.
 - **Lighter, deliberate touch on mixing / FX / automation** (~773) — present, but not the focus. Paketti augments the tracker and the sampler; it doesn't rebuild the mixer.
 
 **In one line:** Paketti turns Renoise into a keyboard- and MIDI-driven, pattern-and-sample-centric production environment — most of its power reachable instantly from a key or a controller.
@@ -56,7 +56,7 @@ Paketti is a **24,904-action layer** bolted onto Renoise. *Where* those actions 
 | &nbsp;&nbsp;Paketti | 0 | 0 | 6,709 | 6,709 |
 | &nbsp;&nbsp;MainMenuTools | 0 | 1,109 | 0 | 1,109 |
 | &nbsp;&nbsp;MainMenuFile | 0 | 75 | 0 | 75 |
-| &nbsp;&nbsp;MainMenuView | 0 | 58 | 0 | 58 |
+| &nbsp;&nbsp;MainMenuView | 0 | 59 | 0 | 59 |
 | **Other** | | | | |
 | &nbsp;&nbsp;Modulation Set | 0 | 48 | 0 | 48 |
 | &nbsp;&nbsp;Sononymph | 0 | 0 | 5 | 5 |
