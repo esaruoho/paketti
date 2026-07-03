@@ -2572,13 +2572,33 @@ function pakettiSampleBufferHalfSelector(half)
   end
 
   local halfway = math.floor(sample_length / 2)
-  if half == 1 then
-    sample_buffer.selection_start = 1
-    sample_buffer.selection_end = halfway
+  -- Range for each half
+  local first_start, first_end   = 1, halfway
+  local second_start, second_end = halfway, sample_length - 1
+
+  -- What is currently selected? (used to make each action a toggle)
+  local cur_start = sample_buffer.selection_start
+  local cur_end   = sample_buffer.selection_end
+  local first_selected  = (cur_start == first_start)  and (cur_end == first_end)
+  local second_selected = (cur_start == second_start) and (cur_end == second_end)
+
+  -- Toggle: pressing "First Half" while the first half is already selected flips to the
+  -- second half; pressing "Second Half" while the second half is already selected flips
+  -- to the first half. Otherwise select the requested half.
+  local target = half
+  if half == 1 and first_selected then
+    target = 2
+  elseif half == 2 and second_selected then
+    target = 1
+  end
+
+  if target == 1 then
+    sample_buffer.selection_start = first_start
+    sample_buffer.selection_end = first_end
     renoise.app():show_status("First half of sample selected.")
-  elseif half == 2 then
-    sample_buffer.selection_start = halfway
-    sample_buffer.selection_end = sample_length - 1
+  elseif target == 2 then
+    sample_buffer.selection_start = second_start
+    sample_buffer.selection_end = second_end
     renoise.app():show_status("Second half of sample selected.")
   else
     renoise.app():show_status("Invalid half specified.")

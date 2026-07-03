@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Improvement: Select First/Second Half of Sample Buffer now toggles
+Both "Select First Half of Sample Buffer" and "Select Second Half of Sample Buffer" are now toggles. Pressing "Select Second Half" again while the second half is already selected flips the selection to the first half; pressing it once more flips back to the second half. "Select First Half" behaves the same way in reverse. Each action still prefers its named half on the first press, and only flips once that half is exactly the current selection. Keybindings: `Sample Editor:Paketti:Select First Half of Sample Buffer`, `Sample Editor:Paketti:Select Second Half of Sample Buffer`.
+
 ### 2026-07-03 - Feature: Batch Convert XRNI Folder to WAV (with CUE points)
 Point it at a folder of `.xrni` instruments (subfolders walked recursively, output written next to each source, temp instruments deleted after each so the 255-instrument cap is never hit) and it writes a `.wav` per sample — single-sample instruments write `name.wav`, multi-sample write `name-01.wav`, `name-02.wav`… Any slice markers on a sample come along as standard WAV **CUE points**: this uses Renoise's native `sample_buffer:save_as(..., "wav")`, which embeds slice markers as cue chunks directly (verified by roundtrip — 4 slice markers exported and parsed back as 4 cues at exact frame positions), so there's no duplicate-marker artifact. Menu: `Main Menu:File:Paketti Export:Batch Convert XRNI Folder to WAV (with CUE)...` and `Disk Browser:Paketti:Import/Export:Batch Convert XRNI Folder to WAV (with CUE)...`. Keybinding: `Global:Paketti:Batch Convert XRNI Folder to WAV (with CUE)`. MIDI Mapping: `Paketti:Batch Convert XRNI Folder to WAV (with CUE)`.
 
