@@ -537,10 +537,22 @@ local function createAppSlotUI(index)
             midi_mapping="Paketti:Send Sample Range to App Slot " .. index,
             notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection[pref_key].value) end,
             width=200},
+        vb:button{text="Launch", width=70,
+            notifier=function()
+                local p = preferences.AppSelection[pref_key].value
+                if p ~= "" then appSelectionLaunchApp(p)
+                else renoise.app():show_status("Launch App slot " .. index .. " has no app configured.") end
+            end},
         (function()
-            local path = vb:text{
+            -- The app-path itself is a clickable button: click it to launch / foreground the app.
+            local path = vb:button{
                 text=(preferences.AppSelection[pref_key].value ~= "" and preferences.AppSelection[pref_key].value or "None"),
-                width=400, font="bold", style="strong"}
+                width=400,
+                notifier=function()
+                    local p = preferences.AppSelection[pref_key].value
+                    if p ~= "" then appSelectionLaunchApp(p)
+                    else renoise.app():show_status("Launch App slot " .. index .. " has no app configured.") end
+                end}
             app_paths[index] = path
             return path
         end)()
