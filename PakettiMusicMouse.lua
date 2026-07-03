@@ -549,6 +549,29 @@ local function mm_retrigger()
   if mm.staccato then for v = 1, MM_MAX_VOICES do mm_note_off(v) end end
 end
 
+-- Live strum spacing (ms between successive notes). Also the basis for the delay-column
+-- values written when a strum/arpeggio is recorded into the pattern.
+local MM_STRUM_MS = 28
+
+-- Delay-column step (00..FF units) between successive strummed notes on ONE line, derived from
+-- the current tempo. A pattern line lasts 60000/(BPM*LPB) ms and the delay column spans that
+-- whole line as 00..FF, so a MM_STRUM_MS gap = (MM_STRUM_MS / line_ms) * 256 delay units. The
+-- step is clamped so the full chord's strum still lands inside the line. `voices` = notes strummed.
+local function mm_strum_delay_step(voices)
+  local song = renoise.song()
+  local line_ms = 125                                  -- 120 BPM, LPB 4 fallback
+  if song then
+    local bpm, lpb = song.transport.bpm, song.transport.lpb
+    if bpm and bpm > 0 and lpb and lpb > 0 then line_ms = 60000 / (bpm * lpb) end
+  end
+  local step = math.floor((MM_STRUM_MS / line_ms) * 256 + 0.5)
+  if step < 1 then step = 1 end
+  local span = math.max(1, (voices or 1) - 1)
+  local maxstep = math.floor(0xE0 / span)              -- keep the last note within ~87% of the line
+  if step > maxstep then step = maxstep end
+  return step
+end
+
 -- Arpeggio "button": write the current chord into the pattern at the edit cursor per Arp Mode:
 --   Up/Down/Scatter -> one note per consecutive line (pitch order / reversed / shuffled).
 --   Strum           -> the whole chord on ONE line, spread across note columns with rising
@@ -581,9 +604,10 @@ local function mm_stamp_arpeggio()
   if #ord == 0 then return end
 
   if mm.arp_mode == "Strum" then
-    -- one line, across columns, staggered delay (0, step, 2*step, ...) — a strum
+    -- one line, across columns, staggered delay (0, step, 2*step, ...) — a strum whose spacing
+    -- is derived from the current BPM+LPB so it reads as a real strum inside the line
     if track.visible_note_columns < #ord then track.visible_note_columns = math.min(12, #ord) end
-    local step = math.floor(0xFF / math.max(1, #ord))
+    local step = mm_strum_delay_step(#ord)
     for i = 1, math.min(12, #ord) do
       local col = ptrack:line(start_line):note_column(i)
       col.note_value = ord[i]; col.instrument_value = instr0; col.volume_value = vel
@@ -662,6 +686,10 @@ local function mm_stamp_note_append(seq, line, note)
   col.note_value = note
   col.instrument_value = song.selected_instrument_index - 1
   col.volume_value = math.max(1, math.min(127, math.floor(mm.loudness * 127 + 0.5)))
+  -- delay-column strum: each successive note on this line is nudged later in time, spacing
+  -- derived from BPM+LPB so it's a truly-recorded strum (not a block chord). Show the column.
+  col.delay_value = math.min(0xFF, (col_i - 1) * mm_strum_delay_step(maxcol))
+  if track.delay_column_visible == false then track.delay_column_visible = true end
   mm.rec_col = col_i + 1
   if mm.rec_col > maxcol then mm.rec_col = 1 end
 end
@@ -844,7 +872,7 @@ end
 -- LIVE strum: fire the chord's notes low-to-high with a small real-time delay between each,
 -- using one-shot timers, so you actually HEAR the strum (not a block chord). Voice 1 sounds now;
 -- the rest are scheduled a few ms apart. Each timer plays its note once and removes itself.
-local MM_STRUM_MS = 28
+-- (MM_STRUM_MS is declared up top, near mm_strum_delay_step.)
 local function mm_strum_live(notes)
   local order = mm_arp_order(notes)
   if #order == 0 then return end

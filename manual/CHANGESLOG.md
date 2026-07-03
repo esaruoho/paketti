@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Improvement: Music Mouse — recorded/stamped strums now use tempo-aware delay-column notes
+The arpeggiate/strum recorder (and the Strum arp-stamp) now writes delay-column values and turns the delay column on, so a recorded strum is a real strum in the pattern: the chord's notes sit on one line across note columns, each nudged later in time via the delay column. The spacing is computed from the song's BPM and LPB — one pattern line is 60000/(BPM×LPB) ms and the delay column spans that whole line as 00..FF, so each note is offset by the ~28 ms live-strum gap converted to delay units (clamped so the whole strum stays inside the line). Faster tempo → larger delay fraction, so it always reads as the same strum you hear. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
+
 ### 2026-07-03 - Improvement: Music Mouse — sound keys trigger a foreign sample instead of overwriting it
 If the selected instrument is NOT a Music Mouse instrument (any other loaded sample, recognised by instrument name), the sound keys (u / i / o / p, å, cycle) and the Bell/Sustain switch no longer regenerate a Music Mouse waveform over it — they now just punch-jazz/trigger that sample and leave it completely untouched. So you can point Music Mouse at any instrument and play it as-is. Music Mouse instruments still switch waveform as before, an empty instrument still auto-creates one on first press, and "Create New" always builds a fresh Music Mouse instrument. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 
