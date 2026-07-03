@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-04 - Fix: Music Mouse — refuse to record onto Master/Group/Send tracks
+Arming Record to Pattern (right-shift) or Record to Row on a Master, Group, or Send track now refuses and shows a status message ("can't Record … on the Master track — it has no note columns. Select a regular (sequencer) track to write notes.") instead of silently arming and writing nowhere. Those track types have no note columns, so recording there produced nothing — now you're told immediately rather than losing time writing into a track that can't hold notes.
+
+### 2026-07-04 - Improvement: Music Mouse — Strum spacing (ms) control
+Added a "Strum spacing" valuebox (1–250 ms) to the Music Mouse controls. It sets the milliseconds between successive strummed notes and drives BOTH the live audio strum AND the delay-column spacing written into the pattern when recording an Arpeggiate/Strum. Persisted across sessions.
+
 ### 2026-07-03 - Improvement: Music Mouse — adjustable grid pitch range (shrinks the grid, cuts dead positions)
 Added a "Grid Range" control (two octave valueboxes + a live note-name label, e.g. "C-3 .. C-6") in the Music Mouse control panel. The grid used to be a fixed 6-octave span; now you can narrow it — down to a single octave — and the whole grid physically shrinks (the play area is sized to the number of white keys), so there are far fewer "in-between" positions that snap to the same notes. The chosen range is saved and restored across close/reopen. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 

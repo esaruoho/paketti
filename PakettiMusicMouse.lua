@@ -825,10 +825,29 @@ end
 -- "Record to Pattern" (right-shift / button): the original first-class recording context.
 -- ON  -> show Pattern Editor, Edit Mode on, Follow Pattern on, START PLAYBACK, imprint at the playhead.
 -- OFF -> stop imprinting (leaves transport/edit/follow as they are).
+-- Only regular sequencer tracks can hold note data; Master/Group/Send tracks have
+-- no note columns, so recording there silently writes nowhere. Guard + tell the user.
+local function mm_track_writable_name(song)
+  if not song then return nil end
+  local t = song.selected_track.type
+  if t == renoise.Track.TRACK_TYPE_MASTER then return "Master" end
+  if t == renoise.Track.TRACK_TYPE_SEND   then return "Send" end
+  if t == renoise.Track.TRACK_TYPE_GROUP  then return "Group" end
+  return nil   -- nil = writable (sequencer track)
+end
+
 local function mm_set_record(on)
+  local song = renoise.song()
+  if on then
+    local blocked = mm_track_writable_name(song)
+    if blocked then
+      renoise.app():show_status("Music Mouse: can't Record to Pattern on the " .. blocked ..
+        " track — it has no note columns. Select a regular (sequencer) track to write notes.")
+      return
+    end
+  end
   mm.record = on
   mm.rec_col = 1; mm.rec_last_line = -1   -- fresh column cursor for the arpeggiate/strum recorder
-  local song = renoise.song()
   if on then
     pcall(function()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -861,8 +880,16 @@ end
 -- writes the current chord to the slider Row and advances by Edit Step — regardless of whether the
 -- transport is playing. No playback or follow is forced; it just writes to the row you point at.
 local function mm_set_rec_to_row(on)
-  mm.rec_to_row = on
   local song = renoise.song()
+  if on then
+    local blocked = mm_track_writable_name(song)
+    if blocked then
+      renoise.app():show_status("Music Mouse: can't Record to Row on the " .. blocked ..
+        " track — it has no note columns. Select a regular (sequencer) track to write notes.")
+      return
+    end
+  end
+  mm.rec_to_row = on
   if on and song then
     pcall(function()
       local trk = song.selected_track
