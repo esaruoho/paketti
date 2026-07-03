@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Improvement: Music Mouse — Show/Hide toggles moved to a minimal top bar; window shrinks to fit
+Reworked the Music Mouse layout so hiding sections actually reclaims the space instead of leaving an empty gap. The three toggles now live in a minimal top row (they read "Hide Pianos / Details / Rec to Row" when shown and flip to "Show …" when hidden), alongside Light/Dark, Keys/MIDI Map, Re-Init and Close. Hiding a section now rebuilds the dialog so the window resizes down to just the visible parts — hide everything and you get the bare "buttons on top, piano+grid below" view with no wasted space. State persists across close+reopen. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
+
 ### 2026-07-03 - Improvement: Music Mouse — Hide Rec to Row button
 Added a "Hide Rec to Row" button (next to Hide Pianos / Hide Details) that hides the entire vertical Record-to-Row slider column — the Rec to Row button, the Row readout, the slider, and the Top/¼/½/¾/End buttons — for an even more compact window. Like the other two hide toggles, the state is saved on close (and on toggle), so Music Mouse reopens with the Rec to Row area hidden if that's how you left it. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 

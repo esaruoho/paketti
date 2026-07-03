@@ -2181,6 +2181,112 @@ function mm_show_keys()
   renoise.app():show_custom_dialog("Music Mouse Keyboard Map", content)
 end
 
+-- Build the dialog body from the current mm.hide_* flags, and rebuild the whole dialog when
+-- a section is hidden/shown. Renoise custom dialogs only refit their window on explicit view
+-- SIZE changes (like the canvas resize), NOT on child visibility toggles — so simply hiding a
+-- column leaves a dead empty gap where it was. Rebuilding lays the window out fresh so it
+-- shrinks to just what's left: the minimal top button-bar + whatever sections are shown.
+local mm_build_content, mm_relayout
+
+mm_build_content = function()
+  mm_apply_geom()        -- size the grid canvas to the current Hide Pianos state
+
+  mm_canvas = vb:canvas{
+    width = MM_W, height = MM_H, mode = "plain",
+    render = mm_render, mouse_handler = mm_mouse_handler,
+    mouse_events = { "down", "up", "move", "drag", "exit" },
+  }
+  mm_pat_canvas = vb:canvas{
+    width = MM_PAT_W, height = MM_PAT_H, mode = "plain",
+    render = mm_pat_render, mouse_handler = mm_pat_mouse,
+    mouse_events = { "down", "up", "move", "drag", "exit" },
+  }
+
+  -- collapsible control panel + pattern editor
+  local details = vb:column{
+    id = "mm_details_col", spacing = 4, visible = not mm.hide_details,
+    mm_controls_column(vb),
+    vb:row{ spacing = 4,
+      vb:button{ text = "Gravity Play (;)", width = 150, notifier = mm_toggle_gravity_play },
+      vb:button{ text = "Clear Seeds (l)", width = 96, notifier = mm_clear_seeds },
+    },
+    vb:text{ text = "Pattern Editor - drag bars (a + 0-9 contour)", style = "strong" },
+    mm_pat_canvas,
+    vb:row{ spacing = 4,
+      vb:button{ text = "Len -", width = 44, notifier = function() mm_pat_length_delta(-1) end },
+      vb:button{ text = "Len +", width = 44, notifier = function() mm_pat_length_delta(1) end },
+      vb:text{ text = "Length", style = "strong" },
+      vb:switch{ width = 150, items = { "8", "16", "32", "64" }, value = 2,
+        notifier = function(i) if not mm_ui_busy then mm_pat_set_length(({ 8, 16, 32, 64 })[i]) end end },
+      vb:button{ text = "Reset", width = 60, notifier = mm_pat_reset },
+    },
+  }
+
+  -- vertical Record-to-Row slider column
+  local recrow = vb:column{ id = "mm_recrow_col", spacing = 4, visible = not mm.hide_recrow,
+    vb:button{ id = "mm_rectorow_btn", width = 90,
+      text = mm.rec_to_row and "● Rec to Row" or "Rec to Row",
+      color = mm.rec_to_row and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 },
+      tooltip = "Record to Row: punch i/o/p/å or click the grid to write the chord to this Row; Edit Step advances it. Playback is ignored.",
+      notifier = function()
+        mm_set_rec_to_row(not mm.rec_to_row)
+        if vb.views["mm_rectorow_btn"] then
+          local b = vb.views["mm_rectorow_btn"]
+          b.text = mm.rec_to_row and "● Rec to Row" or "Rec to Row"
+          b.color = mm.rec_to_row and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 }
+        end
+      end },
+    vb:text{ id = "mm_recrow_text", text = string.format("Row %d (%02X)", mm.rec_row + 1, mm.rec_row), style = "strong", align = "center", width = 90 },
+    vb:row{ spacing = 4,
+      vb:slider{ id = "mm_recrow_slider", width = 24, height = 512,
+        min = 0, max = math.max(1, mm_recrow_max()), value = math.max(1, mm_recrow_max()) - mm.rec_row,
+        tooltip = "Record row (top = row 1, like a tracker). While recording+stopped, chords write here; Edit Step advances it.",
+        notifier = function(v) if mm_ui_busy then return end mm_set_rec_row(mm_recrow_max() - math.floor(v + 0.5)) end },
+      vb:column{ spacing = 3,
+        vb:button{ text = "Top", width = 34, tooltip = "Row 1 (top)", notifier = function() mm_set_rec_row(0) end },
+        vb:button{ text = "1/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.25)) end },
+        vb:button{ text = "2/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.50)) end },
+        vb:button{ text = "3/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.75)) end },
+        vb:button{ text = "End", width = 34, notifier = function() mm_set_rec_row(mm_recrow_len() - 1) end },
+      },
+    },
+  }
+
+  -- minimal top bar: the three Show/Hide toggles (the magic — always visible so you can bring
+  -- any section back from a bare grid) plus a few essentials. Each toggle rebuilds the dialog.
+  local function hidebtn(id, label, flag, toggle)
+    return vb:button{ id = id, text = label, width = 120,
+      color = flag and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
+      notifier = function() toggle(); mm_save_prefs(); mm_relayout() end }
+  end
+  local topbar = vb:row{ spacing = 4,
+    hidebtn("mm_hidepianos_btn",  mm.hide_pianos  and "Show Pianos"     or "Hide Pianos",     mm.hide_pianos,  function() mm.hide_pianos  = not mm.hide_pianos  end),
+    hidebtn("mm_hidedetails_btn", mm.hide_details and "Show Details"    or "Hide Details",    mm.hide_details, function() mm.hide_details = not mm.hide_details end),
+    hidebtn("mm_hiderecrow_btn",  mm.hide_recrow  and "Show Rec to Row" or "Hide Rec to Row", mm.hide_recrow,  function() mm.hide_recrow  = not mm.hide_recrow  end),
+    vb:space{ width = 12 },
+    vb:button{ text = "Light/Dark", width = 74, notifier = mm_toggle_dark },
+    vb:button{ text = "Keys / MIDI Map...", width = 120, notifier = mm_show_keys },
+    vb:button{ text = "Re-Init", width = 56, notifier = mm_reinit },
+    vb:button{ text = "Close", width = 52, notifier = pakettiMusicMouseClose },
+  }
+
+  -- body: whichever sections are visible, left-to-right, ending in the grid
+  return vb:column{ margin = 8, spacing = 6,
+    topbar,
+    vb:row{ spacing = 10, details, recrow, vb:column{ mm_canvas } },
+  }
+end
+
+-- rebuild the dialog window so it sizes to the currently-visible sections (see note above)
+mm_relayout = function()
+  if not (dialog and dialog.visible) then return end
+  dialog:close(); dialog = nil
+  vb = renoise.ViewBuilder()
+  local content = mm_build_content()
+  dialog = renoise.app():show_custom_dialog("Music Mouse - An Intelligent Instrument - Laurie Spiegel 1986", content, mm_keyhandler)
+  mm_sync_recrow_ui()
+end
+
 function pakettiMusicMouseShow()
   if dialog and dialog.visible then
     pakettiMusicMouseClose()
@@ -2195,125 +2301,7 @@ function pakettiMusicMouseShow()
   mm.deg_x = mm_frac_to_degree(mm.mx)
   mm.deg_y = mm_frac_to_degree(1 - mm.my)
 
-  mm_apply_geom()        -- size the canvas to match the current Hide Pianos state
-
-  mm_canvas = vb:canvas{
-    width = MM_W,
-    height = MM_H,
-    mode = "plain",
-    render = mm_render,
-    mouse_handler = mm_mouse_handler,
-    mouse_events = { "down", "up", "move", "drag", "exit" },
-  }
-
-  mm_pat_canvas = vb:canvas{
-    width = MM_PAT_W,
-    height = MM_PAT_H,
-    mode = "plain",
-    render = mm_pat_render,
-    mouse_handler = mm_pat_mouse,
-    mouse_events = { "down", "up", "move", "drag", "exit" },
-  }
-
-  -- collapsible "details" block (control panel + pattern editor). The bottom toolbar stays
-  -- visible so Hide details can be un-toggled and the window shrinks to just grid + pianos.
-  local details = vb:column{
-    id = "mm_details_col",
-    spacing = 4,
-    visible = not mm.hide_details,
-    mm_controls_column(vb),
-    vb:row{
-      spacing = 4,
-      vb:button{ text = "Gravity Play (;)", width = 150, notifier = mm_toggle_gravity_play },
-      vb:button{ text = "Clear Seeds (l)", width = 96, notifier = mm_clear_seeds },
-    },
-    vb:text{ text = "Pattern Editor - drag bars (a + 0-9 contour)", style = "strong" },
-    mm_pat_canvas,
-    vb:row{
-      spacing = 4,
-      vb:button{ text = "Len -", width = 44, notifier = function() mm_pat_length_delta(-1) end },
-      vb:button{ text = "Len +", width = 44, notifier = function() mm_pat_length_delta(1) end },
-      vb:text{ text = "Length", style = "strong" },
-      vb:switch{ width = 150, items = { "8", "16", "32", "64" }, value = 2,
-        notifier = function(i) if not mm_ui_busy then mm_pat_set_length(({ 8, 16, 32, 64 })[i]) end end },
-      vb:button{ text = "Reset", width = 60, notifier = mm_pat_reset },
-    },
-  }
-
-  local content = vb:row{
-    margin = 8, spacing = 10,
-    vb:column{
-      spacing = 4,
-      details,
-      vb:row{
-        spacing = 4,
-        vb:button{ text = "Keys / MIDI Map...", width = 116, notifier = mm_show_keys },
-        vb:button{ text = "Re-Init", width = 56, notifier = mm_reinit },
-        vb:button{ text = "Light/Dark", width = 66, notifier = mm_toggle_dark },
-        vb:button{ text = "Close", width = 52, notifier = pakettiMusicMouseClose },
-      },
-      vb:row{
-        spacing = 4,
-        vb:button{ id = "mm_hidepianos_btn", text = "Hide Pianos", width = 145,
-          color = mm.hide_pianos and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
-          notifier = function()
-            mm.hide_pianos = not mm.hide_pianos
-            mm_apply_geom()
-            if mm_canvas then mm_canvas.size = { width = MM_W, height = MM_H } end
-            if vb.views["mm_hidepianos_btn"] then vb.views["mm_hidepianos_btn"].color = mm.hide_pianos and { 0x50, 0x54, 0x66 } or { 0, 0, 0 } end
-            if mm_canvas then mm_canvas:update() end
-            mm_save_prefs()
-          end },
-        vb:button{ id = "mm_hidedetails_btn", text = "Hide Details", width = 145,
-          color = mm.hide_details and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
-          notifier = function()
-            mm.hide_details = not mm.hide_details
-            if vb.views["mm_hidedetails_btn"] then vb.views["mm_hidedetails_btn"].color = mm.hide_details and { 0x50, 0x54, 0x66 } or { 0, 0, 0 } end
-            if vb.views["mm_details_col"] then vb.views["mm_details_col"].visible = not mm.hide_details end
-            mm_save_prefs()
-          end },
-        vb:button{ id = "mm_hiderecrow_btn", text = "Hide Rec to Row", width = 145,
-          color = mm.hide_recrow and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
-          notifier = function()
-            mm.hide_recrow = not mm.hide_recrow
-            if vb.views["mm_hiderecrow_btn"] then vb.views["mm_hiderecrow_btn"].color = mm.hide_recrow and { 0x50, 0x54, 0x66 } or { 0, 0, 0 } end
-            if vb.views["mm_recrow_col"] then vb.views["mm_recrow_col"].visible = not mm.hide_recrow end
-            mm_save_prefs()
-          end },
-      },
-    },
-    -- vertical Row slider (record-to-row): spans 0..pattern length; drag to a row, or hit a quarter.
-    -- While recording + STOPPED, triggers write to this row and advance by Edit Step (0 = overwrite).
-    vb:column{ id = "mm_recrow_col", spacing = 4, visible = not mm.hide_recrow,
-      vb:button{ id = "mm_rectorow_btn", width = 90,
-        text = mm.rec_to_row and "● Rec to Row" or "Rec to Row",
-        color = mm.rec_to_row and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 },
-        tooltip = "Record to Row: punch i/o/p/å or click the grid to write the chord to this Row; Edit Step advances it. Playback is ignored.",
-        notifier = function()
-          mm_set_rec_to_row(not mm.rec_to_row)
-          if vb.views["mm_rectorow_btn"] then
-            local b = vb.views["mm_rectorow_btn"]
-            b.text = mm.rec_to_row and "● Rec to Row" or "Rec to Row"
-            b.color = mm.rec_to_row and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 }
-          end
-        end },
-      vb:text{ id = "mm_recrow_text", text = string.format("Row %d (%02X)", mm.rec_row + 1, mm.rec_row), style = "strong", align = "center", width = 90 },
-      vb:row{ spacing = 4,
-        vb:slider{ id = "mm_recrow_slider", width = 24, height = 512,
-          min = 0, max = math.max(1, mm_recrow_max()), value = math.max(1, mm_recrow_max()) - mm.rec_row,
-          tooltip = "Record row (top = row 1, like a tracker). While recording+stopped, chords write here; Edit Step advances it.",
-          notifier = function(v) if mm_ui_busy then return end mm_set_rec_row(mm_recrow_max() - math.floor(v + 0.5)) end },
-        vb:column{ spacing = 3,
-          vb:button{ text = "Top", width = 34, tooltip = "Row 1 (top)", notifier = function() mm_set_rec_row(0) end },
-          vb:button{ text = "1/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.25)) end },
-          vb:button{ text = "2/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.50)) end },
-          vb:button{ text = "3/4", width = 34, notifier = function() mm_set_rec_row(math.floor(mm_recrow_len() * 0.75)) end },
-          vb:button{ text = "End", width = 34, notifier = function() mm_set_rec_row(mm_recrow_len() - 1) end },
-        },
-      },
-    },
-    vb:column{ mm_canvas },
-  }
+  local content = mm_build_content()
 
   mm_sync_recrow_ui()
   dialog = renoise.app():show_custom_dialog("Music Mouse - An Intelligent Instrument - Laurie Spiegel 1986", content, mm_keyhandler)
