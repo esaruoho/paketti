@@ -111,6 +111,7 @@ local mm = {
   dark        = false,        -- theme: false = authentic light Music Mouse, true = dark
   hide_pianos = false,        -- draw only the woven grid (skip the 4 edge keyboards)
   hide_details = false,       -- collapse the control panel (grid + pianos only) for a narrow window
+  hide_recrow = false,        -- hide the vertical "Rec to Row" slider column entirely
   preview_wave = false,       -- when true, changing the waveform re-strikes the chord to preview it (default: silent)
 
   -- runtime
@@ -163,6 +164,7 @@ local function mm_load_prefs()
   if preferences.pakettiMusicMouseHidePianos then
     mm.hide_pianos  = preferences.pakettiMusicMouseHidePianos.value
     mm.hide_details = preferences.pakettiMusicMouseHideDetails.value
+    mm.hide_recrow  = preferences.pakettiMusicMouseHideRecRow.value
     mm.preview_wave = preferences.pakettiMusicMousePreviewWave.value
   end
 end
@@ -184,6 +186,7 @@ local function mm_save_prefs()
   if preferences.pakettiMusicMouseHidePianos then
     preferences.pakettiMusicMouseHidePianos.value  = mm.hide_pianos
     preferences.pakettiMusicMouseHideDetails.value = mm.hide_details
+    preferences.pakettiMusicMouseHideRecRow.value  = mm.hide_recrow
     preferences.pakettiMusicMousePreviewWave.value = mm.preview_wave
   end
   preferences:save_as("preferences.xml")
@@ -2269,11 +2272,19 @@ function pakettiMusicMouseShow()
             if vb.views["mm_details_col"] then vb.views["mm_details_col"].visible = not mm.hide_details end
             mm_save_prefs()
           end },
+        vb:button{ id = "mm_hiderecrow_btn", text = "Hide Rec to Row", width = 145,
+          color = mm.hide_recrow and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
+          notifier = function()
+            mm.hide_recrow = not mm.hide_recrow
+            if vb.views["mm_hiderecrow_btn"] then vb.views["mm_hiderecrow_btn"].color = mm.hide_recrow and { 0x50, 0x54, 0x66 } or { 0, 0, 0 } end
+            if vb.views["mm_recrow_col"] then vb.views["mm_recrow_col"].visible = not mm.hide_recrow end
+            mm_save_prefs()
+          end },
       },
     },
     -- vertical Row slider (record-to-row): spans 0..pattern length; drag to a row, or hit a quarter.
     -- While recording + STOPPED, triggers write to this row and advance by Edit Step (0 = overwrite).
-    vb:column{ spacing = 4,
+    vb:column{ id = "mm_recrow_col", spacing = 4, visible = not mm.hide_recrow,
       vb:button{ id = "mm_rectorow_btn", width = 90,
         text = mm.rec_to_row and "● Rec to Row" or "Rec to Row",
         color = mm.rec_to_row and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 },

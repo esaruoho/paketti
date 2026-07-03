@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Improvement: Music Mouse — Hide Rec to Row button
+Added a "Hide Rec to Row" button (next to Hide Pianos / Hide Details) that hides the entire vertical Record-to-Row slider column — the Rec to Row button, the Row readout, the slider, and the Top/¼/½/¾/End buttons — for an even more compact window. Like the other two hide toggles, the state is saved on close (and on toggle), so Music Mouse reopens with the Rec to Row area hidden if that's how you left it. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
+
 ### 2026-07-03 - Improvement: Music Mouse — Hide Pianos now shrinks the widget, layout + waveform preview persist
 Hitting "Hide Pianos" in the Music Mouse dialog no longer just blanks the four edge keyboards — it now drops the 40px keyboard surround entirely and shrinks the canvas by 80px in each dimension, so the play grid takes genuinely less space (the optimized, narrow interface). "Hide Pianos", "Hide Details", and the new waveform "Preview" toggle are now saved on close (and on toggle), so Music Mouse reopens in whatever mode you left it in. Also fixed: changing the Waveform dropdown while a chord is held no longer re-strikes the chord — it stays silent by default so you can tweak the timbre while composing. A new "Preview" checkbox (Waveform section, "re-strike chord when changing waveform") re-enables the old behavior when you want to audition timbres. The i/o/p/u sound keys still strike as always — that's core Music Mouse. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 

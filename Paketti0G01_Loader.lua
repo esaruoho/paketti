@@ -99,6 +99,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMusicMouseFav3 = "Saw",
   pakettiMusicMouseHidePianos = false,
   pakettiMusicMouseHideDetails = false,
+  pakettiMusicMouseHideRecRow = false,
   pakettiMusicMousePreviewWave = false,
   pakettiCanvasFontStyle="8bit",  -- "8bit" (Asteroids-style) or "monospace"; mirrors to every canvas dialog
   paketti_auto_disk_browser_mode = 0,  -- 0=Do Nothing, 1=Hide, 2=Show
