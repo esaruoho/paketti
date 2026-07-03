@@ -115,6 +115,7 @@ local mm = {
   preview_wave = false,       -- when true, changing the waveform re-strikes the chord to preview it (default: silent)
   disp_lo     = 24,           -- grid low note (Renoise value); the display/pitch range is disp_lo..disp_hi
   disp_hi     = 96,           -- grid high note; narrow this to shrink the grid + reduce dead positions
+  strum_ms    = 28,           -- ms between successive strummed notes (live audio AND recorded delay spacing)
 
   -- runtime
   mouse_active = true,        -- delete key disconnects
@@ -176,6 +177,10 @@ local function mm_load_prefs()
     local hi = preferences.pakettiMusicMouseDispHi.value
     if lo and hi and hi - lo >= 12 then mm.disp_lo, mm.disp_hi = lo, hi end
   end
+  if preferences.pakettiMusicMouseStrumMs then
+    local s = preferences.pakettiMusicMouseStrumMs.value
+    if s and s >= 1 then mm.strum_ms = s end
+  end
 end
 
 local function mm_save_prefs()
@@ -201,6 +206,9 @@ local function mm_save_prefs()
   if preferences.pakettiMusicMouseDispLo then
     preferences.pakettiMusicMouseDispLo.value = mm.disp_lo
     preferences.pakettiMusicMouseDispHi.value = mm.disp_hi
+  end
+  if preferences.pakettiMusicMouseStrumMs then
+    preferences.pakettiMusicMouseStrumMs.value = mm.strum_ms
   end
   preferences:save_as("preferences.xml")
 end
@@ -604,7 +612,7 @@ local function mm_strum_delay_step(voices)
     local bpm, lpb = song.transport.bpm, song.transport.lpb
     if bpm and bpm > 0 and lpb and lpb > 0 then line_ms = 60000 / (bpm * lpb) end
   end
-  local step = math.floor((MM_STRUM_MS / line_ms) * 256 + 0.5)
+  local step = math.floor(((mm.strum_ms or MM_STRUM_MS) / line_ms) * 256 + 0.5)
   if step < 1 then step = 1 end
   local span = math.max(1, (voices or 1) - 1)
   local maxstep = math.floor(0xE0 / span)              -- keep the last note within ~87% of the line
@@ -926,7 +934,7 @@ local function mm_strum_live(notes)
         if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
         if dialog and dialog.visible then mm_play_one(vi, nt) end
       end
-      renoise.tool():add_timer(fn, MM_STRUM_MS * (i - 1))
+      renoise.tool():add_timer(fn, (mm.strum_ms or MM_STRUM_MS) * (i - 1))
     end
   end
 end
@@ -1657,6 +1665,10 @@ local function mm_controls_column(vbx)
       vbx:popup{ id = "mm_arp_popup", width = 96, items = MM_ARP_ITEMS, value = mm_arp_index(),
         tooltip = "Arpeggiate direction: Up / Down / Scatter (random) / Strum (delay-staggered chord)",
         notifier = function(i) if mm_ui_busy then return end mm.arp_mode = MM_ARP_ITEMS[i]; mm.seq_i = 0 end } },
+    vbx:row{ spacing = 4, lbl("Strum spacing", "Milliseconds between successive strummed notes. Drives BOTH the live audio strum AND the delay-column spacing written into the pattern when recording."),
+      vbx:valuebox{ id = "mm_strum_box", width = 60, min = 1, max = 250, value = mm.strum_ms,
+        notifier = function(v) if mm_ui_busy then return end mm.strum_ms = v; mm_save_prefs() end },
+      hint("ms — live strum + recorded delays") },
     vbx:row{ spacing = 4, lbl("Tuning"),
       vbx:popup{ id = "mm_tuning_popup", width = 250,   -- matches Treatment row: Chord(150)+gap(4)+Arp(96)
         items = (PakettiMicrotonalTuningNames and PakettiMicrotonalTuningNames()) or { "12-TET" },
