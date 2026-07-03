@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Improvement: Configure Launch App Selection now in Main Menu:Options
+Added an always-present top-level menu entry `Main Menu:Options:Configure Launch App Selection...` so the app-launcher configuration is easy to find without hunting through `Tools:Paketti:Launch App`. It opens the same dialog as before and is present regardless of whether any apps have been configured yet. The existing keybinding `Global:Paketti:Configure Launch App Selection...` and the Tools submenu entry are unchanged.
+
 ### 2026-07-03 - Improvement: Select First/Second Half of Sample Buffer now toggles
 Both "Select First Half of Sample Buffer" and "Select Second Half of Sample Buffer" are now toggles. Pressing "Select Second Half" again while the second half is already selected flips the selection to the first half; pressing it once more flips back to the second half. "Select First Half" behaves the same way in reverse. Each action still prefers its named half on the first press, and only flips once that half is exactly the current selection. Keybindings: `Sample Editor:Paketti:Select First Half of Sample Buffer`, `Sample Editor:Paketti:Select Second Half of Sample Buffer`.
 

@@ -1058,6 +1058,10 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Configure Launch App Selection...",invoke=pakettiAppSelectionDialog}
 
+-- Always-present, top-level discoverability entry (asked for so it's easy to find under Options
+-- without hunting through Tools:Paketti:Launch App).
+PakettiAddMenuEntry{name="Main Menu:Options:Configure Launch App Selection...",invoke=pakettiAppSelectionDialog}
+
 function appSelectionUpdateMenuEntries()
   if renoise.song() == nil then return end
   appSelectionRemoveMenuEntries()
