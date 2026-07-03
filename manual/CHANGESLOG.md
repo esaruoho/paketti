@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Fix: HyperEdit Mode and Sculpt dropdowns now align
+The "Mode" and "Sculpt" popups on the first two rows of the HyperEdit dialog now line up vertically. The "Mode" label was 36px wide while "Sculpt" was 44px, so the two popups started at different x positions; both labels are now 44px so the dropdowns align.
+
 ### 2026-07-03 - Improvement: Launch App Selection dialog can launch/foreground each app
 Each app slot row in the App Selection dialog now has a "Launch" button that opens or brings the configured app to the foreground (no sample sent). The app-path shown on the right is now itself a clickable button — clicking the path launches/foregrounds that app too. Both honor the app currently configured in that slot and show a status message if the slot is empty. Uses the existing cross-platform `appSelectionLaunchApp` (open -a on macOS, start on Windows, exec on Linux).
 

@@ -4202,7 +4202,7 @@ function PakettiHyperEditCreateDialog()
   local dialog_content = vb:column {
     -- Global controls
     vb:row {
-      vb:text { text = "Mode", style="strong", font="bold", width = 36 },
+      vb:text { text = "Mode", style="strong", font="bold", width = 44 },  -- match "Sculpt" label width so the two popups line up
       vb:popup {
         id = "hyperedit_mode_popup",
         items = {"Effect Parameters", "Steppers"},
