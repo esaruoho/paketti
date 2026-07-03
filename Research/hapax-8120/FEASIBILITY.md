@@ -57,18 +57,22 @@ So there is nothing to send. Per the docs, the only way to change what a Hapax p
 
 ## The probe (already built — ships in `PakettiEightOneTwenty.lua`)
 
-Menu: **Tools ▸ Paketti ▸ !Preferences ▸ Debug ▸ MidiControllers ▸ Hapax Probe — Open / Test grid LEDs / Close**
-Keybindings: `Global:Paketti:Paketti Groovebox 8120 Hapax Probe Open` / `Close` / `Test LEDs`.
+Menu: **Tools ▸ Paketti ▸ !Preferences ▸ Debug ▸ MidiControllers ▸ Hapax Probe — Open Window / Test grid LEDs / Close**
+Keybindings: `Global:Paketti:Paketti Groovebox 8120 Hapax Probe Open` / `Close` / `Test LEDs` / `Hapax Probe Window`.
 
-- **Open** — prints the full MIDI in/out inventory + every Hapax-matched port name to the terminal, opens the first matched input; every pad press / encoder turn prints a decoded `HAPAX IN: NoteOn ch=… data1=… data2=…` line. This gives us the port names + the pad/encoder map.
-- **Test grid LEDs** — the empirical answer to B: blasts Note On (all 128 notes ch1), then Note 36 across all 16 channels, then CC 0..119 ch1, while Josh watches the grid. Per the manual, **expect nothing to light**. If anything does, we note which pad + which pass and reassess.
-- **Close** — sends note-offs across the range (in case anything lit) and closes the ports.
+**Everything runs in one on-screen window — no scripting terminal needed** (a tester should never have to flip a hidden `config.xml` `<true>` to see console output). The window has a live, **copyable** multiline log (click in it, Cmd/Ctrl+A, Cmd/Ctrl+C) plus three numbered buttons:
+
+- **1) Open probe** — logs the full MIDI in/out inventory + every Hapax-matched port name into the window, opens the first matched input; every pad press / encoder turn appends a decoded `HAPAX IN: NoteOn ch=… data1=… data2=…` line. This gives us the port names + the pad/encoder map. (Also mirrored to the terminal for me.)
+- **2) Test grid LEDs** — the empirical answer to B: blasts Note On (all 128 notes ch1), then Note 36 across all 16 channels, then CC 0..119 ch1, while Josh watches the grid. Per the manual, **expect nothing to light**. If anything does, we note which pad + which pass and reassess.
+- **3) Close probe** — sends note-offs across the range (in case anything lit) and closes the ports.
+- **Clear log** — empties the window.
 
 ### Test protocol for Josh
 1. Hapax USB DEVICE → Mac. Reload Paketti.
-2. Run **Hapax Probe — Open**. Read the terminal: copy the matched port names.
-3. Press a few pads / turn the 8 encoders. Copy the `HAPAX IN:` lines — that's the map.
-4. Run **Hapax Probe — Test grid LEDs**. Watch the grid. Report: did **any** pad/step light? (Expected: no.)
-5. Run **Hapax Probe — Close**.
+2. Open **Hapax Probe — Open Window** (or the menu's Open Window entry). The dialog appears.
+3. Click **1) Open probe**. The matched port names appear in the window.
+4. Press a few pads / turn the 8 encoders. The `HAPAX IN:` lines fill in — that's the map.
+5. Click **2) Test grid LEDs**. Watch the grid. Note: did **any** pad/step light? (Expected: no.)
+6. Click **3) Close probe**, then select-all + copy the whole log.
 
-Send me the terminal dump + the "did anything light?" answer and I'll tell you exactly what a Hapax mode could and couldn't do.
+Paste me the log + the "did anything light?" answer and I'll tell you exactly what a Hapax mode could and couldn't do.
