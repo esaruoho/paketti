@@ -111,6 +111,7 @@ local mm = {
   dark        = false,        -- theme: false = authentic light Music Mouse, true = dark
   hide_pianos = false,        -- draw only the woven grid (skip the 4 edge keyboards)
   hide_details = false,       -- collapse the control panel (grid + pianos only) for a narrow window
+  preview_wave = false,       -- when true, changing the waveform re-strikes the chord to preview it (default: silent)
 
   -- runtime
   mouse_active = true,        -- delete key disconnects
@@ -158,6 +159,12 @@ local function mm_load_prefs()
       preferences.pakettiMusicMouseFav3.value or "Saw",
     }
   end
+  -- window layout + waveform-preview toggle (restore the mode you closed in)
+  if preferences.pakettiMusicMouseHidePianos then
+    mm.hide_pianos  = preferences.pakettiMusicMouseHidePianos.value
+    mm.hide_details = preferences.pakettiMusicMouseHideDetails.value
+    mm.preview_wave = preferences.pakettiMusicMousePreviewWave.value
+  end
 end
 
 local function mm_save_prefs()
@@ -174,14 +181,34 @@ local function mm_save_prefs()
     preferences.pakettiMusicMouseFav2.value = mm.fav_waves[2] or "Square"
     preferences.pakettiMusicMouseFav3.value = mm.fav_waves[3] or "Saw"
   end
+  if preferences.pakettiMusicMouseHidePianos then
+    preferences.pakettiMusicMouseHidePianos.value  = mm.hide_pianos
+    preferences.pakettiMusicMouseHideDetails.value = mm.hide_details
+    preferences.pakettiMusicMousePreviewWave.value = mm.preview_wave
+  end
   preferences:save_as("preferences.xml")
 end
 
--- canvas geometry
-local MM_W, MM_H = 660, 660
+-- canvas geometry (mutable: the widget shrinks when the pianos are hidden)
+local MM_FULL = 660                   -- full canvas edge length (grid + the 4 edge keyboards)
 local EDGE = 40                       -- thickness of the edge piano keyboards
+local MM_HIDDEN_MARGIN = 2            -- thin frame margin that replaces the surround when hidden
+local MM_W, MM_H = MM_FULL, MM_FULL
 local PLAY_X0, PLAY_Y0 = EDGE, EDGE
 local PLAY_X1, PLAY_Y1 = MM_W - EDGE, MM_H - EDGE
+
+-- Recompute canvas + play-area geometry from mm.hide_pianos. Hiding the pianos drops the
+-- 40px keyboard surround on all four sides entirely, so the whole widget is 80px narrower
+-- and 80px shorter — the play grid itself is unchanged, it just stops wasting space on the
+-- (now hidden) keyboards. Call this whenever hide_pianos flips, then resize mm_canvas.
+local function mm_apply_geom()
+  local edge = mm.hide_pianos and MM_HIDDEN_MARGIN or EDGE
+  local play = MM_FULL - 2 * EDGE            -- play area is constant (580) regardless of mode
+  MM_W = play + 2 * edge
+  MM_H = play + 2 * edge
+  PLAY_X0, PLAY_Y0 = edge, edge
+  PLAY_X1, PLAY_Y1 = MM_W - edge, MM_H - edge
+end
 
 -- chromatic display range (the piano keyboards span this; input is quantized to the scale within it)
 local DISPLAY_LO, DISPLAY_HI = 24, 96         -- C-1 .. C-7 (Renoise note values), 6 octaves
@@ -1357,15 +1384,20 @@ local function mm_sync_wave_ui()
   mm_ui_busy = false
 end
 
-local function mm_set_waveform(shape)
+-- from_ui = true when this came from the details-panel Waveform dropdown (not a sound key).
+-- Sound keys (u/i/o/p, å, cycle) always re-strike — that's core Music Mouse. The dropdown
+-- stays SILENT unless the "Preview" checkbox is on, so tweaking the timbre while composing
+-- doesn't blast the held chord.
+local function mm_set_waveform(shape, from_ui)
   local changed = (shape ~= mm.waveform) or not mm_current_is_mm_instrument()
   mm.waveform = shape           -- mm.bell is left untouched: Bell stays Bell, Sustain stays Sustain
   mm_sync_wave_ui()
   if changed then mm_apply_waveform() end
-  -- MM behavior: pressing a sound key re-strikes the current chord with the new/same timbre
-  mm_retrigger()
-  -- In Arpeggiate mode, the sound key also writes the arpeggio into the pattern (arpeggio button)
-  if mm.treatment == 2 then mm_stamp_arpeggio() end
+  if (not from_ui) or mm.preview_wave then
+    mm_retrigger()              -- re-strike the current chord with the new/same timbre
+    -- In Arpeggiate mode, the sound key also writes the arpeggio into the pattern
+    if mm.treatment == 2 then mm_stamp_arpeggio() end
+  end
   if mm_canvas then mm_canvas:update() end
 end
 
@@ -1552,11 +1584,15 @@ local function mm_controls_column(vbx)
     -- Sound: waveform + Bell/Sustain mode + Create New, all on one aligned row
     vbx:row{ spacing = 4, lbl("Waveform"),
       vbx:popup{ id = "mm_wave_popup", width = 150, items = MM_WAVEFORMS, value = mm_wave_index_value(),
-        notifier = function(i) if not mm_ui_busy then mm_set_waveform(MM_WAVEFORMS[i]) end end },
+        notifier = function(i) if not mm_ui_busy then mm_set_waveform(MM_WAVEFORMS[i], true) end end },
       vbx:switch{ id = "mm_mode_switch", width = 118, items = { "Sustain", "Bell" }, value = (mm.bell and 2 or 1),
         notifier = function(i) if not mm_ui_busy then mm_set_bell(i == 2) end end },
       vbx:button{ text = "Create New", width = 66, tooltip = "Generate a fresh Pakettified Music Mouse instrument",
         notifier = pakettiMusicMouseGenerateInstrument } },
+    vbx:row{ spacing = 4, lbl("Preview", "When on, changing the Waveform dropdown re-strikes the held chord so you hear it. Off (default) = silent while you tweak the timbre."),
+      vbx:checkbox{ id = "mm_previewwave_check", value = mm.preview_wave,
+        notifier = function(b) if mm_ui_busy then return end mm.preview_wave = b; mm_save_prefs() end },
+      vbx:text{ text = "re-strike chord when changing waveform" } },
     vbx:row{ spacing = 4, lbl("Favorites", "The 3 waveforms punched by i / o / p (saved). å = current; shift-i = round-robin."),
       vbx:popup{ id = "mm_fav1_popup", width = 82, items = MM_WAVEFORMS, value = mm_wave_idx(mm.fav_waves[1]),
         tooltip = "i", notifier = function(i) if mm_ui_busy then return end mm.fav_waves[1] = MM_WAVEFORMS[i]; mm_save_prefs() end },
@@ -2156,6 +2192,8 @@ function pakettiMusicMouseShow()
   mm.deg_x = mm_frac_to_degree(mm.mx)
   mm.deg_y = mm_frac_to_degree(1 - mm.my)
 
+  mm_apply_geom()        -- size the canvas to match the current Hide Pianos state
+
   mm_canvas = vb:canvas{
     width = MM_W,
     height = MM_H,
@@ -2217,8 +2255,11 @@ function pakettiMusicMouseShow()
           color = mm.hide_pianos and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
           notifier = function()
             mm.hide_pianos = not mm.hide_pianos
+            mm_apply_geom()
+            if mm_canvas then mm_canvas.size = { width = MM_W, height = MM_H } end
             if vb.views["mm_hidepianos_btn"] then vb.views["mm_hidepianos_btn"].color = mm.hide_pianos and { 0x50, 0x54, 0x66 } or { 0, 0, 0 } end
             if mm_canvas then mm_canvas:update() end
+            mm_save_prefs()
           end },
         vb:button{ id = "mm_hidedetails_btn", text = "Hide Details", width = 145,
           color = mm.hide_details and { 0x50, 0x54, 0x66 } or { 0, 0, 0 },
@@ -2226,6 +2267,7 @@ function pakettiMusicMouseShow()
             mm.hide_details = not mm.hide_details
             if vb.views["mm_hidedetails_btn"] then vb.views["mm_hidedetails_btn"].color = mm.hide_details and { 0x50, 0x54, 0x66 } or { 0, 0, 0 } end
             if vb.views["mm_details_col"] then vb.views["mm_details_col"].visible = not mm.hide_details end
+            mm_save_prefs()
           end },
       },
     },
