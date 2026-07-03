@@ -4536,7 +4536,8 @@ function PakettiHyperEditCreateDialog()
       end
     },
     vb:text { text = "|", style = "strong", font = "bold" },
-    vb:text { text = "ramp", style = "strong", font = "bold" },
+    vb:text { text = "ramp", style = "strong", font = "bold",
+      tooltip = "Ramp speed for HOLD SCULPT: milliseconds between each automatic pass while you hold the sculpt down (and the transport is stopped). This is the tick that keeps a Sculpt REL value MOVING on its own — lower = faster ramp, higher = slower. It sets the pace of the sweep, not its shape. Applies on the next hold." },
     vb:valuebox {
       id = "sculpt_ramp_ms",
       min = 20, max = 2000, value = sculpt_ramp_ms, width = 72,
