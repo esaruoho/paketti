@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-03 - Improvement: Launch App Selection dialog buttons are MIDI-learnable by clicking (cmd-M)
+The buttons in the App Selection & Smart Folders / Backup Folders dialog are now directly MIDI-mappable using Renoise's MIDI learn mode, exactly like Groovebox 8120. Turn on MIDI Mapping learn mode (cmd-M), click a button in the dialog — "Send Selected Sample to App", "Send Sample Range to App", "Save Selected Sample to Folder", or "Save All Samples to Folder" — then press a MIDI key/pad, and that control is bound. The Send buttons use new stable per-slot mappings (`Paketti:Send Selected Sample to App Slot 1`…`6` and `Paketti:Send Sample Range to App Slot 1`…`6`) that fire the app currently configured in that slot, so re-Browsing a different app keeps your mapping working. The Save buttons reuse the existing `Paketti:Save Sample to Smart/Backup Folder 1`…`3` and `Paketti:Save All Samples to Smart/Backup Folder 1`…`3` mappings. MIDI Mappings: `Paketti:Send Selected Sample to App Slot 1-6`, `Paketti:Send Sample Range to App Slot 1-6`, `Paketti:Save Sample to Smart/Backup Folder 1-3`, `Paketti:Save All Samples to Smart/Backup Folder 1-3`.
+
 ### 2026-07-03 - Improvement: Configure Launch App Selection now in Main Menu:Options
 Added an always-present top-level menu entry `Main Menu:Options:Configure Launch App Selection...` so the app-launcher configuration is easy to find without hunting through `Tools:Paketti:Launch App`. It opens the same dialog as before and is present regardless of whether any apps have been configured yet. The existing keybinding `Global:Paketti:Configure Launch App Selection...` and the Tools submenu entry are unchanged.
 

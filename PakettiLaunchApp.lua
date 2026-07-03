@@ -530,9 +530,11 @@ local function createAppSlotUI(index)
     local app_row = vb:row{
         vb:button{text="Browse", notifier=function() appSelectionBrowseForApp(index) end},
         vb:button{text="Send Selected Sample to App",
+            midi_mapping="Paketti:Send Selected Sample to App Slot " .. index,
             notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection[pref_key].value) end,
             width=200},
         vb:button{text="Send Sample Range to App",
+            midi_mapping="Paketti:Send Sample Range to App Slot " .. index,
             notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection[pref_key].value) end,
             width=200},
         (function()
@@ -644,8 +646,8 @@ local function create_dialog_content(closeLA_dialog)
         local sf_key = "SmartFoldersApp" .. sf_i
         content:add_child(vb:row{
             vb:button{text="Browse", notifier=function() browseForSmartFolder(sf_i) end},
-            vb:button{text="Save Selected Sample to Folder", notifier=function() saveSampleToSmartFolder(sf_i) end, width=200},
-            vb:button{text="Save All Samples to Folder", notifier=function() saveSamplesToSmartFolder(sf_i) end, width=200},
+            vb:button{text="Save Selected Sample to Folder", midi_mapping="Paketti:Save Sample to Smart/Backup Folder " .. sf_i, notifier=function() saveSampleToSmartFolder(sf_i) end, width=200},
+            vb:button{text="Save All Samples to Folder", midi_mapping="Paketti:Save All Samples to Smart/Backup Folder " .. sf_i, notifier=function() saveSamplesToSmartFolder(sf_i) end, width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection[sf_key].value ~= "" and preferences.AppSelection[sf_key].value or "None"),
@@ -700,6 +702,29 @@ for i=1, 3 do
     PakettiAddMenuEntry{name="Instrument Box:Paketti:Save:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
     renoise.tool():add_midi_mapping{name="Paketti:Save All Samples to Smart/Backup Folder " .. i,invoke=function(message)
     if message:is_trigger() then saveSamplesToSmartFolder(i) end end}
+end
+
+-- Stable per-slot MIDI mappings for the dialog's "Send" buttons. Unlike the dynamic
+-- per-app-name mappings created in appSelectionCreateMenuEntries() (which only exist once
+-- an app is configured and change name when you Browse a different app), these names are
+-- fixed per slot (1..6) and read the CURRENT app path at trigger time. That lets the dialog
+-- buttons carry a static midi_mapping= so you can cmd-M learn-mode click a button and bind a
+-- MIDI key straight to it — the same clickable-learn pattern used across Groovebox 8120.
+for i=1, 6 do
+    renoise.tool():add_midi_mapping{name="Paketti:Send Selected Sample to App Slot " .. i,invoke=function(message)
+        if message:is_trigger() then
+            local p = preferences.AppSelection["AppSelection"..i].value
+            if p ~= "" then saveSelectedSampleToTempAndOpen(p)
+            else renoise.app():show_status("Launch App slot " .. i .. " has no app configured.") end
+        end
+    end}
+    renoise.tool():add_midi_mapping{name="Paketti:Send Sample Range to App Slot " .. i,invoke=function(message)
+        if message:is_trigger() then
+            local p = preferences.AppSelection["AppSelection"..i].value
+            if p ~= "" then saveSelectedSampleRangeToTempAndOpen(p)
+            else renoise.app():show_status("Launch App slot " .. i .. " has no app configured.") end
+        end
+    end}
 end
 
 ----------------
