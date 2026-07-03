@@ -6249,6 +6249,118 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControl
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:APC Probe — Close",                      invoke=function() PakettiEightOneTwentyAPCProbeClose() end}
 
 -- ============================================================================
+-- SQUARP HAPAX — feasibility PROBE (read pads + empirical LED test)
+-- ----------------------------------------------------------------------------
+-- Unlike the APC/LPD8/MidiMix, the Hapax is a SEQUENCER, not a control surface:
+-- per its 159-page manual it exposes 16 USB-MIDI in + 16 out virtual cables, its
+-- pads send NOTES out through the active track's output, its 8 encoders can be
+-- assigned to CCs — but there is NO documented way for a computer to light its
+-- pads/steps (no SysEx anywhere in the manual, no note-on->LED listener). So the
+-- APC-style bidirectional grid (Renoise paints step state onto the controller)
+-- has no documented counterpart. This probe settles the two things the manual
+-- can't: (1) the exact CoreMIDI port name(s) Renoise sees, and the real pad/enc
+-- note+CC map (open it, every incoming message prints "HAPAX IN: …"); and (2)
+-- whether ANY host MIDI lights ANYTHING on the grid (the LED test blasts note-ons
+-- across notes and channels while Josh watches the pads). If nothing lights, the
+-- documented "NO" is confirmed on hardware.
+local paketti_hapax_in  = nil
+local paketti_hapax_out = nil
+
+local function paketti_hapax_find_devices()
+  -- Return ALL matching in/out port names (Hapax exposes up to 16 of each).
+  local function match(name) return name:lower():find("hapax") ~= nil end
+  local ins, outs = {}, {}
+  for _, n in ipairs(renoise.Midi.available_input_devices()  or {}) do if match(n) then ins[#ins+1]  = n end end
+  for _, n in ipairs(renoise.Midi.available_output_devices() or {}) do if match(n) then outs[#outs+1] = n end end
+  return ins, outs
+end
+
+local function paketti_hapax_on_midi(message)
+  if type(message) ~= "table" or #message < 1 then return end
+  local status = message[1]
+  local d1 = message[2] or 0
+  local d2 = message[3] or 0
+  local hi = math.floor(status / 16) * 16
+  local ch = (status % 16) + 1
+  local kind = "?"
+  if     hi == 0x90 and d2 > 0 then kind = "NoteOn"
+  elseif hi == 0x90 and d2 == 0 then kind = "NoteOff(vel0)"
+  elseif hi == 0x80 then kind = "NoteOff"
+  elseif hi == 0xB0 then kind = "CC"
+  elseif hi == 0xE0 then kind = "PitchBend"
+  elseif hi == 0xC0 then kind = "ProgramChange"
+  elseif hi == 0xD0 then kind = "ChanPressure"
+  elseif status == 0xF8 then kind = "Clock"
+  elseif status == 0xFA then kind = "Start"
+  elseif status == 0xFB then kind = "Continue"
+  elseif status == 0xFC then kind = "Stop"
+  end
+  print(string.format("HAPAX IN: %-13s status=0x%02X ch=%d data1=%d data2=%d", kind, status, ch, d1, d2))
+end
+
+-- Open ALL matched Hapax ports: input(s) get the logging callback; the first
+-- output is held for the LED test. Prints the full device inventory so we learn
+-- the exact CoreMIDI port strings (which the manual does NOT document).
+function PakettiEightOneTwentyHapaxProbeOpen()
+  if paketti_hapax_in then renoise.app():show_status("Hapax probe already open") return end
+  print("HAPAX PROBE: available inputs  = " .. table.concat(renoise.Midi.available_input_devices()  or {}, " | "))
+  print("HAPAX PROBE: available outputs = " .. table.concat(renoise.Midi.available_output_devices() or {}, " | "))
+  local ins, outs = paketti_hapax_find_devices()
+  print("HAPAX PROBE: matched inputs  = " .. (#ins  > 0 and table.concat(ins,  " | ") or "(none)"))
+  print("HAPAX PROBE: matched outputs = " .. (#outs > 0 and table.concat(outs, " | ") or "(none)"))
+  if #ins == 0 then
+    renoise.app():show_status("Hapax: no MIDI input with 'hapax' in the name — see terminal for the full device list")
+    return
+  end
+  -- Open the FIRST matched input for logging (open more by rerunning if you want
+  -- to see which of the 16 cables the pads land on — most surfaces use cable 1).
+  local ok, dev = pcall(renoise.Midi.create_input_device, ins[1], paketti_hapax_on_midi)
+  if ok and dev then paketti_hapax_in = dev else print("HAPAX: input open failed: " .. tostring(dev)) end
+  if #outs > 0 then
+    local ok2, dev2 = pcall(renoise.Midi.create_output_device, outs[1])
+    if ok2 and dev2 then paketti_hapax_out = dev2 else print("HAPAX: output open failed: " .. tostring(dev2)) end
+  end
+  renoise.app():show_status("Hapax probe OPEN (" .. ins[1] .. ") — press pads/turn encoders; watch the terminal for 'HAPAX IN:' lines")
+end
+
+function PakettiEightOneTwentyHapaxProbeClose()
+  if paketti_hapax_out then
+    -- best-effort: send note-offs across the grid range in case anything DID light
+    for n = 0, 127 do pcall(function() paketti_hapax_out:send({0x80, n, 0}) end) end
+  end
+  if paketti_hapax_in  then pcall(function() paketti_hapax_in:close()  end) paketti_hapax_in  = nil end
+  if paketti_hapax_out then pcall(function() paketti_hapax_out:close() end) paketti_hapax_out = nil end
+  renoise.app():show_status("Hapax probe closed")
+end
+
+-- The empirical LED test the manual can't answer: blast Note On across the whole
+-- note range on channel 1, then sweep a mid-grid note across all 16 channels.
+-- Josh watches the Hapax grid: if NOTHING ever lights from this, the documented
+-- "no host-driven LEDs" is confirmed on hardware. If something DOES light, tell me
+-- exactly which pad + what we sent and we can map it.
+function PakettiEightOneTwentyHapaxTestLeds()
+  if not paketti_hapax_out then
+    renoise.app():show_status("Hapax: output not open — run 'Hapax Probe — Open' first")
+    return
+  end
+  print("HAPAX TEST: pass 1 — Note On ch1, notes 0..127 vel 127 (watch the grid for ANY lit pad)")
+  for note = 0, 127 do pcall(function() paketti_hapax_out:send({0x90, note, 127}) end) end
+  print("HAPAX TEST: pass 2 — Note On note 36 across channels 1..16 vel 127")
+  for ch = 0, 15 do pcall(function() paketti_hapax_out:send({0x90 + ch, 36, 127}) end) end
+  print("HAPAX TEST: pass 3 — CC (0xB0) ch1, controllers 0..119 value 127")
+  for cc = 0, 119 do pcall(function() paketti_hapax_out:send({0xB0, cc, 127}) end) end
+  print("HAPAX TEST: done. Per the manual, expect NO pads to light. If any did, note which pad + which pass.")
+  renoise.app():show_status("Hapax: sent Note On + CC sweeps — watch the grid and tell me if ANYTHING lit up")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 Hapax Probe Open",  invoke=function() PakettiEightOneTwentyHapaxProbeOpen() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 Hapax Probe Close", invoke=function() PakettiEightOneTwentyHapaxProbeClose() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 Hapax Test LEDs",   invoke=function() PakettiEightOneTwentyHapaxTestLeds() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:Hapax Probe — Open (read pads to terminal)", invoke=function() PakettiEightOneTwentyHapaxProbeOpen() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:Hapax Probe — Test grid LEDs (empirical)",   invoke=function() PakettiEightOneTwentyHapaxTestLeds() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControllers:Hapax Probe — Close",                        invoke=function() PakettiEightOneTwentyHapaxProbeClose() end}
+
+-- ============================================================================
 -- AKAI APC Key 25 mk1 — interactive light-show demo (confirmed by the probe)
 -- ----------------------------------------------------------------------------
 -- CONFIRMED FROM THE PROBE (APC Key 25 mk1):
