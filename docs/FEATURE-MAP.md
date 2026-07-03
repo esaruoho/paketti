@@ -2,18 +2,18 @@
 
 *Non-technical. Every Paketti capability as **a feature, in a place, reachable through one or more doors** — keyboard shortcut · MIDI mapping · menu entry. Parameter variants (e.g. Transpose −120…+120) are collapsed into the one feature they are. Auto-generated from the running code by `.spine/features.py`; do not hand-edit.*
 
-## 4,423 distinct features across 93 groups
+## 4,424 distinct features across 93 groups
 
 | Feature group | features | ⌨ keyboard | 🎛 MIDI | ☰ menu |
 |---|--:|--:|--:|--:|
-| **(top level)** | 2937 | 2187 | 2460 | 535 |
-| **(misc)** | 290 | 179 | 156 | 170 |
-| **Instruments** | 89 | 59 | 58 | 89 |
+| **(top level)** | 2939 | 2189 | 2460 | 537 |
+| **(misc)** | 298 | 187 | 162 | 178 |
+| **Instruments** | 87 | 57 | 58 | 87 |
 | **Paketti Groovebox 8120** | 65 | 0 | 65 | 0 |
 | **!Preferences** | 61 | 0 | 29 | 61 |
 | **Load Renoise Native** | 56 | 0 | 45 | 56 |
 | **Process** | 53 | 42 | 51 | 53 |
-| **PhraseGrid** | 48 | 12 | 43 | 48 |
+| **PhraseGrid** | 47 | 12 | 42 | 47 |
 | **Automation** | 45 | 20 | 30 | 45 |
 | **Clipboard** | 43 | 1 | 36 | 43 |
 | **Tracks** | 42 | 29 | 29 | 42 |
@@ -24,7 +24,7 @@
 | **Write Notes** | 30 | 30 | 30 | 30 |
 | **Phrases** | 30 | 25 | 29 | 30 |
 | **Pattern** | 28 | 23 | 22 | 28 |
-| **MPC Cycler** | 24 | 0 | 24 | 13 |
+| **MPC Cycler** | 25 | 0 | 25 | 14 |
 | **Octatrack** | 23 | 5 | 23 | 23 |
 | **Load** | 23 | 20 | 17 | 23 |
 | **DSP** | 22 | 3 | 20 | 22 |
@@ -40,13 +40,12 @@
 | **Replicate** | 11 | 11 | 11 | 11 |
 | **Wipe&Slice** | 10 | 4 | 9 | 10 |
 | **LFO Write** | 10 | 9 | 10 | 10 |
-| **Export** | 10 | 9 | 5 | 10 |
 | **Delay Output** | 10 | 0 | 10 | 10 |
 | **Glider** | 9 | 1 | 2 | 9 |
 | **Steppers** | 8 | 2 | 8 | 8 |
 | **Other Trackers** | 8 | 0 | 1 | 8 |
 | **Navigation** | 8 | 4 | 8 | 8 |
-| **06 Drive** | 8 | 0 | 3 | 8 |
+| **03 Pitch** | 8 | 0 | 3 | 8 |
 | **Transpose** | 7 | 4 | 4 | 7 |
 | **AKWF** | 7 | 7 | 2 | 7 |
 | **Transport** | 6 | 6 | 5 | 6 |
@@ -72,11 +71,12 @@
 | **Mixer** | 3 | 1 | 3 | 1 |
 | **Load Renoise Native (Hidden)** | 3 | 0 | 3 | 0 |
 | **Initialize** | 3 | 3 | 0 | 3 |
+| **Export** | 3 | 2 | 0 | 3 |
 | **.WT** | 3 | 3 | 0 | 3 |
 
 ## Every feature, by group
 
-### (top level)  ·  2937 features  ·  ⌨2187 🎛2460 ☰535
+### (top level)  ·  2939 features  ·  ⌨2189 🎛2460 ☰537
 
 - **(Dxx) Selection Slide Pitch Down +1** — _MIDI · menu_
 - **(Gxx) Selection Glide +1** — _MIDI · menu_
@@ -1059,6 +1059,8 @@
 - **Increase Phrase Length by LPB** — _keyboard · MIDI_
 - **Init Phrase Settings** — _keyboard · MIDI_
 - **Initialize for Groovebox 8120** — _keyboard · menu_
+- **Inject Key Trackers + Hydras to FX Chain 120** — _keyboard · menu_
+- **Inject LFO->Gainer->Send Chains to All FX Chains** — _keyboard · menu_
 - **Insert Inverter Device to TrackDSP/SampleFX** — _keyboard · MIDI_
 - **Insert New Instrument (2nd)** — _keyboard · MIDI_
 - **Insert New Sample Slot & Select** — _keyboard · MIDI_
@@ -1570,7 +1572,7 @@
 - **Nudge Phrase Up by 2 Steps** — _MIDI_
 - **Nudge Sequence Selection Down** — _keyboard · MIDI · menu_
 - **Nudge Sequence Selection Up** — _keyboard · MIDI · menu_
-- **Nudge Slice 01 by (-1)** — _keyboard_
+- **Nudge Slice 01 by (-10)** — _keyboard_
 - **Nudge Up** — _keyboard · MIDI_
 - **Nudge Up by Delay** — _keyboard · MIDI_
 - **Nudge Up by Row** — _keyboard · MIDI_
@@ -3016,7 +3018,7 @@
 - **Zero Crossings Advanced Dialog** — _keyboard · MIDI_
 - **∿ Squiggly Sinewave to Clipboard (macOS)** — _keyboard_
 
-### (misc)  ·  290 features  ·  ⌨179 🎛156 ☰170
+### (misc)  ·  298 features  ·  ⌨187 🎛162 ☰178
 
 - **!Execute Applications...** — _menu_
 - **0G01 Loader Toggle** — _MIDI · menu_
@@ -3045,14 +3047,19 @@
 - **Basic Triads - Major (3-4)** — _menu_
 - **Basic Triads - Minor (4-3)** — _menu_
 - **Basic Triads - Sus2 (2-5)** — _menu_
+- **Batch Convert IFF/8SVX/16SV to WAV...** — _keyboard · MIDI · menu_
 - **Batch Convert RX2 to XRNI...** — _keyboard · MIDI · menu_
 - **Batch Convert SF2 to XRNI (Per Preset)...** — _menu_
+- **Batch Convert WAV to IFF...** — _keyboard · MIDI · menu_
+- **Batch Convert WAV/AIFF to 16SV...** — _keyboard · MIDI · menu_
+- **Batch Convert WAV/AIFF to 8SVX...** — _keyboard · MIDI · menu_
 - **Batch Convert XRNI Folder to 16SV...** — _keyboard · MIDI · menu_
 - **Batch Convert XRNI Folder to 8SVX...** — _keyboard · MIDI · menu_
 - **Batch Convert XRNI Folder to Digitakt Chain...** — _keyboard · MIDI · menu_
 - **Batch Convert XRNI Folder to IFF...** — _keyboard · MIDI · menu_
 - **Batch Convert XRNI Folder to ITI...** — _keyboard · MIDI · menu_
 - **Batch Convert XRNI Folder to Octatrack (WAV+.ot)...** — _keyboard · MIDI · menu_
+- **Batch Convert XRNI Folder to WAV (with CUE)...** — _keyboard · MIDI · menu_
 - **Block Loop Follows Edit Cursor Toggle** — _MIDI · menu_
 - **BPM-Based Sample Slicer Dialog...** — _keyboard · MIDI · menu_
 - **Chebyshev Polynomial Waveshaper...** — _menu_
@@ -3078,6 +3085,9 @@
 - **Duplicate Lowest Notes to New Track & Duplicate Instrument** — _keyboard · MIDI · menu_
 - **Duplicate Lowest Notes to New Track (Original Instrument)** — _keyboard · MIDI · menu_
 - **Duplicate Lowest Notes to New Track (Selected Instrument)** — _keyboard · MIDI · menu_
+- **Export Instrument to ITI...** — _keyboard · MIDI · menu_
+- **Export WAV with CUE File...** — _keyboard · menu_
+- **Export WAV with Embedded CUE Headers...** — _keyboard · menu_
 - **Export Wavetable (.WT)...** — _menu_
 - **Export XI (FastTracker II Extended Instrument)** — _keyboard · MIDI · menu_
 - **Extract .SF2 Samples (Chromatic)** — _menu_
@@ -3309,7 +3319,7 @@
 - **Transposer Selection/Row +03** — _MIDI · menu_
 - **Trigger Sample on Pattern Input During Record Toggle** — _keyboard · MIDI · menu_
 
-### Instruments  ·  89 features  ·  ⌨59 🎛58 ☰89
+### Instruments  ·  87 features  ·  ⌨57 🎛58 ☰87
 
 - **Apply Custom LFO Preset 01** — _keyboard · MIDI · menu_
 - **Batch Convert XRNI Folder to PTI...** — _keyboard · MIDI · menu_
@@ -3351,8 +3361,6 @@
 - **Halve LFO Envelope Resolution** — _keyboard · MIDI · menu_
 - **Hide All Instrument Properties** — _keyboard · menu_
 - **Humanize** — _menu_
-- **Inject Key Trackers + Hydras to FX Chain 120** — _keyboard · menu_
-- **Inject LFO->Gainer->Send Chains to All FX Chains** — _keyboard · menu_
 - **Insert New Instrument** — _keyboard · MIDI · menu_
 - **Invert** — _menu_
 - **Isolate Selected Sample to New Instrument** — _keyboard · MIDI · menu_
@@ -3648,7 +3656,7 @@
 - **Unwrap Unsigned to Signed** — _keyboard · MIDI · menu_
 - **Wrap Signed as Unsigned** — _keyboard · MIDI · menu_
 
-### PhraseGrid  ·  48 features  ·  ⌨12 🎛43 ☰48
+### PhraseGrid  ·  47 features  ·  ⌨12 🎛42 ☰47
 
 - **Auto-Fill Pattern** — _MIDI · menu_
 - **Auto-Fill Pattern with Phrase** — _MIDI · menu_
@@ -3685,7 +3693,6 @@
 - **Replace Selection with Phrase** — _keyboard · MIDI · menu_
 - **Retrig R04** — _MIDI · menu_
 - **Selection to Phrase** — _keyboard · MIDI · menu_
-- **Show Dialog** — _MIDI · menu_
 - **Show Performance Hub** — _MIDI · menu_
 - **Show PhraseGrid Dialog** — _MIDI · menu_
 - **Show Quick Flicks Dialog** — _MIDI · menu_
@@ -4096,7 +4103,7 @@
 - **Wonkify Generate Chain** — _keyboard · MIDI · menu_
 - **Wonkify Settings...** — _menu_
 
-### MPC Cycler  ·  24 features  ·  ⌨0 🎛24 ☰13
+### MPC Cycler  ·  25 features  ·  ⌨0 🎛25 ☰14
 
 - **Commit Preview** — _MIDI · menu_
 - **Commit Preview [Trigger]** — _MIDI_
@@ -4118,6 +4125,7 @@
 - **Previous Sample Folder [Trigger]** — _MIDI_
 - **Set Instrument Folder** — _MIDI · menu_
 - **Set Sample Folder** — _MIDI · menu_
+- **Show Dialog** — _MIDI · menu_
 - **Toggle Global Lock** — _MIDI · menu_
 - **Toggle Global Lock [Trigger]** — _MIDI_
 - **Toggle Preview Mode** — _MIDI · menu_
@@ -4382,19 +4390,6 @@
 - **LFO Write to Selected Automation Parameter** — _keyboard · MIDI · menu_
 - **Single Parameter Write to Automation** — _MIDI · menu_
 
-### Export  ·  10 features  ·  ⌨9 🎛5 ☰10
-
-- **Batch Convert IFF/8SVX/16SV to WAV...** — _keyboard · MIDI · menu_
-- **Batch Convert WAV to IFF...** — _keyboard · MIDI · menu_
-- **Batch Convert WAV/AIFF to 16SV...** — _keyboard · MIDI · menu_
-- **Batch Convert WAV/AIFF to 8SVX...** — _keyboard · MIDI · menu_
-- **Export Current Sample as IFF...** — _menu_
-- **Export Instrument to ITI...** — _keyboard · MIDI · menu_
-- **Export WAV with CUE File...** — _keyboard · menu_
-- **Export WAV with Embedded CUE Headers...** — _keyboard · menu_
-- **Save Current Sample as 16SV...** — _keyboard · menu_
-- **Save Current Sample as 8SVX...** — _keyboard · menu_
-
 ### Delay Output  ·  10 features  ·  ⌨0 🎛10 ☰10
 
 - **Nudge Delay Output +01ms** — _MIDI · menu_
@@ -4453,7 +4448,7 @@
 - **Cycle Forward through Global View Presets** — _keyboard · MIDI · menu_
 - **Enable/Disable Auto-Capture Track** — _keyboard · MIDI · menu_
 
-### 06 Drive  ·  8 features  ·  ⌨0 🎛3 ☰8
+### 03 Pitch  ·  8 features  ·  ⌨0 🎛3 ☰8
 
 - ***LFO** — _MIDI · menu_
 - **AHDSR** — _menu_
@@ -4656,6 +4651,12 @@
 - **12st PitchBend Instrument Init** — _keyboard · menu_
 - **Add 84 Sample Slots to Instrument** — _keyboard · menu_
 - **PitchBend Drumkit Instrument Init** — _keyboard · menu_
+
+### Export  ·  3 features  ·  ⌨2 🎛0 ☰3
+
+- **Export Current Sample as IFF...** — _menu_
+- **Save Current Sample as 16SV...** — _keyboard · menu_
+- **Save Current Sample as 8SVX...** — _keyboard · menu_
 
 ### .WT  ·  3 features  ·  ⌨3 🎛0 ☰3
 
