@@ -1,4 +1,5 @@
-# REPORT CARD — 2026-07-04 session: Parameter Editor ↔ Mixer exposure, grid visual, + two feasibility studies
+# REPORT CARD — 2026-07-04 session: Parameter Editor ↔ Mixer exposure, grid visual, per-plugin config, + one feasibility study
+# (updated: REQUEST #3 per-plugin config graduated @feasibility -> @built @in-renoise, commit eec944cc)
 #
 # WHAT THIS CARD SPAWNS
 #   Codespace : PakettiCanvasExperiments.lua (the Selected-Device Parameter Editor —
@@ -51,15 +52,37 @@ Feature: Grid-stripe visual mode for the Parameter Editor
     And the parameter bars draw on top, so columns read as a checker grid
 
 Feature: Per-plugin Parameter Editor configuration (reorder / hide / rename)
-  # cite: Research/parameter-editor/feasibility.md | REQUEST #3
-  @feasibility
+  # cite: PakettiCanvasExperiments.lua (BuildDisplayedParameters/ApplyDisplayConfig/OpenConfigDialog +
+  #       Configure button/menu/keybinding) + Paketti0G01_Loader.lua (config schema + Upsert/Remove
+  #       helpers + CustomOrderingMode pref) | REQUEST #3
+  # SHIPPED across commits 50ce876e (mode pref), 8f8ccc7c (build-path refactor), 6569fbc2 (config
+  # schema), and eec944cc (apply-layer wiring + Configure dialog + reorder/hide/rename). Original
+  # feasibility study: Research/parameter-editor/feasibility.md.
+  @built @in-renoise
+  Scenario: Mode OFF or no config behaves exactly like today (no-op)
+    Given the Parameter Editor builds its parameter list
+    When Customized Ordering Mode is OFF, or ON but the device has no saved config
+    Then the displayed parameter list equals the baseline list byte-for-byte
+    And the Wavetable Mod *LFO skip-first-3 rule still applies
+    # verified: GetDisplayedParameterSummary == GetBaseParameterSummary (Mixer/TrackVolPan)
+
   Scenario: User curates which parameters show, in what order, under what names
-    Given a plugin exposes dozens of parameters in a fixed engine order
-    When the user opens a per-device "Configure..." dialog
-    Then they can hide parameters, reorder the shown ones, and rename them for discoverability
-    And the choice persists per device (keyed by device_path) across sessions
-    # VERDICT: FEASIBLE (display-layer only; the device's own parameter order is immutable).
-    # The editor already builds its own device_parameters list — inject a config layer there.
+    Given Customized Ordering Mode is ON
+    When the user opens the "Configure..." dialog (editor button / Mixer:Paketti Gadgets menu /
+      keybinding "Global:Paketti:Configure Parameter Editor for Selected Device")
+    And hides parameters (Show checkbox), reorders them (up/down), and renames displayed labels
+    And presses Save
+    Then the config is stored keyed by device.device_path and persisted (Upsert + save_as)
+    And the editor rebuilds so hidden params drop out, order follows the config, and labels rename
+    And the real device parameters/order/names are never mutated (display layer only)
+    # verified live via BuildDisplayedParameters: moved last param to first + renamed, hid the middle
+    # one -> count 3->2, position 1 = renamed label with original name preserved
+
+  Scenario: Reset to Plugin Default restores the baseline
+    Given a device has a saved config
+    When the user presses "Reset to Plugin Default"
+    Then the config entry is removed and the editor rebuilds to the baseline order/count
+    # verified: after Remove, displayed summary == baseline summary
 
 Feature: Renoise as a round-trip sample editor for Ableton Live
   # cite: Research/parameter-editor/feasibility.md | REQUEST #6

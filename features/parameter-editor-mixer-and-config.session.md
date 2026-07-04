@@ -22,6 +22,16 @@ Directive: "log these as gherkin features, plan, propose, what is easy / hard, a
   designs and difficulty. #3 = FEASIBLE (display layer over the editor's own param list). #6 =
   Renoise save-back is easy; Live auto-reload needs AbletonOSC/M4L (cross-app, not Renoise-alone).
 
+## Update (later same day) — #3 SHIPPED
+A copilot agent then implemented #3 (apply layer + config schema + helpers, commits 50ce876e /
+8f8ccc7c / 6569fbc2, plus an uncommitted apply-layer slice). This session reviewed that slice
+(correct + safe but incomplete: no UI, unverified), built the missing Configure dialog (reorder /
+hide / rename, Save / Reset / Cancel) + button + menu + keybinding, verified it live through the
+real `BuildDisplayedParameters` path (mode-off==base, reset==base, reorder/hide/rename apply), and
+shipped it in `eec944cc`. #3 is now `@built @in-renoise`. #6 remains a feasibility study.
+Correction logged: persistence was NOT a gap — Renoise auto-persists the tool prefs document and
+`save_as` forces it; the only real gap was the missing UI.
+
 ## Honest state
 - #1/#2 verified by API reasoning + `.spine/check.py` clean + `luac -p` clean; not driven live.
 - #4 renders in code but not visually confirmed (display capture was unreliable this session).
