@@ -8,9 +8,6 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-07-04 - Improvement: Parameter Editor — DRY parameter-list build path groundwork
-Refactored the Selected Device Parameter Editor so its automatable-parameter list is now built through one shared internal helper instead of duplicated init/device-change code. This preserves the current behavior — including the Wavetable Mod `*LFO` routing-parameter hide rule — while removing a brittle duplication point ahead of per-plugin reorder/hide/rename work. Menu: `Mixer:Paketti Gadgets:Selected Device Parameter Editor...`.
-
 ### 2026-07-04 - Improvement: Parameter Editor — add Customized Ordering Mode preference toggle
 Added a new Parameter Editor preference toggle, **Customized Ordering Mode**, in the Paketti Preferences dialog. This is the first low-risk groundwork for future per-plugin Parameter Editor display customization (reorder / hide / rename as a display layer): the preference is persisted in `preferences.xml`, defaults to OFF, and intentionally changes no current Parameter Editor behavior until the actual configuration tools are added. Menu: `Main Menu:Options:Paketti Preferences...`, `Main Menu:Tools:Paketti:!Preferences:Paketti Preferences...`. Keybinding: `Global:Paketti:Show Paketti Preferences...`. MIDI: `Paketti:Paketti Preferences...`.
 
