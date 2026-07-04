@@ -1470,35 +1470,15 @@ function PakettiCanvasExperimentsCreateDialog()
   
   -- Create fresh ViewBuilder instance
   local vb = renoise.ViewBuilder()
-  local suppress_expose_mixer_checkbox_notifier = false
-  local function set_expose_on_mixer(value)
-    expose_params_on_mixer = value
-    if value then
-      local ok, result = PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
-      if ok then
-        renoise.app():show_status("Expose Parameters on Mixer: ENABLED (" .. tostring(result) .. " automated parameters exposed)")
-      else
-        last_mixer_exposure_error = result
-        renoise.app():show_status("Expose Parameters on Mixer: ENABLED - " .. result)
-      end
-    else
-      renoise.app():show_status("Expose Parameters on Mixer: DISABLED")
-    end
-  end
   local expose_on_mixer_link = vb:link {
     text = "Expose on Mixer",
     font = "bold",
     style = "strong",
-    tooltip = "Same action as clicking the checkbox: toggle Expose on Mixer"
+    tooltip = "Click to switch to the Mixer frame. When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)"
   }
   expose_on_mixer_link:add_pressed_notifier(function()
-    local new_value = not expose_params_on_mixer
-    suppress_expose_mixer_checkbox_notifier = true
-    if vb.views.expose_mixer_checkbox then
-      vb.views.expose_mixer_checkbox.value = new_value
-    end
-    suppress_expose_mixer_checkbox_notifier = false
-    set_expose_on_mixer(new_value)
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
+    renoise.app():show_status("Switched to Mixer frame")
   end)
   
   local dialog_content = vb:column {
@@ -1623,10 +1603,18 @@ function PakettiCanvasExperimentsCreateDialog()
           value = expose_params_on_mixer,
           tooltip = "When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)",
           notifier = function(value)
-            if suppress_expose_mixer_checkbox_notifier then
-              return
+            expose_params_on_mixer = value
+            if value then
+              local ok, result = PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
+              if ok then
+                renoise.app():show_status("Expose Parameters on Mixer: ENABLED (" .. tostring(result) .. " automated parameters exposed)")
+              else
+                last_mixer_exposure_error = result
+                renoise.app():show_status("Expose Parameters on Mixer: ENABLED - " .. result)
+              end
+            else
+              renoise.app():show_status("Expose Parameters on Mixer: DISABLED")
             end
-            set_expose_on_mixer(value)
           end
         },
         expose_on_mixer_link
