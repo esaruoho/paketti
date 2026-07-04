@@ -1607,15 +1607,11 @@ function PakettiCanvasExperimentsCreateDialog()
             end
           end
         },
-        vb:textlink {
+        vb:text {
           text = "Expose on Mixer",
           font = "bold",
           style = "strong",
-          tooltip = "Click to switch to the Mixer frame. When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)",
-          notifier = function()
-            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
-            renoise.app():show_status("Switched to Mixer frame")
-          end
+          tooltip = "When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)"
         }
       },
       vb:row {
