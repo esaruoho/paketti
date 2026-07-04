@@ -10,7 +10,7 @@
     248 lua
     210 gif
     133 txt
-     50 md
+     51 md
      49 xrni
      20 xml
      16 py
@@ -23,8 +23,8 @@
    1337 manual
     701 Themes
      78 images
+     55 Research
      55 Presets
-     54 Research
      32 Sononymph
      27 ccizer
      20 features

@@ -18,7 +18,7 @@ Directive: "log these as gherkin features, plan, propose, what is easy / hard, a
   `Mixer:Paketti Gadgets` menu. Uses read-only `DeviceParameter.is_automated`. `@built @logic-verified`.
 - **#4** shipped: `grid_stripe` flag + "Grid stripes" checkbox + alternating column fill in the
   render loop. `@built @untested` (canvas render; couldn't screenshot-verify this session).
-- **#3 / #6** feasibility written in `docs/parameter-editor-config-feasibility.md` with concrete
+- **#3 / #6** feasibility written in `Research/parameter-editor/feasibility.md` with concrete
   designs and difficulty. #3 = FEASIBLE (display layer over the editor's own param list). #6 =
   Renoise save-back is easy; Live auto-reload needs AbletonOSC/M4L (cross-app, not Renoise-alone).
 
@@ -29,6 +29,6 @@ Directive: "log these as gherkin features, plan, propose, what is easy / hard, a
 
 ## How to get back
 - Repo: /Users/esaruoho/work/paketti  (branch master)
-- Files: PakettiCanvasExperiments.lua ; docs/parameter-editor-config-feasibility.md ;
+- Files: PakettiCanvasExperiments.lua ; Research/parameter-editor/feasibility.md ;
   features/parameter-editor-mixer-and-config.feature
 - Session: claude.ai/code/session_01PbeqBSqaip4QSUChJNfvCW

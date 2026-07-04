@@ -6,7 +6,7 @@
 #               checkboxes, and the new PakettiExposeAutomatedParamsOnMixer global +
 #               its keybinding/MIDI/menu).
 #   Thinkspace : parameter-editor-mixer-and-config.session.md (spawning chat) +
-#                docs/parameter-editor-config-feasibility.md (studies for #3, #6).
+#                Research/parameter-editor/feasibility.md (studies for #3, #6).
 #   Areaspace  : the Parameter Editor canvas + its relationship to the Renoise Mixer
 #               (DeviceParameter.show_in_mixer / .is_automated). Does NOT touch the
 #               automation-write engine, A/B crossfade, or PhraseGrid snapshotting.
@@ -51,7 +51,7 @@ Feature: Grid-stripe visual mode for the Parameter Editor
     And the parameter bars draw on top, so columns read as a checker grid
 
 Feature: Per-plugin Parameter Editor configuration (reorder / hide / rename)
-  # cite: docs/parameter-editor-config-feasibility.md | REQUEST #3
+  # cite: Research/parameter-editor/feasibility.md | REQUEST #3
   @feasibility
   Scenario: User curates which parameters show, in what order, under what names
     Given a plugin exposes dozens of parameters in a fixed engine order
@@ -62,7 +62,7 @@ Feature: Per-plugin Parameter Editor configuration (reorder / hide / rename)
     # The editor already builds its own device_parameters list — inject a config layer there.
 
 Feature: Renoise as a round-trip sample editor for Ableton Live
-  # cite: docs/parameter-editor-config-feasibility.md | REQUEST #6
+  # cite: Research/parameter-editor/feasibility.md | REQUEST #6
   @feasibility
   Scenario: Edit a Live sample in Renoise and save it back so Live reloads it
     Given a sample referenced by an Ableton Live set at a known file path
