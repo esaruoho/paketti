@@ -53,6 +53,7 @@ local auto_show_automation = false
 
 -- Expose parameters on mixer when drawing with automation sync (DEFAULT: OFF)
 local expose_params_on_mixer = false
+local last_mixer_exposure_error = nil
 
 -- Grid-stripe visual mode: alternate each parameter column's background (odd = light, even = dark)
 -- so the columns read as a grid — easier to track which bar is which. (DEFAULT: OFF)
@@ -96,6 +97,73 @@ local canvas_refresh_options = {1, 5, 10, 25, 50, 100}  -- Dropdown options in m
 -- Helper function to get UI width (no longer scaled by half-size preference)
 local function get_ui_width(base_width)
   return base_width
+end
+
+local function PakettiCanvasExperimentsRememberCurrentTrack(song)
+  if not song then
+    current_track_index = nil
+    current_track_name = nil
+    return
+  end
+
+  current_track_index = song.selected_track_index
+  current_track_name = song.selected_track and song.selected_track.name or nil
+end
+
+local function PakettiCanvasExperimentsCurrentDeviceSupportsMixerExposure()
+  local song = renoise.song()
+  if not song or not current_device then
+    return false, "No selected track device to expose"
+  end
+
+  if not current_track_index or not song.tracks[current_track_index] then
+    PakettiCanvasExperimentsRememberCurrentTrack(song)
+  end
+
+  local track = current_track_index and song.tracks[current_track_index] or nil
+  if not track then
+    return false, "No selected track available for mixer exposure"
+  end
+
+  for _, device in ipairs(track.devices) do
+    if device == current_device then
+      return true
+    end
+  end
+
+  return false, "Current Parameter Editor device is not in the selected track DSP chain"
+end
+
+local function PakettiCanvasExperimentsSetParameterMixerVisibility(parameter, visible)
+  local supported, reason = PakettiCanvasExperimentsCurrentDeviceSupportsMixerExposure()
+  if not supported then
+    return false, reason
+  end
+
+  if not parameter or not parameter.is_automatable then
+    return false, "Parameter is not automatable"
+  end
+
+  parameter.show_in_mixer = visible
+  return true
+end
+
+local function PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
+  if not current_device or #device_parameters == 0 then
+    return false, "No current device parameters available to expose"
+  end
+
+  local exposed_count = 0
+  for _, param_info in ipairs(device_parameters) do
+    local ok, reason = PakettiCanvasExperimentsSetParameterMixerVisibility(param_info.parameter, true)
+    if not ok then
+      return false, reason
+    end
+    exposed_count = exposed_count + 1
+  end
+
+  last_mixer_exposure_error = nil
+  return true, exposed_count
 end
 
 -- Helper function to clean parameter names by removing "CC XX " prefix
@@ -288,6 +356,7 @@ function PakettiCanvasExperimentsRefreshDevice()
   end
   
   local song = renoise.song()
+  PakettiCanvasExperimentsRememberCurrentTrack(song)
   
   -- Check if selected device is Pro-Q 3 - if so, close Parameter Editor and open external editor
   if song and song.selected_device and song.selected_device.display_name then
@@ -439,8 +508,9 @@ function PakettiCanvasExperimentsRefreshDevice()
     print("  Device name: " .. (selected_device.display_name or "Unknown"))
     print("  Total parameters: " .. #selected_device.parameters)
     
-    current_device = selected_device
-    device_parameters = {}
+      current_device = selected_device
+      PakettiCanvasExperimentsRememberCurrentTrack(song)
+      device_parameters = {}
     
     -- Check if this is a Wavetable Mod *LFO device (partial blacklist)
     local is_wavetable_lfo = false
@@ -480,6 +550,7 @@ function PakettiCanvasExperimentsRefreshDevice()
   else
     print("DEVICE_WARNING: selected_device is nil after search - using empty state")
     current_device = nil
+    PakettiCanvasExperimentsRememberCurrentTrack(song)
     device_parameters = {}
   end
   
@@ -505,6 +576,14 @@ function PakettiCanvasExperimentsRefreshDevice()
   if canvas_experiments_canvas then
     canvas_experiments_canvas:update()
   end
+
+  if expose_params_on_mixer and #device_parameters > 0 then
+    local ok, result = PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
+    if not ok then
+      last_mixer_exposure_error = result
+      renoise.app():show_status("Expose Parameters on Mixer skipped: " .. result)
+    end
+  end
   
   -- Setup parameter observers for automation visualization (always setup for canvas updates)
   SetupParameterObservers()
@@ -526,6 +605,7 @@ function PakettiCanvasExperimentsInit()
   end
   
   local song = renoise.song()
+  PakettiCanvasExperimentsRememberCurrentTrack(song)
   
   -- First, try to detect automation frame and auto-select device if applicable
   local automation_detected = PakettiCanvasExperimentsDetectAutomationSelection()
@@ -557,8 +637,9 @@ function PakettiCanvasExperimentsInit()
     print("  Device name: " .. (selected_device.display_name or "Unknown"))
     print("  Total parameters: " .. #selected_device.parameters)
     
-    current_device = selected_device
-    device_parameters = {}
+      current_device = selected_device
+      PakettiCanvasExperimentsRememberCurrentTrack(song)
+      device_parameters = {}
     
     -- Check if this is a Wavetable Mod *LFO device (partial blacklist)
     local is_wavetable_lfo = false
@@ -598,6 +679,7 @@ function PakettiCanvasExperimentsInit()
   else
     print("DEVICE_ERROR: No valid device available - initializing with empty state")
     current_device = nil
+    PakettiCanvasExperimentsRememberCurrentTrack(song)
     device_parameters = {}
   end
   
@@ -860,9 +942,13 @@ function PakettiCanvasExperimentsHandleMouseInput(x, y)
       -- Expose the parameter you're modifying on the mixer if the option is enabled. This is now
       -- INDEPENDENT of Automation Sync — dragging a bar should surface it in the mixer regardless.
       if expose_params_on_mixer then
-        pcall(function()
-          param_info.parameter.show_in_mixer = true
-        end)
+        local ok, reason = PakettiCanvasExperimentsSetParameterMixerVisibility(param_info.parameter, true)
+        if not ok and last_mixer_exposure_error ~= reason then
+          last_mixer_exposure_error = reason
+          renoise.app():show_status("Expose Parameters on Mixer skipped: " .. reason)
+        elseif ok then
+          last_mixer_exposure_error = nil
+        end
       end
 
       -- Write to automation if following is enabled
@@ -1457,7 +1543,13 @@ function PakettiCanvasExperimentsCreateDialog()
           notifier = function(value)
             expose_params_on_mixer = value
             if value then
-              renoise.app():show_status("Expose Parameters on Mixer: ENABLED")
+              local ok, result = PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
+              if ok then
+                renoise.app():show_status("Expose Parameters on Mixer: ENABLED (" .. tostring(result) .. " current parameters exposed)")
+              else
+                last_mixer_exposure_error = result
+                renoise.app():show_status("Expose Parameters on Mixer: ENABLED - " .. result)
+              end
             else
               renoise.app():show_status("Expose Parameters on Mixer: DISABLED")
             end
