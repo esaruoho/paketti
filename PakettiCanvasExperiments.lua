@@ -113,6 +113,55 @@ local function PakettiCanvasExperimentsRememberCurrentTrack(song)
   current_device_index = song.selected_track_device_index or song.selected_device_index
 end
 
+local function PakettiCanvasExperimentsIsWavetableLFODevice(device)
+  if not device then
+    return false
+  end
+
+  local device_name = device.display_name or ""
+  local actual_device_name = device.name or ""
+
+  return device_name == "Wavetable Mod *LFO" or
+    device_name == "PAKETTI_PLACEHOLDER_001" or
+    (actual_device_name == "*LFO" and #device.parameters == 8)
+end
+
+local function PakettiCanvasExperimentsBuildDeviceParameters(device)
+  local built_parameters = {}
+  if not device then
+    return built_parameters
+  end
+
+  local is_wavetable_lfo = PakettiCanvasExperimentsIsWavetableLFODevice(device)
+  if is_wavetable_lfo then
+    print("DEVICE_INFO: Wavetable Mod *LFO detected - hiding first 3 routing parameters")
+  end
+
+  for i = 1, #device.parameters do
+    local param = device.parameters[i]
+    print("  Parameter " .. i .. ": " .. param.name .. " (automatable: " .. tostring(param.is_automatable) .. ")")
+
+    local should_skip = is_wavetable_lfo and (i <= 3)
+    if param.is_automatable and not should_skip then
+      print("    Value: " .. param.value .. " (min: " .. param.value_min .. ", max: " .. param.value_max .. ", default: " .. param.value_default .. ")")
+      table.insert(built_parameters, {
+        parameter = param,
+        name = param.name,
+        original_name = param.name,
+        value = param.value,
+        value_min = param.value_min,
+        value_max = param.value_max,
+        value_default = param.value_default,
+        index = i
+      })
+    elseif should_skip then
+      print("    SKIPPED: Parameter hidden for Wavetable Mod *LFO")
+    end
+  end
+
+  return built_parameters
+end
+
 local function PakettiCanvasExperimentsGetCurrentTrackDevice()
   local song = renoise.song()
   if not song or not current_device then
@@ -556,46 +605,10 @@ function PakettiCanvasExperimentsRefreshDevice()
     print("  Device name: " .. (selected_device.display_name or "Unknown"))
     print("  Total parameters: " .. #selected_device.parameters)
     
-      current_device = selected_device
-      PakettiCanvasExperimentsRememberCurrentTrack(song)
-      current_device_index = song.selected_track_device_index or song.selected_device_index
-      device_parameters = {}
-    
-    -- Check if this is a Wavetable Mod *LFO device (partial blacklist)
-    local is_wavetable_lfo = false
-    local device_name = selected_device.display_name or ""
-    local actual_device_name = selected_device.name or ""
-    -- Check for Wavetable Mod *LFO by display name OR by placeholder name OR by device type
-    if device_name == "Wavetable Mod *LFO" or 
-       device_name == "PAKETTI_PLACEHOLDER_001" or 
-       (actual_device_name == "*LFO" and #selected_device.parameters == 8) then
-      is_wavetable_lfo = true
-      print("DEVICE_INFO: Wavetable Mod *LFO detected - hiding first 3 routing parameters")
-    end
-    
-    -- Get all automatable parameters from the device
-    for i = 1, #current_device.parameters do
-      local param = current_device.parameters[i]
-      print("  Parameter " .. i .. ": " .. param.name .. " (automatable: " .. tostring(param.is_automatable) .. ")")
-      
-      -- Skip first 3 parameters for Wavetable Mod *LFO devices
-      local should_skip = is_wavetable_lfo and (i <= 3)
-      
-      if param.is_automatable and not should_skip then
-        print("    Value: " .. param.value .. " (min: " .. param.value_min .. ", max: " .. param.value_max .. ", default: " .. param.value_default .. ")")
-        table.insert(device_parameters, {
-          parameter = param,
-          name = param.name,
-          value = param.value,
-          value_min = param.value_min,
-          value_max = param.value_max,
-          value_default = param.value_default,
-          index = i
-        })
-      elseif should_skip then
-        print("    SKIPPED: Parameter hidden for Wavetable Mod *LFO")
-      end
-    end
+    current_device = selected_device
+    PakettiCanvasExperimentsRememberCurrentTrack(song)
+    current_device_index = song.selected_track_device_index or song.selected_device_index
+    device_parameters = PakettiCanvasExperimentsBuildDeviceParameters(current_device)
   else
     print("DEVICE_WARNING: selected_device is nil after search - using empty state")
     current_device = nil
@@ -687,46 +700,10 @@ function PakettiCanvasExperimentsInit()
     print("  Device name: " .. (selected_device.display_name or "Unknown"))
     print("  Total parameters: " .. #selected_device.parameters)
     
-      current_device = selected_device
-      PakettiCanvasExperimentsRememberCurrentTrack(song)
-      current_device_index = song.selected_track_device_index or song.selected_device_index
-      device_parameters = {}
-    
-    -- Check if this is a Wavetable Mod *LFO device (partial blacklist)
-    local is_wavetable_lfo = false
-    local device_name = selected_device.display_name or ""
-    local actual_device_name = selected_device.name or ""
-    -- Check for Wavetable Mod *LFO by display name OR by placeholder name OR by device type
-    if device_name == "Wavetable Mod *LFO" or 
-       device_name == "PAKETTI_PLACEHOLDER_001" or 
-       (actual_device_name == "*LFO" and #selected_device.parameters == 8) then
-      is_wavetable_lfo = true
-      print("DEVICE_INFO: Wavetable Mod *LFO detected - hiding first 3 routing parameters")
-    end
-    
-    -- Get all automatable parameters from the device
-    for i = 1, #current_device.parameters do
-      local param = current_device.parameters[i]
-      print("  Parameter " .. i .. ": " .. param.name .. " (automatable: " .. tostring(param.is_automatable) .. ")")
-      
-      -- Skip first 3 parameters for Wavetable Mod *LFO devices
-      local should_skip = is_wavetable_lfo and (i <= 3)
-      
-      if param.is_automatable and not should_skip then
-        print("    Value: " .. param.value .. " (min: " .. param.value_min .. ", max: " .. param.value_max .. ", default: " .. param.value_default .. ")")
-        table.insert(device_parameters, {
-          parameter = param,
-          name = param.name,
-          value = param.value,
-          value_min = param.value_min,
-          value_max = param.value_max,
-          value_default = param.value_default,
-          index = i
-        })
-      elseif should_skip then
-        print("    SKIPPED: Parameter hidden for Wavetable Mod *LFO")
-      end
-    end
+    current_device = selected_device
+    PakettiCanvasExperimentsRememberCurrentTrack(song)
+    current_device_index = song.selected_track_device_index or song.selected_device_index
+    device_parameters = PakettiCanvasExperimentsBuildDeviceParameters(current_device)
   else
     print("DEVICE_ERROR: No valid device available - initializing with empty state")
     current_device = nil
