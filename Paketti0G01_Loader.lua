@@ -86,6 +86,50 @@ function create_device_entry(name, path, device_type)
   return entry
 end
 
+renoise.Document.create("PakettiParameterEditorConfigParamEntry") {
+  parameter_index = renoise.Document.ObservableNumber(0),
+  visible = renoise.Document.ObservableBoolean(true),
+  display_name = renoise.Document.ObservableString(""),
+  sort_order = renoise.Document.ObservableNumber(0),
+}
+
+function PakettiCreateParameterEditorConfigParamEntry(parameter_index, visible, display_name, sort_order)
+  local entry = renoise.Document.instantiate("PakettiParameterEditorConfigParamEntry")
+  entry.parameter_index.value = parameter_index or 0
+  entry.visible.value = (visible ~= false)
+  entry.display_name.value = display_name or ""
+  entry.sort_order.value = sort_order or 0
+  return entry
+end
+
+renoise.Document.create("PakettiParameterEditorConfigEntry") {
+  device_path = renoise.Document.ObservableString(""),
+  device_name = renoise.Document.ObservableString(""),
+  params = renoise.Document.DocumentList(),
+}
+
+function PakettiCreateParameterEditorConfigEntry(device_path, device_name)
+  local entry = renoise.Document.instantiate("PakettiParameterEditorConfigEntry")
+  entry.device_path.value = device_path or ""
+  entry.device_name.value = device_name or ""
+  return entry
+end
+
+function PakettiFindParameterEditorConfig(device_path)
+  if not preferences or not preferences.PakettiParameterEditorConfigs or not device_path or device_path == "" then
+    return nil, nil
+  end
+
+  for i = 1, #preferences.PakettiParameterEditorConfigs do
+    local entry = preferences.PakettiParameterEditorConfigs:property(i)
+    if entry and entry.device_path and entry.device_path.value == device_path then
+      return entry, i
+    end
+  end
+
+  return nil, nil
+end
+
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   singlewaveformwriterhex=true,
   -- Music Mouse: persisted performance settings (tempo + loudness survive close/reopen + reload)
@@ -673,6 +717,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiPluginLoaders = renoise.Document.DocumentList(),
   PakettiDeviceLoaders = renoise.Document.DocumentList(), 
     PakettiDynamicViews = renoise.Document.DocumentList(),
+  PakettiParameterEditorConfigs = renoise.Document.DocumentList(),
   UserDevices = {
       Path = renoise.Document.ObservableString(""),
     Slot01 = renoise.Document.ObservableString(""),
