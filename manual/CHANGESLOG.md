@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-04 - Improvement: Parameter Editor — Expose-on-Mixer fix, Expose Automated Parameters shortcut, grid stripes
+Three Parameter Editor improvements. (1) "Expose on Mixer" now works with Automation Sync OFF — dragging a parameter bar surfaces it in the mixer whenever the option is ticked (it was previously gated behind Automation Sync, so it appeared to do nothing). (2) New "Expose Automated Parameters on Mixer" command surfaces only the selected track's parameters that actually have automation (`is_automated`), not every parameter — keybinding `Global:Paketti:Expose Automated Parameters on Mixer`, MIDI `Paketti:Expose Automated Parameters on Mixer [Trigger]`, menu `Mixer:Paketti Gadgets:Expose Automated Parameters on Mixer`. (3) New "Grid stripes" checkbox paints alternating light/dark backgrounds behind each parameter column for grid-style reading. Two further requests (per-plugin parameter reorder/hide/rename, and a Renoise↔Ableton Live sample round-trip) are captured as feasibility studies in `docs/parameter-editor-config-feasibility.md` with proposed designs. Menu: `Mixer:Paketti Gadgets:Selected Device Parameter Editor...`.
+
 ### 2026-07-04 - Improvement: Music Mouse — pattern key re-press stops it, Line/Improvise stack into columns
 Two follow-ups. (1) Pressing a pattern-contour number key that's ALREADY playing now stops it (toggle off); pressing a different number switches to that contour. (2) Line and Improvise recording now STACK their notes into consecutive note columns across lines so they ring and build up a sustained chord — matching how they sound live (each voice enters and holds) — instead of the old choppy one-note-per-line in column 1. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 

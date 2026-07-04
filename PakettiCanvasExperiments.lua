@@ -54,6 +54,12 @@ local auto_show_automation = false
 -- Expose parameters on mixer when drawing with automation sync (DEFAULT: OFF)
 local expose_params_on_mixer = false
 
+-- Grid-stripe visual mode: alternate each parameter column's background (odd = light, even = dark)
+-- so the columns read as a grid — easier to track which bar is which. (DEFAULT: OFF)
+local grid_stripe = false
+local COLOR_STRIPE_ODD  = {40, 40, 40, 255}     -- near-black
+local COLOR_STRIPE_EVEN = {150, 150, 150, 255}  -- light gray
+
 -- Clean parameter names by removing "CC XX " prefix (DEFAULT: ON)
 local clean_parameter_names = true
 
@@ -850,17 +856,18 @@ function PakettiCanvasExperimentsHandleMouseInput(x, y)
     if current_edit_mode == "A" then
       -- Edit A mode: modify device parameters directly (Edit A IS the device)
       param_info.parameter.value = new_value
-      
+
+      -- Expose the parameter you're modifying on the mixer if the option is enabled. This is now
+      -- INDEPENDENT of Automation Sync — dragging a bar should surface it in the mixer regardless.
+      if expose_params_on_mixer then
+        pcall(function()
+          param_info.parameter.show_in_mixer = true
+        end)
+      end
+
       -- Write to automation if following is enabled
       if follow_automation then
         WriteParameterToAutomation(param_info.parameter, new_value, false)  -- Show envelope for manual drawing
-        
-        -- Expose parameter on mixer if option is enabled
-        if expose_params_on_mixer then
-          pcall(function()
-            param_info.parameter.show_in_mixer = true
-          end)
-        end
       end
     elseif current_edit_mode == "B" then
       -- Edit B mode: modify Edit B values only, device unchanged until crossfade
@@ -987,7 +994,14 @@ function PakettiCanvasExperimentsDrawCanvas(ctx)
           local column_start_x = content_x + (i - 1) * parameter_width
           local column_center_x = column_start_x + (parameter_width / 2)
           local column_end_x = column_start_x + parameter_width
-          
+
+          -- Grid-stripe mode: paint the whole column background, alternating light/dark, so the
+          -- columns read as a checker-style grid (the bars draw on top).
+          if grid_stripe then
+            ctx.fill_color = (i % 2 == 1) and COLOR_STRIPE_EVEN or COLOR_STRIPE_ODD
+            ctx:fill_rect(column_start_x, content_y, parameter_width, content_height)
+          end
+
           -- Draw parameter column background - light gray
           ctx.stroke_color = {64, 64, 64, 255}  -- Dark gray
           ctx.line_width = 1
@@ -1454,6 +1468,24 @@ function PakettiCanvasExperimentsCreateDialog()
           font = "bold",
           style = "strong",
           tooltip = "When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)"
+        }
+      },
+      vb:row {
+        vb:checkbox {
+          id = "grid_stripe_checkbox",
+          value = grid_stripe,
+          tooltip = "Alternate each parameter column's background (light / dark) so the columns read as a grid",
+          notifier = function(value)
+            grid_stripe = value
+            pcall(function() if canvas_experiments_canvas then canvas_experiments_canvas:update() end end)
+            renoise.app():show_status("Parameter Editor grid stripes: " .. (value and "ON" or "OFF"))
+          end
+        },
+        vb:text {
+          text = "Grid stripes",
+          font = "bold",
+          style = "strong",
+          tooltip = "Alternate each parameter column's background (light / dark) for grid-style reading"
         }
       },
       vb:button{
@@ -2895,6 +2927,35 @@ function PakettiCanvasExperimentsRestoreFromPhraseGrid(state_index)
   
   return PakettiCanvasExperimentsRestoreFromSnapshot(snapshot)
 end
+
+-- Expose ONLY the AUTOMATED parameters of the selected track on the mixer (param.is_automated).
+-- Unlike Renoise's "show all" this surfaces just the parameters that actually have automation in
+-- the current pattern, so the mixer shows what you're modifying and nothing else.
+function PakettiExposeAutomatedParamsOnMixer()
+  local song = renoise.song()
+  local track = song.selected_track
+  if not track then return end
+  local shown = 0
+  for _, device in ipairs(track.devices) do
+    local ok_params, params = pcall(function() return device.parameters end)
+    if ok_params and params then
+      for _, param in ipairs(params) do
+        local ok, autom = pcall(function() return param.is_automated end)   -- errors on instrument-device params
+        if ok and autom then
+          pcall(function() param.show_in_mixer = true end)
+          shown = shown + 1
+        end
+      end
+    end
+  end
+  renoise.app():show_status(shown > 0
+    and ("Mixer: exposed " .. shown .. " automated parameter(s) on '" .. track.name .. "'")
+    or ("Mixer: no automated parameters found on '" .. track.name .. "'"))
+end
+
+renoise.tool():add_keybinding{name = "Global:Paketti:Expose Automated Parameters on Mixer", invoke = PakettiExposeAutomatedParamsOnMixer}
+renoise.tool():add_midi_mapping{name = "Paketti:Expose Automated Parameters on Mixer [Trigger]", invoke = function(message) if message:is_trigger() then PakettiExposeAutomatedParamsOnMixer() end end}
+PakettiAddMenuEntry{name = "Mixer:Paketti Gadgets:Expose Automated Parameters on Mixer", invoke = PakettiExposeAutomatedParamsOnMixer}
 
 -- Keybindings for PhraseGrid integration
 renoise.tool():add_keybinding{name = "Global:Paketti:Parameter Editor Snapshot to PhraseGrid State", invoke = function() PakettiCanvasExperimentsSnapshotToPhraseGrid() end}
