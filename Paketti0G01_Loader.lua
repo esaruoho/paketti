@@ -933,7 +933,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     RandomizeStrength = true,
     HalfSize = false,
     HalfSizeFont = false,
-    AutoOpen = false
+    AutoOpen = false,
+    CustomOrderingMode = false
   },
   -- Create New Send Settings
   pakettiCreateNewSends = {
@@ -2715,6 +2716,18 @@ vb:row{
                 end
                 local status_text = value and "enabled" or "disabled"
                 renoise.app():show_status("Parameter Editor Auto-Open " .. status_text)
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Customized Ordering Mode",width=150,tooltip="Enable future per-plugin Parameter Editor display customization (default off; no behavior change until configuration tools are added)"},
+            vb:checkbox{
+              value=preferences.pakettiParameterEditor.CustomOrderingMode.value,
+              tooltip="Enable future per-plugin Parameter Editor display customization (default off; no behavior change until configuration tools are added)",
+              notifier=function(value)
+                preferences.pakettiParameterEditor.CustomOrderingMode.value=value
+                preferences:save_as("preferences.xml")
+                renoise.app():show_status("Parameter Editor Customized Ordering Mode " .. (value and "enabled" or "disabled"))
               end
             }
           },

@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-04 - Improvement: Parameter Editor — add Customized Ordering Mode preference toggle
+Added a new Parameter Editor preference toggle, **Customized Ordering Mode**, in the Paketti Preferences dialog. This is the first low-risk groundwork for future per-plugin Parameter Editor display customization (reorder / hide / rename as a display layer): the preference is persisted in `preferences.xml`, defaults to OFF, and intentionally changes no current Parameter Editor behavior until the actual configuration tools are added. Menu: `Main Menu:Options:Paketti Preferences...`, `Main Menu:Tools:Paketti:!Preferences:Paketti Preferences...`. Keybinding: `Global:Paketti:Show Paketti Preferences...`. MIDI: `Paketti:Paketti Preferences...`.
+
 ### 2026-07-04 - Fix: Parameter Editor — Expose on Mixer now applies immediately from any frame
 Fixed the brittle "Expose on Mixer" checkbox in the Selected Device Parameter Editor. Enabling it now immediately exposes the selected track's **automated** mixer parameters even when Renoise is not currently showing the Mixer frame, instead of waiting for a mixer-visible moment or a later drag. The per-drag path still exposes the parameter you are touching, while the checkbox/refresh path no longer broadens to every parameter on the device. It also no longer crashes by comparing Renoise `AudioDevice` objects directly, and clicking the **"Expose on Mixer"** text now does the exact same toggle/action as clicking its checkbox. Menu: `Mixer:Paketti Gadgets:Selected Device Parameter Editor...`.
 
