@@ -182,17 +182,32 @@ local function PakettiCanvasExperimentsSetParameterMixerVisibility(param_info, v
 end
 
 local function PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
-  if not current_device or #device_parameters == 0 then
-    return false, "No current device parameters available to expose"
+  local song = renoise.song()
+  if not song then
+    return false, "No song available"
+  end
+
+  if not current_track_index or not song.tracks[current_track_index] then
+    PakettiCanvasExperimentsRememberCurrentTrack(song)
+  end
+
+  local track = current_track_index and song.tracks[current_track_index] or song.selected_track
+  if not track then
+    return false, "No selected track available for mixer exposure"
   end
 
   local exposed_count = 0
-  for _, param_info in ipairs(device_parameters) do
-    local ok, reason = PakettiCanvasExperimentsSetParameterMixerVisibility(param_info, true)
-    if not ok then
-      return false, reason
+  for _, device in ipairs(track.devices) do
+    local ok_params, params = pcall(function() return device.parameters end)
+    if ok_params and params then
+      for _, param in ipairs(params) do
+        local ok, autom = pcall(function() return param.is_automated end)
+        if ok and autom then
+          param.show_in_mixer = true
+          exposed_count = exposed_count + 1
+        end
+      end
     end
-    exposed_count = exposed_count + 1
   end
 
   last_mixer_exposure_error = nil
@@ -1582,7 +1597,7 @@ function PakettiCanvasExperimentsCreateDialog()
             if value then
               local ok, result = PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
               if ok then
-                renoise.app():show_status("Expose Parameters on Mixer: ENABLED (" .. tostring(result) .. " current parameters exposed)")
+                renoise.app():show_status("Expose Parameters on Mixer: ENABLED (" .. tostring(result) .. " automated parameters exposed)")
               else
                 last_mixer_exposure_error = result
                 renoise.app():show_status("Expose Parameters on Mixer: ENABLED - " .. result)
@@ -3062,24 +3077,13 @@ end
 -- the current pattern, so the mixer shows what you're modifying and nothing else.
 function PakettiExposeAutomatedParamsOnMixer()
   local song = renoise.song()
-  local track = song.selected_track
+  local track = song and song.selected_track or nil
   if not track then return end
-  local shown = 0
-  for _, device in ipairs(track.devices) do
-    local ok_params, params = pcall(function() return device.parameters end)
-    if ok_params and params then
-      for _, param in ipairs(params) do
-        local ok, autom = pcall(function() return param.is_automated end)   -- errors on instrument-device params
-        if ok and autom then
-          pcall(function() param.show_in_mixer = true end)
-          shown = shown + 1
-        end
-      end
-    end
-  end
+  local ok, shown = PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
   renoise.app():show_status(shown > 0
     and ("Mixer: exposed " .. shown .. " automated parameter(s) on '" .. track.name .. "'")
-    or ("Mixer: no automated parameters found on '" .. track.name .. "'"))
+    or (ok and ("Mixer: no automated parameters found on '" .. track.name .. "'")
+      or ("Mixer: automated-parameter expose skipped on '" .. track.name .. "' - " .. tostring(shown))))
 end
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Expose Automated Parameters on Mixer", invoke = PakettiExposeAutomatedParamsOnMixer}
