@@ -1470,6 +1470,16 @@ function PakettiCanvasExperimentsCreateDialog()
   
   -- Create fresh ViewBuilder instance
   local vb = renoise.ViewBuilder()
+  local expose_on_mixer_link = vb:link {
+    text = "Expose on Mixer",
+    font = "bold",
+    style = "strong",
+    tooltip = "Click to switch to the Mixer frame. When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)"
+  }
+  expose_on_mixer_link:add_pressed_notifier(function()
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
+    renoise.app():show_status("Switched to Mixer frame")
+  end)
   
   local dialog_content = vb:column {
     
@@ -1607,16 +1617,7 @@ function PakettiCanvasExperimentsCreateDialog()
             end
           end
         },
-        vb:textlink {
-          text = "Expose on Mixer",
-          font = "bold",
-          style = "strong",
-          tooltip = "Click to switch to the Mixer frame. When enabled, drawing a parameter will expose it on the mixer (show_in_mixer)",
-          notifier = function()
-            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
-            renoise.app():show_status("Switched to Mixer frame")
-          end
-        }
+        expose_on_mixer_link
       },
       vb:row {
         vb:checkbox {
