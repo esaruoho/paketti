@@ -739,16 +739,20 @@ local function mm_stamp_to_line(seq, line, notelist)
   end
 end
 
--- Append ONE note to the next note column of a line (round-robin), resetting to column 1 on a
--- new line. This is what makes the arpeggiate/strum recorder land its notes ACROSS columns so
--- they ring together, instead of every note overwriting column 1 (which cut each note off).
-local function mm_stamp_note_append(seq, line, note)
+-- Append ONE note to the next note column (round-robin over the voice count). Two modes:
+--   strum (default): reset to column 1 on each new line, and delay-stagger the notes on that line
+--     -> a chord strummed across columns on ONE line (arpeggiate / strum / strummed chord).
+--   stack (Line): DON'T reset per line and use no delay -> each successive note lands in the next
+--     column on its own line and keeps RINGING, building up a sustained stack that cycles at the
+--     voice count. This matches Line's live sound (each voice enters and sustains), which the old
+--     one-note-in-column-1-per-line recording flattened to a choppy monophonic run.
+local function mm_stamp_note_append(seq, line, note, stack)
   if not note then return end
   local song = renoise.song()
   local ti = song.selected_track_index
   local track = song.tracks[ti]
   if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then return end
-  if mm.rec_last_line ~= line then mm.rec_last_line = line; mm.rec_col = 1 end   -- new line -> col 1
+  if (not stack) and mm.rec_last_line ~= line then mm.rec_last_line = line; mm.rec_col = 1 end
   local maxcol = math.min(12, math.max(1, mm.num_voices))
   local col_i = mm.rec_col
   if col_i > maxcol then col_i = 1 end
@@ -759,10 +763,13 @@ local function mm_stamp_note_append(seq, line, note)
   col.note_value = note
   col.instrument_value = song.selected_instrument_index - 1
   col.volume_value = math.max(1, math.min(127, math.floor(mm.loudness * 127 + 0.5)))
-  -- delay-column strum: each successive note on this line is nudged later in time, spacing
-  -- derived from BPM+LPB so it's a truly-recorded strum (not a block chord). Show the column.
-  col.delay_value = math.min(0xFF, (col_i - 1) * mm_strum_delay_step(maxcol))
-  if track.delay_column_visible == false then track.delay_column_visible = true end
+  if stack then
+    col.delay_value = 0                                   -- Line notes sit on the beat and sustain
+  else
+    -- strum: each successive note on this line is nudged later, spacing from BPM+LPB; show delay col
+    col.delay_value = math.min(0xFF, (col_i - 1) * mm_strum_delay_step(maxcol))
+    if track.delay_column_visible == false then track.delay_column_visible = true end
+  end
   mm.rec_col = col_i + 1
   if mm.rec_col > maxcol then mm.rec_col = 1 end
 end
@@ -814,15 +821,20 @@ mm_record_write = function(notelist)
   if not song or not song.transport.playing then return end
   local pos = song.transport.playback_pos
   mm.rec_row = pos.line - 1
-  if mm.treatment ~= 1 or mm.strum then
-    -- Arpeggiate / Line / Improvise, or a strummed Chord: spread the individually-struck notes
-    -- across note columns so the recorded pattern rings/strums instead of flooding column 1 and
-    -- cutting each note off. (Plain Chord without Strum stays a block chord in columns 1..N.)
+  if mm.treatment == 3 or mm.treatment == 4 then
+    -- Line / Improvise: STACK successive notes into consecutive columns across lines so they ring
+    -- and build a sustained chord (matching the live sound, where each voice enters and holds),
+    -- instead of a choppy one-note-per-line-in-column-1 run.
     for _, n in ipairs(notelist) do
-      pcall(function() mm_stamp_note_append(pos.sequence, pos.line, n) end)
+      pcall(function() mm_stamp_note_append(pos.sequence, pos.line, n, true) end)
+    end
+  elseif mm.treatment ~= 1 or mm.strum then
+    -- Arpeggiate, or a strummed Chord: strum across note columns on the line with delays
+    for _, n in ipairs(notelist) do
+      pcall(function() mm_stamp_note_append(pos.sequence, pos.line, n, false) end)
     end
   else
-    pcall(function() mm_stamp_to_line(pos.sequence, pos.line, notelist) end)
+    pcall(function() mm_stamp_to_line(pos.sequence, pos.line, notelist) end)  -- plain block chord
   end
   mm_sync_recrow_ui()
 end
@@ -2210,8 +2222,13 @@ function mm_keyhandler(dlg, key)
   end
   if name:match("^[0-9]$") then
     local num = tonumber(name)
-    mm.pattern_idx = (num == 0) and 10 or num
-    mm.pattern_on = true          -- pressing a pattern number STARTS it (was: only selected it; you had to also hit 'a'/the Pattern box)
+    local idx = (num == 0) and 10 or num
+    if mm.pattern_on and mm.pattern_idx == idx then
+      mm.pattern_on = false        -- pressing the SAME pattern that's playing stops it (toggle)
+    else
+      mm.pattern_idx = idx         -- otherwise select that contour and start it
+      mm.pattern_on = true
+    end
     mm.pat_step = 1
     mm_restart_timer()
     mm_update_panel(); if mm_pat_canvas then mm_pat_canvas:update() end; return nil

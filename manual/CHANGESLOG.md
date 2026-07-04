@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-04 - Improvement: Music Mouse — pattern key re-press stops it, Line/Improvise stack into columns
+Two follow-ups. (1) Pressing a pattern-contour number key that's ALREADY playing now stops it (toggle off); pressing a different number switches to that contour. (2) Line and Improvise recording now STACK their notes into consecutive note columns across lines so they ring and build up a sustained chord — matching how they sound live (each voice enters and holds) — instead of the old choppy one-note-per-line in column 1. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
+
 ### 2026-07-04 - Improvement: Music Mouse — clock phase-locks to the pattern grid, pattern keys start playing, Strum chords, Improvise multi-column
 Four fixes to make Music Mouse line up with the pattern. (1) When Sync is on and the transport is playing, the Music Mouse clock now PHASE-LOCKS to the pattern grid — a Music Mouse beat is exactly one pattern line, fired as the playhead crosses each line, so what you hear matches the pattern rhythm and what gets recorded (no more drift; Arpeggiate's sub-steps space evenly inside the line). (2) Pressing a pattern-contour number key (1-9, 0) now turns pattern mode ON and starts it, instead of only selecting the contour (you no longer have to also toggle the Pattern box). (3) New "Strum chords" checkbox by the Strum spacing control — when on, Chord treatment rakes its notes low-to-high (live audio staggered by the Strum spacing, and written across note columns with delay values) instead of a block chord. (4) Improvise recording now spreads its notes across note columns like the other treatments, instead of flooding column 1. Menu: `Main Menu:Tools:Paketti:Music Mouse...`.
 
