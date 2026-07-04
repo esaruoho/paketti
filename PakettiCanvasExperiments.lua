@@ -35,6 +35,7 @@ local current_drawing_parameter = nil
 -- Track information for current device
 local current_track_index = nil
 local current_track_name = nil
+local current_device_index = nil
 -- Global device selection observer for auto-open feature
 local global_device_observer = nil
 
@@ -103,17 +104,19 @@ local function PakettiCanvasExperimentsRememberCurrentTrack(song)
   if not song then
     current_track_index = nil
     current_track_name = nil
+    current_device_index = nil
     return
   end
 
   current_track_index = song.selected_track_index
   current_track_name = song.selected_track and song.selected_track.name or nil
+  current_device_index = song.selected_track_device_index or song.selected_device_index
 end
 
-local function PakettiCanvasExperimentsCurrentDeviceSupportsMixerExposure()
+local function PakettiCanvasExperimentsGetCurrentTrackDevice()
   local song = renoise.song()
   if not song or not current_device then
-    return false, "No selected track device to expose"
+    return nil, "No selected track device to expose"
   end
 
   if not current_track_index or not song.tracks[current_track_index] then
@@ -122,25 +125,55 @@ local function PakettiCanvasExperimentsCurrentDeviceSupportsMixerExposure()
 
   local track = current_track_index and song.tracks[current_track_index] or nil
   if not track then
-    return false, "No selected track available for mixer exposure"
+    return nil, "No selected track available for mixer exposure"
   end
 
-  for _, device in ipairs(track.devices) do
-    if device == current_device then
-      return true
-    end
+  if not current_device_index or current_device_index < 1 or current_device_index > #track.devices then
+    current_device_index = song.selected_track_device_index or song.selected_device_index
   end
 
-  return false, "Current Parameter Editor device is not in the selected track DSP chain"
+  if not current_device_index or current_device_index < 1 or current_device_index > #track.devices then
+    return nil, "Current Parameter Editor device is not in the selected track DSP chain"
+  end
+
+  local live_device = track.devices[current_device_index]
+  if not live_device then
+    return nil, "Current Parameter Editor device is not in the selected track DSP chain"
+  end
+
+  return live_device
 end
 
-local function PakettiCanvasExperimentsSetParameterMixerVisibility(parameter, visible)
-  local supported, reason = PakettiCanvasExperimentsCurrentDeviceSupportsMixerExposure()
-  if not supported then
+local function PakettiCanvasExperimentsCurrentDeviceSupportsMixerExposure()
+  local live_device, reason = PakettiCanvasExperimentsGetCurrentTrackDevice()
+  if not live_device then
     return false, reason
   end
 
-  if not parameter or not parameter.is_automatable then
+  if #live_device.parameters == 0 then
+    return false, "Current track device has no parameters to expose"
+  end
+
+  return true, live_device
+end
+
+local function PakettiCanvasExperimentsSetParameterMixerVisibility(param_info, visible)
+  local supported, live_device_or_reason = PakettiCanvasExperimentsCurrentDeviceSupportsMixerExposure()
+  if not supported then
+    return false, live_device_or_reason
+  end
+
+  if not param_info or not param_info.index then
+    return false, "Parameter info missing index"
+  end
+
+  local live_device = live_device_or_reason
+  local parameter = live_device.parameters[param_info.index]
+  if not parameter then
+    return false, "Could not find live parameter at index " .. tostring(param_info.index)
+  end
+
+  if not parameter.is_automatable then
     return false, "Parameter is not automatable"
   end
 
@@ -155,7 +188,7 @@ local function PakettiCanvasExperimentsExposeCurrentDeviceOnMixer()
 
   local exposed_count = 0
   for _, param_info in ipairs(device_parameters) do
-    local ok, reason = PakettiCanvasExperimentsSetParameterMixerVisibility(param_info.parameter, true)
+    local ok, reason = PakettiCanvasExperimentsSetParameterMixerVisibility(param_info, true)
     if not ok then
       return false, reason
     end
@@ -510,6 +543,7 @@ function PakettiCanvasExperimentsRefreshDevice()
     
       current_device = selected_device
       PakettiCanvasExperimentsRememberCurrentTrack(song)
+      current_device_index = song.selected_track_device_index or song.selected_device_index
       device_parameters = {}
     
     -- Check if this is a Wavetable Mod *LFO device (partial blacklist)
@@ -551,6 +585,7 @@ function PakettiCanvasExperimentsRefreshDevice()
     print("DEVICE_WARNING: selected_device is nil after search - using empty state")
     current_device = nil
     PakettiCanvasExperimentsRememberCurrentTrack(song)
+    current_device_index = nil
     device_parameters = {}
   end
   
@@ -639,6 +674,7 @@ function PakettiCanvasExperimentsInit()
     
       current_device = selected_device
       PakettiCanvasExperimentsRememberCurrentTrack(song)
+      current_device_index = song.selected_track_device_index or song.selected_device_index
       device_parameters = {}
     
     -- Check if this is a Wavetable Mod *LFO device (partial blacklist)
@@ -680,6 +716,7 @@ function PakettiCanvasExperimentsInit()
     print("DEVICE_ERROR: No valid device available - initializing with empty state")
     current_device = nil
     PakettiCanvasExperimentsRememberCurrentTrack(song)
+    current_device_index = nil
     device_parameters = {}
   end
   
@@ -942,7 +979,7 @@ function PakettiCanvasExperimentsHandleMouseInput(x, y)
       -- Expose the parameter you're modifying on the mixer if the option is enabled. This is now
       -- INDEPENDENT of Automation Sync — dragging a bar should surface it in the mixer regardless.
       if expose_params_on_mixer then
-        local ok, reason = PakettiCanvasExperimentsSetParameterMixerVisibility(param_info.parameter, true)
+        local ok, reason = PakettiCanvasExperimentsSetParameterMixerVisibility(param_info, true)
         if not ok and last_mixer_exposure_error ~= reason then
           last_mixer_exposure_error = reason
           renoise.app():show_status("Expose Parameters on Mixer skipped: " .. reason)
