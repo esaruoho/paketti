@@ -162,6 +162,120 @@ local function PakettiCanvasExperimentsBuildDeviceParameters(device)
   return built_parameters
 end
 
+local function PakettiCanvasExperimentsCloneParameterInfo(param_info, override_name)
+  if not param_info then
+    return nil
+  end
+
+  return {
+    parameter = param_info.parameter,
+    name = override_name or param_info.name,
+    original_name = param_info.original_name or param_info.name,
+    value = param_info.value,
+    value_min = param_info.value_min,
+    value_max = param_info.value_max,
+    value_default = param_info.value_default,
+    index = param_info.index
+  }
+end
+
+local function PakettiCanvasExperimentsApplyDisplayConfig(device, base_parameters)
+  if not device or not base_parameters or #base_parameters == 0 then
+    return base_parameters or {}
+  end
+
+  if not preferences or not preferences.pakettiParameterEditor or not preferences.pakettiParameterEditor.CustomOrderingMode or not preferences.pakettiParameterEditor.CustomOrderingMode.value then
+    return base_parameters
+  end
+
+  if type(PakettiFindParameterEditorConfig) ~= "function" or not device.device_path or device.device_path == "" then
+    return base_parameters
+  end
+
+  local config_entry = select(1, PakettiFindParameterEditorConfig(device.device_path))
+  if not config_entry or not config_entry.params or #config_entry.params == 0 then
+    return base_parameters
+  end
+
+  local base_by_index = {}
+  for _, param_info in ipairs(base_parameters) do
+    base_by_index[param_info.index] = param_info
+  end
+
+  local configured_items = {}
+  local configured_indices = {}
+
+  for i = 1, #config_entry.params do
+    local config_param = config_entry.params:property(i)
+    if config_param and config_param.parameter_index then
+      local parameter_index = config_param.parameter_index.value
+      local base_param_info = base_by_index[parameter_index]
+      if base_param_info then
+        configured_indices[parameter_index] = true
+        if config_param.visible.value ~= false then
+          local display_name = config_param.display_name.value
+          local resolved_name = (display_name ~= "") and display_name or base_param_info.name
+          table.insert(configured_items, {
+            sort_order = config_param.sort_order.value,
+            sequence = i,
+            param_info = PakettiCanvasExperimentsCloneParameterInfo(base_param_info, resolved_name)
+          })
+        end
+      end
+    end
+  end
+
+  table.sort(configured_items, function(a, b)
+    if a.sort_order == b.sort_order then
+      return a.sequence < b.sequence
+    end
+    return a.sort_order < b.sort_order
+  end)
+
+  local displayed_parameters = {}
+  for _, item in ipairs(configured_items) do
+    table.insert(displayed_parameters, item.param_info)
+  end
+
+  for _, base_param_info in ipairs(base_parameters) do
+    if not configured_indices[base_param_info.index] then
+      table.insert(displayed_parameters, PakettiCanvasExperimentsCloneParameterInfo(base_param_info))
+    end
+  end
+
+  return displayed_parameters
+end
+
+local function PakettiCanvasExperimentsBuildDisplayedParameters(device)
+  local base_parameters = PakettiCanvasExperimentsBuildDeviceParameters(device)
+  return PakettiCanvasExperimentsApplyDisplayConfig(device, base_parameters)
+end
+
+local function PakettiCanvasExperimentsBuildParameterSummary(device, param_infos)
+  if not device then
+    return "no-device"
+  end
+
+  local lines = {
+    "device_path=" .. tostring(device.device_path or ""),
+    "device_name=" .. tostring(device.display_name or device.name or ""),
+    "count=" .. tostring(param_infos and #param_infos or 0)
+  }
+
+  if param_infos then
+    for display_index, param_info in ipairs(param_infos) do
+      table.insert(lines, string.format("%02d:%d:%s:%s",
+        display_index,
+        param_info.index or 0,
+        tostring(param_info.name or ""),
+        tostring(param_info.original_name or param_info.name or "")
+      ))
+    end
+  end
+
+  return table.concat(lines, "\n")
+end
+
 local function PakettiCanvasExperimentsGetCurrentTrackDevice()
   local song = renoise.song()
   if not song or not current_device then
@@ -608,7 +722,7 @@ function PakettiCanvasExperimentsRefreshDevice()
     current_device = selected_device
     PakettiCanvasExperimentsRememberCurrentTrack(song)
     current_device_index = song.selected_track_device_index or song.selected_device_index
-    device_parameters = PakettiCanvasExperimentsBuildDeviceParameters(current_device)
+    device_parameters = PakettiCanvasExperimentsBuildDisplayedParameters(current_device)
   else
     print("DEVICE_WARNING: selected_device is nil after search - using empty state")
     current_device = nil
@@ -703,7 +817,7 @@ function PakettiCanvasExperimentsInit()
     current_device = selected_device
     PakettiCanvasExperimentsRememberCurrentTrack(song)
     current_device_index = song.selected_track_device_index or song.selected_device_index
-    device_parameters = PakettiCanvasExperimentsBuildDeviceParameters(current_device)
+    device_parameters = PakettiCanvasExperimentsBuildDisplayedParameters(current_device)
   else
     print("DEVICE_ERROR: No valid device available - initializing with empty state")
     current_device = nil
@@ -1625,6 +1739,11 @@ function PakettiCanvasExperimentsCreateDialog()
           style = "strong",
           tooltip = "Alternate each parameter column's background (light / dark) for grid-style reading"
         }
+      },
+      vb:button {
+        text = "Configure...",
+        tooltip = "Reorder / hide / rename this device's parameters (per-plugin display config). Needs Customized Ordering Mode ON (Paketti Preferences) to apply.",
+        notifier = function() PakettiCanvasExperimentsOpenConfigDialog() end
       },
       vb:button{
         text="Randomize",
@@ -3066,6 +3185,26 @@ function PakettiCanvasExperimentsRestoreFromPhraseGrid(state_index)
   return PakettiCanvasExperimentsRestoreFromSnapshot(snapshot)
 end
 
+function PakettiCanvasExperimentsGetBaseParameterSummary()
+  local song = renoise.song()
+  local device = song and song.selected_device or nil
+  if not device then
+    return "no-device"
+  end
+
+  return PakettiCanvasExperimentsBuildParameterSummary(device, PakettiCanvasExperimentsBuildDeviceParameters(device))
+end
+
+function PakettiCanvasExperimentsGetDisplayedParameterSummary()
+  local song = renoise.song()
+  local device = song and song.selected_device or nil
+  if not device then
+    return "no-device"
+  end
+
+  return PakettiCanvasExperimentsBuildParameterSummary(device, PakettiCanvasExperimentsBuildDisplayedParameters(device))
+end
+
 -- Expose ONLY the AUTOMATED parameters of the selected track on the mixer (param.is_automated).
 -- Unlike Renoise's "show all" this surfaces just the parameters that actually have automation in
 -- the current pattern, so the mixer shows what you're modifying and nothing else.
@@ -3083,6 +3222,129 @@ end
 renoise.tool():add_keybinding{name = "Global:Paketti:Expose Automated Parameters on Mixer", invoke = PakettiExposeAutomatedParamsOnMixer}
 renoise.tool():add_midi_mapping{name = "Paketti:Expose Automated Parameters on Mixer [Trigger]", invoke = function(message) if message:is_trigger() then PakettiExposeAutomatedParamsOnMixer() end end}
 PakettiAddMenuEntry{name = "Mixer:Paketti Gadgets:Expose Automated Parameters on Mixer", invoke = PakettiExposeAutomatedParamsOnMixer}
+
+-- ============================================================================
+-- Per-plugin Parameter Editor CONFIG dialog (reorder / hide / rename) — Phase 5-6.
+-- Display layer only: writes a config keyed by device.device_path via the loader's
+-- PakettiUpsertParameterEditorConfig; the apply layer (gated by CustomOrderingMode)
+-- consumes it. The device's real parameters are never mutated. Built from BASELINE
+-- params so hidden ones are always recoverable.
+-- ============================================================================
+local paketti_pe_cfg_dialog = nil
+local paketti_pe_cfg_rows = nil
+local paketti_pe_cfg_device_path = nil
+local paketti_pe_cfg_device_name = nil
+
+local function PakettiCanvasExperimentsBuildConfigRows(device)
+  local base = PakettiCanvasExperimentsBuildDeviceParameters(device)
+  local rows = {}
+  local device_path = device.device_path or ""
+  local existing = (type(PakettiFindParameterEditorConfig) == "function") and select(1, PakettiFindParameterEditorConfig(device_path)) or nil
+  if existing and existing.params and #existing.params > 0 then
+    local base_by_index, seen, cfg = {}, {}, {}
+    for _, b in ipairs(base) do base_by_index[b.index] = b end
+    for i = 1, #existing.params do
+      local p = existing.params:property(i)
+      if p and p.parameter_index then
+        local bi = base_by_index[p.parameter_index.value]
+        if bi then
+          cfg[#cfg + 1] = { sort = p.sort_order.value, seq = i, parameter_index = bi.index,
+            base_name = bi.original_name or bi.name, visible = (p.visible.value ~= false),
+            display_name = p.display_name.value or "" }
+          seen[bi.index] = true
+        end
+      end
+    end
+    table.sort(cfg, function(a, b) if a.sort == b.sort then return a.seq < b.seq end return a.sort < b.sort end)
+    for _, c in ipairs(cfg) do rows[#rows + 1] = { parameter_index = c.parameter_index, base_name = c.base_name, visible = c.visible, display_name = c.display_name } end
+    for _, b in ipairs(base) do
+      if not seen[b.index] then rows[#rows + 1] = { parameter_index = b.index, base_name = b.original_name or b.name, visible = true, display_name = "" } end
+    end
+  else
+    for _, b in ipairs(base) do rows[#rows + 1] = { parameter_index = b.index, base_name = b.original_name or b.name, visible = true, display_name = "" } end
+  end
+  return rows
+end
+
+function PakettiCanvasExperimentsOpenConfigDialog(reuse_rows)
+  local song = renoise.song()
+  local device = song and song.selected_device
+  if not device then renoise.app():show_status("Parameter Editor Config: select a device first"); return end
+  local device_path = device.device_path or ""
+  if device_path == "" then renoise.app():show_status("Parameter Editor Config: this device has no device_path — can't save a config for it"); return end
+
+  if not reuse_rows or paketti_pe_cfg_device_path ~= device_path then
+    paketti_pe_cfg_rows = PakettiCanvasExperimentsBuildConfigRows(device)
+    paketti_pe_cfg_device_path = device_path
+    paketti_pe_cfg_device_name = device.display_name or device.name or ""
+  end
+  local rows = paketti_pe_cfg_rows
+  if #rows == 0 then renoise.app():show_status("Parameter Editor Config: device has no automatable parameters"); return end
+
+  if paketti_pe_cfg_dialog and paketti_pe_cfg_dialog.visible then paketti_pe_cfg_dialog:close(); paketti_pe_cfg_dialog = nil end
+  local vbc = renoise.ViewBuilder()
+
+  local function harvest()
+    for i in ipairs(rows) do
+      if vbc.views["pe_vis_" .. i] then rows[i].visible = vbc.views["pe_vis_" .. i].value end
+      if vbc.views["pe_name_" .. i] then rows[i].display_name = vbc.views["pe_name_" .. i].text end
+    end
+  end
+  local function move(i, dir)
+    harvest()
+    local j = i + dir
+    if j < 1 or j > #rows then return end
+    rows[i], rows[j] = rows[j], rows[i]
+    PakettiCanvasExperimentsOpenConfigDialog(true)   -- reopen preserving the edited/reordered rows
+  end
+  local function close_cfg() if paketti_pe_cfg_dialog and paketti_pe_cfg_dialog.visible then paketti_pe_cfg_dialog:close() end paketti_pe_cfg_dialog = nil end
+
+  local mode_on = preferences and preferences.pakettiParameterEditor and preferences.pakettiParameterEditor.CustomOrderingMode and preferences.pakettiParameterEditor.CustomOrderingMode.value
+
+  local col = { margin = 8, spacing = 3,
+    vbc:text{ text = paketti_pe_cfg_device_name, font = "bold", style = "strong" },
+    vbc:text{ text = mode_on and "Customized Ordering Mode: ON" or "Customized Ordering Mode: OFF — enable it in Paketti Preferences to see this apply",
+      style = mode_on and "strong" or "disabled" },
+    vbc:row{ spacing = 4,
+      vbc:text{ text = "Show", width = 38, font = "bold" },
+      vbc:text{ text = "Move", width = 64, font = "bold" },
+      vbc:text{ text = "Parameter", width = 210, font = "bold" },
+      vbc:text{ text = "Rename (display label)", width = 170, font = "bold" } },
+  }
+  for i, r in ipairs(rows) do
+    local ii = i
+    col[#col + 1] = vbc:row{ spacing = 4,
+      vbc:checkbox{ id = "pe_vis_" .. ii, value = r.visible, width = 38 },
+      vbc:button{ text = "↑", width = 30, notifier = function() move(ii, -1) end },
+      vbc:button{ text = "↓", width = 30, notifier = function() move(ii, 1) end },
+      vbc:text{ text = r.base_name, width = 210 },
+      vbc:textfield{ id = "pe_name_" .. ii, text = r.display_name or "", width = 170 } }
+  end
+  col[#col + 1] = vbc:row{ spacing = 4,
+    vbc:button{ text = "Save", width = 110, notifier = function()
+      harvest()
+      local param_rows = {}
+      for i, r in ipairs(rows) do param_rows[#param_rows + 1] = { parameter_index = r.parameter_index, visible = r.visible, display_name = r.display_name or "", sort_order = i } end
+      if type(PakettiUpsertParameterEditorConfig) == "function" then PakettiUpsertParameterEditorConfig(paketti_pe_cfg_device_path, paketti_pe_cfg_device_name, param_rows) end
+      pcall(function() preferences:save_as("preferences.xml") end)
+      pcall(PakettiCanvasExperimentsRefreshDevice)
+      renoise.app():show_status("Parameter Editor Config saved for " .. paketti_pe_cfg_device_name .. (mode_on and "" or " — enable Customized Ordering Mode to see it apply"))
+      close_cfg()
+    end },
+    vbc:button{ text = "Reset to Plugin Default", width = 170, notifier = function()
+      if type(PakettiRemoveParameterEditorConfig) == "function" then PakettiRemoveParameterEditorConfig(paketti_pe_cfg_device_path) end
+      pcall(function() preferences:save_as("preferences.xml") end)
+      pcall(PakettiCanvasExperimentsRefreshDevice)
+      renoise.app():show_status("Parameter Editor Config reset to plugin default for " .. paketti_pe_cfg_device_name)
+      close_cfg()
+    end },
+    vbc:button{ text = "Cancel", width = 80, notifier = function() close_cfg() end } }
+
+  paketti_pe_cfg_dialog = renoise.app():show_custom_dialog("Configure Parameter Editor — " .. paketti_pe_cfg_device_name, vbc:column(col))
+end
+
+renoise.tool():add_keybinding{name = "Global:Paketti:Configure Parameter Editor for Selected Device", invoke = function() PakettiCanvasExperimentsOpenConfigDialog() end}
+PakettiAddMenuEntry{name = "Mixer:Paketti Gadgets:Configure Parameter Editor for Selected Device", invoke = function() PakettiCanvasExperimentsOpenConfigDialog() end}
 
 -- Keybindings for PhraseGrid integration
 renoise.tool():add_keybinding{name = "Global:Paketti:Parameter Editor Snapshot to PhraseGrid State", invoke = function() PakettiCanvasExperimentsSnapshotToPhraseGrid() end}

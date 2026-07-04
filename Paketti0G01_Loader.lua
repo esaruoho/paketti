@@ -130,6 +130,48 @@ function PakettiFindParameterEditorConfig(device_path)
   return nil, nil
 end
 
+function PakettiRemoveParameterEditorConfig(device_path)
+  local _, index = PakettiFindParameterEditorConfig(device_path)
+  if not index then
+    return false
+  end
+
+  preferences.PakettiParameterEditorConfigs:remove(index)
+  return true
+end
+
+function PakettiUpsertParameterEditorConfig(device_path, device_name, param_rows)
+  if not preferences or not preferences.PakettiParameterEditorConfigs or not device_path or device_path == "" then
+    return nil
+  end
+
+  local entry = nil
+  local existing_entry, existing_index = PakettiFindParameterEditorConfig(device_path)
+  if existing_entry then
+    entry = existing_entry
+    entry.device_name.value = device_name or entry.device_name.value
+    for i = #entry.params, 1, -1 do
+      entry.params:remove(i)
+    end
+  else
+    entry = PakettiCreateParameterEditorConfigEntry(device_path, device_name)
+    preferences.PakettiParameterEditorConfigs:insert(#preferences.PakettiParameterEditorConfigs + 1, entry)
+  end
+
+  if param_rows then
+    for i, row in ipairs(param_rows) do
+      entry.params:insert(#entry.params + 1, PakettiCreateParameterEditorConfigParamEntry(
+        row.parameter_index,
+        row.visible,
+        row.display_name,
+        row.sort_order or i
+      ))
+    end
+  end
+
+  return entry, existing_index
+end
+
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   singlewaveformwriterhex=true,
   -- Music Mouse: persisted performance settings (tempo + loudness survive close/reopen + reload)
