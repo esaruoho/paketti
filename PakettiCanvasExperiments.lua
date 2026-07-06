@@ -3017,6 +3017,10 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Parameter Editor Snapshot 
 
 PakettiAddMenuEntry {name = "Mixer:Paketti Gadgets:Selected Device Parameter Editor...", invoke = PakettiCanvasExperimentsInit}
 
+PakettiAddMenuEntry {name = "Mixer:Paketti:Open Selected Device with Parameter Editor", invoke = PakettiCanvasExperimentsInit}
+renoise.tool():add_keybinding {name = "Global:Paketti:Open Selected Device with Parameter Editor", invoke = PakettiCanvasExperimentsInit}
+renoise.tool():add_midi_mapping {name = "Paketti:Open Selected Device with Parameter Editor [Trigger]", invoke = function(message) if message:is_trigger() then PakettiCanvasExperimentsInit() end end}
+
 --------------------------------------------------------------------------------
 -- PHRASEGRID INTEGRATION: Device Parameter Snapshots
 --------------------------------------------------------------------------------
