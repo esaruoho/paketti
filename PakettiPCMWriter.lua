@@ -1155,7 +1155,11 @@ function PCMWriterSetWaveEdit(target)
   -- Update harmonic drawbars if in harmonic mode and 12st_WT setup [[memory:6653553]]
   if is_12st_wt_setup and harmonic_drawbar_mode and harmonic_canvas and live_pickup_mode then
     local restored = PCMWriterRestoreHarmonicLevels()
-    if restored and harmonic_canvas then
+    if not restored then
+      for i = 1, 11 do harmonic_levels[i] = 0.0 end  -- new wave has no encoded harmonics
+    end
+    PCMWriterEstablishHarmonicBase()  -- re-base the fundamental to the newly selected wave
+    if harmonic_canvas then
       harmonic_canvas:update()
     end
   end
@@ -7208,12 +7212,11 @@ local function update_dialog_on_selection_change()
       if harmonic_drawbar_mode and harmonic_canvas then
         print("-- Live Pickup Mode (12st_WT): Loading Wave A harmonic data into drawbars")
         local restored = PCMWriterRestoreHarmonicLevels()
-        if restored then
-          harmonic_canvas:update()
-          print("-- Live Pickup Mode (12st_WT): Harmonic drawbars updated to show Wave A settings")
-        else
-          print("-- Live Pickup Mode (12st_WT): No harmonic data found for Wave A")
+        if not restored then
+          for i = 1, 11 do harmonic_levels[i] = 0.0 end
         end
+        PCMWriterEstablishHarmonicBase()  -- re-base the fundamental to Wave A
+        harmonic_canvas:update()
       end
       
       renoise.app():show_status("Live Pickup: Switched to Wave A edit mode (sample slot 1)")
@@ -7240,12 +7243,11 @@ local function update_dialog_on_selection_change()
       if harmonic_drawbar_mode and harmonic_canvas then
         print("-- Live Pickup Mode (12st_WT): Loading Wave B harmonic data into drawbars")
         local restored = PCMWriterRestoreHarmonicLevels()
-        if restored then
-          harmonic_canvas:update()
-          print("-- Live Pickup Mode (12st_WT): Harmonic drawbars updated to show Wave B settings")
-        else
-          print("-- Live Pickup Mode (12st_WT): No harmonic data found for Wave B")
+        if not restored then
+          for i = 1, 11 do harmonic_levels[i] = 0.0 end
         end
+        PCMWriterEstablishHarmonicBase()  -- re-base the fundamental to Wave B
+        harmonic_canvas:update()
       end
       
       renoise.app():show_status("Live Pickup: Switched to Wave B edit mode (sample slot 2)")
@@ -9875,6 +9877,12 @@ harmonic_drawbar_mode = false
 harmonic_levels = {}  -- H1 to H11 levels (0.0 to 1.0)
 harmonic_amplitude = 1.0  -- Amplitude control for autogain (0.0 to 1.0)
 harmonic_canvas = nil
+-- Pristine fundamental captured when harmonic mode is entered (or when the
+-- edited wave changes). Harmonics are ADDED on top of THIS every regeneration,
+-- so the fundamental is never overwritten and harmonics never compound. Was
+-- previously re-read from the live (already-augmented) wave each call, which
+-- both overwrote the fundamental on entry (H1=1.0) and compounded on each drag.
+harmonic_base_wave = nil
 harmonic_mouse_down = false
 harmonic_last_mouse_x = -1
 harmonic_last_mouse_y = -1
@@ -9901,17 +9909,22 @@ function PCMWriterEnterHarmonicDrawbarMode()
   
   -- Try to restore harmonic levels from existing instrument/sample names
   local restored = PCMWriterRestoreHarmonicLevels()
-  
+
   if not restored then
-    -- No existing harmonics found - set H1 = 1.0, others = 0.0
-    print("HARMONIC: No existing harmonics found, setting H1=1.0")
+    -- No existing harmonics: start with ZERO harmonics so entering the mode
+    -- augments by nothing - the fundamental you drew is preserved verbatim.
+    -- Drag the drawbars to ADD harmonics on top. (Previously forced H1=1.0,
+    -- which overwrote the wave with a sine the moment you entered the mode.)
+    print("HARMONIC: No existing harmonics found, starting at zero (augment-only)")
     for i = 1, 11 do
       harmonic_levels[i] = 0.0
     end
-    harmonic_levels[1] = 1.0
   end
-  
-  -- Generate harmonics based on current levels
+
+  -- Establish the pristine fundamental (reconstruct it if the wave already
+  -- carries restored harmonics, else capture the current wave verbatim), then
+  -- augment. With zero harmonics + amplitude 1.0 this reproduces the wave as-is.
+  PCMWriterEstablishHarmonicBase()
   PCMWriterGenerateHarmonics()
   
   -- Update displays
@@ -9930,6 +9943,7 @@ end
 function PCMWriterExitHarmonicDrawbarMode()
   print("HARMONIC: Exiting Harmonic Drawbar Mode")
   harmonic_drawbar_mode = false
+  harmonic_base_wave = nil  -- drop the captured fundamental
   
   -- Reset instrument and sample names when exiting harmonic mode in live pickup
   if live_pickup_mode and live_pickup_instrument then
@@ -10065,6 +10079,56 @@ function PCMWriterRestoreHarmonicLevels()
   return false
 end
 
+-- Capture the current wave verbatim as the pristine fundamental to augment.
+function PCMWriterCaptureHarmonicBase()
+  local src = PCMWriterGetCurrentWaveData()
+  harmonic_base_wave = {}
+  for i = 1, wave_size do
+    harmonic_base_wave[i] = src[i] or 32768
+  end
+end
+
+-- The current wave already has `harmonic_levels` baked in (e.g. reopened from a
+-- name-encoded instrument). Invert the additive+autogain formula to recover the
+-- pristine fundamental so subsequent regenerations reproduce it instead of
+-- doubling the harmonics.
+function PCMWriterReconstructHarmonicBase()
+  local baked = PCMWriterGetCurrentWaveData()
+  local f = PCMWriterCalculateAutogain()
+  if f <= 0.0 then f = 1.0 end
+  harmonic_base_wave = {}
+  for i = 1, wave_size do
+    local baked_norm = ((baked[i] or 32768) - 32768) / 32768
+    local harm = 0.0
+    for harmonic = 1, 11 do
+      local level = harmonic_levels[harmonic]
+      if level > 0.0 then
+        local phase = ((i - 1) / wave_size) * harmonic * math.pi * 2
+        harm = harm + math.sin(phase) * level
+      end
+    end
+    local base_norm = baked_norm / f - harm
+    if base_norm > 1.0 then base_norm = 1.0 end
+    if base_norm < -1.0 then base_norm = -1.0 end
+    harmonic_base_wave[i] = math.floor(base_norm * 32768 + 32768)
+  end
+end
+
+-- Establish the pristine fundamental for the currently edited wave: reconstruct
+-- it if the wave already carries harmonics, otherwise take it verbatim. Called
+-- on entry and whenever the edited wave (A/B) changes.
+function PCMWriterEstablishHarmonicBase()
+  local any = false
+  for i = 1, 11 do
+    if harmonic_levels[i] > 0.0 then any = true break end
+  end
+  if any then
+    PCMWriterReconstructHarmonicBase()
+  else
+    PCMWriterCaptureHarmonicBase()
+  end
+end
+
 -- Generate harmonics by augmenting the current waveform
 function PCMWriterGenerateHarmonics()
   if not harmonic_drawbar_mode then
@@ -10076,16 +10140,17 @@ function PCMWriterGenerateHarmonics()
   print("HARMONIC: Wave size = " .. wave_size)
   print("HARMONIC: Current wave edit = " .. current_wave_edit)
   
-  -- Get the current wave data as the base to augment
+  -- Destination = the live current wave; base = the PRISTINE fundamental (fixed).
+  -- Harmonics are summed onto the fixed base every call, so the fundamental is
+  -- preserved and harmonics never compound. Fall back to capturing the current
+  -- wave if no base has been established yet.
   local current_wave_data = PCMWriterGetCurrentWaveData()
-  
-  print("HARMONIC: Starting harmonic augmentation of existing waveform")
-  
-  -- Store the original waveform data for restoration
-  local original_data = {}
-  for i = 1, wave_size do
-    original_data[i] = current_wave_data[i]
+  if not harmonic_base_wave then
+    PCMWriterCaptureHarmonicBase()
   end
+  local original_data = harmonic_base_wave
+
+  print("HARMONIC: Starting harmonic augmentation of pristine fundamental")
   
   -- Calculate autogain factor once (optimization - doesn't change per sample)
   local autogain_factor = PCMWriterCalculateAutogain()
