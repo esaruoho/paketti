@@ -219,6 +219,9 @@ local COLOR_ZOOM_INFO = {255, 255, 255, 200}       -- White text for zoom info
 -- Button colors (Wave A/B edit buttons)
 local COLOR_BUTTON_ACTIVE = {0, 255, 0}            -- Green when active
 local COLOR_BUTTON_INACTIVE = {128, 128, 128}      -- Gray when inactive
+-- Match the canvas wave theme: Edit A = red, Edit B = blue when active
+local COLOR_BUTTON_A_ACTIVE = {255, 0, 0}          -- Red when editing Wave A
+local COLOR_BUTTON_B_ACTIVE = {0, 100, 255}        -- Blue when editing Wave B
 
 -- Editor state
 local wave_size_options = {16, 32, 64, 128, 256, 512, 1024}
@@ -1118,6 +1121,51 @@ function PCMWriterSwapWaves()
   
   PCMWriterUpdateCrossfadedWave()
   renoise.app():show_status("Swapped Wave A and Wave B")
+end
+
+-- Switch which wave (A or B) is being edited/displayed on the canvas.
+-- Shared by the Edit A / Edit B buttons and the "1" key toggle.
+function PCMWriterSetWaveEdit(target)
+  local saved_cursor_pos = selected_sample_index
+  current_wave_edit = target
+
+  -- Enhanced: Switch to matching sample slot if in 12st_WT setup
+  local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
+  if is_12st_wt_setup then
+    local song = renoise.song()
+    song.selected_sample_index = (target == "A") and 1 or 2
+    renoise.app():show_status(string.format("Now editing Wave %s (sample slot %d)", target, (target == "A") and 1 or 2))
+  else
+    renoise.app():show_status("Now editing Wave " .. target)
+  end
+
+  -- Update harmonic drawbars if in harmonic mode and 12st_WT setup [[memory:6653553]]
+  if is_12st_wt_setup and harmonic_drawbar_mode and harmonic_canvas and live_pickup_mode then
+    local restored = PCMWriterRestoreHarmonicLevels()
+    if restored and harmonic_canvas then
+      harmonic_canvas:update()
+    end
+  end
+
+  -- Update button colors to reflect the active wave
+  if pcm_dialog and pcm_dialog.visible then
+    local edit_a_btn = vb.views.edit_a_btn
+    local edit_b_btn = vb.views.edit_b_btn
+    if edit_a_btn then edit_a_btn.color = (target == "A") and COLOR_BUTTON_A_ACTIVE or COLOR_BUTTON_INACTIVE end
+    if edit_b_btn then edit_b_btn.color = (target == "B") and COLOR_BUTTON_B_ACTIVE or COLOR_BUTTON_INACTIVE end
+  end
+
+  -- Preserve cursor position during wave switch
+  selected_sample_index = saved_cursor_pos
+  -- Update canvas to show new wave colors
+  if waveform_canvas then
+    waveform_canvas:update()
+  end
+end
+
+-- Toggle between Wave A and Wave B (bound to the "1" key while dialog is open)
+function PCMWriterToggleWaveEdit()
+  PCMWriterSetWaveEdit(current_wave_edit == "A" and "B" or "A")
 end
 
 -- Time-based morphing: Wave A morphs to Wave B across the waveform length (from CustomWave)
@@ -2463,6 +2511,12 @@ function PCMWriterHandleKeyboard(dialog, key)
     end
   end
   
+  -- "1" toggles between editing Wave A and Wave B (unless typing into the hex field)
+  if key.name == "1" and key.modifiers == "" and not hex_field_has_focus then
+    PCMWriterToggleWaveEdit()
+    return nil  -- Consume the key
+  end
+
   -- Default key handling
   local closer = "esc"
   if preferences and preferences.pakettiDialogClose then
@@ -7125,10 +7179,10 @@ local function update_dialog_on_selection_change()
       if pcm_dialog and pcm_dialog.visible then
         local edit_a_btn = vb.views.edit_a_btn
         local edit_b_btn = vb.views.edit_b_btn
-        if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_ACTIVE end
+        if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_A_ACTIVE end
         if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_INACTIVE end
       end
-      
+
       -- Update canvas to show Wave A
       if waveform_canvas then
         waveform_canvas:update()
@@ -7158,9 +7212,9 @@ local function update_dialog_on_selection_change()
         local edit_a_btn = vb.views.edit_a_btn
         local edit_b_btn = vb.views.edit_b_btn
         if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_INACTIVE end
-        if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_ACTIVE end
+        if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_B_ACTIVE end
       end
-      
+
       -- Update canvas to show Wave B
       if waveform_canvas then
         waveform_canvas:update()
@@ -8609,98 +8663,20 @@ function PCMWriterShowPcmDialog()
       vb:button{
         text = "Edit A",
         width = 50,
-        color = current_wave_edit == "A" and COLOR_BUTTON_ACTIVE or COLOR_BUTTON_INACTIVE,
-        tooltip = "Edit Wave A",
+        color = current_wave_edit == "A" and COLOR_BUTTON_A_ACTIVE or COLOR_BUTTON_INACTIVE,
+        tooltip = "Edit Wave A (press 1 to toggle A/B)",
         notifier = function()
-          local saved_cursor_pos = selected_sample_index
-          print("DEBUG: Edit A clicked - cursor before switch: " .. tostring(saved_cursor_pos))
-          current_wave_edit = "A"
-          
-          -- Enhanced: Switch to sample slot 1 if in 12st_WT setup
-          local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
-          if is_12st_wt_setup then
-            local song = renoise.song()
-            song.selected_sample_index = 1
-            renoise.app():show_status("Now editing Wave A (sample slot 1)")
-          else
-            renoise.app():show_status("Now editing Wave A")
-          end
-          
-          -- Update harmonic drawbars if in harmonic mode and 12st_WT setup [[memory:6653553]]
-          if is_12st_wt_setup and harmonic_drawbar_mode and harmonic_canvas and live_pickup_mode then
-            print("HARMONIC: Edit A clicked - loading Wave A harmonic data into drawbars")
-            local restored = PCMWriterRestoreHarmonicLevels()
-            if restored then
-              harmonic_canvas:update()
-              print("HARMONIC: Edit A - harmonic drawbars updated to show Wave A settings")
-            else
-              print("HARMONIC: Edit A - no harmonic data found for Wave A")
-            end
-          end
-          
-          -- Update button colors
-          if pcm_dialog and pcm_dialog.visible then
-            local edit_a_btn = vb.views.edit_a_btn
-            local edit_b_btn = vb.views.edit_b_btn
-            if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_ACTIVE end
-            if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_INACTIVE end
-          end
-          -- Preserve cursor position during wave switch
-          selected_sample_index = saved_cursor_pos
-          print("DEBUG: Edit A - cursor after switch: " .. tostring(selected_sample_index))
-          -- Update canvas to show new wave colors
-          if waveform_canvas then
-            waveform_canvas:update()
-          end
+          PCMWriterSetWaveEdit("A")
         end,
         id = "edit_a_btn"
       },
       vb:button{
         text = "Edit B",
         width = 50,
-        color = current_wave_edit == "B" and COLOR_BUTTON_ACTIVE or COLOR_BUTTON_INACTIVE,
-        tooltip = "Edit Wave B",
+        color = current_wave_edit == "B" and COLOR_BUTTON_B_ACTIVE or COLOR_BUTTON_INACTIVE,
+        tooltip = "Edit Wave B (press 1 to toggle A/B)",
         notifier = function()
-          local saved_cursor_pos = selected_sample_index
-          print("DEBUG: Edit B clicked - cursor before switch: " .. tostring(saved_cursor_pos))
-          current_wave_edit = "B"
-          
-          -- Enhanced: Switch to sample slot 2 if in 12st_WT setup
-          local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
-          if is_12st_wt_setup then
-            local song = renoise.song()
-            song.selected_sample_index = 2
-            renoise.app():show_status("Now editing Wave B (sample slot 2)")
-          else
-            renoise.app():show_status("Now editing Wave B")
-          end
-          
-          -- Update harmonic drawbars if in harmonic mode and 12st_WT setup [[memory:6653553]]
-          if is_12st_wt_setup and harmonic_drawbar_mode and harmonic_canvas and live_pickup_mode then
-            print("HARMONIC: Edit B clicked - loading Wave B harmonic data into drawbars")
-            local restored = PCMWriterRestoreHarmonicLevels()
-            if restored then
-              harmonic_canvas:update()
-              print("HARMONIC: Edit B - harmonic drawbars updated to show Wave B settings")
-            else
-              print("HARMONIC: Edit B - no harmonic data found for Wave B")
-            end
-          end
-          
-          -- Update button colors
-          if pcm_dialog and pcm_dialog.visible then
-            local edit_a_btn = vb.views.edit_a_btn
-            local edit_b_btn = vb.views.edit_b_btn
-            if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_INACTIVE end
-            if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_ACTIVE end
-          end
-          -- Preserve cursor position during wave switch
-          selected_sample_index = saved_cursor_pos
-          print("DEBUG: Edit B - cursor after switch: " .. tostring(selected_sample_index))
-          -- Update canvas to show new wave colors
-          if waveform_canvas then
-            waveform_canvas:update()
-          end
+          PCMWriterSetWaveEdit("B")
         end,
         id = "edit_b_btn"
       },
