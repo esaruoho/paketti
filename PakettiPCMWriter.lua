@@ -1141,6 +1141,11 @@ end
 -- Shared by the Edit A / Edit B buttons and the "1" key toggle.
 function PCMWriterSetWaveEdit(target)
   local saved_cursor_pos = selected_sample_index
+  -- Remember the outgoing wave's harmonic drawbar settings before switching, so
+  -- each of Wave A / Wave B keeps its own drawbars in-session.
+  if target ~= current_wave_edit then
+    PCMWriterSaveHarmonicLevelsFor(current_wave_edit)
+  end
   current_wave_edit = target
 
   -- Enhanced: Switch to matching sample slot if in 12st_WT setup
@@ -1153,16 +1158,15 @@ function PCMWriterSetWaveEdit(target)
     renoise.app():show_status("Now editing Wave " .. target)
   end
 
-  -- Update harmonic drawbars if in harmonic mode and 12st_WT setup [[memory:6653553]]
-  if is_12st_wt_setup and harmonic_drawbar_mode and harmonic_canvas and live_pickup_mode then
-    local restored = PCMWriterRestoreHarmonicLevels()
-    if not restored then
-      for i = 1, 11 do harmonic_levels[i] = 0.0 end  -- new wave has no encoded harmonics
-    end
-    PCMWriterEstablishHarmonicBase()  -- re-base the fundamental to the newly selected wave
-    if harmonic_canvas then
-      harmonic_canvas:update()
-    end
+  -- Load THIS wave's own harmonic drawbar settings (per-wave in-session memory),
+  -- re-base the fundamental to it, and regenerate. Works for both the Sample Tools
+  -- harmonic canvas AND the on-canvas panel drawbars (no harmonic_canvas required).
+  if harmonic_drawbar_mode and live_pickup_mode then
+    PCMWriterLoadHarmonicLevelsFor(target)
+    PCMWriterEstablishHarmonicBase()
+    PCMWriterGenerateHarmonics()
+    if harmonic_canvas then harmonic_canvas:update() end
+    if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
   end
 
   -- Update button colors to reflect the active wave
@@ -6324,7 +6328,7 @@ function PCMWriterLoadABDevices()
   -- Add track device chain setup for controlling the instrument
   -- === TRACK DEVICE CHAIN RECREATION ===
   -- Loading device 2: *Instr. Macros (*Instr. Macros)
-  loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, false)
+  loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, false, true)  -- silent: don't trigger the device-load editor behavior
   if renoise.song().selected_device then
     renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_002"
   else
@@ -6332,7 +6336,7 @@ function PCMWriterLoadABDevices()
   end
 
   -- Loading device 1: *LFO (*LFO)
-  loadnative("Audio/Effects/Native/*LFO", nil, nil, false)
+  loadnative("Audio/Effects/Native/*LFO", nil, nil, false, true)  -- silent: don't trigger the device-load editor behavior
   if renoise.song().selected_device then
     renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_001"
   else
@@ -7200,6 +7204,7 @@ local function update_dialog_on_selection_change()
     if new_sample_index == 1 and current_wave_edit ~= "A" then
       -- Switch to Wave A edit mode
       print("-- Live Pickup Mode (12st_WT): Switching to Wave A edit mode")
+      PCMWriterSaveHarmonicLevelsFor(current_wave_edit)  -- remember outgoing wave's drawbars
       current_wave_edit = "A"
       
       -- Update button colors if dialog is visible
@@ -7216,14 +7221,13 @@ local function update_dialog_on_selection_change()
       end
       
       -- Update harmonic drawbars if in harmonic mode [[memory:6653553]]
-      if harmonic_drawbar_mode and harmonic_canvas then
-        print("-- Live Pickup Mode (12st_WT): Loading Wave A harmonic data into drawbars")
-        local restored = PCMWriterRestoreHarmonicLevels()
-        if not restored then
-          for i = 1, 11 do harmonic_levels[i] = 0.0 end
-        end
-        PCMWriterEstablishHarmonicBase()  -- re-base the fundamental to Wave A
-        harmonic_canvas:update()
+      if harmonic_drawbar_mode and live_pickup_mode then
+        print("-- Live Pickup Mode (12st_WT): Loading Wave A harmonic drawbars")
+        PCMWriterLoadHarmonicLevelsFor("A")  -- this wave's own per-wave drawbars
+        PCMWriterEstablishHarmonicBase()
+        PCMWriterGenerateHarmonics()
+        if harmonic_canvas then harmonic_canvas:update() end
+        if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
       end
       
       renoise.app():show_status("Live Pickup: Switched to Wave A edit mode (sample slot 1)")
@@ -7231,6 +7235,7 @@ local function update_dialog_on_selection_change()
     elseif new_sample_index == 2 and current_wave_edit ~= "B" then
       -- Switch to Wave B edit mode
       print("-- Live Pickup Mode (12st_WT): Switching to Wave B edit mode")
+      PCMWriterSaveHarmonicLevelsFor(current_wave_edit)  -- remember outgoing wave's drawbars
       current_wave_edit = "B"
       
       -- Update button colors if dialog is visible
@@ -7247,14 +7252,13 @@ local function update_dialog_on_selection_change()
       end
       
       -- Update harmonic drawbars if in harmonic mode [[memory:6653553]]
-      if harmonic_drawbar_mode and harmonic_canvas then
-        print("-- Live Pickup Mode (12st_WT): Loading Wave B harmonic data into drawbars")
-        local restored = PCMWriterRestoreHarmonicLevels()
-        if not restored then
-          for i = 1, 11 do harmonic_levels[i] = 0.0 end
-        end
-        PCMWriterEstablishHarmonicBase()  -- re-base the fundamental to Wave B
-        harmonic_canvas:update()
+      if harmonic_drawbar_mode and live_pickup_mode then
+        print("-- Live Pickup Mode (12st_WT): Loading Wave B harmonic drawbars")
+        PCMWriterLoadHarmonicLevelsFor("B")  -- this wave's own per-wave drawbars
+        PCMWriterEstablishHarmonicBase()
+        PCMWriterGenerateHarmonics()
+        if harmonic_canvas then harmonic_canvas:update() end
+        if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
       end
       
       renoise.app():show_status("Live Pickup: Switched to Wave B edit mode (sample slot 2)")
@@ -7296,11 +7300,29 @@ local function update_dialog_on_track_change()
 
     if PCMWriterShouldShowLFOControls() then
       -- New track/instrument has the Wavetable Mod *LFO: show + populate the LFO
-      -- row, and auto-enter Live Pickup for a freshly-selected 12st_WT setup
-      -- (exactly what the dialog does on open).
+      -- row, and make sure BOTH Wave A and Wave B reload from the newly selected
+      -- instrument (slot 1 -> Wave A, slot 2 -> Wave B).
       PCMWriterInitializeLFOControls()
-      if PCMWriterDetect12stWTSetup() and not live_pickup_mode then
-        PCMWriterEnterLivePickupMode()
+      if PCMWriterDetect12stWTSetup() then
+        if not live_pickup_mode then
+          -- Fresh: enter Live Pickup (loads both waves + LFO controls, like on open).
+          PCMWriterEnterLivePickupMode()
+        else
+          -- Already in Live Pickup and the INSTRUMENT changed under us: re-point the
+          -- live-pickup tracking to the new instrument and reload BOTH wave buffers,
+          -- so both A and B canvas displays update (not just the current wave).
+          local song = renoise.song()
+          live_pickup_instrument = song.selected_instrument
+          live_pickup_instrument_index = song.selected_instrument_index
+          live_pickup_sample = song.selected_sample
+          live_pickup_sample_index = song.selected_sample_index
+          PCMWriterLoadCurrentSample()  -- 12st_WT path loads sample1->A and sample2->B
+          if harmonic_drawbar_mode then
+            PCMWriterLoadHarmonicLevelsFor(current_wave_edit)
+            PCMWriterEstablishHarmonicBase()
+            PCMWriterGenerateHarmonics()
+          end
+        end
       end
     else
       -- New track/instrument has no wavetable LFO: hide the LFO row and drop its
@@ -8249,11 +8271,10 @@ function PCMWriterParamPanelLayout()
   local pad = 12
   local bar_x = 78
   local bar_w = w - bar_x - pad
-  -- Scene 2 (Canvas Only) packs the harmonic drawbars into the bottom of the
-  -- panel, so the title font shrinks and the Amp/Offset/Speed bars tighten up
-  -- to free vertical space. Scene 1 keeps the roomier original layout (the
-  -- standalone Harmonic Drawbars canvas lives in the Sample Tools column there).
-  local compact = (pcm_current_scene == 2)
+  -- The panel packs the harmonic drawbars into its bottom in BOTH views, so the
+  -- title font shrinks and the Amp/Offset/Speed bars tighten up to free vertical
+  -- space. (Requested: harmonic drawbars visible on the regular canvas too.)
+  local compact = true
   if compact then
     return {
       w = w, compact = true, title_size = 7, title_y = 3,
@@ -10022,7 +10043,11 @@ end
 
 -- Harmonic Drawbar System Variables (Global scope for UI access)
 harmonic_drawbar_mode = false
-harmonic_levels = {}  -- H1 to H11 levels (0.0 to 1.0)
+harmonic_levels = {}  -- H1 to H11 levels (0.0 to 1.0) for the CURRENTLY edited wave
+-- Per-wave in-session memory so each of Wave A / Wave B keeps its own drawbar
+-- settings when you switch between them (previously reset to 0 on every switch).
+harmonic_levels_a = {}
+harmonic_levels_b = {}
 harmonic_amplitude = 1.0  -- Amplitude control for autogain (0.0 to 1.0)
 harmonic_canvas = nil
 -- Pristine fundamental captured when harmonic mode is entered (or when the
@@ -10038,6 +10063,20 @@ harmonic_last_mouse_y = -1
 -- Initialize harmonic levels (all at 0.0 by default)
 for i = 1, 11 do
   harmonic_levels[i] = 0.0
+  harmonic_levels_a[i] = 0.0
+  harmonic_levels_b[i] = 0.0
+end
+
+-- Save the current drawbar levels into the given wave's per-wave memory.
+function PCMWriterSaveHarmonicLevelsFor(wave)
+  local dst = (wave == "A") and harmonic_levels_a or harmonic_levels_b
+  for i = 1, 11 do dst[i] = harmonic_levels[i] or 0.0 end
+end
+
+-- Load the given wave's per-wave drawbar levels into the active harmonic_levels.
+function PCMWriterLoadHarmonicLevelsFor(wave)
+  local src = (wave == "A") and harmonic_levels_a or harmonic_levels_b
+  for i = 1, 11 do harmonic_levels[i] = src[i] or 0.0 end
 end
 
 -- Enter Harmonic Drawbar Mode
