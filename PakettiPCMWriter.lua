@@ -7272,11 +7272,56 @@ local function update_dialog_on_selection_change()
   print("-- Live Pickup Mode: Successfully loaded " .. new_sample.name)
 end
 
+-- Refresh the wavetable context when the selected TRACK or INSTRUMENT changes
+-- (not just the sample). Switching to a track/instrument that carries a
+-- Wavetable A&B (12st_WT) setup + "Wavetable Mod *LFO" device now surfaces the
+-- LFO controls and the on-canvas A&B panel immediately, matching what a dialog
+-- restart did. Previously only selected_sample_observable was watched, so a pure
+-- track switch left the panel + LFO controls stale until the dialog was reopened.
+local pcm_context_refreshing = false
+local function update_dialog_on_track_change()
+  if pcm_context_refreshing then return end
+  if not pcm_dialog or not pcm_dialog.visible then return end
+  pcm_context_refreshing = true
+  local ok, err = pcall(function()
+    -- The on-canvas A&B panel self-detects the setup on render; just repaint it.
+    if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
+
+    if PCMWriterShouldShowLFOControls() then
+      -- New track/instrument has the Wavetable Mod *LFO: show + populate the LFO
+      -- row, and auto-enter Live Pickup for a freshly-selected 12st_WT setup
+      -- (exactly what the dialog does on open).
+      PCMWriterInitializeLFOControls()
+      if PCMWriterDetect12stWTSetup() and not live_pickup_mode then
+        PCMWriterEnterLivePickupMode()
+      end
+    else
+      -- New track/instrument has no wavetable LFO: hide the LFO row and drop its
+      -- device notifiers so nothing dangles pointing at the old track's device.
+      local lfo_row = vb.views.lfo_controls_row
+      if lfo_row then lfo_row.visible = false end
+      PCMWriterDetachLFODeviceNotifiers()
+    end
+
+    if waveform_canvas then waveform_canvas:update() end
+  end)
+  pcm_context_refreshing = false
+  if not ok then print("PCM Debug: update_dialog_on_track_change error: " .. tostring(err)) end
+end
+
 -- Helper function to clean up sample change notifier
 local function cleanup_sample_notifier()
   local song = renoise.song()
   if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
     song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+  end
+  -- Also detach the track/instrument-selection observers (song-lifecycle safety:
+  -- these must be gone before the song is released; see PCMWriterReleaseDocumentCleanup).
+  if song.selected_track_index_observable:has_notifier(update_dialog_on_track_change) then
+    song.selected_track_index_observable:remove_notifier(update_dialog_on_track_change)
+  end
+  if song.selected_instrument_index_observable:has_notifier(update_dialog_on_track_change) then
+    song.selected_instrument_index_observable:remove_notifier(update_dialog_on_track_change)
   end
 end
 
@@ -9562,7 +9607,19 @@ function PCMWriterShowPcmDialog()
     song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
   end
   song.selected_sample_observable:add_notifier(update_dialog_on_selection_change)
-  
+
+  -- Also refresh when the selected TRACK or INSTRUMENT changes (not just the
+  -- sample), so switching to a track/instrument that has a Wavetable A&B setup
+  -- updates the LFO controls + on-canvas A&B panel live instead of only on reopen.
+  if song.selected_track_index_observable:has_notifier(update_dialog_on_track_change) then
+    song.selected_track_index_observable:remove_notifier(update_dialog_on_track_change)
+  end
+  song.selected_track_index_observable:add_notifier(update_dialog_on_track_change)
+  if song.selected_instrument_index_observable:has_notifier(update_dialog_on_track_change) then
+    song.selected_instrument_index_observable:remove_notifier(update_dialog_on_track_change)
+  end
+  song.selected_instrument_index_observable:add_notifier(update_dialog_on_track_change)
+
   -- Add idle notifier for cleanup when dialog is closed by other means
   if not renoise.tool().app_idle_observable:has_notifier(cleanup_on_dialog_close) then
     renoise.tool().app_idle_observable:add_notifier(cleanup_on_dialog_close)
