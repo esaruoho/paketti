@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,321 functions** · 10,881 keybindings · 7,329 midimappings · 6,721 menu entries.
+**4,322 functions** · 10,882 keybindings · 7,329 midimappings · 6,722 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+10) | ✅ | · | · |
+| Nudge Slice 01 by (+16) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2106 functions  ·  ⌨ 2106 · 🎛 807 · ☰ 665
+## Global  ·  2107 functions  ·  ⌨ 2107 · 🎛 807 · ☰ 666
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -987,6 +987,7 @@
 | Computer Keyboard Velocity (Double) | ✅ | ✅ | · |
 | Computer Keyboard Velocity (Halve) | ✅ | ✅ | · |
 | Configure Launch App Selection... | ✅ | · | ✅ |
+| Configure Parameter Editor for Selected Device | ✅ | · | ✅ |
 | Continue Sequence 00 From Same Line | ✅ | ✅ | ✅ |
 | Contour Shuttle Record Off, Follow On | ✅ | · | · |
 | Contour Shuttle Record On, Follow Off | ✅ | · | · |
