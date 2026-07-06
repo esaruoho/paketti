@@ -73,6 +73,16 @@ local automation_reading_enabled = true
 local last_device_change_time = 0
 local device_change_cooldown_ms = 500  -- 500ms cooldown to avoid opening during batch device adds
 
+-- External auto-open suppression window. Callers that spawn devices as a side
+-- effect (e.g. the PCM Writer's "Create A&B", which adds a Wavetable Mod *LFO)
+-- set this so the global auto-open stays quiet for a short window WITHOUT
+-- disabling the user's auto-open preference. Timestamp (os.clock()*1000) until
+-- which auto-open is suppressed.
+local auto_open_suppressed_until = 0
+function PakettiCanvasExperimentsSuppressAutoOpen(ms)
+  auto_open_suppressed_until = os.clock() * 1000 + (ms or 2000)
+end
+
 -- Button colors for Edit A/B
 local COLOR_BUTTON_ACTIVE = {0xFF, 0x80, 0x80}    -- Light red for active
 local COLOR_BUTTON_INACTIVE = {0x80, 0x80, 0x80}  -- Gray for inactive
@@ -2790,7 +2800,13 @@ function PakettiCanvasExperimentsSetupGlobalDeviceObserver()
     if not preferences.pakettiParameterEditor.AutoOpen.value then
       return
     end
-    
+
+    -- Honor an external suppression window (e.g. PCM Writer "Create A&B")
+    if os.clock() * 1000 < auto_open_suppressed_until then
+      print("AUTO_OPEN: Suppressed by caller window, skipping")
+      return
+    end
+
     -- Check cooldown to prevent opening during batch device additions (channel strips, etc.)
     local current_time = os.clock() * 1000  -- Convert to milliseconds
     local time_since_last_change = current_time - last_device_change_time

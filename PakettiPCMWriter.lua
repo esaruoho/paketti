@@ -353,6 +353,7 @@ local pcm_current_scene = 1
 local pcm_param_panel_canvas = nil
 local pcm_panel_width = 340
 local pcm_panel_drag_param = nil  -- "amp" / "offset" / "speed" while dragging a bar
+local pcm_panel_harm_dragging = false  -- dragging a harmonic drawbar inside the panel (Scene 2)
 
 -- Hex editor state
 local hex_editor_page = 0
@@ -6314,6 +6315,12 @@ end
 
 -- Helper function to load the A&B wavetable control devices
 function PCMWriterLoadABDevices()
+  -- Keep the Parameter Editor's global auto-open quiet while we spawn the A&B
+  -- track devices (the Wavetable Mod *LFO would otherwise auto-open it). This
+  -- only mutes auto-open for a short window; it does not change the preference.
+  if type(PakettiCanvasExperimentsSuppressAutoOpen) == "function" then
+    PakettiCanvasExperimentsSuppressAutoOpen(3000)
+  end
   -- Add track device chain setup for controlling the instrument
   -- === TRACK DEVICE CHAIN RECREATION ===
   -- Loading device 2: *Instr. Macros (*Instr. Macros)
@@ -8242,8 +8249,25 @@ function PCMWriterParamPanelLayout()
   local pad = 12
   local bar_x = 78
   local bar_w = w - bar_x - pad
+  -- Scene 2 (Canvas Only) packs the harmonic drawbars into the bottom of the
+  -- panel, so the title font shrinks and the Amp/Offset/Speed bars tighten up
+  -- to free vertical space. Scene 1 keeps the roomier original layout (the
+  -- standalone Harmonic Drawbars canvas lives in the Sample Tools column there).
+  local compact = (pcm_current_scene == 2)
+  if compact then
+    return {
+      w = w, compact = true, title_size = 7, title_y = 3,
+      create = { x = pad, y = 14, w = w - pad * 2, h = 26 },
+      random = { x = pad, y = 44, w = w - pad * 2, h = 26 },
+      amp    = { x = bar_x, y = 14, w = bar_w, h = 18, label = "AMP",    pindex = 4, pmin = 0.0,      pmax = 1.0 },
+      offset = { x = bar_x, y = 36, w = bar_w, h = 18, label = "OFFSET", pindex = 5, pmin = -0.5,     pmax = 0.5 },
+      speed  = { x = bar_x, y = 58, w = bar_w, h = 18, label = "SPEED",  pindex = 6, pmin = 0.000001, pmax = 60.0 },
+      harm_label_y = 80,
+      harm = { x = pad, y = 92, w = w - pad * 2, h = 100 },  -- 11 harmonic drawbars
+    }
+  end
   return {
-    w = w,
+    w = w, compact = false, title_size = 10, title_y = 8,
     -- create-buttons state
     create = { x = pad, y = 44,  w = w - pad * 2, h = 46 },
     random = { x = pad, y = 104, w = w - pad * 2, h = 46 },
@@ -8258,6 +8282,57 @@ local function PCMWriterPanelPointInRect(x, y, r)
   return x >= r.x and x <= r.x + r.w and y >= r.y and y <= r.y + r.h
 end
 
+-- Draw the 11 harmonic drawbars inside an arbitrary region of a canvas (used by
+-- the Scene-2 panel). Mirrors the standalone Harmonic Drawbars canvas visuals.
+function PCMWriterDrawHarmonicBarsInRegion(ctx, ox, oy, w, h)
+  local margin = 2
+  local slider_width = (w - (margin * 12)) / 11
+  local slider_height = h - (margin * 2)
+  ctx.fill_color = {20, 20, 30, 255}
+  ctx:begin_path(); ctx:rect(ox, oy, w, h); ctx:fill()
+  ctx.stroke_color = {100, 100, 100, 255}; ctx.line_width = 1
+  ctx:begin_path(); ctx:rect(ox, oy, w, h); ctx:stroke()
+  for i = 1, 11 do
+    local x = ox + margin + (i - 1) * (slider_width + margin)
+    local level = harmonic_levels[i] or 0.0
+    local fill_height = level * slider_height
+    ctx.fill_color = {40, 40, 50, 255}
+    ctx:begin_path(); ctx:rect(x, oy + margin, slider_width, slider_height); ctx:fill()
+    if level > 0.0 then
+      local alpha = harmonic_drawbar_mode and 255 or 128
+      ctx.fill_color = {120, 40, 160, alpha}
+      ctx:begin_path(); ctx:rect(x, oy + h - margin - fill_height, slider_width, fill_height); ctx:fill()
+    end
+    ctx.stroke_color = {80, 80, 90, 255}; ctx.line_width = 1
+    ctx:begin_path(); ctx:rect(x, oy + margin, slider_width, slider_height); ctx:stroke()
+  end
+  -- top strip: green when harmonic mode active, gray when idle
+  ctx.fill_color = harmonic_drawbar_mode and {0, 200, 0, 120} or {110, 110, 110, 90}
+  ctx:begin_path(); ctx:rect(ox, oy, w, 2); ctx:fill()
+end
+
+-- Route a pointer event to the panel's harmonic drawbars. lx/ly are relative to
+-- the harmonics region; w/h are its size. Reuses the shared level-setting math
+-- (PCMWriterUpdateHarmonicSlider) and auto-enters harmonic mode like the
+-- standalone canvas does.
+function PCMWriterPanelHarmonicPointer(ev, lx, ly, w, h)
+  local margin = 2
+  local slider_width = (w - (margin * 12)) / 11
+  if ev.type == "down" and ev.button == "right" then
+    local idx = math.max(1, math.min(11, math.floor((lx - margin) / (slider_width + margin)) + 1))
+    harmonic_levels[idx] = 0.0
+    if not harmonic_drawbar_mode then PCMWriterEnterHarmonicDrawbarMode() end
+    if harmonic_drawbar_mode then PCMWriterGenerateHarmonics() PCMWriterUpdateAllDisplays() end
+  elseif ev.type == "down" and ev.button == "left" then
+    pcm_panel_harm_dragging = true
+    if not harmonic_drawbar_mode then PCMWriterEnterHarmonicDrawbarMode() end
+    PCMWriterUpdateHarmonicSlider(lx, ly, w, h, margin, slider_width)
+  elseif ev.type == "move" and pcm_panel_harm_dragging then
+    PCMWriterUpdateHarmonicSlider(lx, ly, w, h, margin, slider_width)
+  end
+  if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
+end
+
 function PCMWriterRenderParamPanel(ctx)
   local L = PCMWriterParamPanelLayout()
   local w, h = L.w, 200
@@ -8269,9 +8344,9 @@ function PCMWriterRenderParamPanel(ctx)
   ctx.stroke_color = {80, 80, 92, 255}; ctx.line_width = 1
   ctx:begin_path(); ctx:rect(1, 1, w - 2, h - 2); ctx:stroke()
 
-  -- title
+  -- title (font shrinks in the compact Scene-2 layout to free room for harmonics)
   ctx.stroke_color = {210, 210, 220, 255}; ctx.line_width = 1
-  PakettiCanvasFontDrawText(ctx, "WAVETABLE A&B", 12, 8, 10)
+  PakettiCanvasFontDrawText(ctx, "WAVETABLE A&B", 12, L.title_y, L.title_size)
 
   local detected = false
   pcall(function() detected = PCMWriterDetect12stWTSetup() end)
@@ -8288,57 +8363,73 @@ function PCMWriterRenderParamPanel(ctx)
     end
     draw_button(L.create, "CREATE A&B")
     draw_button(L.random, "RANDOM AKWF A&B")
-    ctx.stroke_color = {150, 150, 160, 255}
-    PakettiCanvasFontDrawText(ctx, "DRAW WAVE A+B THEN CREATE", 12, 172, 7)
-    return
+    if not L.compact then
+      ctx.stroke_color = {150, 150, 160, 255}
+      PakettiCanvasFontDrawText(ctx, "DRAW WAVE A+B THEN CREATE", 12, 172, 7)
+    end
+  else
+    -- STATE B: live param bars driven by the Wavetable Mod *LFO device
+    local lfo = PCMWriterFindWavetableLFODevice()
+    for _, p in ipairs({L.amp, L.offset, L.speed}) do
+      -- label
+      ctx.stroke_color = {200, 200, 210, 255}; ctx.line_width = 1
+      PakettiCanvasFontDrawText(ctx, p.label, 10, p.y + p.h / 2 - 5, 8)
+      -- track
+      ctx.fill_color = {40, 40, 46, 255}
+      ctx:begin_path(); ctx:rect(p.x, p.y, p.w, p.h); ctx:fill()
+      -- fill (fraction of the parameter's range)
+      local frac = 0
+      if lfo then
+        local v = lfo.parameters[p.pindex].value
+        frac = math.max(0, math.min(1, (v - p.pmin) / (p.pmax - p.pmin)))
+      end
+      ctx.fill_color = {150, 100, 200, 255}
+      ctx:begin_path(); ctx:rect(p.x, p.y, p.w * frac, p.h); ctx:fill()
+      -- border
+      ctx.stroke_color = {110, 110, 125, 255}; ctx.line_width = 1
+      ctx:begin_path(); ctx:rect(p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1); ctx:stroke()
+      -- value text
+      ctx.stroke_color = {235, 235, 245, 255}
+      local vtxt
+      if not lfo then
+        vtxt = "N/A"
+      elseif p.label == "SPEED" then
+        local fv = lfo.parameters[6].value
+        vtxt = (fv <= 0.000001) and "INF" or string.format("%.2f", 60 / fv)
+      else
+        vtxt = string.format("%.2f", lfo.parameters[p.pindex].value)
+      end
+      PakettiCanvasFontDrawText(ctx, vtxt, p.x + p.w - 46, p.y + p.h / 2 - 5, 8)
+    end
+    if not lfo and not L.compact then
+      ctx.stroke_color = {200, 160, 120, 255}
+      PakettiCanvasFontDrawText(ctx, "SELECT WAVETABLE TRACK", 10, 178, 7)
+    end
   end
 
-  -- STATE B: live param bars driven by the Wavetable Mod *LFO device
-  local lfo = PCMWriterFindWavetableLFODevice()
-  for _, p in ipairs({L.amp, L.offset, L.speed}) do
-    -- label
+  -- Harmonic drawbars (Scene 2 / compact only): left-drag to add a harmonic on
+  -- top of the current wave, right-click to zero it. Augments Wave A/B directly.
+  if L.harm then
     ctx.stroke_color = {200, 200, 210, 255}; ctx.line_width = 1
-    PakettiCanvasFontDrawText(ctx, p.label, 10, p.y + p.h / 2 - 5, 8)
-    -- track
-    ctx.fill_color = {40, 40, 46, 255}
-    ctx:begin_path(); ctx:rect(p.x, p.y, p.w, p.h); ctx:fill()
-    -- fill (fraction of the parameter's range)
-    local frac = 0
-    if lfo then
-      local v = lfo.parameters[p.pindex].value
-      frac = math.max(0, math.min(1, (v - p.pmin) / (p.pmax - p.pmin)))
-    end
-    ctx.fill_color = {150, 100, 200, 255}
-    ctx:begin_path(); ctx:rect(p.x, p.y, p.w * frac, p.h); ctx:fill()
-    -- border
-    ctx.stroke_color = {110, 110, 125, 255}; ctx.line_width = 1
-    ctx:begin_path(); ctx:rect(p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1); ctx:stroke()
-    -- value text
-    ctx.stroke_color = {235, 235, 245, 255}
-    local vtxt
-    if not lfo then
-      vtxt = "N/A"
-    elseif p.label == "SPEED" then
-      local fv = lfo.parameters[6].value
-      vtxt = (fv <= 0.000001) and "INF" or string.format("%.2f", 60 / fv)
-    else
-      vtxt = string.format("%.2f", lfo.parameters[p.pindex].value)
-    end
-    PakettiCanvasFontDrawText(ctx, vtxt, p.x + p.w - 46, p.y + p.h / 2 - 5, 8)
-  end
-  if not lfo then
-    ctx.stroke_color = {200, 160, 120, 255}
-    PakettiCanvasFontDrawText(ctx, "SELECT WAVETABLE TRACK", 10, 178, 7)
+    PakettiCanvasFontDrawText(ctx, "HARMONICS", 12, L.harm_label_y, 7)
+    PCMWriterDrawHarmonicBarsInRegion(ctx, L.harm.x, L.harm.y, L.harm.w, L.harm.h)
   end
 end
 
 function PCMWriterHandleParamPanelMouse(ev)
   if ev.type == "exit" or ev.type == "up" then
     pcm_panel_drag_param = nil
+    pcm_panel_harm_dragging = false
     return
   end
   local x, y = ev.position.x, ev.position.y
   local L = PCMWriterParamPanelLayout()
+
+  -- Harmonic drawbars region (Scene 2): handle before the A&B controls above it.
+  if L.harm and (PCMWriterPanelPointInRect(x, y, L.harm) or pcm_panel_harm_dragging) then
+    PCMWriterPanelHarmonicPointer(ev, x - L.harm.x, y - L.harm.y, L.harm.w, L.harm.h)
+    return
+  end
 
   local detected = false
   pcall(function() detected = PCMWriterDetect12stWTSetup() end)
