@@ -341,6 +341,19 @@ local wavetable_size = 512  -- Match the main wave editor size
 local wavetable_canvas_width = 1024
 local wt_buttonwidth = 200
 
+-- Scene system: 1 = Full (all button rows + canvas), 2 = Canvas-only (minimal).
+-- Switching scenes closes + reopens the dialog (Renoise can't mutate a live
+-- view tree), the same mechanism the "Hide Hex" checkbox already uses.
+local pcm_current_scene = 1
+-- On-canvas Wavetable A&B parameter panel, drawn flush-right of the waveform
+-- canvas. When no 12st_WT A&B setup is detected it shows two create buttons;
+-- when one IS detected it shows live Amplitude/Offset/Speed controls for the
+-- "Wavetable Mod *LFO" device (params 4/5/6) - the same device the hidden
+-- LFO_CONTROLS_ROW drives in the full view.
+local pcm_param_panel_canvas = nil
+local pcm_panel_width = 340
+local pcm_panel_drag_param = nil  -- "amp" / "offset" / "speed" while dragging a bar
+
 -- Hex editor state
 local hex_editor_page = 0
 local hex_samples_per_page = 128  -- 8 rows × 16 columns = 128 samples per page
@@ -2548,6 +2561,9 @@ end
 function PCMWriterUpdateAllDisplays()
   if waveform_canvas then
     waveform_canvas:update()
+  end
+  if pcm_param_panel_canvas then
+    pcm_param_panel_canvas:update()
   end
   PCMWriterUpdateHexDisplay()
   PCMWriterUpdateLiveSample()  -- Update live sample if in pickup mode
@@ -8165,6 +8181,162 @@ function PCMWriterUpdateLiveSample()
   end
 end
 
+-- ========================================================================
+-- ON-CANVAS WAVETABLE A&B PARAMETER PANEL (Scene 2's interface surface)
+-- Drawn flush-right of the waveform canvas. Two states:
+--   (a) no 12st_WT A&B setup detected -> two "create" buttons.
+--   (b) 12st_WT A&B setup detected     -> live Amplitude / Offset / Speed bars
+--       for the "Wavetable Mod *LFO" device (params 4/5/6), the same device
+--       the hidden LFO_CONTROLS_ROW drives in the Full view.
+-- Layout is shared so render and mouse hit-testing can never drift apart.
+-- ========================================================================
+function PCMWriterParamPanelLayout()
+  local w = pcm_panel_width
+  local pad = 12
+  local bar_x = 78
+  local bar_w = w - bar_x - pad
+  return {
+    w = w,
+    -- create-buttons state
+    create = { x = pad, y = 44,  w = w - pad * 2, h = 46 },
+    random = { x = pad, y = 104, w = w - pad * 2, h = 46 },
+    -- param-bars state (pindex/pmin/pmax map to the *LFO device parameters)
+    amp    = { x = bar_x, y = 46,  w = bar_w, h = 26, label = "AMP",    pindex = 4, pmin = 0.0,      pmax = 1.0 },
+    offset = { x = bar_x, y = 96,  w = bar_w, h = 26, label = "OFFSET", pindex = 5, pmin = -0.5,     pmax = 0.5 },
+    speed  = { x = bar_x, y = 146, w = bar_w, h = 26, label = "SPEED",  pindex = 6, pmin = 0.000001, pmax = 60.0 },
+  }
+end
+
+local function PCMWriterPanelPointInRect(x, y, r)
+  return x >= r.x and x <= r.x + r.w and y >= r.y and y <= r.y + r.h
+end
+
+function PCMWriterRenderParamPanel(ctx)
+  local L = PCMWriterParamPanelLayout()
+  local w, h = L.w, 200
+  ctx:clear_rect(0, 0, w, h)
+
+  -- panel background + border
+  ctx.fill_color = {24, 24, 28, 255}
+  ctx:begin_path(); ctx:rect(0, 0, w, h); ctx:fill()
+  ctx.stroke_color = {80, 80, 92, 255}; ctx.line_width = 1
+  ctx:begin_path(); ctx:rect(1, 1, w - 2, h - 2); ctx:stroke()
+
+  -- title
+  ctx.stroke_color = {210, 210, 220, 255}; ctx.line_width = 1
+  PakettiCanvasFontDrawText(ctx, "WAVETABLE A&B", 12, 8, 10)
+
+  local detected = false
+  pcall(function() detected = PCMWriterDetect12stWTSetup() end)
+
+  if not detected then
+    -- STATE A: two create buttons
+    local function draw_button(r, label)
+      ctx.fill_color = {48, 52, 60, 255}
+      ctx:begin_path(); ctx:rect(r.x, r.y, r.w, r.h); ctx:fill()
+      ctx.stroke_color = {120, 130, 150, 255}; ctx.line_width = 1
+      ctx:begin_path(); ctx:rect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); ctx:stroke()
+      ctx.stroke_color = {230, 230, 240, 255}
+      PakettiCanvasFontDrawText(ctx, label, r.x + 12, r.y + r.h / 2 - 5, 9)
+    end
+    draw_button(L.create, "CREATE A&B")
+    draw_button(L.random, "RANDOM AKWF A&B")
+    ctx.stroke_color = {150, 150, 160, 255}
+    PakettiCanvasFontDrawText(ctx, "DRAW WAVE A+B THEN CREATE", 12, 172, 7)
+    return
+  end
+
+  -- STATE B: live param bars driven by the Wavetable Mod *LFO device
+  local lfo = PCMWriterFindWavetableLFODevice()
+  for _, p in ipairs({L.amp, L.offset, L.speed}) do
+    -- label
+    ctx.stroke_color = {200, 200, 210, 255}; ctx.line_width = 1
+    PakettiCanvasFontDrawText(ctx, p.label, 10, p.y + p.h / 2 - 5, 8)
+    -- track
+    ctx.fill_color = {40, 40, 46, 255}
+    ctx:begin_path(); ctx:rect(p.x, p.y, p.w, p.h); ctx:fill()
+    -- fill (fraction of the parameter's range)
+    local frac = 0
+    if lfo then
+      local v = lfo.parameters[p.pindex].value
+      frac = math.max(0, math.min(1, (v - p.pmin) / (p.pmax - p.pmin)))
+    end
+    ctx.fill_color = {150, 100, 200, 255}
+    ctx:begin_path(); ctx:rect(p.x, p.y, p.w * frac, p.h); ctx:fill()
+    -- border
+    ctx.stroke_color = {110, 110, 125, 255}; ctx.line_width = 1
+    ctx:begin_path(); ctx:rect(p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1); ctx:stroke()
+    -- value text
+    ctx.stroke_color = {235, 235, 245, 255}
+    local vtxt
+    if not lfo then
+      vtxt = "N/A"
+    elseif p.label == "SPEED" then
+      local fv = lfo.parameters[6].value
+      vtxt = (fv <= 0.000001) and "INF" or string.format("%.2f", 60 / fv)
+    else
+      vtxt = string.format("%.2f", lfo.parameters[p.pindex].value)
+    end
+    PakettiCanvasFontDrawText(ctx, vtxt, p.x + p.w - 46, p.y + p.h / 2 - 5, 8)
+  end
+  if not lfo then
+    ctx.stroke_color = {200, 160, 120, 255}
+    PakettiCanvasFontDrawText(ctx, "SELECT WAVETABLE TRACK", 10, 178, 7)
+  end
+end
+
+function PCMWriterHandleParamPanelMouse(ev)
+  if ev.type == "exit" or ev.type == "up" then
+    pcm_panel_drag_param = nil
+    return
+  end
+  local x, y = ev.position.x, ev.position.y
+  local L = PCMWriterParamPanelLayout()
+
+  local detected = false
+  pcall(function() detected = PCMWriterDetect12stWTSetup() end)
+
+  if not detected then
+    if ev.type == "down" and ev.button == "left" then
+      if PCMWriterPanelPointInRect(x, y, L.create) then
+        PCMWriterExportWaveAAndBToSample()
+        PCMWriterUpdateAllDisplays()
+      elseif PCMWriterPanelPointInRect(x, y, L.random) then
+        PCMWriterLoad2RandomAKWFAndExport()
+        PCMWriterUpdateAllDisplays()
+      end
+    end
+    return
+  end
+
+  -- detected: drag the Amplitude / Offset / Speed bars live
+  local lfo = PCMWriterFindWavetableLFODevice()
+  if not lfo then return end
+
+  if ev.type == "down" and ev.button == "left" then
+    if PCMWriterPanelPointInRect(x, y, L.amp) then pcm_panel_drag_param = "amp"
+    elseif PCMWriterPanelPointInRect(x, y, L.offset) then pcm_panel_drag_param = "offset"
+    elseif PCMWriterPanelPointInRect(x, y, L.speed) then pcm_panel_drag_param = "speed"
+    else pcm_panel_drag_param = nil end
+  end
+
+  if pcm_panel_drag_param and (ev.type == "down" or ev.type == "move") then
+    local p = L[pcm_panel_drag_param]
+    local frac = math.max(0, math.min(1, (x - p.x) / p.w))
+    local value = p.pmin + frac * (p.pmax - p.pmin)
+    lfo_updating_from_device = true
+    lfo.parameters[p.pindex].value = value
+    lfo_updating_from_device = false
+    if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
+    -- keep the Full-view LFO row sliders in sync when they exist
+    if pcm_current_scene == 1 and pcm_dialog and pcm_dialog.visible then
+      if pcm_panel_drag_param == "amp" and vb.views.lfo_amplitude_slider then vb.views.lfo_amplitude_slider.value = value end
+      if pcm_panel_drag_param == "offset" and vb.views.lfo_offset_slider then vb.views.lfo_offset_slider.value = value end
+      if pcm_panel_drag_param == "speed" and vb.views.lfo_frequency_slider then vb.views.lfo_frequency_slider.value = value end
+    end
+  end
+end
+
 -- Main dialog function
 function PCMWriterShowPcmDialog()
   -- If dialog is already open, close it (toggle behavior)
@@ -8182,7 +8354,15 @@ function PCMWriterShowPcmDialog()
   if preferences and preferences.singlewaveformwriterhex then
     hide_hex_editor = not preferences.singlewaveformwriterhex.value
   end
-  
+
+  -- Honor the boot-scene preference ONLY on a genuinely fresh open. Internal
+  -- rebuilds (scene switch, Hide Hex) call close() but leave pcm_dialog
+  -- non-nil, so pcm_current_scene is preserved across the rebuild. A fresh
+  -- open goes through the toggle above which sets pcm_dialog = nil.
+  if pcm_dialog == nil and preferences and preferences.singlewaveformwriterbootscene then
+    pcm_current_scene = (preferences.singlewaveformwriterbootscene.value == 2) and 2 or 1
+  end
+
   -- Set flag to prevent dropdown from triggering during rebuild
   dialog_rebuilding = true
   
@@ -8195,6 +8375,17 @@ function PCMWriterShowPcmDialog()
     mode = "plain",
     render = PCMWriterRenderWaveform,
     mouse_handler = PCMWriterHandleMouse,
+    mouse_events = {"down", "up", "move", "exit"}
+  }
+
+  -- On-canvas Wavetable A&B parameter panel, sits flush-right of the waveform
+  -- canvas (fills the previously-empty area to the right of the wave).
+  pcm_param_panel_canvas = vb:canvas{
+    width = pcm_panel_width,
+    height = 200,
+    mode = "plain",
+    render = PCMWriterRenderParamPanel,
+    mouse_handler = PCMWriterHandleParamPanelMouse,
     mouse_events = {"down", "up", "move", "exit"}
   }
 
@@ -8252,7 +8443,7 @@ function PCMWriterShowPcmDialog()
     --spacing = 10,
         
         -- Main controls row 1: Waveform selection
-  vb:row{ -- WAVEFORM_ROW STARTS
+  (pcm_current_scene == 1) and vb:row{ -- WAVEFORM_ROW STARTS
     vb:text{ text = "Waveform", style = "strong" },
     vb:button{
       text = "<",
@@ -8410,10 +8601,10 @@ function PCMWriterShowPcmDialog()
         PCMWriterLoadAKWFFromDropdown(idx, "B")
       end
     }
-  }, -- WAVEFORM_ROW ENDS
+  } or vb:space{}, -- WAVEFORM_ROW ENDS
 
   -- Main controls row 2: Sample settings
-  vb:row{ -- SAMPLE_SETTINGS_ROW STARTS
+  (pcm_current_scene == 1) and vb:row{ -- SAMPLE_SETTINGS_ROW STARTS
     vb:text{ text = "Samples", style = "strong" },
     vb:popup{
       width=55,
@@ -8495,10 +8686,10 @@ function PCMWriterShowPcmDialog()
       vb:text{ text = "| Cursor Width", style = "strong" },
       cursor_step_slider,
       cursor_step_text
-    }, -- SAMPLE_SETTINGS_ROW ENDS
+    } or vb:space{}, -- SAMPLE_SETTINGS_ROW ENDS
     
     -- Shape parameters row 2
-    vb:row{ -- SHAPE_PARAMS_ROW STARTS
+    (pcm_current_scene == 1) and vb:row{ -- SHAPE_PARAMS_ROW STARTS
       vb:text{ text = "Shape Parameters:", style = "strong" },
       vb:text{ text = "Asymmetry", style = "normal" },
       vb:slider{
@@ -8655,10 +8846,10 @@ function PCMWriterShowPcmDialog()
         end
       },
       vb:text{ text = "Invert", style = "normal" }
-    }, -- SHAPE_PARAMS_ROW ENDS
+    } or vb:space{}, -- SHAPE_PARAMS_ROW ENDS
     
     -- Wave A/B crossfade row
-    vb:row{ -- WAVE_AB_ROW STARTS
+    (pcm_current_scene == 1) and vb:row{ -- WAVE_AB_ROW STARTS
       vb:text{ text = "Wave A/B:", style = "strong" },
       vb:button{
         text = "Edit A",
@@ -8728,10 +8919,10 @@ function PCMWriterShowPcmDialog()
         tooltip = "Load random AKWF to currently selected Wave (A or B)",
         notifier = PCMWriterLoadRandomAKWFToCurrentWave
       }
-    }, -- WAVE_AB_ROW ENDS
+    } or vb:space{}, -- WAVE_AB_ROW ENDS
     
     -- Enhanced LFO Controls Row (always created, initially hidden)
-    vb:row{ -- LFO_CONTROLS_ROW STARTS
+    (pcm_current_scene == 1) and vb:row{ -- LFO_CONTROLS_ROW STARTS
       id = "lfo_controls_row",
       visible = false, -- Initially hidden, shown when entering Live Pickup Mode with 12st_WT setup
       vb:text{ text = "Wavetable LFO", style = "strong",font="bold" },
@@ -8876,10 +9067,10 @@ function PCMWriterShowPcmDialog()
           end
         end
       }
-    }, -- LFO_CONTROLS_ROW ENDS
+    } or vb:space{}, -- LFO_CONTROLS_ROW ENDS
     
     -- Chebyshev controls row (conditional)
-    not hideChebyshev and vb:row{ -- CHEBYSHEV_ROW STARTS
+    (pcm_current_scene == 1 and not hideChebyshev) and vb:row{ -- CHEBYSHEV_ROW STARTS
       vb:text{ text = "Chebyshev", style = "strong",font="bold" },
       vb:popup{
         items = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"},
@@ -8924,7 +9115,48 @@ function PCMWriterShowPcmDialog()
       },
       vb:text{ text = string.format("%.1f%%", chebyshev_mix * 100), id = "cheby_mix_value", width = 40 }
     } or vb:space{}, -- CHEBYSHEV_ROW ENDS
-    waveform_canvas,
+
+    -- Scene switcher (always visible in both scenes) + boot-into-minimal pref.
+    vb:row{ -- SCENE_SWITCH_ROW STARTS
+      vb:text{ text = "View", style = "strong", font = "bold" },
+      vb:switch{
+        id = "scene_switch",
+        items = {"Full", "Canvas Only"},
+        width = 160,
+        value = pcm_current_scene,
+        tooltip = "Full = all buttons + canvas. Canvas Only = minimal view with just the canvas and the on-canvas Wavetable A&B panel.",
+        notifier = function(idx)
+          if dialog_rebuilding then return end
+          if idx == pcm_current_scene then return end
+          pcm_current_scene = idx
+          -- Close + reopen to rebuild the view tree (same mechanism as Hide Hex).
+          -- pcm_dialog is left non-nil so the boot-pref check treats this as a rebuild.
+          if pcm_dialog then
+            pcm_dialog:close()
+            PCMWriterShowPcmDialog()
+          end
+        end
+      },
+      vb:checkbox{
+        id = "scene_boot_checkbox",
+        value = (preferences and preferences.singlewaveformwriterbootscene and preferences.singlewaveformwriterbootscene.value == 2) or false,
+        tooltip = "Boot the Single Cycle Waveform Writer directly into the Canvas Only view",
+        notifier = function(value)
+          if preferences and preferences.singlewaveformwriterbootscene then
+            preferences.singlewaveformwriterbootscene.value = value and 2 or 1
+            preferences:save_as("preferences.xml")
+            renoise.app():show_status("Single Cycle Waveform Writer will boot into " .. (value and "Canvas Only" or "Full") .. " view")
+          end
+        end
+      },
+      vb:text{ text = "Boot into Canvas Only view", style = "strong" }
+    }, -- SCENE_SWITCH_ROW ENDS
+
+    -- Waveform canvas + on-canvas Wavetable A&B parameter panel (flush right).
+    vb:row{ -- CANVAS_PANEL_ROW STARTS
+      waveform_canvas,
+      pcm_param_panel_canvas
+    }, -- CANVAS_PANEL_ROW ENDS
     vb:text{
       text = "Click/drag to draw • Arrow keys up/down to edit selected frame, shift-up/down for faster, keys left/right to select a different frame, shift-left/right for faster.",
       font = "italic",
@@ -8932,7 +9164,7 @@ function PCMWriterShowPcmDialog()
     },
     
     -- Conditionally show hex editor based on hide_hex_editor flag
-    not hide_hex_editor and vb:row{ -- HEX_EDITOR_ROW STARTS
+    (pcm_current_scene == 1 and not hide_hex_editor) and vb:row{ -- HEX_EDITOR_ROW STARTS
       -- Hex editor column
       vb:column{ -- HEX_EDITOR_COLUMN STARTS
         style = "group",
@@ -8951,7 +9183,7 @@ function PCMWriterShowPcmDialog()
       }, -- HEX_EDITOR_COLUMN ENDS
     } or vb:space{}, -- HEX_EDITOR_ROW ENDS
     
-    vb:horizontal_aligner{ -- TOOLS_ALIGNER STARTS
+    (pcm_current_scene == 1) and vb:horizontal_aligner{ -- TOOLS_ALIGNER STARTS
       mode = "distribute",
       vb:column{ -- SAMPLE_TOOLS_COLUMN STARTS
         style = "group",
@@ -9312,7 +9544,7 @@ function PCMWriterShowPcmDialog()
           notifier = PCMWriterExportMorphToWTFile
         },
       } -- WAVETABLE_COLUMN ENDS
-    } -- TOOLS_ALIGNER ENDS
+    } or vb:space{} -- TOOLS_ALIGNER ENDS
   } -- DIALOG_CONTENT ENDS
 
 

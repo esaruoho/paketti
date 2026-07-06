@@ -174,6 +174,7 @@ end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   singlewaveformwriterhex=true,
+  singlewaveformwriterbootscene=1,  -- Single Cycle Waveform Writer boot scene: 1=Full, 2=Canvas Only (minimal)
   -- Music Mouse: persisted performance settings (tempo + loudness survive close/reopen + reload)
   pakettiMusicMouseTempoBasic = 100,
   pakettiMusicMouseTempoAlt = 200,
