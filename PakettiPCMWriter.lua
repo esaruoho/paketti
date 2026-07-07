@@ -354,6 +354,7 @@ local pcm_param_panel_canvas = nil
 local pcm_panel_width = 340
 local pcm_panel_drag_param = nil  -- "amp" / "offset" / "speed" while dragging a bar
 local pcm_panel_harm_dragging = false  -- dragging a harmonic drawbar inside the panel (Scene 2)
+local pcm_context_instrument_index = -1
 
 -- Hex editor state
 local hex_editor_page = 0
@@ -1109,6 +1110,60 @@ function PCMWriterSetCurrentWaveData(data)
   end
 end
 
+local function PCMWriterSelectedInstrumentHasSampleData()
+  local song = renoise.song()
+  local inst = song and song.selected_instrument
+  if not inst then return false end
+
+  for i = 1, #inst.samples do
+    local sample = inst.samples[i]
+    if sample and sample.sample_buffer and sample.sample_buffer.has_sample_data then
+      return true
+    end
+  end
+
+  return false
+end
+
+local function PCMWriterClearEditorBuffers()
+  wave_data = table.create()
+  wave_data_a = table.create()
+  wave_data_b = table.create()
+
+  for i = 1, wave_size do
+    wave_data[i] = 32768
+    wave_data_a[i] = 32768
+    wave_data_b[i] = 32768
+  end
+
+  selected_sample_index = -1
+  selection_start = -1
+  selection_end = -1
+  pan_offset = 0
+  zoom_factor = 1.0
+end
+
+local function PCMWriterResetLivePickupTracking()
+  live_pickup_mode = false
+  live_pickup_sample = nil
+  live_pickup_instrument = nil
+  live_pickup_sample_index = -1
+  live_pickup_instrument_index = -1
+end
+
+local function PCMWriterResetDialogContextTracking()
+  PCMWriterResetLivePickupTracking()
+  pcm_context_instrument_index = -1
+end
+
+local function PCMWriterResetHarmonicEditState()
+  harmonic_drawbar_mode = false
+  harmonic_base_wave = nil
+  for i = 1, 11 do
+    harmonic_levels[i] = 0.0
+  end
+end
+
 -- Update main wave_data with crossfaded result
 function PCMWriterUpdateCrossfadedWave()
   for i = 1, wave_size do
@@ -1164,7 +1219,6 @@ function PCMWriterSetWaveEdit(target)
   if harmonic_drawbar_mode and live_pickup_mode then
     PCMWriterLoadHarmonicLevelsFor(target)
     PCMWriterEstablishHarmonicBase()
-    PCMWriterGenerateHarmonics()
     if harmonic_canvas then harmonic_canvas:update() end
     if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
   end
@@ -7168,7 +7222,12 @@ end
 
 
 -- Live Pickup Mode sample change notification
+local pcm_context_refreshing = false
 local function update_dialog_on_selection_change()
+  if pcm_context_refreshing then
+    return
+  end
+
   if not live_pickup_mode or not pcm_dialog or not pcm_dialog.visible then
     return
   end
@@ -7188,6 +7247,31 @@ local function update_dialog_on_selection_change()
   if live_pickup_sample and live_pickup_instrument and 
      new_sample_index == live_pickup_sample_index and 
      new_instrument_index == live_pickup_instrument_index then
+    return
+  end
+
+  if new_instrument_index ~= pcm_context_instrument_index then
+    pcm_context_refreshing = true
+    local ok, err = pcall(function()
+      PCMWriterResetHarmonicEditState()
+
+      if PCMWriterSelectedInstrumentHasSampleData() then
+        PCMWriterLoadCurrentSample({passive = true})
+        pcm_context_instrument_index = new_instrument_index
+      else
+        PCMWriterClearEditorBuffers()
+        PCMWriterResetLivePickupTracking()
+        pcm_context_instrument_index = new_instrument_index
+        PCMWriterDetachLFODeviceNotifiers()
+        local lfo_row = vb.views.lfo_controls_row
+        if lfo_row then lfo_row.visible = false end
+        if waveform_canvas then waveform_canvas:update() end
+        if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
+        PCMWriterUpdateHexDisplay()
+      end
+    end)
+    pcm_context_refreshing = false
+    if not ok then print("PCM Debug: update_dialog_on_selection_change instrument reload error: " .. tostring(err)) end
     return
   end
   
@@ -7225,7 +7309,6 @@ local function update_dialog_on_selection_change()
         print("-- Live Pickup Mode (12st_WT): Loading Wave A harmonic drawbars")
         PCMWriterLoadHarmonicLevelsFor("A")  -- this wave's own per-wave drawbars
         PCMWriterEstablishHarmonicBase()
-        PCMWriterGenerateHarmonics()
         if harmonic_canvas then harmonic_canvas:update() end
         if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
       end
@@ -7256,7 +7339,6 @@ local function update_dialog_on_selection_change()
         print("-- Live Pickup Mode (12st_WT): Loading Wave B harmonic drawbars")
         PCMWriterLoadHarmonicLevelsFor("B")  -- this wave's own per-wave drawbars
         PCMWriterEstablishHarmonicBase()
-        PCMWriterGenerateHarmonics()
         if harmonic_canvas then harmonic_canvas:update() end
         if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
       end
@@ -7289,24 +7371,45 @@ end
 -- LFO controls and the on-canvas A&B panel immediately, matching what a dialog
 -- restart did. Previously only selected_sample_observable was watched, so a pure
 -- track switch left the panel + LFO controls stale until the dialog was reopened.
-local pcm_context_refreshing = false
 local function update_dialog_on_track_change()
   if pcm_context_refreshing then return end
   if not pcm_dialog or not pcm_dialog.visible then return end
   pcm_context_refreshing = true
   local ok, err = pcall(function()
+    local song = renoise.song()
+    local instrument_changed = (song.selected_instrument_index ~= pcm_context_instrument_index)
+
     -- The on-canvas A&B panel self-detects the setup on render; just repaint it.
     if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
+
+    if instrument_changed then
+      PCMWriterResetHarmonicEditState()
+
+      if PCMWriterSelectedInstrumentHasSampleData() then
+        -- Reload the selected instrument as a whole. For 12st_WT this maps
+        -- sample slot 1 -> Wave A and slot 2 -> Wave B; for standard single
+        -- sample instruments it intentionally mirrors the sample into A and B.
+        PCMWriterLoadCurrentSample({passive = true})
+        pcm_context_instrument_index = song.selected_instrument_index
+      else
+        PCMWriterClearEditorBuffers()
+        PCMWriterResetLivePickupTracking()
+        pcm_context_instrument_index = song.selected_instrument_index
+        PCMWriterDetachLFODeviceNotifiers()
+        local lfo_row = vb.views.lfo_controls_row
+        if lfo_row then lfo_row.visible = false end
+      end
+    end
 
     if PCMWriterShouldShowLFOControls() then
       -- New track/instrument has the Wavetable Mod *LFO: show + populate the LFO
       -- row, and make sure BOTH Wave A and Wave B reload from the newly selected
       -- instrument (slot 1 -> Wave A, slot 2 -> Wave B).
       PCMWriterInitializeLFOControls()
-      if PCMWriterDetect12stWTSetup() then
+      if PCMWriterDetect12stWTSetup() and not instrument_changed then
         if not live_pickup_mode then
           -- Fresh: enter Live Pickup (loads both waves + LFO controls, like on open).
-          PCMWriterEnterLivePickupMode()
+          PCMWriterEnterLivePickupMode({passive = true})
         else
           -- Already in Live Pickup and the INSTRUMENT changed under us: re-point the
           -- live-pickup tracking to the new instrument and reload BOTH wave buffers,
@@ -7316,12 +7419,7 @@ local function update_dialog_on_track_change()
           live_pickup_instrument_index = song.selected_instrument_index
           live_pickup_sample = song.selected_sample
           live_pickup_sample_index = song.selected_sample_index
-          PCMWriterLoadCurrentSample()  -- 12st_WT path loads sample1->A and sample2->B
-          if harmonic_drawbar_mode then
-            PCMWriterLoadHarmonicLevelsFor(current_wave_edit)
-            PCMWriterEstablishHarmonicBase()
-            PCMWriterGenerateHarmonics()
-          end
+          PCMWriterLoadCurrentSample({passive = true})  -- 12st_WT path loads sample1->A and sample2->B
         end
       end
     else
@@ -7499,6 +7597,8 @@ function cleanup_on_dialog_close()
   if not pcm_dialog or not pcm_dialog.visible then
     cleanup_sample_notifier()
     PCMWriterDetachLFODeviceNotifiers()
+    PCMWriterResetDialogContextTracking()
+    pcm_dialog = nil
     if renoise.tool().app_idle_observable:has_notifier(cleanup_on_dialog_close) then
       renoise.tool().app_idle_observable:remove_notifier(cleanup_on_dialog_close)
     end
@@ -7527,6 +7627,7 @@ function PCMWriterReleaseDocumentCleanup()
   end
   pcm_dialog = nil
   waveform_canvas = nil
+  PCMWriterResetDialogContextTracking()
   -- Detach this release-doc observer itself (idempotent; safe to run twice)
   if pcmwriter_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(pcmwriter_release_doc_observer) then
     renoise.tool().app_release_document_observable:remove_notifier(pcmwriter_release_doc_observer)
@@ -7591,13 +7692,20 @@ function PCMWriterLoadSampleToWaveform()
   print("-- PCM Writer: " .. status_msg)
 end
 
-function PCMWriterLoadCurrentSample()
+function PCMWriterLoadCurrentSample(options)
+  options = options or {}
+  local passive = options.passive or false
   local song = renoise.song()
   local inst = song.selected_instrument
   local sample_idx = song.selected_sample_index
   
   -- Check if instrument has no samples or no sample is selected
   if #inst.samples == 0 or sample_idx < 1 or sample_idx > #inst.samples then
+    if passive then
+      renoise.app():show_status("Selected instrument has no sample data")
+      return false
+    end
+
     print("DEBUG: No samples in instrument or no sample selected - creating new empty sample")
     
     -- Apply default paketti instrument if needed
@@ -7727,7 +7835,7 @@ function PCMWriterLoadCurrentSample()
     -- Focus back to sample editor
   --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
     renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
-    return
+    return true
   end
   
   local sample = inst:sample(sample_idx)
@@ -7735,13 +7843,13 @@ function PCMWriterLoadCurrentSample()
   
   if not buffer.has_sample_data then
     renoise.app():show_status("Selected sample has no data")
-    return
+    return false
   end
   
   local num_frames = buffer.number_of_frames
   if num_frames > 1024 then
     renoise.app():show_status("Sample too large (max 1024 frames). Selected sample has " .. num_frames .. " frames.")
-    return
+    return false
   end
   
   -- Check if sample size matches our editor sizes
@@ -7756,7 +7864,7 @@ function PCMWriterLoadCurrentSample()
   
   if not size_match then
           renoise.app():show_status("Sample size " .. num_frames .. " not supported. Use: 16, 32, 64, 128, 256, 512, or 1024 frames.")
-    return
+    return false
   end
   
   -- Check if wave size needs to change
@@ -7777,8 +7885,17 @@ function PCMWriterLoadCurrentSample()
   
   -- Enhanced loading for 12st_WT setup vs standard loading
   local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
+  local has_dual_wave_samples = false
+  if passive and #inst.samples >= 2 then
+    local sample1 = inst:sample(1)
+    local sample2 = inst:sample(2)
+    has_dual_wave_samples = sample1 and sample2 and
+      sample1.sample_buffer.has_sample_data and sample2.sample_buffer.has_sample_data and
+      sample1.sample_buffer.number_of_frames == num_frames and
+      sample2.sample_buffer.number_of_frames == num_frames
+  end
   
-  if is_12st_wt_setup then
+  if is_12st_wt_setup or has_dual_wave_samples then
     -- Enhanced Live Pickup: Load both samples into both wave arrays
     local sample1 = inst:sample(1)
     local sample2 = inst:sample(2)
@@ -7883,7 +8000,7 @@ function PCMWriterLoadCurrentSample()
   end
   
   -- Apply automatic pitch detection if it's a standard length and not already properly tuned
-  if is_standard_length then
+  if is_standard_length and not passive then
     -- Check if sample is not already tuned (transpose=0 and fine_tune close to 0)
     local needs_tuning = (sample.transpose == 0 and math.abs(sample.fine_tune) < 10)
     
@@ -7924,7 +8041,7 @@ function PCMWriterLoadCurrentSample()
       local status_suffix = (#inst.samples == 1) and " (loaded into both Wave A & B)" or " (Wave " .. current_wave_edit .. ")"
       renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing" .. status_suffix .. " - already tuned")
     end
-  else
+  elseif not passive then
     local status_suffix = (#inst.samples == 1) and " (loaded into both Wave A & B)" or " (Wave " .. current_wave_edit .. ")"
     renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing" .. status_suffix)
   end
@@ -7960,6 +8077,7 @@ function PCMWriterLoadCurrentSample()
   -- Focus back to sample editor
   --   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  return true
 end
 
 -- Function to detect if we're in 12st_WT.xrni setup with dual sample chains
@@ -8113,7 +8231,8 @@ function PCMWriterInitializeLFOControls()
 end
 
 -- Function to enter Live Pickup Mode and setup LFO controls for 12st_WT
-function PCMWriterEnterLivePickupMode()
+function PCMWriterEnterLivePickupMode(options)
+  options = options or {}
   print("DEBUG: *** ENTERING LIVE PICKUP MODE ***")
   local song = renoise.song()
   local inst = song.selected_instrument
@@ -8135,7 +8254,7 @@ function PCMWriterEnterLivePickupMode()
   live_pickup_instrument_index = song.selected_instrument_index
   
   -- Load current sample data for dual-sample setup if detected
-  PCMWriterLoadCurrentSample()
+  PCMWriterLoadCurrentSample(options)
   
   -- If 12st_WT setup is detected, initialize and show LFO controls
   print("DEBUG: Checking if should show LFO controls...")
@@ -8172,6 +8291,12 @@ function PCMWriterUpdateLiveSample()
   if not live_pickup_mode or not live_pickup_sample then
     return
   end
+
+  local song = renoise.song()
+  if live_pickup_instrument_index > 0 and song.selected_instrument_index ~= live_pickup_instrument_index then
+    renoise.app():show_status("Live Pickup skipped: selected instrument changed")
+    return
+  end
   
   -- Check if we're in 12st_WT setup for enhanced live pickup
   local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
@@ -8180,7 +8305,6 @@ function PCMWriterUpdateLiveSample()
   local success, error_msg = pcall(function()
     if is_12st_wt_setup then
       -- Enhanced live pickup for 12st_WT setup
-      local song = renoise.song()
       local inst = song.selected_instrument
       
       -- Determine which sample to update based on current wave edit mode
@@ -8503,7 +8627,14 @@ function PCMWriterShowPcmDialog()
     cleanup_sample_notifier()
     pcm_dialog:close()
     pcm_dialog = nil
+    PCMWriterResetDialogContextTracking()
     return
+  end
+
+  local fresh_open = (pcm_dialog == nil)
+  local selected_instrument_is_empty = not PCMWriterSelectedInstrumentHasSampleData()
+  if fresh_open then
+    pcm_context_instrument_index = renoise.song().selected_instrument_index
   end
   
   -- Initialize AKWF dropdown data
@@ -8524,6 +8655,11 @@ function PCMWriterShowPcmDialog()
 
   -- Set flag to prevent dropdown from triggering during rebuild
   dialog_rebuilding = true
+
+  if fresh_open and selected_instrument_is_empty then
+    PCMWriterClearEditorBuffers()
+    PCMWriterResetLivePickupTracking()
+  end
   
   -- Create fresh ViewBuilder instance to avoid ID conflicts
   vb = renoise.ViewBuilder()  -- Make it global so LFO controls can access it
@@ -8549,7 +8685,7 @@ function PCMWriterShowPcmDialog()
   }
 
   -- Only generate initial waveform on first dialog opening
-  if not dialog_initialized then
+  if not dialog_initialized and not selected_instrument_is_empty then
     current_waveform_type = "sine"  -- Ensure current_waveform_type is set
     PCMWriterGenerateWaveform("sine")
     dialog_initialized = true
@@ -8602,7 +8738,7 @@ function PCMWriterShowPcmDialog()
     --spacing = 10,
         
         -- Main controls row 1: Waveform selection
-  (pcm_current_scene == 1) and vb:row{ -- WAVEFORM_ROW STARTS
+  vb:row{ -- WAVEFORM_ROW STARTS
     vb:text{ text = "Waveform", style = "strong" },
     vb:button{
       text = "<",
@@ -8760,7 +8896,7 @@ function PCMWriterShowPcmDialog()
         PCMWriterLoadAKWFFromDropdown(idx, "B")
       end
     }
-  } or vb:space{}, -- WAVEFORM_ROW ENDS
+  }, -- WAVEFORM_ROW ENDS
 
   -- Main controls row 2: Sample settings
   (pcm_current_scene == 1) and vb:row{ -- SAMPLE_SETTINGS_ROW STARTS
@@ -9763,7 +9899,8 @@ function PCMWriterShowPcmDialog()
   print("DEBUG: has_12st_setup = " .. tostring(has_12st_setup) .. ", live_pickup_mode = " .. tostring(live_pickup_mode))
   if has_12st_setup and not live_pickup_mode then
     print("DEBUG: Existing 12st_WT setup detected on dialog open, auto-entering Live Pickup Mode")
-    PCMWriterEnterLivePickupMode()
+    PCMWriterResetHarmonicEditState()
+    PCMWriterEnterLivePickupMode({passive = true})
   else
     print("DEBUG: Not auto-entering Live Pickup Mode")
   end
