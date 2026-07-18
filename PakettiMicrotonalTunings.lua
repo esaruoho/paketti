@@ -459,6 +459,37 @@ local function generate_pelog()
   return cents_to_ratios({120, 258, 539, 675, 785, 943, 1206}), "Pelog (gamelan example, 7-tone)"
 end
 
+-- Double Harmonic family as 12-TET scale-as-tuning (maps the octave to those scale pitches).
+-- Cents above the root; 1/1 is implicit, last entry is the octave.
+local function generate_double_harmonic()
+  return cents_to_ratios({100, 400, 500, 700, 800, 1100, 1200}), "Double Harmonic (Byzantine)"       -- 1 b2 3 4 5 b6 7
+end
+local function generate_hungarian_minor()
+  return cents_to_ratios({200, 300, 600, 700, 800, 1100, 1200}), "Hungarian Minor"                   -- 1 2 b3 #4 5 b6 7
+end
+local function generate_phrygian_dominant()
+  return cents_to_ratios({100, 400, 500, 700, 800, 1000, 1200}), "Phrygian Dominant"                 -- 1 b2 3 4 5 b6 b7
+end
+local function generate_harmonic_major()
+  return cents_to_ratios({200, 400, 500, 700, 800, 1100, 1200}), "Harmonic Major"                    -- 1 2 3 4 5 b6 7
+end
+
+-- TRUE Byzantine chant genera (Chrysanthine / 1881 Patriarchal system): octave = 72 moria
+-- (1 moria = 16.6667c); a perfect-fourth tetrachord = 30 moria; full disjunct scale =
+-- tetrachord + disjunctive tone (12 moria) + tetrachord. Cents above root, last = octave.
+local function generate_byzantine_diatonic()
+  return cents_to_ratios({200, 366.67, 500, 700, 900, 1066.67, 1200}), "Byzantine Diatonic (chant, moria 12-10-8)"
+end
+local function generate_byzantine_soft_chromatic()
+  return cents_to_ratios({133.33, 366.67, 500, 700, 833.33, 1066.67, 1200}), "Byzantine Soft Chromatic (moria 8-14-8)"
+end
+local function generate_byzantine_hard_chromatic()
+  return cents_to_ratios({100, 433.33, 500, 700, 800, 1133.33, 1200}), "Byzantine Hard Chromatic (moria 6-20-4)"
+end
+local function generate_byzantine_enharmonic()
+  return cents_to_ratios({200, 400, 500, 700, 900, 1100, 1200}), "Byzantine Enharmonic (moria 12-12-6)"
+end
+
 -- ========================================
 -- Scala (.scl) file loader
 -- Reads standard Scala scale files from the bundled tunings/ folder (and any the
@@ -591,6 +622,16 @@ local tuning_presets = {
   {name = "Wendy Carlos Gamma (35.1c)", generator = generate_carlos_gamma},
   {name = "Slendro (gamelan example)", generator = generate_slendro},
   {name = "Pelog (gamelan example)", generator = generate_pelog},
+  -- Double Harmonic family (12-TET scale-as-tuning)
+  {name = "Double Harmonic (Byzantine)", generator = generate_double_harmonic},
+  {name = "Hungarian Minor", generator = generate_hungarian_minor},
+  {name = "Phrygian Dominant", generator = generate_phrygian_dominant},
+  {name = "Harmonic Major", generator = generate_harmonic_major},
+  -- True Byzantine chant genera (72-EDO moria)
+  {name = "Byzantine Diatonic (chant)", generator = generate_byzantine_diatonic},
+  {name = "Byzantine Soft Chromatic (chant)", generator = generate_byzantine_soft_chromatic},
+  {name = "Byzantine Hard Chromatic (chant)", generator = generate_byzantine_hard_chromatic},
+  {name = "Byzantine Enharmonic (chant)", generator = generate_byzantine_enharmonic},
 }
 
 -- Append every .scl file found in the bundled tunings/ folder as a preset, so the

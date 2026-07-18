@@ -49,7 +49,13 @@ end
    prometheus = {"c-4", "d-4", "e-4", "f#4", "a-4", "bb4", "c-5"},
    algerian = {"c-4", "db4", "e-4", "f-4", "gb4", "ab4", "b-4", "c-5"},
    blue1 = {"c-4", "d-4", "d#4", "f-4", "g-4", "a#4", "c-5"},
-   blue2 = {"c-4", "d-4", "d#4", "f-4", "g-4", "g#4", "a#4", "c-5"}
+   blue2 = {"c-4", "d-4", "d#4", "f-4", "g-4", "g#4", "a#4", "c-5"},
+   -- Double Harmonic family (note: existing "spanish" is mislabeled Phrygian Dominant -- it is actually
+   -- Double Harmonic, ending on b-4/natural-7; the correctly-spelled scales are below)
+   double_harmonic = {"c-4", "db4", "e-4", "f-4", "g-4", "ab4", "b-4", "c-5"},   -- 1 b2 3 4 5 b6 7
+   hungarian_minor = {"c-4", "d-4", "eb4", "f#4", "g-4", "ab4", "b-4", "c-5"},   -- 1 2 b3 #4 5 b6 7
+   phrygian_dominant = {"c-4", "db4", "e-4", "f-4", "g-4", "ab4", "bb4", "c-5"}, -- 1 b2 3 4 5 b6 b7
+   harmonic_major = {"c-4", "d-4", "e-4", "f-4", "g-4", "ab4", "b-4", "c-5"}     -- 1 2 3 4 5 b6 7
  }
  
  local SCALE_NAMES = {
@@ -58,7 +64,8 @@ end
    "dorian", "phrygian", "lydian", "mixolydian", "locrian",
    "whole_tone", "diminished", "persian", "japanese", "gamelan",
    "hungarian", "romanian", "spanish", "enigmatic", "neapolitan",
-   "prometheus", "algerian", "blue1", "blue2"
+   "prometheus", "algerian", "blue1", "blue2",
+   "double_harmonic", "hungarian_minor", "phrygian_dominant", "harmonic_major"
  }
  
  local SCALE_DISPLAY_NAMES = {
@@ -89,7 +96,11 @@ end
    prometheus = "Prometheus (C)",
    algerian = "Algerian (C)",
    blue1 = "Blue1 (C D D# F G A# C)",
-   blue2 = "Blue2 (C D D# F G G# A# C)"
+   blue2 = "Blue2 (C D D# F G G# A# C)",
+   double_harmonic = "Double Harmonic / Byzantine (C)",
+   hungarian_minor = "Hungarian Minor (C)",
+   phrygian_dominant = "Phrygian Dominant (C)",
+   harmonic_major = "Harmonic Major (C)"
  }
  
  local RHYTHM_UNITS = {"1/1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64"}

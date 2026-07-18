@@ -37,9 +37,10 @@ PakettiArp_flat_to_sharp = {
 }
 
 PakettiArp_modes = {
-  "ionian", "dorian", "phrygian", "lydian", 
+  "ionian", "dorian", "phrygian", "lydian",
   "mixolydian", "aeolian", "locrian",
-  "major", "minor", "melodic", "harmonic"
+  "major", "minor", "melodic", "harmonic",
+  "double harmonic", "hungarian minor", "phrygian dominant", "harmonic major"
 }
 
 PakettiArp_scale_data = {
@@ -51,14 +52,22 @@ PakettiArp_scale_data = {
   aeo = { name = "Aeolian", steps = {0,2,3,5,7,8,10}, triads = {"min","dim","maj","min","min","maj","maj"} },
   loc = { name = "Locrian", steps = {0,1,3,5,6,8,10}, triads = {"dim","maj","min","min","maj","maj","min"} },
   mel = { name = "Melodic Minor", steps = {0,2,3,5,7,9,11}, triads = {"min","min","aug","maj","maj","dim","dim"} },
-  har = { name = "Harmonic Minor", steps = {0,2,3,5,7,8,11}, triads = {"min","dim","aug","min","maj","maj","dim"} }
+  har = { name = "Harmonic Minor", steps = {0,2,3,5,7,8,11}, triads = {"min","dim","aug","min","maj","maj","dim"} },
+  -- Double Harmonic family. Some tertian triads on these scales are not plain maj/min/dim/aug
+  -- (augmented-second gaps); those degrees use the exotic qualities defined in PakettiArp_triad_intervals below.
+  dblharm = { name = "Double Harmonic (Byzantine)", steps = {0,1,4,5,7,8,11}, triads = {"maj","maj","min","min","majb5","aug","sus2b5"} },
+  hungmin = { name = "Hungarian Minor",             steps = {0,2,3,6,7,8,11}, triads = {"min","majb5","aug","sus2b5","maj","maj","min"} },
+  phrydom = { name = "Phrygian Dominant",           steps = {0,1,4,5,7,8,10}, triads = {"maj","maj","dim","min","dim","aug","min"} },
+  harmmaj = { name = "Harmonic Major",              steps = {0,2,4,5,7,8,11}, triads = {"maj","dim","min","min","maj","aug","dim"} }
 }
 
 PakettiArp_triad_intervals = {
   maj = {0,4,7},
   min = {0,3,7},
   dim = {0,3,6},
-  aug = {0,4,8}
+  aug = {0,4,8},
+  majb5 = {0,4,6},   -- major 3rd + diminished 5th (the "7b5" flavour, e.g. F#7b5 minus the 7th)
+  sus2b5 = {0,2,6}   -- augmented-second artifact stack (major 2nd + tritone); non-tertian but valid
 }
 
 -- Roman numerals for degrees
@@ -70,7 +79,10 @@ function PakettiArp_ModeToKey(mode)
     minor = "aeo", major = "ion", ionian = "ion",
     dorian = "dor", phrygian = "phr", lydian = "lyd",
     mixolydian = "mix", aeolian = "aeo", locrian = "loc",
-    melodic = "mel", harmonic = "har"
+    melodic = "mel", harmonic = "har",
+    ["double harmonic"] = "dblharm", byzantine = "dblharm",
+    ["hungarian minor"] = "hungmin", ["phrygian dominant"] = "phrydom",
+    ["harmonic major"] = "harmmaj"
   }
   return map[mode] or "ion"
 end
