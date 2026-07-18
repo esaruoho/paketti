@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,323 functions** · 10,906 keybindings · 7,330 midimappings · 6,725 menu entries.
+**4,321 functions** · 10,881 keybindings · 7,329 midimappings · 6,721 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (-32) | ✅ | · | · |
+| Nudge Slice 01 by (+10) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -181,7 +181,7 @@
 | Parama Param Previous Parameter | ✅ | · | ✅ |
 | To Pattern Editor | ✅ | · | ✅ |
 
-## Pattern Editor  ·  488 functions  ·  ⌨ 488 · 🎛 210 · ☰ 187
+## Pattern Editor  ·  489 functions  ·  ⌨ 489 · 🎛 210 · ☰ 187
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -556,6 +556,7 @@
 | Selection to Phrase | ✅ | ✅ | ✅ |
 | Selection Volume Offset +1 | ✅ | ✅ | · |
 | Set Delay for All Same Notes in Track... | ✅ | · | ✅ |
+| Set Global LPB to 001 | ✅ | · | · |
 | Set Note to Octave 0 with EditStep | ✅ | · | · |
 | Set Note to Octave 0 without EditStep | ✅ | · | · |
 | Set Pattern Length to 001 (001) | ✅ | ✅ | · |
@@ -751,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2109 functions  ·  ⌨ 2109 · 🎛 808 · ☰ 667
+## Global  ·  2106 functions  ·  ⌨ 2106 · 🎛 807 · ☰ 665
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -986,7 +987,6 @@
 | Computer Keyboard Velocity (Double) | ✅ | ✅ | · |
 | Computer Keyboard Velocity (Halve) | ✅ | ✅ | · |
 | Configure Launch App Selection... | ✅ | · | ✅ |
-| Configure Parameter Editor for Selected Device | ✅ | · | ✅ |
 | Continue Sequence 00 From Same Line | ✅ | ✅ | ✅ |
 | Contour Shuttle Record Off, Follow On | ✅ | · | · |
 | Contour Shuttle Record On, Follow Off | ✅ | · | · |
@@ -1808,7 +1808,6 @@
 | Open Offset Dialog... | ✅ | · | · |
 | Open Paketti Pattern / Phrase Init Preferences... | ✅ | ✅ | ✅ |
 | Open Player Pro Note Column Dialog... | ✅ | · | ✅ |
-| Open Selected Device with Parameter Editor | ✅ | ✅ | ✅ |
 | Open Sononymph Dialog... | ✅ | ✅ | · |
 | Open User Preferences Dialog... | ✅ | · | · |
 | Open Visible Pages to Fit Parameters | ✅ | · | · |
@@ -2399,7 +2398,6 @@
 | Set Drumkit to Overlap Random | ✅ | · | ✅ |
 | Set EditStep & Quantization to 00 | ✅ | ✅ | · |
 | Set EditStep to 00 | ✅ | ✅ | · |
-| Set Global LPB to 001 | ✅ | · | · |
 | Set Instrument Box Slot Size 1 (Normal) | ✅ | · | · |
 | Set Instrument Box Slot Size 2 (Small) | ✅ | · | · |
 | Set Instrument Box Slot Size 3 (Large) | ✅ | · | · |
