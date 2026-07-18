@@ -21889,7 +21889,7 @@ If you liked what you're seeing here, please consider supporting. Every bit help
 between the `AUTO` markers. ⌨ = KeyBinding · 🎛 = MidiMapping · ☰ = MenuEntry.*
 
 **Coverage:** <!-- AUTO:counts -->
-⌨ **10,881** keybindings · 🎛 **7,329** midimappings · ☰ **6,721** menu entries → **4,321** functions
+⌨ **10,906** keybindings · 🎛 **7,330** midimappings · ☰ **6,725** menu entries → **4,323** functions
 <!-- /AUTO -->
 
 ### 🧪 Experimental / WIP
