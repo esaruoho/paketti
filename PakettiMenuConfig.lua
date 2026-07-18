@@ -3042,6 +3042,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Renoise Rando
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Write Current BPM&LPB to Master Column",invoke=function() write_bpm() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:BPM&LPB:Random BPM (60-180)",invoke=function() randomBPM() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:BPM&LPB:Play at 75% Speed (Song BPM)",invoke=function() playat75()  end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Play at 125% Speed (Song BPM)",invoke=function() playat125()  end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Play at 100% Speed (Song BPM)",invoke=function() returnbackto100()  end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Clear Effect Columns",invoke=function() delete_effect_column() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Effect Columns:(L00) Set Track Volume Level",invoke=function() voloff() end}
@@ -3953,6 +3954,7 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Devices:Enable EFX (W
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Devices:Bypass All Devices on Channel",invoke=function() effectbypass() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Devices:Enable All Devices on Channel",invoke=function() effectenable() end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Transport:Play at 75% Speed (Song BPM)",invoke=function() playat75() end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Transport:Play at 125% Speed (Song BPM)",invoke=function() playat125() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Transport:Play at 100% Speed (Song BPM)",invoke=function() returnbackto100()  end}
 
 

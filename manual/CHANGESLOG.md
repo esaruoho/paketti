@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-18 - Feature: Play at 125% Speed (Song BPM) (#908)
+Added a "Play at 125% Speed (Song BPM)" command to sit alongside the existing "Play at 75%" — a quick way to nudge the song tempo up by a quarter while auditioning, then snap back to your original tempo. "Play at 100% Speed (Song BPM)" now restores the tempo you started from *exactly*: the tempo before the first speed change is remembered and restored on 100%, instead of dividing back out (which was only correct after 75% and drifted). Works from both 75% and 125%, and BPM is clamped to Renoise's 32–999 range so extreme tempos are handled safely. New keybinding: `Global:Paketti:Play at 125% Speed (Song BPM)`. New menu entries: `Pattern Editor:Paketti:BPM&LPB:Play at 125% Speed (Song BPM)` and `Pattern Matrix:Paketti:Transport:Play at 125% Speed (Song BPM)`.
+
+### 2026-07-18 - Improvement: "Set Global LPB to *" now available in all views (#909)
+The "Set Global LPB to *" commands were bound only in the Pattern Editor, so their keyboard shortcuts didn't fire from other views. Each one now also has a Global-scope keybinding, so you can set the global Lines-Per-Beat from anywhere without switching to the Pattern Editor first. The original Pattern-Editor-scope keybindings are unchanged (any shortcuts you already assigned still work). New keybindings: `Global:Paketti:Set Global LPB to 001` … `016`, plus `024`, `032`, `048`, `064`, `128`, `256`.
+
 ### 2026-07-06 - Feature: Mixer — Open Selected Device with Parameter Editor
 Added a direct Mixer command that opens the Paketti Parameter Editor on whatever device is currently selected — just what you'd expect when you want to reach for the Parameter Editor from the mixer. It opens the same Selected Device Parameter Editor as before, acting on the mixer/track device selection (`song.selected_device`). New menu: `Mixer:Paketti:Open Selected Device with Parameter Editor`. New keybinding: `Global:Paketti:Open Selected Device with Parameter Editor`. New MIDI mapping: `Paketti:Open Selected Device with Parameter Editor [Trigger]`.
 

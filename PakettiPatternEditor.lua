@@ -1133,6 +1133,17 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Global LPB to 064
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Global LPB to 128",invoke=function() GlobalLPB(128) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Global LPB to 256",invoke=function() GlobalLPB(256) end}
 
+-- Global-scope variants so "Set Global LPB to *" works in every view, not just the Pattern Editor (issue #909)
+for glpb=1,16 do
+    renoise.tool():add_keybinding{name="Global:Paketti:Set Global LPB to " .. formatDigits(3,glpb),invoke=function() GlobalLPB(glpb) end}
+end
+renoise.tool():add_keybinding{name="Global:Paketti:Set Global LPB to 024",invoke=function() GlobalLPB(24) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Global LPB to 032",invoke=function() GlobalLPB(32) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Global LPB to 048",invoke=function() GlobalLPB(48) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Global LPB to 064",invoke=function() GlobalLPB(64) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Global LPB to 128",invoke=function() GlobalLPB(128) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Global LPB to 256",invoke=function() GlobalLPB(256) end}
+
 function PhraseLPB(number)
 renoise.song().instruments[renoise.song().selected_instrument_index].phrases[renoise.song().selected_phrase_index].lpb=number end
 
@@ -1400,19 +1411,39 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Current BPM&LPB
 renoise.tool():add_keybinding{name="Mixer:Paketti:Write Current BPM&LPB to Master Column",invoke=function() write_bpm() end}
 
 
-function playat75()
- renoise.song().transport.bpm=renoise.song().transport.bpm*0.75
+-- Remembers the BPM before a "Play at N% Speed" so "Play at 100%" restores it exactly (no float drift)
+local pakettiPlayAtOriginalBPM = nil
+
+local function pakettiPlayAtSpeed(factor, label)
+ local t = renoise.song().transport
+ if not pakettiPlayAtOriginalBPM then pakettiPlayAtOriginalBPM = t.bpm end
+ t.bpm = math.max(32, math.min(999, pakettiPlayAtOriginalBPM * factor))
  write_bpm()
- renoise.app():show_status("BPM set to 75% (" .. renoise.song().transport.bpm .. "BPM)") 
+ renoise.app():show_status("BPM set to " .. label .. " (" .. t.bpm .. "BPM)")
+end
+
+function playat75()
+ pakettiPlayAtSpeed(0.75, "75%")
+end
+
+function playat125()
+ pakettiPlayAtSpeed(1.25, "125%")
 end
 
 function returnbackto100()
- renoise.song().transport.bpm=renoise.song().transport.bpm/0.75
+ local t = renoise.song().transport
+ if pakettiPlayAtOriginalBPM then
+  t.bpm = math.max(32, math.min(999, pakettiPlayAtOriginalBPM))
+  pakettiPlayAtOriginalBPM = nil
+ else
+  t.bpm = t.bpm / 0.75
+ end
  write_bpm()
- renoise.app():show_status("BPM set back to 100% (" .. renoise.song().transport.bpm .. "BPM)") 
+ renoise.app():show_status("BPM set back to 100% (" .. t.bpm .. "BPM)")
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Play at 75% Speed (Song BPM)",invoke=function() playat75() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Play at 125% Speed (Song BPM)",invoke=function() playat125() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Play at 100% Speed (Song BPM)",invoke=function() returnbackto100() end}
 
 
