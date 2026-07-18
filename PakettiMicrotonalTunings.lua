@@ -474,20 +474,54 @@ local function generate_harmonic_major()
   return cents_to_ratios({200, 400, 500, 700, 800, 1100, 1200}), "Harmonic Major"                    -- 1 2 3 4 5 b6 7
 end
 
--- TRUE Byzantine chant genera (Chrysanthine / 1881 Patriarchal system): octave = 72 moria
--- (1 moria = 16.6667c); a perfect-fourth tetrachord = 30 moria; full disjunct scale =
--- tetrachord + disjunctive tone (12 moria) + tetrachord. Cents above root, last = octave.
-local function generate_byzantine_diatonic()
-  return cents_to_ratios({200, 366.67, 500, 700, 900, 1066.67, 1200}), "Byzantine Diatonic (chant, moria 12-10-8)"
+-- TRUE Byzantine chant tunings (Chrysanthine / 1881 Patriarchal system): octave = 72 moria
+-- (1 moria = 16.6667c). The eight Tones (octoechos) reduce to six distinct scale shapes.
+-- Structure + moria values from Panteli & Purwins (2013), J. New Music Research 42(3),
+-- "A Quantitative Comparison of Chrysanthine Theory and Performance Practice ... of the
+-- Octoechos in Byzantine Chant", Table 1. Cents above root, last entry = octave.
+--
+-- (A) THEORETICAL octoechos (moria x 16.6667)
+local function generate_byz_first()
+  return cents_to_ratios({166.67, 300, 500, 700, 866.67, 1000, 1200}), "Byzantine First / First Plagal — Diatonic (moria 10-8-12)"
 end
-local function generate_byzantine_soft_chromatic()
-  return cents_to_ratios({133.33, 366.67, 500, 700, 833.33, 1066.67, 1200}), "Byzantine Soft Chromatic (moria 8-14-8)"
+local function generate_byz_second()
+  return cents_to_ratios({133.33, 366.67, 500, 700, 833.33, 1066.67, 1200}), "Byzantine Second — Soft Chromatic (moria 8-14-8)"
 end
-local function generate_byzantine_hard_chromatic()
-  return cents_to_ratios({100, 433.33, 500, 700, 800, 1133.33, 1200}), "Byzantine Hard Chromatic (moria 6-20-4)"
+local function generate_byz_second_plagal()
+  return cents_to_ratios({100, 433.33, 500, 700, 800, 1133.33, 1200}), "Byzantine Second Plagal — Hard Chromatic (moria 6-20-4)"
 end
-local function generate_byzantine_enharmonic()
-  return cents_to_ratios({200, 400, 500, 700, 900, 1100, 1200}), "Byzantine Enharmonic (moria 12-12-6)"
+local function generate_byz_third_grave()
+  return cents_to_ratios({200, 400, 500, 700, 900, 1100, 1200}), "Byzantine Third / Grave — Enharmonic (moria 12-12-6)"
+end
+local function generate_byz_fourth()
+  return cents_to_ratios({133.33, 333.33, 533.33, 700, 833.33, 1033.33, 1200}), "Byzantine Fourth (moria 8-12-12, irregular)"
+end
+local function generate_byz_fourth_plagal()
+  return cents_to_ratios({200, 366.67, 500, 700, 900, 1066.67, 1200}), "Byzantine Fourth Plagal — Diatonic (moria 12-10-8)"
+end
+--
+-- (B) PERFORMANCE PRACTICE: same six echoi rebuilt from the empirically measured step
+-- sizes (Panteli & Purwins 2013, Table 3: 94 chants, 4 master cantors) — small steps run
+-- wider and the large 333c step is compressed to ~277c. Each scale is octave-normalized to
+-- 1200c (the raw empirical steps do not sum to a clean octave) so it stays octave-repeating
+-- while preserving the sung step proportions.
+local function generate_byz_pp_first()
+  return cents_to_ratios({170.93, 304.85, 501.62, 698.38, 869.31, 1003.23, 1200}), "Byzantine First (performance practice)"
+end
+local function generate_byz_pp_second()
+  return cents_to_ratios({135.49, 364.97, 500.46, 699.54, 835.03, 1064.51, 1200}), "Byzantine Second (performance practice)"
+end
+local function generate_byz_pp_second_plagal()
+  return cents_to_ratios({113.86, 407.34, 493.56, 706.44, 820.30, 1113.79, 1200}), "Byzantine Second Plagal (performance practice)"
+end
+local function generate_byz_pp_third_grave()
+  return cents_to_ratios({197.70, 395.41, 501.15, 698.85, 896.56, 1094.26, 1200}), "Byzantine Third / Grave (performance practice)"
+end
+local function generate_byz_pp_fourth()
+  return cents_to_ratios({133.92, 330.69, 527.46, 698.38, 832.31, 1029.07, 1200}), "Byzantine Fourth (performance practice)"
+end
+local function generate_byz_pp_fourth_plagal()
+  return cents_to_ratios({196.77, 367.69, 501.62, 698.38, 895.15, 1066.08, 1200}), "Byzantine Fourth Plagal (performance practice)"
 end
 
 -- ========================================
@@ -627,11 +661,20 @@ local tuning_presets = {
   {name = "Hungarian Minor", generator = generate_hungarian_minor},
   {name = "Phrygian Dominant", generator = generate_phrygian_dominant},
   {name = "Harmonic Major", generator = generate_harmonic_major},
-  -- True Byzantine chant genera (72-EDO moria)
-  {name = "Byzantine Diatonic (chant)", generator = generate_byzantine_diatonic},
-  {name = "Byzantine Soft Chromatic (chant)", generator = generate_byzantine_soft_chromatic},
-  {name = "Byzantine Hard Chromatic (chant)", generator = generate_byzantine_hard_chromatic},
-  {name = "Byzantine Enharmonic (chant)", generator = generate_byzantine_enharmonic},
+  -- True Byzantine chant octoechos (72-moria Chrysanthine theory) — theoretical
+  {name = "Byzantine First / First Plagal (Diatonic)", generator = generate_byz_first},
+  {name = "Byzantine Second (Soft Chromatic)", generator = generate_byz_second},
+  {name = "Byzantine Second Plagal (Hard Chromatic)", generator = generate_byz_second_plagal},
+  {name = "Byzantine Third / Grave (Enharmonic)", generator = generate_byz_third_grave},
+  {name = "Byzantine Fourth (irregular)", generator = generate_byz_fourth},
+  {name = "Byzantine Fourth Plagal (Diatonic)", generator = generate_byz_fourth_plagal},
+  -- Byzantine octoechos — performance practice (empirically measured, octave-normalized)
+  {name = "Byzantine First (performance practice)", generator = generate_byz_pp_first},
+  {name = "Byzantine Second (performance practice)", generator = generate_byz_pp_second},
+  {name = "Byzantine Second Plagal (performance practice)", generator = generate_byz_pp_second_plagal},
+  {name = "Byzantine Third / Grave (performance practice)", generator = generate_byz_pp_third_grave},
+  {name = "Byzantine Fourth (performance practice)", generator = generate_byz_pp_fourth},
+  {name = "Byzantine Fourth Plagal (performance practice)", generator = generate_byz_pp_fourth_plagal},
 }
 
 -- Append every .scl file found in the bundled tunings/ folder as a preset, so the
