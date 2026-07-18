@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-18 - Feature: Music Mouse — Double Harmonic (Byzantine) scale family
+Added four new harmony modes to the Music Mouse: **Double Harmonic (Byzantine)** (1 b2 3 4 5 b6 7), **Hungarian Minor** (1 2 b3 #4 5 b6 7, of which Double Harmonic is mode V), **Phrygian Dominant** (1 b2 3 4 5 b6 b7) and **Harmonic Major** (1 2 3 4 5 b6 7). Pick any of them from the **Harmony** dropdown in the Music Mouse window — the quantiser, voice stacking and gravity behave exactly as with the built-in scales. The keyboard scale shortcuts (q/w/e/r/t/y) are unchanged and still select the original six scales (the letter row is fully assigned, so the new modes are dropdown-only). Open the Music Mouse with the `Global:Paketti:Music Mouse Show/Hide` keybinding or the `Main Menu:Tools:Paketti:Music Mouse...` menu (also `Instrument Box:Paketti:Music Mouse...`).
+
 ### 2026-07-18 - Feature: Play at 125% Speed (Song BPM) (#908)
 Added a "Play at 125% Speed (Song BPM)" command to sit alongside the existing "Play at 75%" — a quick way to nudge the song tempo up by a quarter while auditioning, then snap back to your original tempo. "Play at 100% Speed (Song BPM)" now restores the tempo you started from *exactly*: the tempo before the first speed change is remembered and restored on 100%, instead of dividing back out (which was only correct after 75% and drifted). Works from both 75% and 125%, and BPM is clamped to Renoise's 32–999 range so extreme tempos are handled safely. New keybinding: `Global:Paketti:Play at 125% Speed (Song BPM)`. New menu entries: `Pattern Editor:Paketti:BPM&LPB:Play at 125% Speed (Song BPM)` and `Pattern Matrix:Paketti:Transport:Play at 125% Speed (Song BPM)`.
 

@@ -41,9 +41,16 @@ local MM_SCALES = {
   diatonic   = { intervals = {2,2,1,2,2,2,1},     vs3 = 4,  vs4 = 9,  center = 60, label = "Diatonic" },
   pentatonic = { intervals = {2,3,2,2,3},         vs3 = 3,  vs4 = 7,  center = 60, label = "Pentatonic" },
   quartal    = { intervals = {5},                 vs3 = 1,  vs4 = 2,  center = 60, label = "Quartal" },
+  -- Double Harmonic family (7-note, so vs3/vs4 mirror Diatonic/Middle Eastern). Selectable via the Harmony popup.
+  doubleHarmonic   = { intervals = {1,3,1,2,1,3,1}, vs3 = 4, vs4 = 9, center = 60, label = "Double Harmonic (Byzantine)" }, -- 1 b2 3 4 5 b6 7
+  hungarianMinor   = { intervals = {2,1,3,1,1,3,1}, vs3 = 4, vs4 = 9, center = 60, label = "Hungarian Minor" },             -- 1 2 b3 #4 5 b6 7
+  phrygianDominant = { intervals = {1,3,1,2,1,2,2}, vs3 = 4, vs4 = 9, center = 60, label = "Phrygian Dominant" },           -- 1 b2 3 4 5 b6 b7
+  harmonicMajor    = { intervals = {2,2,1,2,1,3,1}, vs3 = 4, vs4 = 9, center = 60, label = "Harmonic Major" },              -- 1 2 3 4 5 b6 7
 }
--- q w e r t y -> decreasing resolution (most pitches per octave first)
-local MM_SCALE_ORDER = { "chromatic", "octatonic", "midEastern", "diatonic", "pentatonic", "quartal" }
+-- q w e r t y -> decreasing resolution (most pitches per octave first). The Double Harmonic
+-- family has no letter key (the letter row is fully assigned) -- select it from the Harmony popup.
+local MM_SCALE_ORDER = { "chromatic", "octatonic", "midEastern", "diatonic", "pentatonic", "quartal",
+  "doubleHarmonic", "hungarianMinor", "phrygianDominant", "harmonicMajor" }
 
 -- The 10 melodic contour patterns (keys 1-9,0). Values are scale-degree offsets added to the base.
 local MM_PATTERNS = {
