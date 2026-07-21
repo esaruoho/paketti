@@ -28,6 +28,28 @@ This is non-negotiable. The local working tree can be behind `origin/master` —
 2. THEN grep / read / answer questions
 3. If working on a branch: use a worktree
 
+## Rule -0.5 — THIS CHECKOUT IS ON iCLOUD: FILES CAN BE EVICTED (0 bytes) AND `git commit` CAN SIGBUS
+
+The working tree lives under iCloud Drive (`~/Library/Mobile Documents/…`; `/Users/esaruoho/work/paketti` is a symlink to it). The `.git` dir is off-iCloud at `/Users/esaruoho/.paketti-git` (safe). **iCloud evicts file *contents* to save space — leaving a "dataless placeholder": `ls` shows the real byte size, but reading the file returns 0 bytes.** This has two nasty consequences:
+
+1. **A grep/read of an evicted file returns nothing — and that looks exactly like "the feature isn't there."**
+   - **Real incident (2026-07-22):** asked whether Groovebox 8120's MODE2 (per-step sample mode) was implemented, I grepped `PakettiEightOneTwenty.lua`, got **zero hits**, and confidently said "not built — still a proposal." The file was an **evicted placeholder** (468 KB in `ls`, 0 bytes when read). MODE2 was **fully shipped** the whole time. The tell: `wc -l` = 0 and `grep -c "function"` = 0 on a 468 KB Lua file is impossible — it means the content isn't materialized, not that it's empty.
+   - **Rule:** to inspect code reliably on this checkout, read from the git blob, not the working tree: **`git show HEAD:<file>`** (or `git cat-file -p HEAD:<file>`). The `.git` objects are on local disk and always readable. Only trust a working-tree read after confirming `cat <file> | wc -c` matches `ls`'s size.
+
+2. **`git commit` / `git add -A` can crash with `Bus error: 10` (SIGBUS, exit 138).** git `mmap`s working-tree files during its full-tree index refresh; `mmap` of an evicted placeholder faults. You'll also see `error: short read while indexing …` spam and a stale `/Users/esaruoho/.paketti-git/index.lock` (a background `github-watcher.sh` grabs the lock every few minutes — check `ps` / `lsof` before removing it).
+   - **Rule — commit via plumbing (object-DB only, never touches the working tree):**
+     ```bash
+     blob=$(git hash-object -w <path>)                       # reads only your materialized file
+     GIT_INDEX_FILE=/tmp/t.idx git read-tree origin/master   # base on origin (it may be ahead via [skip ci] docs commits)
+     GIT_INDEX_FILE=/tmp/t.idx git update-index --cacheinfo 100644,$blob,<path>
+     tree=$(GIT_INDEX_FILE=/tmp/t.idx git write-tree)
+     commit=$(git commit-tree $tree -p origin/master -m "msg")
+     git update-ref refs/heads/master $commit
+     git push origin $commit:master                          # fast-forward
+     ```
+   - Base on `origin/master` (not local `HEAD`): the `github-watcher`/CI pushes automated `docs: … [skip ci]` commits, so local is often behind.
+   - **Root-cause fix (optional, user's call — pulls the whole AKWF set locally):** `brctl download /Users/esaruoho/work/paketti` to materialize everything, then normal git works.
+
 ## Rule 0 — SEARCH BEFORE THEORIZING
 
 Paketti has **181 Lua files** and 1,180+ commits of accumulated infrastructure. Before claiming "we'd need to build X" or estimating that a feature is "~150 lines," **grep first**:
