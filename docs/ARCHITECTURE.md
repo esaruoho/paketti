@@ -7,7 +7,7 @@
    4358 wav
    1195 png
     701 xrnc
-    248 lua
+    249 lua
     210 gif
     133 txt
      51 md
@@ -248,6 +248,7 @@ main.lua
 1 main -> PakettiStacker
 1 main -> PakettiStemLoader
 1 main -> PakettiStemSlicer
+1 main -> PakettiStepMute
 1 main -> PakettiSteppers
 1 main -> PakettiStretch
 1 main -> PakettiSubColumnModifier
@@ -281,7 +282,7 @@ main.lua
 1 pmcp -> json
 1 recapture -> json
 1 vault-to-manual -> json
-  ── 220 edges total ──
+  ── 221 edges total ──
 ```
 ## The wiring, drawn
 
@@ -474,6 +475,7 @@ graph LR
   main["main"] -->|1| PakettiStacker["PakettiStacker"]
   main["main"] -->|1| PakettiStemLoader["PakettiStemLoader"]
   main["main"] -->|1| PakettiStemSlicer["PakettiStemSlicer"]
+  main["main"] -->|1| PakettiStepMute["PakettiStepMute"]
   main["main"] -->|1| PakettiSteppers["PakettiSteppers"]
   main["main"] -->|1| PakettiStretch["PakettiStretch"]
   main["main"] -->|1| PakettiSubColumnModifier["PakettiSubColumnModifier"]
