@@ -1,6 +1,25 @@
 # Groovebox 8120 — Per-Step Sample Mode (MODE2) — Design
 
-Status: **theory / proposal** (not yet built). Owning file: `PakettiEightOneTwenty.lua` (~7000 lines).
+Status: **SHIPPED.** Built after this doc was written; owning file `PakettiEightOneTwenty.lua`
+(~10,800 lines). This document is kept as the design record — the header and the "Open decisions"
+below are annotated with what actually shipped.
+
+**What shipped (vs. this design):**
+- **Mechanism → Option A (mode-scoped remap).** The remap fires only when you opt into MODE2;
+  existing songs are untouched until then. Entering Per-Step the first time remaps the row
+  instruments to one-note-per-sample. (The doc recommended Option B; Option A is what shipped.)
+- **Mode scope → global.** One Mode toggle button flips all 8 rows between Single Sample (MODE1)
+  and Per-Step Sample (MODE2) together.
+- **Persistence → in-memory.** State lives in `row_elements.step_samples[]`, `StepMode == "perstep"`,
+  and `PakettiEightOneTwentyNotePerSampleActive`.
+- **Where it lives now:** per-step valuebox row build (`~:1671`), note-per-sample writes in
+  `print_to_pattern` (`~:2293`, `~:2361`, `~:9248`), Mode button + tooltip (`~:3326`), MODE2 seeding
+  on entry (`~:3170`), `fetch_pattern` inferring `step_samples` from the note (`~:3681`), arrow-key
+  nudge of the focused per-step field (`~:4800`).
+
+---
+
+## Original design (as proposed, pre-build)
 
 ## What you asked for
 
@@ -41,9 +60,9 @@ value**, which means each sample needs its **own single-note keyzone**:
 Then "trigger sample N on step S" = write `note_value = N-1` on that step. This is exactly how a
 Renoise/Redux drumkit natively works. The velocity-choke hack disappears.
 
-## Two ways to reconcile MODE1 and MODE2 mappings — **pick one**
+## Two ways to reconcile MODE1 and MODE2 mappings — **Option A shipped**
 
-### Option A — Mode-scoped remap (surgical, MODE1 untouched)
+### Option A — Mode-scoped remap (surgical, MODE1 untouched) ✅ SHIPPED
 - MODE1 keeps the current full-overlap + velocity-choke exactly as-is.
 - Entering MODE2 **remaps** the kit to note-per-sample (un-chokes, one note each).
 - Leaving MODE2 **restores** full-range + re-applies choke to the slider's sample.
@@ -51,7 +70,7 @@ Renoise/Redux drumkit natively works. The velocity-choke hack disappears.
 - 👎 Mutates the user's instrument on every toggle; the round-trip must restore *perfectly* or the
   kit is left in a weird state. Fragile, and risky to do mid-performance.
 
-### Option B — Unify on note-per-sample (cleaner, deeper) — **recommended**
+### Option B — Unify on note-per-sample (cleaner, deeper) — *recommended at design time, NOT shipped*
 - Drop velocity-choke as the selection mechanism. The kit is **always** note-per-sample.
 - MODE1 slider value V → every ON step writes `note (V-1)` (one sample across all steps — same UX,
   achieved by note instead of choke).
@@ -102,7 +121,9 @@ the checkbox row, bound to `row_elements.step_samples[i]` (1–120, default = sl
 - slider notifier (`:1987`), `update_sample_name_label`, beatsync sample-finder — drop/adapt choke.
 - `fetch_pattern`, `<`/`>`/`Clear`/`Random Steps` notifiers — handle `step_samples`.
 
-## Open decisions before building
-1. **Mechanism: Option A (scoped remap) or Option B (unify on note-per-sample)?**
-2. **Mode scope: global (all 8 rows) or per-row?**
-3. **Persistence now or in-memory first?**
+## Open decisions before building — RESOLVED (as shipped)
+1. **Mechanism: Option A (scoped remap) or Option B (unify on note-per-sample)?** → **Option A** —
+   scoped remap; MODE1 and existing songs untouched until you opt into MODE2.
+2. **Mode scope: global (all 8 rows) or per-row?** → **Global** — one Mode button toggles all 8 rows.
+3. **Persistence now or in-memory first?** → **In-memory** (`step_samples[]` / `StepMode` /
+   `PakettiEightOneTwentyNotePerSampleActive`).
