@@ -7205,6 +7205,41 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0G01+0D00 (From Cursor)",invoke=function() writeEffectFromCursor("0D00", "0G01") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00 (From Cursor)",invoke=function() writeEffectFromCursor("0U00", "0G01") end}
 
+-- Toggle 0G01 in the effect column at the current pattern's current row.
+-- If the cursor row's first effect column already holds 0G01, wipe it; otherwise write 0G01.
+function toggle0G01AtCursor()
+  if not canWriteToEffectColumn() then return end
+
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track_index = song.selected_track_index
+  if not pattern or not track_index then return end
+
+  local line_index = song.selected_line_index
+  local effect_column = pattern.tracks[track_index].lines[line_index].effect_columns[1]
+
+  if effect_column.number_string == "0G" and effect_column.amount_string == "01" then
+    effect_column.number_string = ".."
+    effect_column.amount_string = ".."
+    renoise.app():show_status(string.format("Wiped 0G01 from row %d", line_index))
+  else
+    effect_column.number_string = "0G"
+    effect_column.amount_string = "01"
+    renoise.app():show_status(string.format("Wrote 0G01 to row %d", line_index))
+  end
+
+  song.selected_effect_column_index = 1
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle 0G01 at Current Row",invoke=function() toggle0G01AtCursor() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Effect Columns:Toggle 0G01 at Current Row",invoke=function() toggle0G01AtCursor() end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle 0G01 at Current Row [Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      toggle0G01AtCursor()
+    end
+  end}
+
 
 renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0D00 [Trigger]",
   invoke=function(message)
