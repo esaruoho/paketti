@@ -195,6 +195,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiCanvasFontStyle="8bit",  -- "8bit" (Asteroids-style) or "monospace"; mirrors to every canvas dialog
   paketti_auto_disk_browser_mode = 0,  -- 0=Do Nothing, 1=Hide, 2=Show
   pakettiRePitchEnhanced = false,
+  pakettiStepMuteWindowSize = 8,  -- Step Mute sliding-window size / live MIDI-button count: 8, 16, 32, or 64
   PakettiSteppersGlobalStepCount="16",
   UserSetTunings="",
   AutoInputTuning="false",

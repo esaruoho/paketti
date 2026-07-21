@@ -1396,6 +1396,8 @@ timed_require("PakettiImport")
 
 timed_require("PakettiMusicMouse")
 
+timed_require("PakettiStepMute")
+
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
 
