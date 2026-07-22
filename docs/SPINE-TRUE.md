@@ -4,18 +4,18 @@
 
 ## Where Paketti touches Renoise
 
-- **25,051 unique registration points**
+- **25,179 unique registration points**
   - **10,916 keyboard shortcuts**
   - **6,730 menu entries**
-  - **7,405 MIDI mappings**
+  - **7,533 MIDI mappings**
 
-**Validation:** Paketti's own runtime counters say 10,911 keybindings / 7,404 MIDI / 6,727 menus — matching.
+**Validation:** Paketti's own runtime counters say 10,911 keybindings / 7,532 MIDI / 6,727 menus — matching.
 
 ## What Paketti does for Renoise
 
-Paketti is a **25,051-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
+Paketti is a **25,179-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
 
-- **Keyboard- and MIDI-first.** 7,092 shortcuts fire *anywhere* (the Global region) and 7,405 actions are MIDI-mappable — most of Paketti is reachable without ever opening a menu. It's built for speed and for hardware.
+- **Keyboard- and MIDI-first.** 7,092 shortcuts fire *anywhere* (the Global region) and 7,533 actions are MIDI-mappable — most of Paketti is reachable without ever opening a menu. It's built for speed and for hardware.
 - **Pattern-centric.** ~3,849 actions live in the Pattern Editor / Matrix / Sequencer / Phrase views — the tracker grid where you actually make the music is where Paketti is heaviest.
 - **A sample & instrument powerhouse.** ~4,167 actions across the Sample Editor, Navigator, Keyzone, Mappings and Instrument Box — a whole sampler workflow grafted on.
 - **Menus are the catalogue.** 6,730 menu entries make every feature browsable when you don't remember the shortcut.
@@ -53,7 +53,7 @@ Paketti is a **25,051-action layer** bolted onto Renoise. *Where* those actions 
 | &nbsp;&nbsp;DiskBrowserFiles | 0 | 63 | 0 | 63 |
 | **Menus & global** | | | | |
 | &nbsp;&nbsp;Global | 7,092 | 482 | 515 | 8,089 |
-| &nbsp;&nbsp;Paketti | 0 | 0 | 6,800 | 6,800 |
+| &nbsp;&nbsp;Paketti | 0 | 0 | 6,928 | 6,928 |
 | &nbsp;&nbsp;MainMenuTools | 0 | 1,113 | 0 | 1,113 |
 | &nbsp;&nbsp;MainMenuFile | 0 | 75 | 0 | 75 |
 | &nbsp;&nbsp;MainMenuView | 0 | 59 | 0 | 59 |
