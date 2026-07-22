@@ -434,13 +434,38 @@ renoise.tool():add_keybinding{ name = "Global:Paketti:Step Mute Window Size 64",
 -- MIDI mappings
 --------------------------------------------------------------------------------
 
--- 64 window-relative step buttons. Map your LPD8 pads to Steps 01-08, an APC to
--- 01-16, etc. Each triggers the corresponding line in the current sliding window.
+-- 64 generic window-relative step buttons. Each triggers the corresponding line
+-- in the current sliding window. Map any controller's pads to Steps 01-NN.
 for i = 1, 64 do
   renoise.tool():add_midi_mapping{
     name = string.format("Paketti:Step Mute Toggle Step %02d [Trigger]", i),
     invoke = function(message) if message:is_trigger() then PakettiStepMuteToggleButton(i) end end
   }
+end
+
+-- Per-controller banks. These are separate, independently-bindable copies of the
+-- window-relative step buttons so you can have several controllers plugged in at
+-- once and map each one's pads to its OWN bank (they don't fight over one target).
+-- All banks drive the same shared sliding window. Bank size matches each device's
+-- real pad/button surface:
+--   LPD8      = 8  pads
+--   MidiMix   = 16 buttons (8 mute + 8 rec-arm)
+--   APCKey25  = 40 clip-grid pads (8 x 5)
+--   Launchpad = 64 grid pads (8 x 8)
+local PakettiStepMuteControllerBanks = {
+  { prefix = "LPD8",      count = 8  },
+  { prefix = "MidiMix",   count = 16 },
+  { prefix = "APCKey25",  count = 40 },
+  { prefix = "Launchpad", count = 64 },
+}
+for _, bank in ipairs(PakettiStepMuteControllerBanks) do
+  for i = 1, bank.count do
+    local step_index = i
+    renoise.tool():add_midi_mapping{
+      name = string.format("Paketti:Step Mute %s Step %02d [Trigger]", bank.prefix, i),
+      invoke = function(message) if message:is_trigger() then PakettiStepMuteToggleButton(step_index) end end
+    }
+  end
 end
 
 renoise.tool():add_midi_mapping{ name = "Paketti:Step Mute Show/Hide Dialog [Trigger]", invoke = function(message) if message:is_trigger() then PakettiStepMuteShowDialog() end end }
