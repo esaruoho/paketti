@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,321 functions** · 10,881 keybindings · 7,329 midimappings · 6,721 menu entries.
+**4,340 functions** · 10,916 keybindings · 7,533 midimappings · 6,730 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+10) | ✅ | · | · |
+| Nudge Slice 01 by (-10) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -181,7 +181,7 @@
 | Parama Param Previous Parameter | ✅ | · | ✅ |
 | To Pattern Editor | ✅ | · | ✅ |
 
-## Pattern Editor  ·  489 functions  ·  ⌨ 489 · 🎛 210 · ☰ 187
+## Pattern Editor  ·  489 functions  ·  ⌨ 489 · 🎛 211 · ☰ 188
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -556,7 +556,6 @@
 | Selection to Phrase | ✅ | ✅ | ✅ |
 | Selection Volume Offset +1 | ✅ | ✅ | · |
 | Set Delay for All Same Notes in Track... | ✅ | · | ✅ |
-| Set Global LPB to 001 | ✅ | · | · |
 | Set Note to Octave 0 with EditStep | ✅ | · | · |
 | Set Note to Octave 0 without EditStep | ✅ | · | · |
 | Set Pattern Length to 001 (001) | ✅ | ✅ | · |
@@ -597,6 +596,7 @@
 | Switch Effect Column/Note Column | ✅ | · | ✅ |
 | Switch Note Instrument Dialog... | ✅ | · | ✅ |
 | Tag Selected Note Column as Trigger | ✅ | · | · |
+| Toggle 0G01 at Current Row | ✅ | ✅ | ✅ |
 | Toggle All Columns | ✅ | · | ✅ |
 | Toggle All Columns (No Sample Effects) | ✅ | · | ✅ |
 | Toggle Auto-Input Tuning | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2106 functions  ·  ⌨ 2106 · 🎛 807 · ☰ 665
+## Global  ·  2115 functions  ·  ⌨ 2115 · 🎛 813 · ☰ 667
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -987,6 +987,7 @@
 | Computer Keyboard Velocity (Double) | ✅ | ✅ | · |
 | Computer Keyboard Velocity (Halve) | ✅ | ✅ | · |
 | Configure Launch App Selection... | ✅ | · | ✅ |
+| Configure Parameter Editor for Selected Device | ✅ | · | ✅ |
 | Continue Sequence 00 From Same Line | ✅ | ✅ | ✅ |
 | Contour Shuttle Record Off, Follow On | ✅ | · | · |
 | Contour Shuttle Record On, Follow Off | ✅ | · | · |
@@ -1808,6 +1809,7 @@
 | Open Offset Dialog... | ✅ | · | · |
 | Open Paketti Pattern / Phrase Init Preferences... | ✅ | ✅ | ✅ |
 | Open Player Pro Note Column Dialog... | ✅ | · | ✅ |
+| Open Selected Device with Parameter Editor | ✅ | ✅ | ✅ |
 | Open Sononymph Dialog... | ✅ | ✅ | · |
 | Open User Preferences Dialog... | ✅ | · | · |
 | Open Visible Pages to Fit Parameters | ✅ | · | · |
@@ -2398,6 +2400,7 @@
 | Set Drumkit to Overlap Random | ✅ | · | ✅ |
 | Set EditStep & Quantization to 00 | ✅ | ✅ | · |
 | Set EditStep to 00 | ✅ | ✅ | · |
+| Set Global LPB to 001 | ✅ | · | · |
 | Set Instrument Box Slot Size 1 (Normal) | ✅ | · | · |
 | Set Instrument Box Slot Size 2 (Small) | ✅ | · | · |
 | Set Instrument Box Slot Size 3 (Large) | ✅ | · | · |
@@ -2649,6 +2652,12 @@
 | Start/Stop Sample Recording and Pakettify | ✅ | · | · |
 | Stem Loader Create Phrases from Slices | ✅ | ✅ | · |
 | Stem Slice Randomizer Dialog... | ✅ | · | · |
+| Step Mute Show/Hide Dialog | ✅ | ✅ | · |
+| Step Mute Toggle Current Row | ✅ | ✅ | · |
+| Step Mute Unmute All in Track | ✅ | ✅ | · |
+| Step Mute Window Next | ✅ | ✅ | · |
+| Step Mute Window Previous | ✅ | ✅ | · |
+| Step Mute Window Size 8 | ✅ | · | · |
 | Step Sequencer FX Randomizer Dialog... | ✅ | · | · |
 | Store Current LFO to Slot 01 | ✅ | · | ✅ |
 | Strip Silence | ✅ | ✅ | ✅ |
@@ -2863,7 +2872,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1514 functions  ·  ⌨ 0 · 🎛 776 · ☰ 883
+## (menu/midi only)  ·  1524 functions  ·  ⌨ 0 · 🎛 782 · ☰ 887
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -4209,6 +4218,7 @@
 | Show Selected Instrument Pitch Stepper | · | ✅ | ✅ |
 | Show Selected Instrument Resonance Stepper | · | ✅ | ✅ |
 | Show Selected Instrument Volume Stepper | · | ✅ | ✅ |
+| Show Step Mute Dialog... | · | · | ✅ |
 | Show/Hide External Editor for Device | · | · | ✅ |
 | Show/Hide External Editor for Plugin | · | · | ✅ |
 | Show/Hide Slot 01 on Master | · | · | ✅ |
@@ -4251,6 +4261,13 @@
 | Step by EditStep (Wheel) x[Knob] | · | ✅ | · |
 | Step by EditStep Backward x[Trigger] | · | ✅ | · |
 | Step by EditStep Forward x[Trigger] | · | ✅ | · |
+| Step Mute (Non-Destructive)... | · | · | ✅ |
+| Step Mute APCKey25 Step 01 [Trigger] | · | ✅ | · |
+| Step Mute Launchpad Step 01 [Trigger] | · | ✅ | · |
+| Step Mute LPD8 Step 01 [Trigger] | · | ✅ | · |
+| Step Mute MidiMix Step 01 [Trigger] | · | ✅ | · |
+| Step Mute Set Window Size 8 [Trigger] | · | ✅ | · |
+| Step Mute Toggle Step 01 [Trigger] | · | ✅ | · |
 | Step Sequencer FX Randomizer | · | ✅ | ✅ |
 | Stepper | · | · | ✅ |
 | Stereo Expander | · | ✅ | ✅ |
@@ -4305,6 +4322,7 @@
 | Toggle Latch Mode | · | · | ✅ |
 | Toggle Loop End Parameter Monitor | · | · | ✅ |
 | Toggle Marker Position (CTRL-F7) | · | · | ✅ |
+| Toggle Mute Current Row | · | · | ✅ |
 | Toggle Pattern Scanner | · | · | ✅ |
 | Toggle Phrase Auto-Spawn on Selection | · | ✅ | · |
 | Toggle Phrase Transport | · | ✅ | ✅ |
@@ -4341,6 +4359,7 @@
 | Tuning Comparison A/B... | · | · | ✅ |
 | Uncollapser | · | ✅ | · |
 | Unison Generator Dialog | · | · | ✅ |
+| Unmute All in Track | · | · | ✅ |
 | Velocity | · | · | ✅ |
 | Velocity Tracking | · | · | ✅ |
 | VolDelayPan Slider Dialog... | · | · | ✅ |
