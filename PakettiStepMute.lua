@@ -21,7 +21,10 @@
 
 -- PakettiStepMuteState[pattern_index][track_index][line] = { [note_col]=orig_volume_value, ... }
 -- Presence of a line entry == that line is currently muted by Step Mute.
-PakettiStepMuteState = PakettiStepMuteState or {}
+-- NOTE: plain assignment (not `X = X or {}`) — Renoise strict-globals mode throws
+-- when READING an undeclared global, so referencing PakettiStepMuteState before it
+-- exists aborts the whole tool load. Writing a fresh global is always safe.
+PakettiStepMuteState = {}
 
 local NOTE_NAMES = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
 
