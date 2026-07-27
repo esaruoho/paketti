@@ -8,15 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-07-27 - Fix: Create New Send Track (Mute Source) now actually mutes the source, and both modes send at 0dB
-**Mute Source did not mute.** The Send device's Mute Source switch is not a device parameter — it exists only inside the device's preset XML — so setting parameters could never touch it, and both "Keep Source" and "Mute Source" produced an unmuted source. Mute Source now writes the switch into the device's preset data, so it arrives genuinely muted.
+### 2026-07-27 - Fix + Feature: Create New Send Track — Mute Source now actually mutes, and a new Direct Send mode
+**Fix: Mute Source did not mute.** The Send device's Mute Source switch is not a device parameter — it exists only inside the device's preset XML — so setting parameters could never touch it, and "Mute Source" behaved identically to "Keep Source". Mute Source now writes the switch into the device's preset data, so the source arrives genuinely muted.
 
-**Both modes now arrive at 0dB.** "Keep Source" previously created the Send device with its Amount at -inf dB, so the new send track received silence until you raised the fader by hand. Amount is now set to 0dB (unity) in both modes.
+**New: Direct Send.** Keep Source still creates the Send device silent at -inf dB, so you dial the amount in by hand. Direct Send is the same thing at 0dB unity — source kept, send immediately audible, nothing to reach for. Mute Source is also at 0dB.
 
-The same two fixes are applied to Create New Multiband Send Track: all three bands now arrive at 0.00 dB, all three feed the new send track, and Mute Source mode sets the per-band Mute Source switches (which the Multiband Send device does have, despite an old code comment claiming otherwise).
+So the three modes are: **Keep Source** = source kept, send silent · **Direct Send** = source kept, send at 0dB · **Mute Source** = source muted, send at 0dB.
 
-- Keybindings: `Global:Paketti:Create New Send Track (Keep Source) (Preset++)`, `Global:Paketti:Create New Send Track (Mute Source) (Preset++)`, `Global:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)`, `Global:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)`
-- Menus: `Mixer:Paketti:Preset++:Create New Send Track (Keep Source)` / `(Mute Source)`, plus the same pair under DSP Chain, DSP Device, Pattern Matrix and Pattern Editor
+Create New Multiband Send Track gets all of the above too, and two fixes of its own: all three bands now feed the new send track (previously only the first band was pointed at it), and Mute Source mode sets the per-band Mute Source switches — which the Multiband Send device does have, despite an old code comment claiming otherwise.
+
+- New keybindings: `Global:Paketti:Create New Send Track (Direct Send) (Preset++)`, `Global:Paketti:Create New Multiband Send Track (Direct Send) (Preset++)`
+- Existing keybindings: `Global:Paketti:Create New Send Track (Keep Source) (Preset++)`, `Global:Paketti:Create New Send Track (Mute Source) (Preset++)`, and the Multiband equivalents
+- New menu entries: `Mixer:Paketti:Preset++:Create New Send Track (Direct Send)` and `Create New Multiband Send Track (Direct Send)`, plus the same pair under DSP Chain, DSP Device, Pattern Matrix and Pattern Editor
 - Also removed two unreachable duplicate copies of the send-creation code that nothing invoked, one of which would have thrown a strict-globals error if it ever had been.
 
 ### 2026-07-27 - Fix: "Always Open Sample FX Chain Devices" checkbox no longer errors

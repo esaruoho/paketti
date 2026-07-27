@@ -1960,12 +1960,17 @@ function PakettiPresetPlusPlusCreateNewSendWithMode(mode)
     -- Set send destination to the newly created send track (send_track_count = index of new track)
     send_device.parameters[3].value = send_track_count
 
-    -- Amount 1.0 == 0.000 dB (unity) - the parameter maxes out at 0 dB, it does not boost
-    send_device.parameters[1].value = 1.0
-    if mode == "mute" then
-      status_msg = "with Send device at 0dB, source muted"
-    else -- "keep" mode (default)
+    -- Amount: 0.0 == -inf dB (silent, dial it in by hand), 1.0 == 0.000 dB unity
+    -- (the parameter maxes out at 0 dB, it does not boost)
+    if mode == "keep" then
+      send_device.parameters[1].value = 0.0
+      status_msg = "with Send device silent, source kept"
+    elseif mode == "direct" then
+      send_device.parameters[1].value = 1.0
       status_msg = "with Send device at 0dB, source kept"
+    else -- "mute"
+      send_device.parameters[1].value = 1.0
+      status_msg = "with Send device at 0dB, source muted"
     end
 
     send_device.parameters[2].show_in_mixer = false
@@ -2063,15 +2068,20 @@ function PakettiPresetPlusPlusCreateNewMultibandSendWithMode(mode)
       end
     end
 
-    -- Amount 1.0 == 0.00 dB (unity) on all three bands - the parameter maxes out at 0 dB, it does not boost
-    send_device.parameters[1].value = 1.0  -- Band 1 Amount
-    send_device.parameters[3].value = 1.0  -- Band 2 Amount
-    send_device.parameters[5].value = 1.0  -- Band 3 Amount
-    if mode == "mute" then
-      status_msg = "with Multiband Send device at 0dB, source muted"
-    else -- "keep" mode (default)
-      status_msg = "with Multiband Send device at 0dB, source kept"
+    -- Amount: 0.0 == -inf dB (silent, dial it in by hand), 1.0 == 0.00 dB unity
+    -- (the parameter maxes out at 0 dB, it does not boost)
+    local band_amount, band_status
+    if mode == "keep" then
+      band_amount, band_status = 0.0, "with Multiband Send device silent, source kept"
+    elseif mode == "direct" then
+      band_amount, band_status = 1.0, "with Multiband Send device at 0dB, source kept"
+    else -- "mute"
+      band_amount, band_status = 1.0, "with Multiband Send device at 0dB, source muted"
     end
+    send_device.parameters[1].value = band_amount  -- Band 1 Amount
+    send_device.parameters[3].value = band_amount  -- Band 2 Amount
+    send_device.parameters[5].value = band_amount  -- Band 3 Amount
+    status_msg = band_status
 
     -- Show parameters in mixer (following PakettiLoaders.lua style)
     send_device.parameters[1].show_in_mixer = false
@@ -2090,31 +2100,46 @@ function PakettiPresetPlusPlusCreateNewMultibandSendWithMode(mode)
 end
 
 
--- COMPLETE DRY KEYBINDINGS (4 total - all modes covered)
+-- COMPLETE DRY KEYBINDINGS (6 total - all modes covered)
+-- "keep"   = source kept, send silent (-inf dB), dial the Amount in by hand
+-- "direct" = source kept, send at 0dB unity
+-- "mute"   = source muted, send at 0dB unity
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Direct Send) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("direct") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create New Multiband Send Track (Direct Send) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("direct") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 
 PakettiAddMenuEntry{name="--DSP Chain:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="DSP Chain:Paketti:Create New Send Track (Direct Send) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("direct") end}
 PakettiAddMenuEntry{name="DSP Chain:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
 PakettiAddMenuEntry{name="DSP Chain:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="DSP Chain:Paketti:Create New Multiband Send Track (Direct Send) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("direct") end}
 PakettiAddMenuEntry{name="DSP Chain:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 PakettiAddMenuEntry{name="--DSP Device:Paketti:Preset++:Create New Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="DSP Device:Paketti:Preset++:Create New Send Track (Direct Send)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("direct") end}
 PakettiAddMenuEntry{name="DSP Device:Paketti:Preset++:Create New Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
 PakettiAddMenuEntry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Direct Send)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("direct") end}
 PakettiAddMenuEntry{name="DSP Device:Paketti:Preset++:Create New Multiband Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 PakettiAddMenuEntry{name="--Mixer:Paketti:Preset++:Create New Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Mixer:Paketti:Preset++:Create New Send Track (Direct Send)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("direct") end}
 PakettiAddMenuEntry{name="Mixer:Paketti:Preset++:Create New Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
 PakettiAddMenuEntry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Keep Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Direct Send)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("direct") end}
 PakettiAddMenuEntry{name="Mixer:Paketti:Preset++:Create New Multiband Send Track (Mute Source)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 PakettiAddMenuEntry{name="--Pattern Matrix:Paketti:Preset++:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Send Track (Direct Send) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("direct") end}
 PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
 PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Multiband Send Track (Direct Send) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("direct") end}
 PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Preset++:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 PakettiAddMenuEntry{name="--Pattern Editor:Paketti:Create New Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Create New Send Track (Direct Send) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("direct") end}
 PakettiAddMenuEntry{name="Pattern Editor:Paketti:Create New Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("mute") end}
 PakettiAddMenuEntry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Keep Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("keep") end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Direct Send) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("direct") end}
 PakettiAddMenuEntry{name="Pattern Editor:Paketti:Create New Multiband Send Track (Mute Source) (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewMultibandSendWithMode("mute") end}
 
 -- Create New Track with Channelstrip function
