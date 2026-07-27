@@ -1575,10 +1575,8 @@ function pakettiPreferences()
                   tooltip="Automatically open external editors for all Sample FX Chain devices when switching samples",
                   notifier=function(value) 
                     preferences.pakettiAlwaysOpenSampleFXChainDevices.value = value
-                    -- Only toggle if the current state doesn't match the desired state
-                    if PakettiAutomaticallyOpenSampleDeviceChainExternalEditorsEnabled ~= value then
-                      PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode()
-                    end
+                    -- The preference IS the state here, so apply it directly instead of toggling
+                    PakettiInitializeSampleFXChainAutoOpen()
                   end
                 }
               },

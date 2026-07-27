@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-27 - Fix: "Always Open Sample FX Chain Devices" checkbox no longer errors
+Ticking or unticking **Always Open Sample FX Chain Devices** in the Paketti Preferences dialog threw `variable 'PakettiAutomaticallyOpenSampleDeviceChainExternalEditorsEnabled' is not declared`. The checkbox compared against a global that never existed — the sample-side feature keeps its on/off state in the preference itself, not in a separate global (unlike the Track DSP equivalent). It now saves the preference and applies it directly, so the checkbox no longer errors and no longer risks flipping the setting straight back off. No menu, keybinding, or MIDI mapping changes.
+
 ### 2026-07-23 - Fix: Step Mute no longer aborts tool load (strict-globals crash)
 PakettiStepMute.lua initialised its state table with `PakettiStepMuteState = PakettiStepMuteState or {}`, which READS the global before it exists. Under Renoise's strict-globals mode that read throws `variable 'PakettiStepMuteState' is not declared`, and because it happened at file-load time it aborted the **entire Paketti tool load** (reported on Renoise 3.5.2 and 3.5.4, Windows and Linux). Changed to a plain `PakettiStepMuteState = {}` assignment, which is always safe. No behaviour or mapping changes.
 
