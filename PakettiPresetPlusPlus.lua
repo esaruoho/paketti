@@ -1874,152 +1874,6 @@ end
 
 --inspectTrackDeviceChainTEST()
 
--- Create New Send function for PakettiPresetPlusPlus
-function PakettiPresetPlusPlusCreateNewSend()
-  local song = renoise.song()
-  
-  -- Get current track info
-  local current_track = song.selected_track
-  local current_track_name = current_track.name
-  
-  -- Count existing send tracks to determine numbering
-  local send_track_count = song.send_track_count
-  local next_send_number = send_track_count + 1
-  
-  -- Calculate position for new send track
-  local new_send_position
-  if send_track_count == 0 then
-    -- No send tracks exist: sequencer_track_count + 2 (sequencer + master + after master)
-    new_send_position = song.sequencer_track_count + 2
-  else
-    -- Send tracks exist: sequencer_track_count + 1 + send_track_count
-    new_send_position = song.sequencer_track_count + 1 + send_track_count
-  end
-  
-  -- Create new send track name
-  local send_track_name = string.format("S%02d %s", next_send_number, current_track_name)
-  
-  -- Insert new send track
-  song:insert_track_at(new_send_position)
-  local new_send_track = song.tracks[new_send_position]
-  new_send_track.name = send_track_name
-  
-  -- Select the original track to add the send device
-  song.selected_track_index = song.selected_track_index
-  
-  -- Load Send device using XML injection
-  loadnative("Audio/Effects/Native/#Send", nil, nil, nil, true)
-  
-  local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
-<FilterDevicePreset doc_version="14">
-  <DeviceSlot type="SendDevice">
-    <IsMaximized>false</IsMaximized>
-    <Volume>
-      <Value>0.706923366</Value>
-    </Volume>
-    <SmoothParameterChanges>true</SmoothParameterChanges>
-    <DestSendTrack>]=] .. (send_track_count) .. [=[</DestSendTrack>
-    <Mute>false</Mute>
-  </DeviceSlot>
-</FilterDevicePreset>
-]=]
-  
-  -- Apply XML and configure the Send device
-  local send_device = song.selected_device
-  if send_device and send_device.name == "#Send" then
-    send_device.active_preset_data = device_xml
-    send_device.parameters[3].value = send_track_count  -- Set send destination to the new send track
-    send_device.parameters[1].show_in_mixer = true      -- Show volume in mixer
-    send_device.is_maximized = false
-    send_device.display_name = send_track_name
-    
-    renoise.app():show_status("Created Send Track '" .. send_track_name .. "' and connected Send device")
-  else
-    renoise.app():show_status("ERROR - Failed to load Send device")
-  end
-end
-
--- Create New Multiband Send function for PakettiPresetPlusPlus
-function PakettiPresetPlusPlusCreateNewMultibandSend()
-  local song = renoise.song()
-  
-  -- Get current track info
-  local current_track = song.selected_track
-  local current_track_name = current_track.name
-  
-  -- Count existing send tracks to determine numbering
-  local send_track_count = song.send_track_count
-  local next_send_number = send_track_count + 1
-  
-  -- Calculate position for new send track
-  local new_send_position
-  if send_track_count == 0 then
-    -- No send tracks exist: sequencer_track_count + 2 (sequencer + master + after master)
-    new_send_position = song.sequencer_track_count + 2
-  else
-    -- Send tracks exist: sequencer_track_count + 1 + send_track_count
-    new_send_position = song.sequencer_track_count + 1 + send_track_count
-  end
-  
-  -- Create new send track name
-  local send_track_name = string.format("S%02d %s", next_send_number, current_track_name)
-  
-  -- Insert new send track
-  song:insert_track_at(new_send_position)
-  local new_send_track = song.tracks[new_send_position]
-  new_send_track.name = send_track_name
-  
-  -- Select the original track to add the send device
-  song.selected_track_index = song.selected_track_index
-  
-  -- Load Multiband Send device using existing working preset (like PakettiLoaders.lua does)
-  loadnative("Audio/Effects/Native/#Multiband Send", nil, "./Presets/PakettiMultiSend.xml", nil, true)
-  
-  -- Configure parameters based on mode
-  local status_msg
-  local send_device = song.selected_device
-  if send_device and send_device.name == "#Multiband Send" then
-    -- Set send destination (find DestSendTrack parameter)
-    for i = 1, #send_device.parameters do
-      if send_device.parameters[i].name == "DestSendTrack" then
-        send_device.parameters[i].value = send_track_count
-        break
-      end
-    end
-    
-    -- Configure volume and mute based on mode
-    if mode == "mute" then
-      send_device.parameters[1].value = 1.0  -- Band1Volume MAXIMUM
-      send_device.parameters[3].value = 1.0  -- Band2Volume MAXIMUM
-      send_device.parameters[5].value = 1.0  -- Band3Volume MAXIMUM
-      -- Note: MultibandSend doesn't have MuteSource parameter
-      status_msg = "with Mute Source Multiband Send device"
--- Silent mode removed
-    else -- "keep" mode (default)
-      send_device.parameters[1].value = 0.0  -- Band1Volume MINIMUM (-inf dB)
-      send_device.parameters[3].value = 0.0  -- Band2Volume MINIMUM (-inf dB)
-      send_device.parameters[5].value = 0.0  -- Band3Volume MINIMUM (-inf dB)
-      status_msg = "and connected Multiband Send device"
-    end
-    
-    -- Show parameters in mixer (following PakettiLoaders.lua style)
-    send_device.parameters[1].show_in_mixer = false
-    send_device.parameters[3].show_in_mixer = false
-    send_device.parameters[5].show_in_mixer = false
-    send_device.parameters[7].show_in_mixer = true  -- SplitFrequency1
-    send_device.parameters[8].show_in_mixer = true  -- SplitFrequency2
-    
-    send_device.is_maximized = false
-    send_device.display_name = send_track_name
-    
-    -- Select the newly created send track
-    song.selected_track_index = new_send_position
-    
-    renoise.app():show_status("Created Send Track '" .. send_track_name .. "' " .. status_msg)
-  else
-    renoise.app():show_status("ERROR - Failed to load Multiband Send device")
-  end
-end
 
 -- CREATE NEW SEND TRACK + DEVICE (creates both track and device)
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Send Track (Preset++)", invoke = function() PakettiPresetPlusPlusCreateNewSendWithMode("keep") end}
@@ -2094,18 +1948,26 @@ function PakettiPresetPlusPlusCreateNewSendWithMode(mode)
   local status_msg
   local send_device = song.selected_device
   if send_device and send_device.name == "#Send" then
+    -- MuteSource is NOT a device parameter - it only exists in the preset XML,
+    -- so it has to be written via active_preset_data. Do this FIRST, because
+    -- assigning active_preset_data overwrites every parameter value.
+    local mute_source = (mode == "mute") and "true" or "false"
+    local xml = send_device.active_preset_data
+    if xml and xml:find("<MuteSource>", 1, true) then
+      send_device.active_preset_data = xml:gsub("<MuteSource>[^<]*</MuteSource>", "<MuteSource>" .. mute_source .. "</MuteSource>")
+    end
+
     -- Set send destination to the newly created send track (send_track_count = index of new track)
     send_device.parameters[3].value = send_track_count
-    
-    -- Configure volume based on mode
+
+    -- Amount 1.0 == 0.000 dB (unity) - the parameter maxes out at 0 dB, it does not boost
+    send_device.parameters[1].value = 1.0
     if mode == "mute" then
-      send_device.parameters[1].value = 1.0  -- SendAmount to MAXIMUM volume
-      status_msg = "with Send device at maximum volume"
+      status_msg = "with Send device at 0dB, source muted"
     else -- "keep" mode (default)
-      send_device.parameters[1].value = 0.0  -- SendAmount to MINIMUM volume (-inf dB)
-      status_msg = "and connected Send device"
+      status_msg = "with Send device at 0dB, source kept"
     end
-    
+
     send_device.parameters[2].show_in_mixer = false
     send_device.is_maximized = false
     send_device.display_name = send_track_name
@@ -2184,29 +2046,33 @@ function PakettiPresetPlusPlusCreateNewMultibandSendWithMode(mode)
   local status_msg
   local send_device = song.selected_device
   if send_device and send_device.name == "#Multiband Send" then
-    -- Set send destination (find DestSendTrack parameter)
+    -- Out1/Out2/Out3 MuteSource are NOT device parameters - they only exist in the
+    -- preset XML, so they have to be written via active_preset_data. Do this FIRST,
+    -- because assigning active_preset_data overwrites every parameter value.
+    local mute_source = (mode == "mute") and "true" or "false"
+    local xml = send_device.active_preset_data
+    if xml and xml:find("MuteSource", 1, true) then
+      send_device.active_preset_data = xml:gsub("<(Out%dMuteSource)>[^<]*</%1>", "<%1>" .. mute_source .. "</%1>")
+    end
+
+    -- Set send destination - all three bands feed the same new send track
     for i = 1, #send_device.parameters do
-      if send_device.parameters[i].name == "DestSendTrack" then
+      local pname = send_device.parameters[i].name
+      if pname == "DestSendTrack" or pname:find("Receiver", 1, true) then
         send_device.parameters[i].value = send_track_count
-        break
       end
     end
-    
-    -- Configure volume and mute based on mode
+
+    -- Amount 1.0 == 0.00 dB (unity) on all three bands - the parameter maxes out at 0 dB, it does not boost
+    send_device.parameters[1].value = 1.0  -- Band 1 Amount
+    send_device.parameters[3].value = 1.0  -- Band 2 Amount
+    send_device.parameters[5].value = 1.0  -- Band 3 Amount
     if mode == "mute" then
-      send_device.parameters[1].value = 1.0  -- Band1Volume MAXIMUM
-      send_device.parameters[3].value = 1.0  -- Band2Volume MAXIMUM
-      send_device.parameters[5].value = 1.0  -- Band3Volume MAXIMUM
-      -- Note: MultibandSend doesn't have MuteSource parameter
-      status_msg = "with Mute Source Multiband Send device"
--- Silent mode removed
+      status_msg = "with Multiband Send device at 0dB, source muted"
     else -- "keep" mode (default)
-      send_device.parameters[1].value = 0.0  -- Band1Volume MINIMUM (-inf dB)
-      send_device.parameters[3].value = 0.0  -- Band2Volume MINIMUM (-inf dB)
-      send_device.parameters[5].value = 0.0  -- Band3Volume MINIMUM (-inf dB)
-      status_msg = "and connected Multiband Send device"
+      status_msg = "with Multiband Send device at 0dB, source kept"
     end
-    
+
     -- Show parameters in mixer (following PakettiLoaders.lua style)
     send_device.parameters[1].show_in_mixer = false
     send_device.parameters[3].show_in_mixer = false
