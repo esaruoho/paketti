@@ -8861,3 +8861,187 @@ PakettiAddMenuEntry{name="Pattern Editor:Paketti:PhraseGrid:Full Stack Workflow"
 PakettiAddMenuEntry{name="Sample Editor:Paketti:PhraseGrid:Slices to Phrase Bank", invoke=function() PakettiSlicesToPhraseBank() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:PhraseGrid:Auto-Slice and Create Phrases", invoke=function() PakettiAutoSliceAndPhraseCreate() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:PhraseGrid:Rearrange on New Track", invoke=function() PakettiRearrangeTrackFromSlices() end}
+
+--------------------------------------------------------------------------------
+-- Phrase Keymapper: map every phrase across the keyboard in one shot
+--
+-- Two layouts, both one-click:
+--   * One Phrase Per Key     - phrase 1 on C-4, phrase 2 on C#4, phrase 3 on D-4 ...
+--                              one chromatic key each, key tracking off so every key
+--                              fires its own phrase from line 1, unpitched.
+--   * Spread Across Keyboard - the 120 keys split into equal-width zones, one zone per
+--                              phrase, key tracking set to transpose with the base note
+--                              at the bottom of each zone, so you can still play pitched.
+--
+-- Renoise refuses to let phrase mappings overlap and keeps them sorted by note, so both
+-- layouts wipe the existing mappings first and then re-insert them strictly low-to-high.
+-- That ordering is what makes the re-layout safe: a freshly inserted mapping always takes
+-- the whole free range above the previous one, so narrowing it down can never collide.
+--------------------------------------------------------------------------------
+
+local PAKETTI_PHRASE_KEYMAP_NOTE_NAMES = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
+local PAKETTI_PHRASE_KEYMAP_HIGHEST_NOTE = 119   -- 0-119, where C-4 is 48
+local PAKETTI_PHRASE_KEYMAP_TOTAL_KEYS = 120
+
+local function PakettiPhraseKeymapNoteName(note_value)
+  if note_value < 0 or note_value > PAKETTI_PHRASE_KEYMAP_HIGHEST_NOTE then return "---" end
+  return PAKETTI_PHRASE_KEYMAP_NOTE_NAMES[(note_value % 12) + 1] .. math.floor(note_value / 12)
+end
+
+-- Returns the selected instrument if it has phrases worth mapping, otherwise nil + a reason
+local function PakettiPhraseKeymapGetInstrument()
+  if not PAKETTI_HAS_PHRASES_BASIC then
+    renoise.app():show_status("Phrase mapping needs Renoise 3.0 or newer")
+    return nil
+  end
+  local instrument = renoise.song().selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return nil
+  end
+  if #instrument.phrases == 0 then
+    renoise.app():show_status("Selected instrument has no phrases to map")
+    return nil
+  end
+  return instrument
+end
+
+-- Wipe every phrase mapping. The phrases themselves are untouched - only their key
+-- assignments go, which is what frees the note range up for a clean re-layout.
+local function PakettiPhraseKeymapClearMappings(instrument)
+  while #instrument.phrase_mappings > 0 do
+    instrument:delete_phrase_mapping_at(#instrument.phrase_mappings)
+  end
+end
+
+-- zones is one {low, high} per phrase index, in strictly ascending non-overlapping order.
+-- Returns how many phrases actually got mapped, which can be fewer than requested if
+-- Renoise runs out of mapping slots.
+local function PakettiPhraseKeymapApplyZones(instrument, zones, key_tracking)
+  local phrase_count_before = #instrument.phrases
+  PakettiPhraseKeymapClearMappings(instrument)
+
+  -- Unmapping must never cost you a phrase. If it somehow did, say so loudly rather
+  -- than carrying on and mapping a shorter list.
+  if #instrument.phrases < phrase_count_before then
+    renoise.app():show_warning(string.format(
+      "Clearing the phrase mappings removed phrases (%d left of %d) - press Ctrl+Z to undo. Please report this.",
+      #instrument.phrases, phrase_count_before))
+    return 0
+  end
+
+  local mapped = 0
+  for i = 1, #zones do
+    local phrase = instrument.phrases[i]
+    if not phrase then break end
+
+    local insert_index = #instrument.phrase_mappings + 1
+    if not instrument:can_insert_phrase_mapping_at(insert_index) then break end
+
+    local inserted, mapping = pcall(function() return instrument:insert_phrase_mapping_at(insert_index, phrase) end)
+    if not inserted or not mapping then break end
+
+    local applied = pcall(function()
+      mapping.note_range = { zones[i][1], zones[i][2] }
+      mapping.key_tracking = key_tracking
+      if key_tracking == renoise.InstrumentPhraseMapping.KEY_TRACKING_TRANSPOSE then
+        mapping.base_note = zones[i][1]
+      end
+    end)
+    if not applied then
+      -- Do not leave a mapping behind that still covers its default full-width range
+      instrument:delete_phrase_mapping_at(insert_index)
+      break
+    end
+
+    mapped = mapped + 1
+  end
+
+  -- Keymap mode is what makes the note ranges actually trigger phrases
+  instrument.phrase_playback_mode = renoise.Instrument.PHRASES_PLAY_KEYMAP
+  return mapped
+end
+
+-- One phrase per chromatic key, phrase 1 landing on start_note (C-4 unless told otherwise)
+function PakettiPhraseMapOnePerKey(start_note)
+  local instrument = PakettiPhraseKeymapGetInstrument()
+  if not instrument then return end
+
+  local phrase_count = #instrument.phrases
+  start_note = start_note or 48   -- C-4
+
+  -- Slide the whole block down if it would run off the top of the keyboard
+  local shifted = false
+  if start_note + phrase_count - 1 > PAKETTI_PHRASE_KEYMAP_HIGHEST_NOTE then
+    start_note = math.max(0, PAKETTI_PHRASE_KEYMAP_TOTAL_KEYS - phrase_count)
+    shifted = true
+  end
+
+  local zones = {}
+  for i = 1, phrase_count do
+    local note = start_note + (i - 1)
+    if note > PAKETTI_PHRASE_KEYMAP_HIGHEST_NOTE then break end
+    zones[#zones + 1] = { note, note }
+  end
+
+  local mapped = PakettiPhraseKeymapApplyZones(instrument, zones, renoise.InstrumentPhraseMapping.KEY_TRACKING_NONE)
+  if mapped == 0 then
+    renoise.app():show_status("Could not map any phrases to keys")
+    return
+  end
+
+  local msg = string.format("Mapped %d phrase%s one per key, %s to %s", mapped, (mapped == 1) and "" or "s",
+    PakettiPhraseKeymapNoteName(start_note), PakettiPhraseKeymapNoteName(start_note + mapped - 1))
+  if shifted then msg = msg .. " (moved down to fit)" end
+  if mapped < phrase_count then msg = msg .. string.format(" - %d did not fit", phrase_count - mapped) end
+  renoise.app():show_status(msg)
+end
+
+-- Every phrase gets an equal slice of the whole keyboard, playable pitched inside its slice
+function PakettiPhraseMapSpreadAcrossKeyboard()
+  local instrument = PakettiPhraseKeymapGetInstrument()
+  if not instrument then return end
+
+  local phrase_count = #instrument.phrases
+  if phrase_count > PAKETTI_PHRASE_KEYMAP_TOTAL_KEYS then
+    renoise.app():show_status(string.format("%d phrases but only %d keys - use Map Phrases One Per Key instead",
+      phrase_count, PAKETTI_PHRASE_KEYMAP_TOTAL_KEYS))
+    return
+  end
+
+  -- Integer-scaled boundaries, so the leftover keys are shared out instead of all
+  -- landing on the last zone
+  local zones = {}
+  for i = 1, phrase_count do
+    local low = math.floor(((i - 1) * PAKETTI_PHRASE_KEYMAP_TOTAL_KEYS) / phrase_count)
+    local high = math.floor((i * PAKETTI_PHRASE_KEYMAP_TOTAL_KEYS) / phrase_count) - 1
+    zones[#zones + 1] = { low, high }
+  end
+
+  local mapped = PakettiPhraseKeymapApplyZones(instrument, zones, renoise.InstrumentPhraseMapping.KEY_TRACKING_TRANSPOSE)
+  if mapped == 0 then
+    renoise.app():show_status("Could not map any phrases to keys")
+    return
+  end
+
+  local keys_each = math.floor(PAKETTI_PHRASE_KEYMAP_TOTAL_KEYS / phrase_count)
+  local msg = string.format("Spread %d phrase%s across the keyboard, %d key%s each, %s to %s",
+    mapped, (mapped == 1) and "" or "s", keys_each, (keys_each == 1) and "" or "s",
+    PakettiPhraseKeymapNoteName(zones[1][1]), PakettiPhraseKeymapNoteName(zones[mapped][2]))
+  if mapped < phrase_count then msg = msg .. string.format(" - %d did not fit", phrase_count - mapped) end
+  renoise.app():show_status(msg)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Map Phrases One Per Key", invoke=function() PakettiPhraseMapOnePerKey() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Spread Phrases Across Keyboard", invoke=function() PakettiPhraseMapSpreadAcrossKeyboard() end}
+renoise.tool():add_midi_mapping{name="Paketti:Map Phrases One Per Key", invoke=function(message) if message:is_trigger() then PakettiPhraseMapOnePerKey() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Spread Phrases Across Keyboard", invoke=function(message) if message:is_trigger() then PakettiPhraseMapSpreadAcrossKeyboard() end end}
+
+PakettiAddMenuEntry{name="--Main Menu:Tools:Paketti:Phrases:Map Phrases One Per Key", invoke=function() PakettiPhraseMapOnePerKey() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Phrases:Spread Phrases Across Keyboard", invoke=function() PakettiPhraseMapSpreadAcrossKeyboard() end}
+PakettiAddMenuEntry{name="--Phrase Editor:Paketti:Map Phrases One Per Key", invoke=function() PakettiPhraseMapOnePerKey() end}
+PakettiAddMenuEntry{name="Phrase Editor:Paketti:Spread Phrases Across Keyboard", invoke=function() PakettiPhraseMapSpreadAcrossKeyboard() end}
+PakettiAddMenuEntry{name="--Phrase Mappings:Paketti:Map Phrases One Per Key", invoke=function() PakettiPhraseMapOnePerKey() end}
+PakettiAddMenuEntry{name="Phrase Mappings:Paketti:Spread Phrases Across Keyboard", invoke=function() PakettiPhraseMapSpreadAcrossKeyboard() end}
+PakettiAddMenuEntry{name="--Instrument Box:Paketti:Map Phrases One Per Key", invoke=function() PakettiPhraseMapOnePerKey() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Spread Phrases Across Keyboard", invoke=function() PakettiPhraseMapSpreadAcrossKeyboard() end}

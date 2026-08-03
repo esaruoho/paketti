@@ -8,6 +8,19 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-27 - Feature: Map every phrase across the keyboard in one keystroke
+Renoise has no one-click way to lay phrases out over the keyboard, so mapping twenty phrases means twenty drags. Two new one-shot commands do it for you, both working on the selected instrument and both switching it into Keymap phrase playback so the mapping actually triggers.
+
+**Map Phrases One Per Key** gives every phrase a single chromatic key, starting at C-4: phrase 1 on C-4, phrase 2 on C#4, phrase 3 on D-4, and so on. Key tracking is off, so each key fires its own phrase from line 1, unpitched — hit a key, shoot a phrase. If the phrases would run off the top of the keyboard the whole block slides down to fit, and the status bar tells you the range it used.
+
+**Spread Phrases Across Keyboard** divides all 120 keys into equal-width zones, one per phrase, with key tracking set to transpose and each zone's base note at its bottom key — so you still get pitched playback within each phrase's zone. Leftover keys are shared out between zones instead of all piling onto the last one.
+
+Both wipe the instrument's existing phrase mappings first and re-lay them out low-to-high, since Renoise will not allow phrase mappings to overlap. Your phrases themselves are never touched — only their key assignments.
+
+- Keybindings: `Global:Paketti:Map Phrases One Per Key`, `Global:Paketti:Spread Phrases Across Keyboard`
+- MIDI Mappings: `Paketti:Map Phrases One Per Key`, `Paketti:Spread Phrases Across Keyboard`
+- Menus: `Main Menu:Tools:Paketti:Phrases:Map Phrases One Per Key` / `Spread Phrases Across Keyboard`, and the same pair in the Phrase Editor, Phrase Mappings and Instrument Box right-click menus
+
 ### 2026-07-27 - Fix + Feature: Create New Send Track — Mute Source now actually mutes, and a new Direct Send mode
 **Fix: Mute Source did not mute.** The Send device's Mute Source switch is not a device parameter — it exists only inside the device's preset XML — so setting parameters could never touch it, and "Mute Source" behaved identically to "Keep Source". Mute Source now writes the switch into the device's preset data, so the source arrives genuinely muted.
 
