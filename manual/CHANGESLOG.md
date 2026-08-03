@@ -8,6 +8,17 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-07-27 - Feature: Create Phrase Per Slice — a phrase per slice, each assigned its own slice, all keymapped
+Slice a break, hit one key, and you get one phrase per slice with every phrase already assigned to its own slice and already laid out across the keyboard in Keymap mode. Phrase 1 is the full unsliced sample, then Slice 01, Slice 02 and so on, each one 16 lines long at the song's LPB and set to one-shot so a key press shoots it once. Room is left in each phrase to write beats around the slice.
+
+Each phrase pins its slice two ways at once — by the slice's own keyzone trigger note, read from the instrument rather than assumed, and by the slice's sample number in the phrase's instrument column, which inside a phrase selects a sample. So the phrase plays the slice you meant either way.
+
+**Create Phrase Per Slice and Keymap** does the whole thing. **Create Phrase Per Slice** just makes the phrases and leaves the keyboard alone, for when you want to lay them out yourself or add more phrases first.
+
+- Keybindings: `Global:Paketti:Create Phrase Per Slice and Keymap`, `Global:Paketti:Create Phrase Per Slice`
+- MIDI Mappings: `Paketti:Create Phrase Per Slice and Keymap`, `Paketti:Create Phrase Per Slice`
+- Menus: `Main Menu:Tools:Paketti:Phrases:Create Phrase Per Slice and Keymap` / `Create Phrase Per Slice`, and the same pair in the Sample Editor, Phrase Editor and Instrument Box right-click menus
+
 ### 2026-07-27 - Feature: Map every phrase across the keyboard in one keystroke
 Renoise has no one-click way to lay phrases out over the keyboard, so mapping twenty phrases means twenty drags. Two new one-shot commands do it for you, both working on the selected instrument and both switching it into Keymap phrase playback so the mapping actually triggers.
 

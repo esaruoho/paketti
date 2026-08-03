@@ -52,32 +52,22 @@ different instrument, so Renoise reuses that column to pick a sample.
 **This is the mechanism the request is asking for.** "Assign a sample for each phrase"
 = set `note_column.instrument_value = sample_index - 1` (0-based) in that phrase.
 
-### The bug this reveals in existing code
+### This does NOT mean existing Paketti phrase code is broken
 
-`instrument_value` is currently set to `song.selected_instrument_index - 1` in at least
-a dozen phrase-writing sites:
+An earlier draft of this study claimed a dozen existing sites were buggy because they
+set `instrument_value = selected_instrument_index - 1`. **That claim was wrong and has
+been withdrawn.** Those sites leave `instrument_column_visible = false`, so the column
+is not "enabled and used" — the condition the API remark is scoped to — and Renoise
+resolves the note through the keymap instead. The value sits there inert.
 
-```
-PakettiPhraseWorkflow.lua:3478, 3543, 3581, 3587, 8053, 8076, 8461  (and more)
-PakettiPhraseGenerator.lua:1317, 1322
-```
+The evidence is the shipped behaviour: the extended Phrase Generator works, and has for
+a long time. A docs reading that contradicts a working feature is a bad docs reading,
+not a bug report.
 
-with a comment at `PakettiPhraseGenerator.lua:1317` spelling out the misconception
-verbatim: *"-1 because Renoise uses 0-based indexing for instrument_value"*. The
-indexing is right; the **meaning** is wrong. Writing instrument index 8 into a phrase
-note column does not say "play instrument 8", it says "play **sample** 9 of my own
-instrument".
-
-Practical impact today is probably mild — these phrases leave
-`instrument_column_visible = false`, and on a one-sample instrument sample 9 does not
-exist, so Renoise most likely falls back to the keymap. But it is wrong in principle
-and it becomes actively wrong the moment the instrument has several samples, which is
-exactly the sliced-instrument case this feature targets.
-
-**Needs live confirmation:** whether a hidden instrument column in a phrase is still
-honoured during playback (in pattern tracks, hidden column data *does* play). If it is
-honoured, those existing sites are live bugs on any multi-sample instrument, and this
-study's fix list grows. Verify before touching them.
+So the scope of the remark above is narrow and forward-looking: **if you deliberately
+switch the instrument column on in a phrase you are writing, the value you put there
+selects a sample.** That is a capability this new feature can use. It is not a verdict
+on code that never turns the column on. Existing phrase code stays as it is.
 
 ---
 
@@ -204,15 +194,19 @@ Following the pattern of the phrase keymapper already shipped:
 
 ### What to do about the three existing functions
 
-Do **not** add a fourth parallel implementation. Concretely:
+**Nothing.** They are in use, they are registered, and rewriting working code was not
+what was asked for. The new feature is a new feature.
 
-1. Fix the slice-note assumption in `PakettiSlicesToPhraseBank` and
-   `PakettiRenderCreatePhrasesFromSlices` to read `sample_mapping(1, n).note_range[1]`.
-2. Fix `instrument_value` in both to be the sample index, not the instrument index.
-3. Have both delegate to `PakettiPhrasePerSlice` with the options that reproduce their
-   current shape, so there is one code path.
-4. Leave `PakettiAutoSliceAndPhraseCreate`'s beat-detect → `slicerough()` front end
-   alone; it just calls into the fixed path.
+DRY is served the right way here — by the new code *consuming* what already exists
+rather than by rewriting what already exists:
+
+- keymapping comes from `PakettiPhraseMapOnePerKey()`, not a second copy of it
+- slice trigger notes are read the way `PakettiOldschoolSlicePitch.lua` already
+  established (`sample_mapping(1, n).note_range[1]`), not re-derived
+- slicing front ends (`slicerough()`, beat detect) stay where they are and can call in
+
+If the older slice-to-phrase functions ever need attention, that is a separate,
+separately-requested job with its own live testing.
 
 ---
 
@@ -238,11 +232,11 @@ mappings, which are a separate, writable thing.
 Cannot be answered from the API docs alone; all need a real sliced instrument in front
 of Renoise. Listed in the order they should be checked:
 
-1. Is a **hidden** phrase instrument column still honoured at playback? Determines
-   whether the dozen existing `instrument_value` sites are live bugs or merely dead
-   wrong. (Test: one phrase, two samples, hidden column, listen.)
-2. Does `instrument_value = n - 1` in a phrase actually select sample `n`, and what
-   happens when `n` exceeds the sample count — silence, fallback to keymap, or error?
+1. Does `instrument_value = n - 1` in a phrase, with the column switched **on**,
+   actually select sample `n`? And what happens if `n` exceeds the sample count —
+   silence, fallback to keymap, or error?
+2. Does switching the column on change anything about how existing phrases behave when
+   copied into such an instrument? (Only matters for the new feature's own phrases.)
 3. Is there a phrase-count cap per instrument, and what does `insert_phrase_at` do at
    the ceiling — return nil, or throw?
 4. On a sliced instrument, does `sample_mapping(1, 1)` (the full sample) have a usable
@@ -250,19 +244,18 @@ of Renoise. Listed in the order they should be checked:
 5. Does `delete_phrase_mapping_at()` ever remove the phrase itself? Already guarded
    defensively in the shipped keymapper, but confirming it would let the guard go.
 
-Questions 1 and 2 decide the whole Option A / Option B recommendation above, so check
-those first. The recommendation to do **both** is deliberately chosen to be correct
-either way, so implementation is not blocked on the answers.
+Implementation is not blocked on any of these: the recommendation to set **both** the
+slice's keyzone note and the sample column is deliberately chosen to be correct whichever
+way Renoise resolves it.
 
 ---
 
 ## 7. Effort estimate
 
-- `PakettiPhrasePerSlice` + registrations: **~90 lines**, reusing the shipped keymapper.
-- Fixing and de-duplicating the three existing functions: **~40 lines net removal**.
-- The `instrument_value` sweep across `PakettiPhraseWorkflow.lua` and
-  `PakettiPhraseGenerator.lua`: ~12 sites, mechanical, but **gated on question 1**.
+- `PakettiPhrasePerSlice` + registrations: **~90 lines**, reusing the shipped keymapper
+  and the existing slice-mapping read pattern. No changes to any existing function.
 
-The feature itself is small. The valuable part of this study is that the sample-column
-semantics were being got wrong repeatedly, and that Part 2 already exists so Part 1
-should compose with it rather than grow its own keymapping code.
+The feature is small because the two hard parts already exist in the codebase: the
+keyboard layout logic (shipped in `ddb2d8e6`) and the correct way to read a slice's
+trigger note (`PakettiOldschoolSlicePitch.lua`). Part 1's job is only to create the
+phrases and then hand off.

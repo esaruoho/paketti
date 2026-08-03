@@ -9045,3 +9045,115 @@ PakettiAddMenuEntry{name="--Phrase Mappings:Paketti:Map Phrases One Per Key", in
 PakettiAddMenuEntry{name="Phrase Mappings:Paketti:Spread Phrases Across Keyboard", invoke=function() PakettiPhraseMapSpreadAcrossKeyboard() end}
 PakettiAddMenuEntry{name="--Instrument Box:Paketti:Map Phrases One Per Key", invoke=function() PakettiPhraseMapOnePerKey() end}
 PakettiAddMenuEntry{name="Instrument Box:Paketti:Spread Phrases Across Keyboard", invoke=function() PakettiPhraseMapSpreadAcrossKeyboard() end}
+
+--------------------------------------------------------------------------------
+-- Phrase Per Slice: one phrase per slice, each phrase assigned to its own slice sample,
+-- optionally laid out across the keyboard in keymap mode in the same gesture.
+--
+-- DRY notes - this deliberately consumes what already exists instead of re-deriving it:
+--   * the keyboard layout comes from PakettiPhraseMapOnePerKey() above
+--   * slice trigger notes are read via instrument:sample_mapping(), the way
+--     PakettiOldschoolSlicePitch.lua established - never assumed to start at C-0
+--   * slicing front ends (slicerough, beat detect) stay where they are and call in here
+--------------------------------------------------------------------------------
+
+-- Each phrase gets its slice pinned two ways at once, so it plays the right slice
+-- regardless of which one Renoise resolves first:
+--   note_value       - the slice's own keyzone trigger note (works through the keymap)
+--   instrument_value - the slice's sample index; inside a phrase the instrument column
+--                      addresses SAMPLES, not instruments, so this names the slice directly
+local function PakettiPhrasePerSliceWriteTrigger(instrument, phrase, sample_index)
+  local mapping = instrument:sample_mapping(renoise.Instrument.LAYER_NOTE_ON, sample_index)
+
+  local note_value = 48  -- C-4 fallback if this sample has no mapping to read
+  if mapping and mapping.note_range then
+    note_value = mapping.note_range[1]
+  end
+
+  phrase.instrument_column_visible = true
+  local column = phrase:line(1):note_column(1)
+  column.note_value = note_value
+  column.instrument_value = sample_index - 1
+end
+
+-- options.phrase_length       - lines per phrase (default 16, room for the slice to ring
+--                               out and for beats to be written around it)
+-- options.include_full_sample - also make a phrase for the unsliced original (default true)
+-- options.keymap_after        - lay every phrase out one-per-key afterwards (default true)
+function PakettiPhrasePerSlice(options)
+  options = options or {}
+  local phrase_length = options.phrase_length or 16
+  local include_full_sample = options.include_full_sample ~= false
+  local keymap_after = options.keymap_after ~= false
+
+  if not PAKETTI_HAS_PHRASES_BASIC then
+    renoise.app():show_status("Phrases need Renoise 3.0 or newer")
+    return
+  end
+
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+
+  -- Count slices off the sample list, not off slice_markers arithmetic: samples[1] is the
+  -- full sample and samples[2..n] are the slices, so this needs no +1 bookkeeping.
+  if #instrument.samples < 2 then
+    renoise.app():show_status("Selected instrument has no slices - slice a sample first")
+    return
+  end
+
+  local first_index = include_full_sample and 1 or 2
+  local created = 0
+
+  for sample_index = first_index, #instrument.samples do
+    local phrase_index = #instrument.phrases + 1
+    local inserted, phrase = pcall(function() return instrument:insert_phrase_at(phrase_index) end)
+    if not inserted or not phrase then
+      renoise.app():show_status(string.format(
+        "Created %d phrase%s, then ran out of phrase slots", created, (created == 1) and "" or "s"))
+      break
+    end
+
+    phrase.number_of_lines = phrase_length
+    phrase.lpb = song.transport.lpb
+    phrase.looping = false   -- one-shot: hitting the key should shoot the slice once
+    phrase.name = (sample_index == 1) and "Full Sample" or string.format("Slice %02d", sample_index - 1)
+
+    PakettiPhrasePerSliceWriteTrigger(instrument, phrase, sample_index)
+    created = created + 1
+  end
+
+  if created == 0 then
+    renoise.app():show_status("Could not create any phrases")
+    return
+  end
+
+  if keymap_after then
+    -- Maps every phrase on the instrument, not just the new ones, and switches the
+    -- instrument into keymap playback
+    PakettiPhraseMapOnePerKey()
+    renoise.app():show_status(string.format("Created %d phrase%s from slices and mapped every phrase one per key",
+      created, (created == 1) and "" or "s"))
+  else
+    renoise.app():show_status(string.format("Created %d phrase%s from slices", created, (created == 1) and "" or "s"))
+  end
+
+  return created
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Create Phrase Per Slice and Keymap", invoke=function() PakettiPhrasePerSlice() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Phrase Per Slice", invoke=function() PakettiPhrasePerSlice({keymap_after = false}) end}
+renoise.tool():add_midi_mapping{name="Paketti:Create Phrase Per Slice and Keymap", invoke=function(message) if message:is_trigger() then PakettiPhrasePerSlice() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Create Phrase Per Slice", invoke=function(message) if message:is_trigger() then PakettiPhrasePerSlice({keymap_after = false}) end end}
+
+PakettiAddMenuEntry{name="--Main Menu:Tools:Paketti:Phrases:Create Phrase Per Slice and Keymap", invoke=function() PakettiPhrasePerSlice() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Phrases:Create Phrase Per Slice", invoke=function() PakettiPhrasePerSlice({keymap_after = false}) end}
+PakettiAddMenuEntry{name="--Sample Editor:Paketti:Create Phrase Per Slice and Keymap", invoke=function() PakettiPhrasePerSlice() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Create Phrase Per Slice", invoke=function() PakettiPhrasePerSlice({keymap_after = false}) end}
+PakettiAddMenuEntry{name="--Phrase Editor:Paketti:Create Phrase Per Slice and Keymap", invoke=function() PakettiPhrasePerSlice() end}
+PakettiAddMenuEntry{name="Phrase Editor:Paketti:Create Phrase Per Slice", invoke=function() PakettiPhrasePerSlice({keymap_after = false}) end}
+PakettiAddMenuEntry{name="--Instrument Box:Paketti:Create Phrase Per Slice and Keymap", invoke=function() PakettiPhrasePerSlice() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Create Phrase Per Slice", invoke=function() PakettiPhrasePerSlice({keymap_after = false}) end}
