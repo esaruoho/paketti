@@ -10,7 +10,7 @@
     249 lua
     210 gif
     133 txt
-     51 md
+     52 md
      49 xrni
      20 xml
      16 py
@@ -30,8 +30,8 @@
      20 features
      15 tunings
      15 DeviceChains
+     14 docs
      13 rx2
-     13 docs
      13 PakettiMCP
      12 .spine
 ```
