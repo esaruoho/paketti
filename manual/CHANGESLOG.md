@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-04 - Fix: Create Phrase Per Slice no longer plays each slice a semitone higher than the last
+Create Phrase Per Slice assigned every slice correctly, but each successive phrase played its slice pitched a semitone higher than the one before it. Two things could each cause that on their own, and both are now closed off.
+
+The note written into each phrase was the slice's own keyzone note, which climbs by a semitone per slice. That is the right note for triggering a slice from the keyboard, but naming the slice in the phrase's instrument column bypasses the keymap, so the note stops being a slice selector and becomes a pitch — and a climbing note means a climbing pitch. Every phrase now writes the same no-transpose note (C-4) and lets the instrument column do the choosing.
+
+Separately, a phrase carries its own key tracking setting alongside the one on its keyboard mapping. Phrases laid out one-per-key are triggered by an ascending key, so anything left on transpose there also rises per phrase. Both the phrase and its mapping are now set together, in Create Phrase Per Slice and in Map Phrases One Per Key / Spread Phrases Across Keyboard.
+
+No menu, keybinding or MIDI mapping changes.
+
 ### 2026-07-27 - Feature: Create Phrase Per Slice — a phrase per slice, each assigned its own slice, all keymapped
 Slice a break, hit one key, and you get one phrase per slice with every phrase already assigned to its own slice and already laid out across the keyboard in Keymap mode. Phrase 1 is the full unsliced sample, then Slice 01, Slice 02 and so on, each one 16 lines long at the song's LPB and set to one-shot so a key press shoots it once. Room is left in each phrase to write beats around the slice.
 

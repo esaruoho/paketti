@@ -8948,6 +8948,16 @@ local function PakettiPhraseKeymapApplyZones(instrument, zones, key_tracking)
         mapping.base_note = zones[i][1]
       end
     end)
+
+    -- The phrase object exposes key_tracking/base_note as well as the mapping does. Keep
+    -- them in step, or a phrase sitting on an ascending trigger key can still come out
+    -- transposed up per phrase even though the mapping says otherwise.
+    pcall(function()
+      phrase.key_tracking = key_tracking
+      if key_tracking == renoise.InstrumentPhraseMapping.KEY_TRACKING_TRANSPOSE then
+        phrase.base_note = zones[i][1]
+      end
+    end)
     if not applied then
       -- Do not leave a mapping behind that still covers its default full-width range
       instrument:delete_phrase_mapping_at(insert_index)
@@ -9057,18 +9067,24 @@ PakettiAddMenuEntry{name="Instrument Box:Paketti:Spread Phrases Across Keyboard"
 --   * slicing front ends (slicerough, beat detect) stay where they are and call in here
 --------------------------------------------------------------------------------
 
--- Each phrase gets its slice pinned two ways at once, so it plays the right slice
--- regardless of which one Renoise resolves first:
---   note_value       - the slice's own keyzone trigger note (works through the keymap)
---   instrument_value - the slice's sample index; inside a phrase the instrument column
---                      addresses SAMPLES, not instruments, so this names the slice directly
-local function PakettiPhrasePerSliceWriteTrigger(instrument, phrase, sample_index)
-  local mapping = instrument:sample_mapping(renoise.Instrument.LAYER_NOTE_ON, sample_index)
+-- The slice is named by the instrument column - inside a phrase that column addresses
+-- SAMPLES, not instruments, so instrument_value IS the slice.
+--
+-- The note must then be the SAME for every phrase. It is not a slice selector here, it is
+-- a pitch: naming the sample in the column bypasses the keymap, so the note is read as a
+-- transpose. Writing each slice's own ascending keyzone note (as this did at first) made
+-- every phrase play a semitone higher than the last - correct slice, wrong pitch.
+local PAKETTI_PHRASE_PER_SLICE_NOTE = 48   -- C-4, the no-transpose note
 
-  local note_value = 48  -- C-4 fallback if this sample has no mapping to read
-  if mapping and mapping.note_range then
-    note_value = mapping.note_range[1]
-  end
+local function PakettiPhrasePerSliceWriteTrigger(phrase, sample_index, note_value)
+  -- Kill the other way ascending trigger keys can transpose a phrase: the phrase's own
+  -- key tracking. The keymapper sets this on the mapping, but the phrase object exposes
+  -- key_tracking/base_note too, and a phrase laid out one-per-key is triggered by an
+  -- ascending key, so anything left on transpose here rises per phrase as well.
+  pcall(function()
+    phrase.key_tracking = renoise.InstrumentPhrase.KEY_TRACKING_NONE
+    phrase.base_note = note_value
+  end)
 
   phrase.instrument_column_visible = true
   local column = phrase:line(1):note_column(1)
@@ -9080,11 +9096,13 @@ end
 --                               out and for beats to be written around it)
 -- options.include_full_sample - also make a phrase for the unsliced original (default true)
 -- options.keymap_after        - lay every phrase out one-per-key afterwards (default true)
+-- options.note_value          - the pitch every phrase plays its slice at (default C-4)
 function PakettiPhrasePerSlice(options)
   options = options or {}
   local phrase_length = options.phrase_length or 16
   local include_full_sample = options.include_full_sample ~= false
   local keymap_after = options.keymap_after ~= false
+  local note_value = options.note_value or PAKETTI_PHRASE_PER_SLICE_NOTE
 
   if not PAKETTI_HAS_PHRASES_BASIC then
     renoise.app():show_status("Phrases need Renoise 3.0 or newer")
@@ -9122,7 +9140,7 @@ function PakettiPhrasePerSlice(options)
     phrase.looping = false   -- one-shot: hitting the key should shoot the slice once
     phrase.name = (sample_index == 1) and "Full Sample" or string.format("Slice %02d", sample_index - 1)
 
-    PakettiPhrasePerSliceWriteTrigger(instrument, phrase, sample_index)
+    PakettiPhrasePerSliceWriteTrigger(phrase, sample_index, note_value)
     created = created + 1
   end
 
