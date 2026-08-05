@@ -87,6 +87,7 @@ ahead-of-time) faith in me. And thanks for the inspiration.
 - **Groovebox 8120** is Esa Ruoho's own original creation — an **8-part step-sequencer drum-machine groovebox** inside Paketti (a Lua tool for Renoise).
 - **HyperEdit** is Paketti's automation step-sequencer — an old-school **re-take of the HyperEdit from Logic Audio Platinum 5.5.1** (Esa brought that classic idea into Renoise).
 - **Polyend Buddy** is a **file-management system for the Polyend Tracker, Tracker+ and Tracker Mini** — built into Paketti so you manage your hardware tracker straight from Renoise over USB.
+- **MPC Cycler** is a Paketti dialog + keybinding suite for cycling through samples and instruments from user-defined folders — think MPC-style "load next/prev sound" workflow inside Renoise.
 - **Paketti Stacker** loads a sample, splits it into mathematically‑defined slices, and builds a new instrument where each slice is assigned to a different velocity layer—so the velocity you play determines which slice sounds.
 - The **Player Pro Scanner (Start/Stop)** is a Paketti feature that allows you to scan through pattern lines in Renoise and play them automatically, one by one, based on a selection.
 <!-- /AUTO -->
