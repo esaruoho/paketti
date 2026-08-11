@@ -37,6 +37,12 @@ features/generated/
 # Spine/architecture: regenerated images are release-assets-only (don't bloat the repo)
 docs/architecture-*.png
 .spine/features.json
+# spine.json / SPINE.md come from the OLDER regex-based builder and are partial --
+# 7,395 entry points against spine-true.json's 25,221, because Paketti registers most
+# entries dynamically and a regex cannot see them. Derived and incomplete: not the
+# spine, not committed. spine-true.json below is the spine.
+.spine/spine.json
+.spine/SPINE.md
 # .spine/spine-true.json is deliberately TRACKED — it is the complete machine-readable
 # inventory of Paketti's surface, and the whole point is that it is diffable over time
 # and available from any checkout. It never ships in the .xrnx (see .github/workflows).
