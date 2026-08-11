@@ -100,7 +100,7 @@ jobs:
       - name: Zip XRNX Package
         run: |
           zip -r "${{ env.FILENAME }}" . \
-            -x "*.git*" "*.github*" "docs/*" ".spine/*" \
+            -x "*.git*" "*.github*" "docs/*" ".spine" ".spine/*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
             "definitions/*" \
@@ -207,7 +207,7 @@ jobs:
       - name: Zip XRNX Package (API 5)
         run: |
           zip -r "${{ env.FILENAME }}" . \
-            -x "*.git*" "*.github*" "docs/*" ".spine/*" \
+            -x "*.git*" "*.github*" "docs/*" ".spine" ".spine/*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
             "preferences_deviceLoaders.xml" \

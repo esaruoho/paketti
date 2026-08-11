@@ -6,6 +6,8 @@ every keybinding / menu entry / MIDI mapping with FULLY-RESOLVED names (for-loop
 expanded), then writes:
   • SPINE-TRUE.md  — Paketti's anatomy: where it touches Renoise, by region
   • COVERAGE.md    — the three orifices (keyboard / MIDI / menu) compared; the gaps
+  • .spine/spine-true.json — the machine-readable inventory (committed; every
+    fully-resolved entry name, for any tool that needs to know Paketti's surface)
 
 Run by the GitHub Action on every push that changes .lua / the changelog.
 
@@ -22,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 HARNESS = ROOT / ".spine" / "harness.lua"
-TMP = ROOT / ".spine" / "spine-true.json"
+SPINE = ROOT / ".spine" / "spine-true.json"   # durable: the machine-readable inventory
 
 GROUPS = {
     "Song & pattern": ["PatternEditor", "PatternMatrix", "PatternSequencer",
@@ -42,11 +44,11 @@ def run_harness():
     lj = shutil.which("luajit") or shutil.which("lua")
     if not lj:
         sys.exit("build.py: need luajit (apt-get install luajit)")
-    subprocess.run([lj, str(HARNESS), str(ROOT), str(TMP)], timeout=300, check=False,
+    subprocess.run([lj, str(HARNESS), str(ROOT), str(SPINE)], timeout=300, check=False,
                    stdout=subprocess.DEVNULL)   # Paketti's load prints are noise here
-    if not TMP.exists():
+    if not SPINE.exists():
         sys.exit("build.py: harness produced no output")
-    return json.loads(TMP.read_text())
+    return json.loads(SPINE.read_text())
 
 
 def leaf(name):
@@ -174,7 +176,11 @@ def main():
     docs.mkdir(exist_ok=True)
     (docs / "SPINE-TRUE.md").write_text(spine_md(d))
     (docs / "COVERAGE.md").write_text(coverage_md(d))
-    TMP.unlink(missing_ok=True)
+    # Keep it. SPINE-TRUE.md is for humans; spine-true.json is the only complete
+    # machine-readable inventory of what Paketti exposes (every fully-resolved
+    # keybinding / menu entry / MIDI mapping). Committing it makes the tool's surface
+    # diffable release-to-release and usable from any checkout — it used to be deleted
+    # here and survive only as a stale copy in a home dotdir on one machine.
     u = d["unique"]
     print(f"SPINE-TRUE.md + COVERAGE.md written · {u['keybinding']:,} shortcuts · "
           f"{u['menu_entry']:,} menus · {u['midi_mapping']:,} MIDI · "
