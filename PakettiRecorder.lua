@@ -307,21 +307,22 @@ function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
     record_used_sync = false
     record_prev_sync = pakettiSampleRecordingSyncGet()   -- nil on pre-3.5
 
-    if preferences.pakettiOverdubPatternSync.value then
-      if pakettiSampleRecordingSyncSet(true) then
-        record_used_sync = true
-        print("  Pattern Sync: ON (Renoise 3.5+)")
-        -- Pattern sync only quantizes against a running transport.
-        if not t.playing then
-          t:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
-          print("  Started playback (Pattern Sync requires playback)")
-        end
-      else
-        print("  Pattern Sync requested but unavailable on this Renoise — recording unsynced.")
-        renoise.app():show_status("Overdub: Pattern Sync needs Renoise 3.5+ — recording unsynced.")
+    -- ALWAYS on. Overdub records into a pattern, so the take must be quantized
+    -- to that pattern — there is no sensible Overdub that isn't sync'd. This is
+    -- deliberately not a preference and not a separate command variant.
+    if pakettiSampleRecordingSyncSet(true) then
+      record_used_sync = true
+      print("  Pattern Sync: ON")
+      -- Pattern sync only quantizes against a running transport.
+      if not t.playing then
+        t:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
+        print("  Started playback (Pattern Sync requires playback)")
       end
     else
-      print("  Pattern Sync: OFF (preference disabled)")
+      -- Pre-3.5 only: no sync property exists, so we record unsynced and the
+      -- manual tail trim in finalrecord() stays in play, exactly as before.
+      print("  Pattern Sync unavailable on this Renoise (needs 3.5+) — recording unsynced.")
+      renoise.app():show_status("Overdub: Pattern Sync needs Renoise 3.5+ — recording unsynced.")
     end
 
     -- 7) Start Renoise's sample recording
@@ -694,32 +695,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (Metronome/Line
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (Metronome/no Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, false,1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(false, true,1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(false, false,1) end end}
-
---------------------------------------------------------------------------------
--- Overdub Pattern Sync toggle
---
--- Applies to every Paketti Overdub 01 / 12 variant, so the eight existing
--- Overdub commands keep their names and keybindings instead of doubling to
--- sixteen. Renoise 3.5+ only; on older versions this reports as unavailable
--- and Overdub records unsynced exactly as it always did.
---------------------------------------------------------------------------------
-function PakettiToggleOverdubPatternSync()
-  if not pakettiSampleRecorderCaps().sync then
-    renoise.app():show_status("Overdub Pattern Sync requires Renoise 3.5 or newer.")
-    return
-  end
-
-  preferences.pakettiOverdubPatternSync.value = not preferences.pakettiOverdubPatternSync.value
-  preferences:save_as("preferences.xml")
-
-  local state = preferences.pakettiOverdubPatternSync.value and "ON" or "OFF"
-  renoise.app():show_status("Paketti Overdub Pattern Sync: " .. state)
-  print("Paketti Overdub Pattern Sync: " .. state)
-end
-
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Overdub Pattern Sync",invoke=function() PakettiToggleOverdubPatternSync() end}
-renoise.tool():add_midi_mapping{name="Paketti:Toggle Overdub Pattern Sync",invoke=function(message) if message:is_trigger() then PakettiToggleOverdubPatternSync() end end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Recording:Toggle Overdub Pattern Sync",invoke=function() PakettiToggleOverdubPatternSync() end}
 
 ---
 
