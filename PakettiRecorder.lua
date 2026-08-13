@@ -6,10 +6,10 @@ function contourShuttleRecord()
   
   if not w.sample_record_dialog_is_visible then
     w.sample_record_dialog_is_visible = true
-    t:start_stop_sample_recording()
+    pakettiSampleRecordingStart()
   else
-    t:start_stop_sample_recording()
-    
+    pakettiSampleRecordingStop()
+
     -- Clean up existing timer if any
     if contour_sample_timer and renoise.tool():has_timer(contourShuttleRecordMonitor) then
       renoise.tool():remove_timer(contourShuttleRecordMonitor)
@@ -62,10 +62,10 @@ function PakettiSampleAndToSampleEditor()
 
     -- Start recording
     w.sample_record_dialog_is_visible=true
-    t:start_stop_sample_recording()
+    pakettiSampleRecordingStart()
   else
     -- Stop recording and start monitoring for completion
-    t:start_stop_sample_recording()
+    pakettiSampleRecordingStop()
     
     -- Clean up existing timer if any
     if paketti_sample_timer and renoise.tool():has_timer(PakettiSampleAndToSampleEditorMonitor) then
@@ -185,6 +185,13 @@ local record_use_metronome = false
 local record_use_lineinput = false
 local record_max_columns = 12  -- default to 12 columns if not specified
 
+-- Pattern-sync state for the current Overdub session (Renoise 3.5+ only).
+-- record_used_sync   : did THIS take actually record with pattern sync on?
+-- record_prev_sync   : the user's own sync setting, restored when we're done,
+--                      so Overdub never silently changes their Sample Recorder.
+local record_used_sync = false
+local record_prev_sync = nil
+
 
 --------------------------------------------------------------------------------
 -- recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
@@ -289,8 +296,36 @@ function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
     recording_instrument = s.selected_instrument_index
     print("  Recording instrument set to:", recording_instrument)
 
-    -- 7) Start Renoise’s sample recording
-    t:start_stop_sample_recording()
+    ----------------------------------------------------------------------------
+    -- 6b) Pattern sync (Renoise 3.5+ only; a no-op on older Renoise).
+    --     When the preference is on we ask Renoise to quantize the recording to
+    --     the pattern, which is what the old manual tail-trim in finalrecord()
+    --     was approximating by hand. We remember the user's own setting and put
+    --     it back in cleanupMonitorAndVars() so Overdub doesn't change their
+    --     Sample Recorder behind their back.
+    ----------------------------------------------------------------------------
+    record_used_sync = false
+    record_prev_sync = pakettiSampleRecordingSyncGet()   -- nil on pre-3.5
+
+    if preferences.pakettiOverdubPatternSync.value then
+      if pakettiSampleRecordingSyncSet(true) then
+        record_used_sync = true
+        print("  Pattern Sync: ON (Renoise 3.5+)")
+        -- Pattern sync only quantizes against a running transport.
+        if not t.playing then
+          t:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
+          print("  Started playback (Pattern Sync requires playback)")
+        end
+      else
+        print("  Pattern Sync requested but unavailable on this Renoise — recording unsynced.")
+        renoise.app():show_status("Overdub: Pattern Sync needs Renoise 3.5+ — recording unsynced.")
+      end
+    else
+      print("  Pattern Sync: OFF (preference disabled)")
+    end
+
+    -- 7) Start Renoise's sample recording
+    pakettiSampleRecordingStart()
 
   ------------------------------------------------------------------------------
   -- STOP RECORDING
@@ -300,8 +335,7 @@ function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
     print("== STOP RECORDING ==")
 
     -- 1) Stop sample recording
-    local t = renoise.song().transport
-    t:start_stop_sample_recording()
+    pakettiSampleRecordingStop()
 
     -- 2) Add a timer to monitor sample data
     if recording_instrument then
@@ -325,11 +359,13 @@ end
 --------------------------------------------------------------------------------
 function recordtocurrenttrackMonitor()
   local s = renoise.song()
-  local w = renoise.app().window
 
-  -- If user forcibly closed the recorder while we still think we're recording
-  if am_i_recording and (not w.sample_record_dialog_is_visible) then
-    print(">> Detected user closed the sample recorder dialog.")
+  -- If recording ended without us asking for it — the user closed the recorder
+  -- dialog, or hit Stop in the recorder itself. On Renoise 3.5+ this reads the
+  -- real transport.sample_recording state, so it catches the in-dialog Stop too;
+  -- on older Renoise it falls back to dialog visibility + our shadow flag.
+  if am_i_recording and (not pakettiSampleRecordingIsActive()) then
+    print(">> Detected sample recording ended outside of Paketti (dialog closed or Stop pressed).")
     renoise.app():show_status(
       "Detected Sample Recorder was closed. Catching recorded sample..."
     )
@@ -495,9 +531,25 @@ function finalrecord()
 
     ----------------------------------------------------------------------------
     -- Trim sample
+    --
+    -- HISTORY / HOW TO PUT THIS BACK:
+    --   This hand-rolled trim (the 336960 -> 336000 special case, and the
+    --   generic "chop 3500 frames off the end") exists to shave the ragged tail
+    --   off an UNSYNCED recording — it was reverse-engineered by hand for one
+    --   particular BPM/LPB/pattern-length combination.
+    --
+    --   When Pattern Sync is on (Renoise 3.5+), Renoise quantizes the take to
+    --   the pattern itself, so this trim should not be needed and would eat
+    --   3500 frames of real audio.
+    --
+    --   The trim is NOT deleted — it is only SKIPPED for takes that actually
+    --   recorded with sync on. If a sync-recorded Overdub take still shows tail
+    --   slop, delete the `if record_used_sync then ... else` guard below (and
+    --   its matching `end`) to restore the trim for every take.
     ----------------------------------------------------------------------------
-    local sample_buffer = s.selected_sample.sample_buffer
-    print ("ABC" .. sample_buffer.number_of_frames)
+    if record_used_sync then
+      print("  Pattern Sync was ON — skipping the manual tail trim (Renoise quantized the take).")
+    else
 
     local sample_buffer = s.selected_sample.sample_buffer
     print ("DEF" .. sample_buffer.number_of_frames)
@@ -548,8 +600,10 @@ function finalrecord()
           end
         end
       end
-    end  
+    end
     renoise.song().selected_sample.sample_buffer:finalize_sample_data_changes()
+
+    end -- end of the "Pattern Sync was off, so run the manual trim" branch
 
     -- Set autofade / autoseek
     s.selected_sample.autofade = true
@@ -604,10 +658,19 @@ function cleanupMonitorAndVars()
   monitor_has_printed = nil
   am_i_recording = false
 
+  -- Put the user's own Pattern Sync setting back (Renoise 3.5+ only).
+  -- record_prev_sync is nil on pre-3.5, or when we never changed anything.
+  if record_prev_sync ~= nil then
+    pakettiSampleRecordingSyncSet(record_prev_sync)
+    print(string.format("  Restored Pattern Sync to %s", record_prev_sync and "ON" or "OFF"))
+  end
+
   -- Reset our booleans for the next usage
   record_use_metronome = false
   record_use_lineinput = false
   record_max_columns   = 12
+  record_used_sync     = false
+  record_prev_sync     = nil
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12)
@@ -631,6 +694,32 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (Metronome/Line
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (Metronome/no Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, false,1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(false, true,1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(false, false,1) end end}
+
+--------------------------------------------------------------------------------
+-- Overdub Pattern Sync toggle
+--
+-- Applies to every Paketti Overdub 01 / 12 variant, so the eight existing
+-- Overdub commands keep their names and keybindings instead of doubling to
+-- sixteen. Renoise 3.5+ only; on older versions this reports as unavailable
+-- and Overdub records unsynced exactly as it always did.
+--------------------------------------------------------------------------------
+function PakettiToggleOverdubPatternSync()
+  if not pakettiSampleRecorderCaps().sync then
+    renoise.app():show_status("Overdub Pattern Sync requires Renoise 3.5 or newer.")
+    return
+  end
+
+  preferences.pakettiOverdubPatternSync.value = not preferences.pakettiOverdubPatternSync.value
+  preferences:save_as("preferences.xml")
+
+  local state = preferences.pakettiOverdubPatternSync.value and "ON" or "OFF"
+  renoise.app():show_status("Paketti Overdub Pattern Sync: " .. state)
+  print("Paketti Overdub Pattern Sync: " .. state)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Overdub Pattern Sync",invoke=function() PakettiToggleOverdubPatternSync() end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Overdub Pattern Sync",invoke=function(message) if message:is_trigger() then PakettiToggleOverdubPatternSync() end end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Recording:Toggle Overdub Pattern Sync",invoke=function() PakettiToggleOverdubPatternSync() end}
 
 ---
 
@@ -718,10 +807,10 @@ renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
 renoise.song().selected_instrument_index=renoise.song().selected_instrument_index+1
     pakettiPreferencesDefaultInstrumentLoader()
     renoise.song().selected_sample.loop_mode = 2
-    song.transport:start_stop_sample_recording()
+    pakettiSampleRecordingStart()
     return
   else
-    song.transport:start_stop_sample_recording()
+    pakettiSampleRecordingStop()
   end
     local sample=renoise.song().selected_sample
     if not sample then
@@ -762,7 +851,7 @@ function start_stop_sample_and_loop_oh_my()
   
   if w.sample_record_dialog_is_visible then
       -- we are recording, stop
-      t:start_stop_sample_recording()
+      pakettiSampleRecordingStop()
       -- write note
        ss.autoseek=true
        s.patterns[currPatt].tracks[currTrak].lines[1].effect_columns[1].number_string="0G"
@@ -785,7 +874,7 @@ function start_stop_sample_and_loop_oh_my()
     else
       -- not recording. show dialog, start recording.
       w.sample_record_dialog_is_visible = true
-      t:start_stop_sample_recording()
+      pakettiSampleRecordingStart()
     end
   end
   
@@ -818,7 +907,7 @@ function start_stop_sample_and_loop_oh_my()
           -- start recording code here
   renoise.app().window.sample_record_dialog_is_visible=true
   renoise.app().window.lock_keyboard_focus=true
-  renoise.song().transport:start_stop_sample_recording()
+  pakettiSampleRecordingStart()
       else
       -- Stop recording here
       end
@@ -1034,14 +1123,27 @@ function PakettiQuickSampleToNewTrackCore(mode)
     print(string.format("  Created and selected new instrument at index %d", new_instrument_index))
     
     -- 4) Set pattern sync mode based on modality
+    -- Pattern sync is Renoise 3.5+ only; the helpers no-op on older versions.
     if mode == "sync_off" then
-      transport.sample_recording_sync_enabled = false
-      print("  Pattern Sync: OFF")
+      if pakettiSampleRecordingSyncSet(false) then
+        print("  Pattern Sync: OFF")
+      else
+        print("  Pattern Sync: unavailable on this Renoise (needs 3.5+)")
+      end
     elseif mode == "sync_on_0g01" then
-      transport.sample_recording_sync_enabled = true
-      print("  Pattern Sync: ON (will write 0G01 on stop)")
+      if pakettiSampleRecordingSyncSet(true) then
+        print("  Pattern Sync: ON (will write 0G01 on stop)")
+      else
+        print("  Pattern Sync: unavailable on this Renoise (needs 3.5+)")
+        renoise.app():show_status("Quick Sample: Pattern Sync needs Renoise 3.5+ — recording unsynced.")
+      end
     else
-      print(string.format("  Pattern Sync: %s (unchanged)", transport.sample_recording_sync_enabled and "ON" or "OFF"))
+      local cur = pakettiSampleRecordingSyncGet()
+      if cur == nil then
+        print("  Pattern Sync: unavailable on this Renoise (needs 3.5+)")
+      else
+        print(string.format("  Pattern Sync: %s (unchanged)", cur and "ON" or "OFF"))
+      end
     end
     
     -- 5) Show the sample recorder dialog
@@ -1056,7 +1158,7 @@ function PakettiQuickSampleToNewTrackCore(mode)
     state.instrument_index = new_instrument_index
     
     -- 7) Start sample recording
-    transport:start_stop_sample_recording()
+    pakettiSampleRecordingStart()
     print("  Started sample recording")
     
     -- 8) For Sync On + 0G01 mode: ensure playback is running (Pattern sync requires it)
@@ -1075,7 +1177,7 @@ function PakettiQuickSampleToNewTrackCore(mode)
     -- SECOND PRESS: Stop recording
     print(string.format("=== Paketti Quick Sample (%s): Stopping ===", mode_name))
     
-    transport:start_stop_sample_recording()
+    pakettiSampleRecordingStop()
     state.recording_active = false
     
     -- Choose appropriate monitor based on mode

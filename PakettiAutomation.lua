@@ -516,8 +516,8 @@ function monitor_doofer2_macros(device)
     local song=renoise.song()
     local value=device.parameters[2].value
     
-    -- Disable sync recording
-    song.transport.sample_recording_sync_enabled = false
+    -- Disable sync recording (Renoise 3.5+; no-op on older versions)
+    pakettiSampleRecordingSyncSet(false)
     
     if value > 80 then
       if not is_recording_active then
@@ -534,13 +534,13 @@ function monitor_doofer2_macros(device)
         print(string.format("Selected Instrument: %d", song.selected_instrument_index))
         print(string.format("0G01 Mode: %s", preferences._0G01_Loader.value and "ON" or "OFF"))
         
-        song.transport:start_sample_recording()
+        pakettiSampleRecordingStart()
         is_recording_active = true
       end
     else
       if is_recording_active then
         -- Stop recording
-        song.transport:stop_sample_recording()
+        pakettiSampleRecordingStop()
         is_recording_active = false
         
         print(string.format("=== RECORDING STOPPED ==="))

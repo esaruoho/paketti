@@ -278,7 +278,7 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
     gbx_record_instrument_index[row_index] = ii or 0
     renoise.app().window.sample_record_dialog_is_visible = true
     renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
-    song.transport:start_stop_sample_recording()
+    pakettiSampleRecordingStart()
     gbx_record_phase[row_index] = 1
     renoise.app():show_status(string.format("8120 Row %02d: Recording… Press Record again to stop.", row_index))
     return
@@ -286,7 +286,7 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
 
   if phase == 1 then
     -- Stop recording and finalize sample mapping
-    song.transport:start_stop_sample_recording()
+    pakettiSampleRecordingStop()
 
     local target_inst_index = gbx_record_instrument_index[row_index] or ii
 

@@ -313,6 +313,183 @@ function pakettiSafeSetMiddleFrame(frame_constant)
 end
 
 ------------------------------------------------------------------------
+-- 10. Sample Recorder capability layer  (Renoise 3.5 / API 6.2+)
+--
+--   Renoise 3.5 exposes an explicit Sample Recorder surface:
+--     transport:start_sample_recording()       -- replaces the DEPRECATED
+--     transport:stop_sample_recording()        --   start_stop_sample_recording()
+--     transport:cancel_sample_recording()      -- stop AND discard the take
+--     transport.sample_recording               -- READ-ONLY, true while recording
+--     transport.sample_recording_sync_enabled  -- read/write pattern quantize
+--
+--   IMPORTANT: renoise.API_VERSION cannot separate 3.4 from 3.5 — both report
+--   6.2 (see the version table at the top of this file). So we do NOT gate on
+--   the version number alone: we probe the live transport once and cache the
+--   answer. Indexing a property that does not exist on older Renoise THROWS,
+--   so every probe is wrapped in pcall.
+--
+--   Every helper below degrades gracefully: on pre-3.5 the explicit calls fall
+--   back to the deprecated toggle, the state query returns nil ("unknown"),
+--   and the sync setter returns false without touching anything.
+------------------------------------------------------------------------
+
+-- Declared here so the cache read below never touches an undeclared global
+-- (Renoise strict-globals throws on reading one, which aborts the whole load).
+PakettiSampleRecorderCapsCache = nil
+
+-- Shadow "are we recording" flag for pre-3.5, where Renoise cannot tell us.
+-- Maintained by the start/stop/cancel helpers below. It is only consulted when
+-- the real transport.sample_recording property is unavailable.
+--
+-- Why this matters: the pre-3.5 fallback for "stop" is the DEPRECATED
+-- start_stop_sample_recording() TOGGLE. If a caller does
+--   "if recording then stop() end"
+-- and we answered "unknown", a blind stop on 3.4 would TOGGLE — i.e. it would
+-- START a recording that nobody asked for. The shadow flag means the query
+-- always returns a usable boolean on every Renoise version.
+PakettiSampleRecordingShadow = false
+
+-- Returns a table: {explicit=bool, cancel=bool, state=bool, sync=bool}
+-- Result is cached once a song exists; before that we probe fresh each call.
+function pakettiSampleRecorderCaps()
+  if PakettiSampleRecorderCapsCache ~= nil then
+    return PakettiSampleRecorderCapsCache
+  end
+
+  local caps = {explicit = false, cancel = false, state = false, sync = false}
+
+  local song = renoise.song()
+  if song == nil then
+    -- No song yet (tool boot). Report "nothing available" without caching,
+    -- so the first real call after a song loads probes for real.
+    return caps
+  end
+
+  if PAKETTI_API < 6.2 then
+    PakettiSampleRecorderCapsCache = caps
+    return caps
+  end
+
+  local t = song.transport
+
+  local function has_fn(name)
+    local ok, v = pcall(function() return t[name] end)
+    return ok and type(v) == "function"
+  end
+  local function has_prop(name)
+    local ok = pcall(function() return t[name] end)
+    return ok
+  end
+
+  caps.explicit = has_fn("start_sample_recording") and has_fn("stop_sample_recording")
+  caps.cancel   = has_fn("cancel_sample_recording")
+  caps.state    = has_prop("sample_recording")
+  caps.sync     = has_prop("sample_recording_sync_enabled")
+
+  PakettiSampleRecorderCapsCache = caps
+  return caps
+end
+
+-- Start sample recording. Uses the explicit 3.5 call when present, otherwise
+-- the deprecated toggle. The Sample Recorder dialog must already be visible.
+function pakettiSampleRecordingStart()
+  local t = renoise.song().transport
+  if pakettiSampleRecorderCaps().explicit then
+    t:start_sample_recording()
+  else
+    t:start_stop_sample_recording()
+  end
+  PakettiSampleRecordingShadow = true
+end
+
+-- Stop sample recording and KEEP the take.
+function pakettiSampleRecordingStop()
+  local t = renoise.song().transport
+  if pakettiSampleRecorderCaps().explicit then
+    t:stop_sample_recording()
+  else
+    t:start_stop_sample_recording()
+  end
+  PakettiSampleRecordingShadow = false
+end
+
+-- Stop sample recording and DISCARD the take.
+-- Pre-3.5 there is no discard, so we stop normally and return false to let the
+-- caller know the take was kept and may need cleaning up by hand.
+function pakettiSampleRecordingCancel()
+  local t = renoise.song().transport
+  if pakettiSampleRecorderCaps().cancel then
+    t:cancel_sample_recording()
+    PakettiSampleRecordingShadow = false
+    return true
+  end
+  pakettiSampleRecordingStop()
+  return false
+end
+
+-- "Is the Sample Recorder actually recording right now?"
+-- ALWAYS returns a boolean, on every supported Renoise version:
+--   3.5+  : the authoritative read-only transport.sample_recording property
+--   <3.5  : our shadow flag, kept in sync by the helpers above
+-- If the recorder dialog is closed, nothing can be recording.
+--
+-- IMPORTANT — do NOT write the property back into the shadow flag.
+-- Verified on Renoise 3.5.4: transport.sample_recording LAGS behind
+-- start_sample_recording() — it still reads false for a moment after the call,
+-- then flips true once the recorder has actually armed. Copying that transient
+-- false into the shadow destroys our record of what we asked for, which is the
+-- one thing the shadow exists to remember on pre-3.5. The shadow tracks INTENT
+-- (what Paketti asked for); the property reports REALITY (what Renoise is doing).
+-- Keep them separate.
+function pakettiSampleRecordingIsActive()
+  if not renoise.app().window.sample_record_dialog_is_visible then
+    PakettiSampleRecordingShadow = false
+    return false
+  end
+  if pakettiSampleRecorderCaps().state then
+    return renoise.song().transport.sample_recording
+  end
+  return PakettiSampleRecordingShadow
+end
+
+-- "Did Paketti ask for a recording that it has not stopped yet?"
+-- This is the INTENT flag, and unlike pakettiSampleRecordingIsActive() it is
+-- true immediately after a start, with no arming lag. Use this when you need to
+-- decide whether to issue a stop; use IsActive() when you need to know whether
+-- audio is genuinely being captured right now.
+function pakettiSampleRecordingWasStarted()
+  if not renoise.app().window.sample_record_dialog_is_visible then
+    PakettiSampleRecordingShadow = false
+    return false
+  end
+  return PakettiSampleRecordingShadow
+end
+
+-- true when the "is it recording" answer comes from Renoise itself (3.5+)
+-- rather than from our shadow flag. Use when a caller wants to know how much
+-- to trust the answer; most callers should just use pakettiSampleRecordingIsActive().
+function pakettiSampleRecordingStateIsAuthoritative()
+  return pakettiSampleRecorderCaps().state
+end
+
+-- Current pattern-sync (recording quantize) setting, or nil when unavailable.
+function pakettiSampleRecordingSyncGet()
+  if not pakettiSampleRecorderCaps().sync then
+    return nil
+  end
+  return renoise.song().transport.sample_recording_sync_enabled
+end
+
+-- Set pattern sync. Returns true if it was actually applied, false on pre-3.5.
+function pakettiSampleRecordingSyncSet(enabled)
+  if not pakettiSampleRecorderCaps().sync then
+    return false
+  end
+  renoise.song().transport.sample_recording_sync_enabled = enabled
+  return true
+end
+
+------------------------------------------------------------------------
 -- Done.  Print confirmation if debug output is enabled.
 ------------------------------------------------------------------------
 if PakettiTimedRequireDebug then

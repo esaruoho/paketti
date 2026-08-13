@@ -3936,14 +3936,14 @@ function paketti_start_sample_recording()
     end
   end
   
-  -- Disable sync and start recording
-  song.transport.sample_recording_sync_enabled = false
-  
-  print("DEBUG: About to call start_sample_recording()")
-  song.transport:start_sample_recording()
-  print("DEBUG: Called start_sample_recording()")
+  -- Disable sync and start recording (sync is Renoise 3.5+; no-op on older)
+  pakettiSampleRecordingSyncSet(false)
+
+  print("DEBUG: About to start sample recording")
+  pakettiSampleRecordingStart()
+  print("DEBUG: Started sample recording")
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
-  print("DEBUG: After start_sample_recording(), state is now:", song.transport.sample_recording)
+  print("DEBUG: After start, recording state is now:", pakettiSampleRecordingIsActive())
   
   renoise.app():show_status("Sampling started")
   print("Sampling started")
@@ -3952,11 +3952,21 @@ end
 function paketti_stop_sample_recording()
   local song = renoise.song()
   
-  print("DEBUG: Stop function called, recording state:", song.transport.sample_recording)
-  
-  -- Stop recording if it's still active
-  if song.transport.sample_recording then
-    song.transport:stop_sample_recording()
+  print("DEBUG: Stop function called, recording state:", pakettiSampleRecordingIsActive())
+
+  -- Stop recording if it's still active.
+  -- Both checks matter, and neither is redundant:
+  --   IsActive()    - Renoise says audio is being captured right now (3.5+),
+  --                   or our shadow flag on older versions.
+  --   WasStarted()  - we asked for a recording and have not stopped it yet.
+  -- We need WasStarted() because transport.sample_recording LAGS behind the
+  -- start call, so a fast stop would otherwise see false and skip the stop,
+  -- leaving the recorder running. We need IsActive() so we still stop a
+  -- recording that was started outside Paketti.
+  -- And we must not stop blindly: on pre-3.5 the "stop" fallback is the
+  -- deprecated TOGGLE, so stopping when not recording would START a recording.
+  if pakettiSampleRecordingIsActive() or pakettiSampleRecordingWasStarted() then
+    pakettiSampleRecordingStop()
     print("Sampling stopped")
   else
     print("Sampling was already stopped")
@@ -4044,9 +4054,9 @@ function paketti_toggle_sample_recording()
   
   -- Safety check: if we're exiting and recording is still active, force stop and place note
   local song = renoise.song()
-  if song.transport.sample_recording then
+  if pakettiSampleRecordingIsActive() or pakettiSampleRecordingWasStarted() then
     print("DEBUG: Safety check - recording still active at function exit, forcing stop")
-    song.transport:stop_sample_recording()
+    pakettiSampleRecordingStop()
     
     -- Only place note if we haven't already done it
     if not paketti_note_already_placed and paketti_recording_start_track and paketti_recording_start_pattern and paketti_recording_start_line then

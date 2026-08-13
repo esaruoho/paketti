@@ -401,6 +401,14 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportEXE = true,           -- Raw binary (.exe, .dll, .bin, .sys, .dylib) import
   -- Quick Sample to New Track Settings
   pakettiQuickSampleTrackVolume = true,  -- Set new track volume to -30dB for safe recording levels
+  -- Paketti Overdub Settings
+  -- Record Overdub takes with the Sample Recorder's Pattern Sync (recording
+  -- quantize) turned on, so Renoise quantizes the take to the pattern instead
+  -- of Paketti hand-trimming the tail afterwards.
+  -- ON by default — this is the point of Overdub recording into a pattern.
+  -- Renoise 3.5+ only; silently ignored on older versions, which record unsynced
+  -- exactly as before. Toggle with "Global:Paketti:Toggle Overdub Pattern Sync".
+  pakettiOverdubPatternSync = true,
   -- MPC Cycler Settings
   pakettiMPCCyclerLastSampleFolder = "",
   pakettiMPCCyclerLastInstrumentFolder = "",
