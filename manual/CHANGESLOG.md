@@ -9,9 +9,17 @@ Every changelog entry below represents hours of development time. Paketti is fre
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
 ### 2026-08-13 - Improvement: Paketti Overdub now records with Pattern Sync, and every Sample Recorder command is version-safe
-Paketti Overdub 01 and Overdub 12 now record with the Sample Recorder's Pattern Sync (recording quantization) turned on, so Renoise quantizes the take to the pattern itself. Previously Overdub recorded unsynced and then chopped 3500 frames off the end of the sample to approximate the same result by hand — a figure that had been reverse-engineered for one particular tempo, pattern length and lines-per-beat. That manual trim is now skipped for takes recorded with sync on. The trim code has deliberately been kept in place rather than deleted, so it can be brought back if any tail slop turns up.
+Paketti Overdub 01 and Overdub 12 now record with the Sample Recorder's Pattern Sync (recording quantization) turned on, so Renoise starts and stops the take against the pattern itself.
 
-Overdub restores your own Pattern Sync setting when it finishes, so using Overdub no longer quietly changes how the Sample Recorder behaves for everything else. When Pattern Sync is on, Overdub also starts playback if the transport is stopped, because Pattern Sync only quantizes against a running transport.
+More importantly, Overdub now works out whether the recording is actually the right length to loop. When the recording finishes it calculates how long the pattern really is — from the tempo, the lines-per-beat and the number of lines — converts that to a frame count at the sample's own sample rate, and compares it against what was recorded. What happens next depends on the answer:
+
+- If the sample is already the correct length, it is left completely alone. Nothing is trimmed.
+- If there is extra material on the tail, which is what input latency leaves behind even with Pattern Sync on, the sample is trimmed to the calculated length.
+- If the sample came out shorter than a full loop, nothing can be added, so Overdub says so instead of pretending otherwise.
+
+Either way the finished sample is measured again and the result is reported, so you are told in plain frames and milliseconds whether the clip loops cleanly or how far off it is. Previously Overdub always chopped a flat 3500 frames off the end (with one special case for a specific 336960-frame recording) — a figure reverse-engineered by hand for one particular tempo, pattern length and lines-per-beat, which was wrong for every other combination and destroyed good audio whenever the take was already correct. The trim now fires only when there is genuinely something extra, and trims to a computed length rather than a fixed guess.
+
+Overdub also restores your own Pattern Sync setting when it finishes, so using Overdub no longer quietly changes how the Sample Recorder behaves for everything else, and it starts playback if the transport is stopped, because Pattern Sync only quantizes against a running transport.
 
 Every Overdub start turns Pattern Sync on. This is not a setting and not a separate command variant — Overdub records into a pattern, so the take is always quantized to that pattern. It requires Renoise 3.5 or newer; on Renoise 3.1 through 3.4 Overdub records unsynced exactly as it did before, keeps the manual trim, and reports that Pattern Sync is unavailable rather than failing.
 

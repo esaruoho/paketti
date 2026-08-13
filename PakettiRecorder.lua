@@ -413,6 +413,99 @@ end
 
 
 --------------------------------------------------------------------------------
+-- PakettiOverdubAnalyzeLoopLength(sample, pattern_lines)
+--
+-- Works out whether a recorded Overdub sample is actually the right length to
+-- loop cleanly over the pattern it was recorded against, and reports the gap.
+--
+-- The maths:
+--   One line lasts            60 / (BPM * LPB)  seconds.
+--   A pattern of N lines      N * 60 / (BPM * LPB)  seconds.
+--   Expected frames        =  that duration * sample_rate.
+--
+-- Note on TPL (ticks per line): TPL subdivides a line for effect resolution —
+-- it does NOT change how long a line lasts, so it is NOT part of the duration
+-- maths. It's reported below because it's useful context when reading the log,
+-- but if you ever see TPL in a duration formula, that formula is wrong.
+--
+-- Returns a table with the numbers, or nil if there's nothing to measure.
+--------------------------------------------------------------------------------
+function PakettiOverdubAnalyzeLoopLength(sample, pattern_lines)
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    return nil
+  end
+
+  local s   = renoise.song()
+  local buf = sample.sample_buffer
+
+  local bpm = s.transport.bpm
+  local lpb = s.transport.lpb
+  local tpl = s.transport.tpl
+
+  if bpm <= 0 or lpb <= 0 or pattern_lines <= 0 then
+    return nil
+  end
+
+  local seconds_per_line = 60.0 / (bpm * lpb)
+  local expected_seconds = pattern_lines * seconds_per_line
+  local expected_frames  = math.floor((expected_seconds * buf.sample_rate) + 0.5)
+
+  local actual_frames  = buf.number_of_frames
+  local delta_frames   = actual_frames - expected_frames
+  local delta_ms       = (delta_frames / buf.sample_rate) * 1000.0
+
+  -- Tolerance: a quarter of a millisecond of jitter is not worth shouting about.
+  local tolerance_frames = math.max(1, math.floor(buf.sample_rate / 4000))
+
+  local result = {
+    bpm              = bpm,
+    lpb              = lpb,
+    tpl              = tpl,
+    pattern_lines    = pattern_lines,
+    sample_rate      = buf.sample_rate,
+    bit_depth        = buf.bit_depth,
+    channels         = buf.number_of_channels,
+    expected_seconds = expected_seconds,
+    expected_frames  = expected_frames,
+    actual_frames    = actual_frames,
+    delta_frames     = delta_frames,
+    delta_ms         = delta_ms,
+    tolerance_frames = tolerance_frames,
+    loops_cleanly    = (math.abs(delta_frames) <= tolerance_frames),
+  }
+
+  print("=== Overdub loop-length check ===")
+  print(string.format("  Song:    BPM %.4f  LPB %d  TPL %d  Pattern %d lines",
+    bpm, lpb, tpl, pattern_lines))
+  print(string.format("  Sample:  %d Hz  %d-bit  %d ch",
+    buf.sample_rate, buf.bit_depth, buf.number_of_channels))
+  print(string.format("  Expected %d frames (%.6f s)", expected_frames, expected_seconds))
+  print(string.format("  Actual   %d frames (%.6f s)",
+    actual_frames, actual_frames / buf.sample_rate))
+  print(string.format("  Delta    %+d frames (%+.3f ms), tolerance +/-%d frames",
+    delta_frames, delta_ms, tolerance_frames))
+
+  if result.loops_cleanly then
+    print("  -> Loops cleanly.")
+    renoise.app():show_status(string.format(
+      "Overdub: loops cleanly (%d frames, %+d).", actual_frames, delta_frames))
+  elseif delta_frames > 0 then
+    print(string.format("  -> TOO LONG by %d frames — extra material on the tail.", delta_frames))
+    renoise.app():show_status(string.format(
+      "Overdub WARNING: sample is %d frames (%+.1f ms) TOO LONG to loop — %d extra frames on the tail.",
+      delta_frames, delta_ms, delta_frames))
+  else
+    print(string.format("  -> TOO SHORT by %d frames — the trim took too much.", -delta_frames))
+    renoise.app():show_status(string.format(
+      "Overdub WARNING: sample is %d frames (%.1f ms) TOO SHORT to loop — trim overshot.",
+      -delta_frames, -delta_ms))
+  end
+
+  return result
+end
+
+
+--------------------------------------------------------------------------------
 -- finalrecord()
 -- We remove line input if requested, turn off metronome if requested,
 -- place the note (row1 only). If row1 has "record_max_columns" used columns,
@@ -531,47 +624,53 @@ function finalrecord()
     line1.effect_columns[1].amount_string             = "01"
 
     ----------------------------------------------------------------------------
-    -- Trim sample
+    -- Measure first, THEN trim only if there is actually extra on the tail.
     --
-    -- HISTORY / HOW TO PUT THIS BACK:
-    --   This hand-rolled trim (the 336960 -> 336000 special case, and the
-    --   generic "chop 3500 frames off the end") exists to shave the ragged tail
-    --   off an UNSYNCED recording — it was reverse-engineered by hand for one
-    --   particular BPM/LPB/pattern-length combination.
+    --   Pattern Sync tells Renoise when to start and stop against the pattern,
+    --   but it does not hand back a frame-exact loop — input latency still
+    --   leaves extra material on the end, and a clip like that neither loops
+    --   nor saves properly.
     --
-    --   When Pattern Sync is on (Renoise 3.5+), Renoise quantizes the take to
-    --   the pattern itself, so this trim should not be needed and would eat
-    --   3500 frames of real audio.
+    --   But the trim must not fire blindly either: if the take is already the
+    --   right length, chopping 3500 frames off it destroys good audio.
     --
-    --   The trim is NOT deleted — it is only SKIPPED for takes that actually
-    --   recorded with sync on. If a sync-recorded Overdub take still shows tail
-    --   slop, delete the `if record_used_sync then ... else` guard below (and
-    --   its matching `end`) to restore the trim for every take.
+    --   So we compute what the loop SHOULD be from the song timing
+    --   (BPM / LPB / pattern lines / sample rate) and compare:
+    --     exactly right  -> leave the sample alone, no trim
+    --     too long       -> trim to the COMPUTED length (not a magic number)
+    --     too short      -> nothing we can add; warn the user
     ----------------------------------------------------------------------------
-    if record_used_sync then
-      print("  Pattern Sync was ON — skipping the manual tail trim (Renoise quantized the take).")
-    else
+    local pattern_lines = s.patterns[pattern_idx].number_of_lines
+    local pre = PakettiOverdubAnalyzeLoopLength(s.selected_sample, pattern_lines)
 
     local sample_buffer = s.selected_sample.sample_buffer
-    print ("DEF" .. sample_buffer.number_of_frames)
-    if sample_buffer and sample_buffer.has_sample_data then
+    local needs_trim = false
+    local new_length = nil
 
-
-      
-      renoise.song().selected_sample.sample_buffer:prepare_sample_data_changes()                
-      local current_frames = sample_buffer.number_of_frames
-      local new_length = current_frames
-      
-      local current_framesv2=renoise.song().selected_sample.sample_buffer.number_of_frames
-
-      -- Special case for 336960 frames
-      if current_framesv2 == 336960 then
-        new_length = 336000
-      else
-        -- For all other cases, remove 3500 frames from the end
-        new_length = current_framesv2 - 3500
+    if pre == nil then
+      -- Couldn't measure (no buffer / nonsense timing). Fall back to the old
+      -- hand-tuned heuristic rather than leaving a ragged tail behind.
+      if sample_buffer and sample_buffer.has_sample_data then
+        local cur = sample_buffer.number_of_frames
+        new_length = (cur == 336960) and 336000 or (cur - 3500)
+        needs_trim = true
+        print("  Loop length unmeasurable — falling back to the legacy fixed trim.")
       end
-      
+    elseif pre.loops_cleanly then
+      print("  Sample is already the correct length — NOT trimming.")
+    elseif pre.delta_frames > 0 then
+      new_length = pre.expected_frames
+      needs_trim = true
+      print(string.format("  Extra fluff on the tail: trimming %d frames -> %d frames (computed).",
+        pre.actual_frames, new_length))
+    else
+      print(string.format("  Sample is %d frames SHORT of a clean loop — cannot trim, leaving as-is.",
+        -pre.delta_frames))
+    end
+
+    if needs_trim and sample_buffer and sample_buffer.has_sample_data then
+      renoise.song().selected_sample.sample_buffer:prepare_sample_data_changes()
+
       if new_length > 0 then
         local sample_rate  = sample_buffer.sample_rate
         local bit_depth    = sample_buffer.bit_depth
@@ -601,10 +700,15 @@ function finalrecord()
           end
         end
       end
-    end
-    renoise.song().selected_sample.sample_buffer:finalize_sample_data_changes()
 
-    end -- end of the "Pattern Sync was off, so run the manual trim" branch
+      -- Only finalize if we actually called prepare above.
+      renoise.song().selected_sample.sample_buffer:finalize_sample_data_changes()
+
+      -- Re-measure the finished sample so the status line reflects what is
+      -- really in the instrument now, not what we had before the trim.
+      print("  --- after trim ---")
+      PakettiOverdubAnalyzeLoopLength(s.selected_sample, pattern_lines)
+    end
 
     -- Set autofade / autoseek
     s.selected_sample.autofade = true
