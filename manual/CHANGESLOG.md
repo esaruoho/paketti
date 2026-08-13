@@ -13,11 +13,13 @@ Paketti Overdub 01 and Overdub 12 now record with the Sample Recorder's Pattern 
 
 Overdub restores your own Pattern Sync setting when it finishes, so using Overdub no longer quietly changes how the Sample Recorder behaves for everything else. When Pattern Sync is on, Overdub also starts playback if the transport is stopped, because Pattern Sync only quantizes against a running transport.
 
-Every Overdub start turns Pattern Sync on. This is not a setting and not a separate command variant — Overdub records into a pattern, so the take is always quantized to that pattern. It requires Renoise 3.5 or newer; on Renoise 3.1 through 3.4 Overdub records unsynced exactly as it did before, keeps the manual trim, and reports that Pattern Sync is unavailable rather than failing.
+Pattern Sync is on by default for Overdub and can be turned off. It requires Renoise 3.5 or newer; on Renoise 3.1 through 3.4 Overdub records unsynced exactly as it did before, keeps the manual trim, and reports that Pattern Sync is unavailable rather than failing.
 
 Alongside this, all twenty Sample Recorder calls across the tool were moved onto a single version-aware compatibility layer. Renoise 3.5 replaced the old start/stop toggle with explicit Start, Stop and Cancel commands and added a way to ask whether recording is actually running. Paketti now uses those on 3.5 and falls back cleanly on older versions. This also fixes a real crash: the Sampling and Automation-triggered recording features were already calling the Renoise 3.5-only commands with no version check at all, which would error out on Renoise 3.4.
 
-No menu entries, keyboard shortcuts or MIDI mappings changed — the eight existing Paketti Overdub 01 and Overdub 12 commands keep their exact names and bindings.
+- Keybinding: `Global:Paketti:Toggle Overdub Pattern Sync`
+- MIDI Mapping: `Paketti:Toggle Overdub Pattern Sync`
+- Menu: `Main Menu:Tools:Paketti:Recording:Toggle Overdub Pattern Sync`
 
 ### 2026-08-04 - Fix: Create Phrase Per Slice no longer plays each slice a semitone higher than the last
 Create Phrase Per Slice assigned every slice correctly, but each successive phrase played its slice pitched a semitone higher than the one before it. Two things could each cause that on their own, and both are now closed off.
