@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,349 functions** · 10,923 keybindings · 7,538 midimappings · 6,757 menu entries.
+**4,348 functions** · 10,922 keybindings · 7,537 midimappings · 6,756 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+16) | ✅ | · | · |
+| Nudge Slice 01 by (-10) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2122 functions  ·  ⌨ 2122 · 🎛 818 · ☰ 674
+## Global  ·  2121 functions  ·  ⌨ 2121 · 🎛 817 · ☰ 673
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -2760,7 +2760,6 @@
 | Toggle Mute/Unmute Remembered Tracks | ✅ | ✅ | · |
 | Toggle New Sample Auto-Settings | ✅ | · | · |
 | Toggle OctaMED Hold-to-Fill Mode | ✅ | · | ✅ |
-| Toggle Overdub Pattern Sync | ✅ | ✅ | ✅ |
 | Toggle Paketti Dialog of Dialogs... | ✅ | · | · |
 | Toggle Pattern Status Monitor | ✅ | · | ✅ |
 | Toggle Phrase Follow Pattern Playback Hack | ✅ | · | · |
