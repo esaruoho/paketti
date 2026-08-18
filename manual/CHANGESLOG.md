@@ -8,6 +8,32 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Feature: Amigo Sampler round-trip — one sample from Renoise to Amigo and back
+
+Paketti now moves a single sample between Renoise and the PotenzaDSP Amigo Sampler plugin, in both directions, on both the AU and the VST3 build of Amigo.
+
+Renoise to Amigo takes the selected sample, writes it as a .wav into a "Paketti Amigo Samples" folder in your home directory, and points an Amigo instance at it. If the selected instrument already hosts Amigo, that instance is retargeted; otherwise a new instrument with Amigo loaded is created right after the current one and named after the sample. A second command additionally asks Amigo to bake the wav into its own preset state, so the preset travels without the file (needs Amigo AU v1.1.6 or newer — older builds have no Embed).
+
+Amigo to Renoise reads whatever the selected instrument's Amigo is holding and loads it into a brand new Renoise instrument built from your default instrument template. It uses the sample file on disk when it is still there and falls back to Amigo's embedded copy when it is not, so an embedded preset imports even if the original wav is long gone.
+
+The plugin state is now parsed and rewritten properly rather than patched byte-by-byte: the JUCE ValueTree, the VST3 chunk with its JUCEPrivateDataList offset table, and the AU binary plist are all read and written natively in Lua. There is no longer any dependency on the macOS `plutil` command, so this works on Windows and Linux too. A rewrite with no changes reproduces the plugin's own state byte for byte, on both formats.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Renoise to Amigo (Selected Sample)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Renoise to Amigo (Selected Sample, Embedded)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Renoise (New Instrument)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Dump Amigo State to Console`
+- Menu: `Instrument Box:Paketti:Amigo:Renoise to Amigo (Selected Sample)`
+- Menu: `Instrument Box:Paketti:Amigo:Amigo to Renoise (New Instrument)`
+- Menu: `Sample Editor:Paketti:Amigo:Renoise to Amigo (Selected Sample)`
+- Menu: `Sample Editor:Paketti:Amigo:Amigo to Renoise (New Instrument)`
+- Keybinding: `Global:Paketti:Renoise to Amigo Selected Sample`
+- Keybinding: `Global:Paketti:Renoise to Amigo Selected Sample Embedded`
+- Keybinding: `Global:Paketti:Amigo to Renoise New Instrument`
+- MIDI Mapping: `Paketti:Renoise to Amigo Selected Sample`
+- MIDI Mapping: `Paketti:Amigo to Renoise New Instrument`
+
+The two older Xperimental/WIP Amigo entries that imported and exported a sample now run the new code as well.
+
 ### 2026-08-13 - Improvement: Paketti Overdub now records with Pattern Sync, and every Sample Recorder command is version-safe
 Paketti Overdub 01 and Overdub 12 now record with the Sample Recorder's Pattern Sync (recording quantization) turned on, so Renoise starts and stops the take against the pattern itself.
 
