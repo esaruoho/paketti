@@ -715,6 +715,13 @@ PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to R
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Dump Amigo State to Console",
   invoke = function() PakettiAmigoDumpState() end}
 
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Selected Sample to Amigo Sampler",
+  invoke = function() PakettiAmigoRenoiseToAmigo() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Selected Sample to Amigo Sampler (Embedded)",
+  invoke = function() PakettiAmigoRenoiseToAmigoEmbedded() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Import Sample from Amigo Sampler",
+  invoke = function() PakettiAmigoAmigoToRenoise() end}
+
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Renoise to Amigo (Selected Sample)",
   invoke = function() PakettiAmigoRenoiseToAmigo() end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to Renoise (New Instrument)",

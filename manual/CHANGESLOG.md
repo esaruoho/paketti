@@ -18,6 +18,9 @@ Amigo to Renoise reads whatever the selected instrument's Amigo is holding and l
 
 The plugin state is now parsed and rewritten properly rather than patched byte-by-byte: the JUCE ValueTree, the VST3 chunk with its JUCEPrivateDataList offset table, and the AU binary plist are all read and written natively in Lua. There is no longer any dependency on the macOS `plutil` command, so this works on Windows and Linux too. A rewrite with no changes reproduces the plugin's own state byte for byte, on both formats.
 
+- Menu: `Main Menu:File:Paketti Export:Export Selected Sample to Amigo Sampler`
+- Menu: `Main Menu:File:Paketti Export:Export Selected Sample to Amigo Sampler (Embedded)`
+- Menu: `Main Menu:File:Paketti Import:Import Sample from Amigo Sampler`
 - Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Renoise to Amigo (Selected Sample)`
 - Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Renoise to Amigo (Selected Sample, Embedded)`
 - Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Renoise (New Instrument)`
