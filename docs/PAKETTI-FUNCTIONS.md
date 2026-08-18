@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,349 functions** · 10,923 keybindings · 7,538 midimappings · 6,757 menu entries.
+**4,352 functions** · 10,925 keybindings · 7,539 midimappings · 6,764 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+16) | ✅ | · | · |
+| Nudge Slice 01 by (-32) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2122 functions  ·  ⌨ 2122 · 🎛 818 · ☰ 674
+## Global  ·  2124 functions  ·  ⌨ 2124 · 🎛 819 · ☰ 676
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -782,6 +782,7 @@
 | Alias Identical Pattern Slots | ✅ | ✅ | ✅ |
 | All Samples Loop Cycler (Backwards) | ✅ | · | · |
 | All Samples Loop Cycler (Forwards) | ✅ | · | · |
+| Amigo to Renoise New Instrument | ✅ | ✅ | ✅ |
 | Analyze Sample BPM (4 beats) | ✅ | · | ✅ |
 | Append Random Samples (01) to Instrument | ✅ | · | · |
 | Apply 10-TET Decagono Lange Tuning | ✅ | · | · |
@@ -2236,6 +2237,8 @@
 | Render Pattern to Phrases | ✅ | ✅ | ✅ |
 | Render Pattern to Phrases (8 slices) | ✅ | · | · |
 | Render Phrase to Sample | ✅ | ✅ | ✅ |
+| Renoise to Amigo Selected Sample | ✅ | ✅ | ✅ |
+| Renoise to Amigo Selected Sample Embedded | ✅ | · | ✅ |
 | Repeater 1 / 1 Dotted | ✅ | · | · |
 | Repeater 1 / 1 Even | ✅ | · | · |
 | Repeater 1 / 1 Triplet | ✅ | · | · |
@@ -2760,7 +2763,6 @@
 | Toggle Mute/Unmute Remembered Tracks | ✅ | ✅ | · |
 | Toggle New Sample Auto-Settings | ✅ | · | · |
 | Toggle OctaMED Hold-to-Fill Mode | ✅ | · | ✅ |
-| Toggle Overdub Pattern Sync | ✅ | ✅ | ✅ |
 | Toggle Paketti Dialog of Dialogs... | ✅ | · | · |
 | Toggle Pattern Status Monitor | ✅ | · | ✅ |
 | Toggle Phrase Follow Pattern Playback Hack | ✅ | · | · |
@@ -2879,7 +2881,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1526 functions  ·  ⌨ 0 · 🎛 782 · ☰ 889
+## (menu/midi only)  ·  1527 functions  ·  ⌨ 0 · 🎛 782 · ☰ 890
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -3293,6 +3295,7 @@
 | Double Tap | · | · | ✅ |
 | Drunk (Slot 01) | · | · | ✅ |
 | DSP Chain | · | · | ✅ |
+| Dump Amigo State to Console | · | · | ✅ |
 | Dump Available Effects/Plugins to Dialog... | · | ✅ | · |
 | Dump Complete Renoise API | · | · | ✅ |
 | Dump REX Structure to Text | · | · | ✅ |
