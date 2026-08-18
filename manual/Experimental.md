@@ -19490,423 +19490,63 @@ delay = floor((position - 1) * 255 / total_notes)
 
 # Amigo Sampler Integration
 
-**Source:** `PakettiAmigoInspect.lua` | **Features:** 5
+**Source:** `PakettiAmigo.lua`
 
-Complete integration with PotenzaDSP Amigo Sampler plugin - extract, import, analyze, and modify embedded sample files and paths within Amigo presets.
+Moves a single sample between Renoise and the PotenzaDSP Amigo Sampler plugin, in both directions, on both the AU and the VST3 build of Amigo.
 
 **Prerequisites:**
-- macOS only (uses `plutil`)
-- `base64.lua` module (included)
-- PotenzaDSP Amigo plugin (AU/VST3)
-
-## Core Features
-
-### 1. Decode Active Plugin ParameterChunk
-
-Analyzes and displays the internal structure of Amigo presets.
-
-**Process:**
-1. Reads active preset data from plugin
-2. Decodes base64 ParameterChunk
-3. Converts binary plist to XML via `plutil`
-4. Extracts JUCE plugin state
-5. Parses JUCE parameter structure
-6. Displays:
-   - JUCE magic ("PARAMS")
-   - Version number
-   - All parameter entries
-   - Pathname entries
-   - WAV file locations
-   - Sample data locations
-
-**Output:**
-- Console logging with hex dumps
-- First 64 bytes of chunks
-- Parameter structure analysis
-- WAV header information
-
-### 2. Load Embedded Sample to New Instrument
-
-**Keybinding:** `Global:Paketti:Paketti Load Amigo Sample to New Instrument` ⌨️
-
-**Menu:** `Instrument Box:Paketti Amigo Sampler:Load Embedded Sample to New Instrument` 📋
-
-Extracts embedded sample from Amigo preset and loads it into a new Renoise instrument.
-
-**Extraction Process:**
-1. Validates Amigo plugin is loaded
-2. Reads active preset data
-3. Converts binary plist → XML
-4. Extracts JUCE plugin state (base64 → binary)
-5. Locates "EMBEDDED_FILE" marker
-6. Extracts base64-encoded WAV data after marker
-7. Decodes to raw WAV file
-8. Parses JUCE parameters for filename
-9. Creates new instrument with default XRNI template
-10. Loads WAV into sample slot 1
-11. Names instrument and sample from extracted filename
-12. Removes placeholder sample
-
-**Error Handling:**
-- "NO_EMBEDDED_SAMPLE" → Shows user-friendly message
-- Instructs to click "Embed" in Amigo interface
-- Safe fallback for missing data
-
-**Filename Extraction:**
-- Parses pathname entry from JUCE data
-- Uses full filename with extension
-- Fallback: "Amigo Sample Export"
-
-**Instrument Setup:**
-- Creates new instrument at `selected_index + 1`
-- Loads default XRNI via `pakettiPreferencesDefaultInstrumentLoader()`
-- Inserts sample at slot 1
-- Sets instrument name = filename
-- Sets sample name = filename
-
-### 3. Open Sample Folder
-
-Opens the folder containing the original sample file referenced in the Amigo preset.
-
-**Process:**
-1. Validates Amigo plugin loaded
-2. Extracts JUCE state from preset
-3. Searches for full path in JUCE data:
-   - Checks first 1024 bytes (header area)
-   - Looks for `/Users/` path pattern
-   - Searches near "EMBEDDED_FILE" marker
-   - Finds last path before marker
-   - Scans for any `.wav` paths
-4. Extracts directory path
-5. Opens in Finder/file manager
-
-**Path Search Strategy:**
-- Multiple search methods (header, marker context, full scan)
-- Handles various path storage formats
-- Robust fallback mechanisms
-
-**Error Handling:**
-- "NO_PATH_FOUND" if no valid path detected
-- Status message guides user
-
-### 4. Export Sample to Amigo
-
-**Keybinding:** `Global:Paketti:Paketti Export Renoise Sample to Amigo Embedded Sample` ⌨️
-
-**Menu:** `Instrument Box:Paketti Amigo Sampler:Export Renoise Sample to Amigo Embedded Sample` 📋
-
-Exports the current Renoise sample into Amigo as its embedded WAV.
-
-**Export Process:**
-1. Validates Amigo plugin loaded
-2. Checks selected sample has audio data
-3. Saves sample to temporary WAV file
-4. Reads and verifies WAV data
-5. Builds new JUCE data structure:
-   - "PARAMS" header with version 1
-   - Pathname entry (sanitized filename)
-   - jucedata entry (WAV file data)
-   - EMBEDDED_FILE marker
-   - Base64-encoded WAV
-6. Converts to binary plist
-7. Wraps in Renoise preset XML format
-8. Updates plugin's `active_preset_data`
-9. Forces plugin refresh
-10. Verifies update succeeded
-
-**JUCE Data Structure:**
-
-**Header:**
-```
-PARAMS              -- Magic (6 bytes)
-0x01 0x00          -- Version 1 (little-endian)
-```
-
-**Pathname Entry:**
-```
-pathname + padding  -- ID (8 bytes total)
-0x65 0x00          -- Version 101 (little-endian)
-<length>           -- Path length (1 byte)
-0x21               -- Flag: direct path mode
-<path_string>      -- Filename.wav
-```
-
-**jucedata Entry:**
-```
-jucedata + padding  -- ID (8 bytes total)
-0x65 0x00          -- Version 101 (little-endian)
-<length_lo> <length_hi>  -- WAV size (2 bytes, little-endian)
-<wav_data>         -- Raw WAV file data
-```
-
-**Embedded Sample:**
-```
-EMBEDDED_FILE      -- Marker string
-0x00               -- Null terminator
-<base64_wav>       -- Base64-encoded WAV
-```
-
-**Filename Sanitization:**
-- Removes non-alphanumeric characters
-- Keeps: A-Z, a-z, 0-9, `-`, `_`
-- Ensures `.wav` extension
-- Fallback: "untitled.wav"
-
-**Verification:**
-- Reads back updated preset
-- Parses JUCE data
-- Verifies pathname entry
-- Verifies WAV data present
-- Logs sizes and details
-
-**Debug Output:**
-- Original sample details (frames, channels, bits, rate)
-- Temporary WAV file size
-- JUCE data structure sizes
-- Pathname and flag values
-- WAV header details
-
-### 5. Import WAV into Preset
-
-Replaces the embedded sample in Amigo with a selected WAV file from disk.
-
-**Import Process:**
-1. Validates Amigo plugin loaded
-2. Prompts for WAV file selection
-3. Reads and validates input WAV
-4. Parses existing preset data
-5. Locates jucedata entry in JUCE parameters
-6. Replaces WAV data in-place:
-   - Keeps header and version/length fields
-   - Replaces sample data
-   - Updates length field (2-byte little-endian)
-7. Verifies new JUCE header structure
-8. Converts back to base64
-9. Updates XML plist
-10. Converts to binary plist
-11. Wraps in preset XML
-12. Updates plugin preset
-13. Forces refresh
-
-**Validation:**
-- Verifies WAV header (RIFF, WAVE, fmt, data chunks)
-- Logs sample rate, channels, bit depth
-- Ensures data integrity
-
-**In-Place Replacement:**
-- Finds jucedata entry offset
-- Calculates: `entry.offset + 12` (past ID + version + length)
-- Keeps: `before` (up to data start)
-- Replaces: WAV data
-- Keeps: `after` (rest of chunk)
-- Updates length field at `offset + 10-11`
-
-## JUCE Parameter Parsing
-
-**Header Structure:**
-```
-Offset 0-5:   "PARAMS" magic
-Offset 6-7:   Version (little-endian, typically 0x01 0x00)
-Offset 8+:    Parameter entries
-```
-
-**Entry Structure:**
-```
-ID (8 bytes, null-padded)
-Version (2 bytes, little-endian)
-Length (1-2 bytes, little-endian)
-[Optional flag byte for pathname]
-Data (variable length)
-```
-
-**Known Entry Types:**
-
-**pathname/pathnam:**
-- Version: 2 bytes LE
-- Length: 1 byte
-- Flag: 1 byte
-  - `0x19` = Path index + embedded path
-  - `0x21` = Direct path
-  - `0x3C` = Path index (requires lookup)
-- Data: Path string or index
-
-**jucedata:**
-- Version: 2 bytes LE
-- Length: 2 bytes LE
-- Data: Binary blob (often WAV data)
-
-**metadata:**
-- Version: 2 bytes LE
-- Length: 2 bytes LE
-- Data: Contains path lookup table
-
-## Binary Plist Handling
-
-**Conversion to XML:**
-```bash
-plutil -convert xml1 -o output.xml input.bin
-```
-
-**Conversion to Binary:**
-```bash
-plutil -convert binary1 -o output.bin input.xml
-```
-
-**Plist Structure:**
-```xml
-<plist version="1.0">
-<dict>
-    <key>jucePluginState</key>
-    <data><![CDATA[<base64_juce_data>]]></data>
-</dict>
-</plist>
-```
-
-## WAV File Analysis
-
-**WAV Header Parsing:**
-- Reads RIFF chunk
-- Parses fmt chunk:
-  - Audio format (PCM = 1)
-  - Channel count
-  - Sample rate
-  - Byte rate
-  - Block align
-  - Bits per sample
-- Locates data chunk
-- Calculates audio data size
-
-**Sample Size Calculation:**
-- Finds "data" chunk marker
-- Reads 4-byte size (little-endian)
-- Returns raw audio data size
-
-## Path Detection Strategies
-
-**Strategy 1: Header Search**
-- Scans first 1024 bytes
-- Looks for `/Users/...` patterns
-- Finds paths ending in `.wav`
-
-**Strategy 2: Marker Context**
-- Locates "EMBEDDED_FILE" marker
-- Searches 512 bytes before marker
-- Finds last path-like string
-
-**Strategy 3: Metadata Lookup**
-- Parses metadata entry
-- Builds path lookup table
-- Matches path indices
-
-**Strategy 4: Full Scan**
-- Scans entire JUCE data
-- Collects all path patterns
-- Returns most likely path
-
-## Debugging Tools
-
-**Hex Dump:**
-- Formats binary data as hex
-- Shows ASCII representation
-- 16 bytes per line
-- Format: `XX XX XX XX | ASCII`
-
-**Bytes to ASCII:**
-- Converts printable bytes to characters
-- Shows `\xXX` for non-printable
-
-**Read Little-Endian Integer:**
-- Supports 1-4 byte integers
-- Lowest byte first
-- Debug logging of each byte
-
-## Amigo Plugin Detection
-
-**Detection Logic:**
-1. Check plugin is loaded
-2. Verify `short_name == "Amigo"`
-3. Works for AU and VST3 versions
-
-**Safe Failure:**
-- Returns false if not Amigo
-- Shows status message
-- Prevents errors on wrong plugin
-
-## Sample Verification
-
-**Match Verification:**
-- Compares WAV headers (channels, rate, bit depth)
-- Compares data chunk sizes
-- Byte-by-byte data comparison
-- Reports first difference with context
-
-**Statistics:**
-- Frame count
-- Channel configuration
-- Bit depth
-- Sample rate
-
-## Error Handling
-
-**Common Errors:**
-- "No active preset data found"
-- "Invalid WAV file"
-- "<ParameterChunk> not found"
-- "No JUCE plugin state found"
-- "NO_EMBEDDED_SAMPLE" (no sample embedded)
-- "NO_PATH_FOUND" (no path in preset)
-
-**Recovery:**
-- All errors show user-friendly messages
-- Console logging for debugging
-- Safe fallbacks
-- No crashes on malformed data
-
-## Preset XML Format
-
-**Renoise Preset Structure:**
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<FilterDevicePreset doc_version="13">
-  <DeviceSlot type="AudioPluginDevice">
-    <IsMaximized>true</IsMaximized>
-    <ActiveProgram>-1</ActiveProgram>
-    <PluginType>AU</PluginType>
-    <PluginIdentifier>aumu:Amgo:PTNZ</PluginIdentifier>
-    <PluginDisplayName>AU: PotenzaDSP: Amigo</PluginDisplayName>
-    <PluginShortDisplayName>Amigo</PluginShortDisplayName>
-    <PluginEditorWindowPosition>-1,-1</PluginEditorWindowPosition>
-    <ParameterChunkType>Chunk</ParameterChunkType>
-    <ParameterChunk><![CDATA[<base64_binary_plist>]]></ParameterChunk>
-  </DeviceSlot>
-</FilterDevicePreset>
-```
-
-## Use Cases
-
-**Workflow 1: Sample Library Management**
-1. Load Amigo preset
-2. Extract embedded sample
-3. Process in Renoise
-4. Export back to Amigo
-
-**Workflow 2: Preset Creation**
-1. Prepare sample in Renoise
-2. Export to Amigo
-3. Design modulation/FX in Amigo
-4. Save preset
-
-**Workflow 3: Sample Recovery**
-1. Load old Amigo preset
-2. Extract embedded sample
-3. Save to disk
-4. Archive or reuse
-
-**Workflow 4: Path Management**
-1. Open sample folder
-2. Replace sample file
-3. Reimport to preset
-4. Update path if needed
+- PotenzaDSP Amigo plugin (AU or VST3), scanned by Renoise
+- Nothing else. There is no `plutil` dependency, so this works on macOS, Windows and Linux.
+
+## Renoise to Amigo
+
+Takes the selected sample, writes it as a `.wav` into a **Paketti Amigo Samples** folder in your home directory, and points an Amigo instance at it. If the selected instrument already hosts Amigo, that instance is retargeted; otherwise a new instrument with Amigo loaded is created right after the current one and named after the sample.
+
+Amigo plays from the file on disk rather than from the preset, which is why the wav is written to a permanent folder instead of a temporary one.
+
+**Embedded variant:** additionally asks Amigo to bake the wav into its own preset state, so the preset travels without the file. This needs Amigo AU v1.1.6 or newer — older builds have no Embed, and the command says so rather than pretending it worked.
+
+- Menu: `Main Menu:File:Paketti Export:Export Selected Sample to Amigo Sampler`
+- Menu: `Main Menu:File:Paketti Export:Export Selected Sample to Amigo Sampler (Embedded)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Renoise to Amigo (Selected Sample)`
+- Menu: `Instrument Box:Paketti:Amigo:Renoise to Amigo (Selected Sample)`
+- Menu: `Sample Editor:Paketti:Amigo:Renoise to Amigo (Selected Sample)`
+- Keybinding: `Global:Paketti:Renoise to Amigo Selected Sample`
+- Keybinding: `Global:Paketti:Renoise to Amigo Selected Sample Embedded`
+- MIDI Mapping: `Paketti:Renoise to Amigo Selected Sample`
+
+## Amigo to Renoise
+
+Reads whatever the selected instrument's Amigo is holding and loads it into a brand new Renoise instrument built from your default instrument template. It uses the sample file on disk when it is still there, and falls back to Amigo's embedded copy when it is not — so an embedded preset imports even if the original wav is long gone.
+
+- Menu: `Main Menu:File:Paketti Import:Import Sample from Amigo Sampler`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Renoise (New Instrument)`
+- Menu: `Instrument Box:Paketti:Amigo:Amigo to Renoise (New Instrument)`
+- Menu: `Sample Editor:Paketti:Amigo:Amigo to Renoise (New Instrument)`
+- Keybinding: `Global:Paketti:Amigo to Renoise New Instrument`
+- MIDI Mapping: `Paketti:Amigo to Renoise New Instrument`
+
+## RX2 Import Goes Straight Into Amigo
+
+An Options toggle. When it is on, importing an `.rx2` decodes and slices as usual and then hands the result straight to Amigo: the audio is written to the Paketti Amigo Samples folder, Amigo is loaded onto that same instrument, the slice markers become Amigo's own slice points, and Amigo is switched into SLICE mode. The Renoise samples are removed afterwards, because an instrument holding both a plugin and samples would trigger both on every note.
+
+Amigo has 64 slice slots. An RX2 with more slices than that keeps the first 63 and the status bar says how many were dropped.
+
+- Menu: `Main Menu:Options:RX2 Import Goes Straight Into Amigo Toggle`
+- Keybinding: `Global:Paketti:Toggle RX2 Import Goes Straight Into Amigo`
+
+## Dump Amigo State to Console
+
+Prints the plugin state's root properties and parameter count to the scripting console. Useful when a preset misbehaves.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Dump Amigo State to Console`
+
+## How the plugin state is read
+
+Renoise hands the plugin state over as a `<FilterDevicePreset>` XML document with a base64 `<ParameterChunk>`. The VST3 build wraps a JUCE ValueTree in a `VST3` header with a `JUCEPrivateDataList` offset table; the AU build wraps the same ValueTree in an Apple binary plist. Paketti parses and rewrites both natively, so a rewrite with no changes reproduces the plugin's own state byte for byte.
+
+Amigo keeps the sample as a `pathname` root property, and — once you press Embed — a base64 copy of the whole wav in an `EMBEDDED_FILE` root property. `pathname` wins: if it points at a file that is missing, Amigo shows its FILE NOT FOUND panel and ignores the embedded copy.
+
 
 
 ---
@@ -21889,7 +21529,7 @@ If you liked what you're seeing here, please consider supporting. Every bit help
 between the `AUTO` markers. ⌨ = KeyBinding · 🎛 = MidiMapping · ☰ = MenuEntry.*
 
 **Coverage:** <!-- AUTO:counts -->
-⌨ **10,923** keybindings · 🎛 **7,538** midimappings · ☰ **6,757** menu entries → **4,349** functions
+⌨ **10,881** keybindings · 🎛 **7,329** midimappings · ☰ **6,721** menu entries → **4,321** functions
 <!-- /AUTO -->
 
 ### 🧪 Experimental / WIP
@@ -23118,5 +22758,123 @@ Regenerated by `.spine/vault-to-manual.py` — never hand-edit between the marke
 certified answer instead.*
 
 <!-- AUTO:certified -->
-_(no area matching “certified”)_
+### Can Paketti load device chains or presets
+
+Yes, Paketti can load device chains and presets. It supports loading Device Chain files (`.XRNT`) such as through the "Load Device Chain (.XRNT) Slot01" or "Load Device Chain ClippyClip" features. It also allows loading presets via "Create New Track & Load Random Device Chain/Preset" and "Load Devices Dialog..." for MIDI-based operations.
+
+### Groovebox 8120
+
+**Groovebox 8120** is Esa Ruoho's own original creation — an **8-part step-sequencer drum-machine groovebox** inside Paketti (a Lua tool for Renoise). It is not based on and does not emulate any real device — **no equivalent hardware or software exists**.
+
+It has **8 parts**, and each part can hold up to **120 samples** — so a full kit is up to **960 samples** (8 × 120; the `8ch960samp` design). Each part has its own step sequencer (8/16/32 steps). Highlights:
+- **Per-Step Sample mode** — each step can trigger a different one of that part's samples (1–120), instead of the whole row playing a single sample.
+- **Hands-free control from AKAI controllers** (MidiMix, APC Key 25, LPD8) — step editing, page navigation across the pattern, follow-page mode that tracks the playhead, and start/stop from the controller.
+- **Sequential Load / RandomLoad / RandomLoadAll**, a Kit system, and a Canvas (MK2) view.
+
+### How do I record a sample
+
+To record a sample in Paketti, you can use the following exact features:
+
+- **Start/Stop Sample Recording and Pakettify** – Starts or stops sample recording and automatically processes the sample with Pakettify. 
+- **Start Sampling and Sample Editor (Record)** – Initiates sample recording and opens the Sample Editor. 
+- **TouchOSC Sample Recorder and Record** – Records samples using TouchOSC interface. 
+- **Trigger Sample on Pattern Input During Record x[Toggle]** – Toggles sample triggering based on pattern input during recording. 
+- **Trigger Sample on Pattern Input During Record Toggle** – Toggles sample triggering during recording via pattern input (keyboard or MIDI). 
+- **Additive Record Follow Pattern (Toggle)** – Records a sample that follows the current pattern (toggle-based). 
+
+These are all the exact, officially listed features in Paketti related to sample recording.
+
+### How do I slice a sample
+
+In Paketti, you can slice a sample using the following exact features:
+
+- **Load&Slice&Isolate&Stack Sample** (keyboard) – Loads a sample, slices it, isolates the slices, and stacks them into new instruments or patterns. 
+- **BPM-Based Sample Slicer Dialog** (keyboard, MIDI, menu) – Slices a sample based on BPM, allowing precise timing aligned to your project’s tempo. 
+- **Wipe&Slice** (keyboard, MIDI, menu) – Wipes a sample and slices it into segments, often used for rhythmic or dynamic slicing. 
+- **Wipe&Slice&Write** (keyboard, MIDI, menu) – Similar to Wipe&Slice, but writes the sliced segments directly into a pattern or instrument. 
+- **Lazy Slicing** (keyboard, MIDI, menu) – Automatically slices a sample with minimal input, ideal for quick, approximate slicing without manual point definition. 
+
+These features provide flexible, keyboard- and MIDI-driven options for slicing samples with varying levels of control and automation.
+
+### Hyperedit
+
+**HyperEdit** is Paketti's automation step-sequencer — an old-school **re-take of the HyperEdit from Logic Audio Platinum 5.5.1** (Esa brought that classic idea into Renoise). It edits automation as a grid of **rows × steps** (or, in Stepper mode, an instrument's Stepper modulation points):
+- **Drawing** — each row is a parameter; set a step count (1, 2, 4 … 256) and draw values 0–1.0 on the canvas; the row repeats to fill the pattern.
+- **Sculpt / Random** modes (ABS/REL) — shape the playing step of every armed row live while the pattern plays.
+- **Gang** — highlight every Nth step; drawing on one highlighted step moves all ganged steps across the armed rows together.
+- **All Rows** — apply a step-count or value button to every row at once instead of just one.
+- **Stepper mode** — switch from editing track-device automation to editing the selected instrument's Stepper modulation devices.
+- **Duplicate to Next Pattern** — carry the whole 8-row HyperEdit setup forward.
+
+### Polyend Buddy
+
+**Polyend Buddy** is a **file-management system for the Polyend Tracker, Tracker+ and Tracker Mini** — built into Paketti so you manage your hardware tracker straight from Renoise over USB. It's a full bridge between Renoise/Paketti and your Polyend device. What it does:
+
+- **Browse the device** — reads the Polyend Device Root (handles **37,000+ files**) and lets you **load a PTI straight off the device** into Renoise.
+- **Convert to/from PTI** — turn any Renoise sample into the Polyend's **`.pti`** format (and back); the RX2/REX/ITI → PTI converter brings loops/instruments in too.
+- **Normalize slices in-place** — **normalize each slice inside a PTI** on the device.
+- **Drum kits** — load e.g. **48 drums** and turn them into a **pre-sliced drumkit inside the Polyend Tracker**, ready to trigger.
+- **Melodic Slice Creator** — build chromatic-sample instruments with a **slice-selector** that chooses which sound plays.
+- **Firmware** — **download firmware and upload it to the device**.
+- **Backup** — back up your whole Polyend device.
+
+### The MPC Cycler
+
+**MPC Cycler** is a Paketti dialog + keybinding suite for cycling through samples and instruments from user-defined folders — think MPC-style "load next/prev sound" workflow inside Renoise.
+
+What's documented:
+- **Changelog 2026-01-08**: Added to the "Dialog of Dialogs" (the master dialog launcher).
+- **Changelog 2026-06-11**: Its submenu `Paketti..:MPC Cycler..` was folded into the single `Paketti:MPC Cycler` menu.
+- **Source code**: Registers a custom dialog (`show_mpc_cycler_dialog`) and these keybinding groups:
+  - **Sample ops**: Set Sample Folder, Previous/Next Sample, Previous/Next Sample Folder
+  - **Instrument ops**: Set Instrument Folder, Previous/Next Instrument, Previous/Next Instrument Folder
+  - **Mode toggles**: Toggle Preview Mode, Commit Preview, Toggle Global Lock
+  - **Quick jumps**: Jump to Folder 01–10 (user-defined sample folders)
+
+The actual cycling/preview/commit logic lives in the unshown functions (`mpc_next_sample`, `mpc_toggle_preview`, etc.), so their exact behaviour (e.g. whether "Preview" loads to a temp instrument, what "Global Lock" locks) is **not yet documented in the provided sources**.
+
+### The Paketti Stacker
+
+**Paketti Stacker** loads a sample, splits it into mathematically‑defined slices, and builds a new instrument where each slice is assigned to a different velocity layer—so the velocity you play determines which slice sounds. 
+
+- You can then output the stacked slices as a **rising ramp** (first‑to‑last slice), a **downward ramp** (last‑to‑first), or a **random ramp** (any slice on each hit). 
+- The dialog adds **Expand + Flood Fill** and **Shrink + Flood Fill** controls, a **Pitch Stepper** (‑24, ‑12, 0, +12, +24 semitones), **Instrument Pitching**, and **Loop Mode** options to shape the slices. 
+- As noted in the manual, it also lets you play and mix each slice at various octaves (‑3, ‑2, ‑1, +1, +2, +3) simultaneously, giving a “poor man’s Ableton Live Warp Mode” style velocity stacking. 
+
+— **changelog 2025-02-16** (description of loading a sample, slicing, velocity‑controlled stacking, ramps, Expand/Shrink + Flood Fill, Pitch Stepper, Instrument Pitching, Loop Modes)  
+— **manual: Stacker** (velocity stacking of isolated slices, octave‑mixing capabilities)
+
+### The Player Pro Scanner (Start/Stop)
+
+The **Player Pro Scanner (Start/Stop)** is a Paketti feature that allows you to scan through pattern lines in Renoise and play them automatically, one by one, based on a selection.
+**What it does (from the source code and logic):**
+- **Requires a selection** in the pattern (e.g., a range of lines) — if no selection is found, it shows a status message: *"No selection found"*.
+- **Must stop playback** before starting — if playback is active, it prevents starting and shows: *"Stop playback first"*.
+- It **starts scanning** from the first line of the selection and moves sequentially to each line.
+- For each line:
+  - It checks if the line contains any notes (non-empty, with note value < 120).
+  - If notes are present and the `PAKETTI_HAS_TRIGGER_LINE` condition is met, it **triggers the line** (plays it) via `song:trigger_pattern_line(current_line)`.
+  - After playing, it **restores the original solo state** of the track to avoid unintended soloing.
+- It **stops automatically** when it reaches the end of the selection or when the user stops it manually.
+- It runs in a loop until stopped, and can be stopped at any time.
+**Key behaviours:**
+- **No audio playback** — it triggers pattern lines via the Renoise engine, not through audio output.
+- **Solo state is preserved** — it temporarily soloes the track during playback, then restores the original state.
+- **Only triggers lines with notes** — empty lines are skipped.
+- **Works with any track and pattern** — as long as the selection is valid.
+**Use case:**
+This is useful for **manually scanning through a sequence of pattern lines** to hear how they play in order — for example, testing a progression, debugging a pattern, or playing through a section without manually stepping through each line.
+
+> ✅ **Status**: This feature is implemented in the source code and is active when the `pakettiPlayerProScanner()` function is called via a keybinding or menu.
+
+> 📌 **Note**: The feature is named in the feature list as `Player Pro Scanner (Start/Stop)` and is registered with a keybinding:  
+> `Pattern Editor:Paketti:Player Pro Scanner (Start/Stop)`.
+
+> 🔍 **Source reference**: The full Lua function is available in the Paketti source code under `pakettiPlayerProScanner()` — it includes detailed logic for selection, solo state, line triggering, and stopping.
+
+This is **not** a real-time playback tool or a loop player — it's a **line-by-line scanner** that plays selected pattern lines in sequence, triggered by a user action.
+
+### ”How do I obtain the correct bpm of the file?”
+
+To obtain the correct BPM of a WAV file, use the Paketti Stem Loader feature. As documented in the 2025-12-18 changelog, this feature "read[s] the BPM from the Wavefile header, or read[s] the BPM from the folder the files are in" when processing files. For a single WAV file, it obtains the BPM directly from the file's header. — changelog 2025-12-18
 <!-- /AUTO -->

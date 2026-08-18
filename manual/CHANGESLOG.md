@@ -8,6 +8,17 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Feature: RX2 Import can go straight into Amigo, and the old Amigo code is gone
+
+A new Options toggle, `Main Menu:Options:RX2 Import Goes Straight Into Amigo Toggle`, changes what happens when you import an `.rx2`. With it on, the RX2 is decoded and sliced as usual and then handed straight to the Amigo Sampler: the audio is written into your "Paketti Amigo Samples" folder, Amigo is loaded onto that same instrument, every slice marker becomes one of Amigo's own slice points, and Amigo is switched into SLICE mode. The Renoise samples are removed afterwards, because an instrument holding both a plugin and samples would trigger both on every note. Amigo has 64 slice slots, so an RX2 with more slices keeps the first 63 and the status bar says how many were dropped. With the toggle off, RX2 import behaves exactly as before.
+
+- Menu: `Main Menu:Options:RX2 Import Goes Straight Into Amigo Toggle`
+- Keybinding: `Global:Paketti:Toggle RX2 Import Goes Straight Into Amigo`
+
+Exported filenames no longer keep the source extension, so an RX2 named `loop.rx2` becomes `loop.wav` rather than `loop.rx2.wav`.
+
+Removed: the old `PakettiAmigoInspect.lua` and its six `Tools:Paketti:Xperimental/WIP:Amigo` entries. That code read the plugin state with hand-guessed byte offsets that do not match the real format, required the macOS `plutil` command, and its export would have written a preset Amigo could not read. Everything it was meant to do is now in the Amigo entries under `File:Paketti Import`, `File:Paketti Export` and `Tools:Paketti:Instruments:Amigo`.
+
 ### 2026-08-19 - Feature: Amigo Sampler round-trip — one sample from Renoise to Amigo and back
 
 Paketti now moves a single sample between Renoise and the PotenzaDSP Amigo Sampler plugin, in both directions, on both the AU and the VST3 build of Amigo.

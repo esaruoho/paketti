@@ -3477,16 +3477,6 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:Pa
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Audio Processing Tools...",invoke=function() pakettiAudioProcessingToolsDialog() end}
-local os_name = os.getenv("OS") or os.getenv("OSTYPE") or (io.popen("uname -s"):read("*l"))
-if os_name == "MACINTOSH" or os_name == "Darwin" then
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Import Embedded Amigo (AU) WAV into Sample",invoke=function() PakettiAmigoAmigoToRenoise() end }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Open Amigo (AU) Sample Path",invoke=function() pakettiAmigoOpenSamplePath() end }
-
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Decode Active Plugin ParameterChunk Amigo (AU)",invoke=function() pakettiAmigoDecodeActiveParameterChunk() end }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Import Active Plugin Wavefile Amigo (AU)",invoke=function() pakettiAmigoImportWavefile() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Set Active Plugin Pathname Amigo (AU)",invoke=function() pakettiAmigoSetActivePathname() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Export Selected Sample to Amigo (AU)",invoke=function() PakettiAmigoRenoiseToAmigo() end}
-end
 
 -- Main Menu Options
 renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Function Search...",invoke=pakettiAutocompleteToggle}
