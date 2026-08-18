@@ -7,7 +7,7 @@
    4358 wav
    1195 png
     701 xrnc
-    250 lua
+    249 lua
     210 gif
     133 txt
      52 md
@@ -96,7 +96,6 @@ main.lua
 1 main -> PakettiAKWF
 1 main -> PakettiActionSelector
 1 main -> PakettiAmigo
-1 main -> PakettiAmigoInspect
 1 main -> PakettiArpeggiator
 1 main -> PakettiAudioProcessing
 1 main -> PakettiAutoSamplify
@@ -283,7 +282,7 @@ main.lua
 1 pmcp -> json
 1 recapture -> json
 1 vault-to-manual -> json
-  ── 222 edges total ──
+  ── 221 edges total ──
 ```
 ## The wiring, drawn
 
@@ -324,7 +323,6 @@ graph LR
   main["main"] -->|1| PakettiAKWF["PakettiAKWF"]
   main["main"] -->|1| PakettiActionSelector["PakettiActionSelector"]
   main["main"] -->|1| PakettiAmigo["PakettiAmigo"]
-  main["main"] -->|1| PakettiAmigoInspect["PakettiAmigoInspect"]
   main["main"] -->|1| PakettiArpeggiator["PakettiArpeggiator"]
   main["main"] -->|1| PakettiAudioProcessing["PakettiAudioProcessing"]
   main["main"] -->|1| PakettiAutoSamplify["PakettiAutoSamplify"]
