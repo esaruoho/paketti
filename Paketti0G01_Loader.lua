@@ -376,6 +376,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiAutoSamplifyMonitoring = false,
   pakettiAutoSamplifyPakettify = false,
   pakettiAmigoRX2Import = false,
+  pakettiSliceFadeOutMs = 2,
+  pakettiSliceFadeInMs = 0,
   -- Groovebox 8120: when opening 8120 on an empty song (no real instruments),
   -- create the 8 instrument slots and load the Paketti Default Instrument into
   -- each (rows 01-08). Fires only on 8120 open, never on New Song.

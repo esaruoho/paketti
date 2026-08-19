@@ -8,6 +8,22 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Feature: Slice Fades — bake short fades into slice boundaries
+
+Autofade already gives you click-free slices at playback time, and for most uses that is the right answer. Slice Fades is for when you want the fade baked into the audio instead: exported slices, hardware with no autofade, or simply wanting to see it in the waveform.
+
+It writes a linear fade into the end of every slice region, optionally into the start as well. Slice samples in Renoise are read-only aliases, so the fades go into the parent sample's buffer at the region boundaries — which means it works on a normally sliced instrument with no preparation. A fade is never allowed to eat more than half a region, so short slices get a proportionally shorter fade rather than being silenced, and the status line says how many were shortened. The whole pass is a single sample change, so one Undo takes it back.
+
+Ready-made lengths are 0.5, 1, 2, 5, 10 and 20 ms, and the dialog takes any value up to 500 ms for fade-in and fade-out separately.
+
+- Menu: `Main Menu:Tools:Paketti:Slice Tools:Slice Fades Dialog...`
+- Menu: `Main Menu:Tools:Paketti:Slice Tools:Fade Out Slice Ends 0.5ms` through `20ms`
+- Menu: `Sample Editor:Paketti:Slice Fades:Fade Out Slice Ends …` and `Fade Both Slice Ends …`
+- Menu: `Instrument Box:Paketti:Slice Fades:Slice Fades Dialog...`
+- Keybinding: `Global:Paketti:Slice Fades Dialog...`
+- Keybinding: `Global:Paketti:Fade Out Slice Ends 0.5ms` through `20ms`, and `Global:Paketti:Fade Both Slice Ends …`
+- MIDI Mapping: `Paketti:Slice Fades Dialog`, `Paketti:Fade Out Slice Ends 0.5ms` through `20ms`
+
 ### 2026-08-19 - Feature: Amigo drumkits, pattern printing, transient and BPM slicing
 
 `Amigo to Renoise Drumkit` brings an Amigo back as separate one-shot samples, one per slice, laid out one per key from C-0 — rather than as a single sliced instrument. There is a batch version for every Amigo in the song. Both the sliced instrument and the drumkit are kept.
