@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,406 functions** · 10,973 keybindings · 7,562 midimappings · 6,861 menu entries.
+**4,407 functions** · 10,974 keybindings · 7,562 midimappings · 6,862 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+32) | ✅ | · | · |
+| Nudge Slice 01 by (+10) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2150 functions  ·  ⌨ 2150 · 🎛 832 · ☰ 690
+## Global  ·  2151 functions  ·  ⌨ 2151 · 🎛 832 · ☰ 691
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -2303,6 +2303,7 @@
 | Save Current Sample as 8SVX... | ✅ | · | ✅ |
 | Save Current Sample as IFF... | ✅ | · | ✅ |
 | Save MIDI Mappings (.xrnm)... | ✅ | ✅ | ✅ |
+| Save Phrases of All Instruments as Presets (Subfolders)... | ✅ | · | ✅ |
 | Save Sample to Smart/Backup Folder 1 | ✅ | ✅ | ✅ |
 | Save Sidechain Recipe Dialog | ✅ | · | · |
 | Save Song (2nd) | ✅ | · | · |
