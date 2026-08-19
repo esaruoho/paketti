@@ -26,17 +26,23 @@ jobs:
           submodules: false
       - name: Install luajit
         run: |
-          # apt on the hosted runners can hang indefinitely on a bad mirror -
-          # this step once sat there for the full 6-hour job limit. Bound every
-          # attempt and retry instead of blocking the whole workflow.
+          # apt-get UPDATE is what hangs on the hosted runners (it fetches from
+          # mirrors); install itself works off the package lists the image
+          # already ships. So: use what is already installed, else install
+          # without updating, and only refresh the lists as a last resort - with
+          # Acquire timeouts so a bad mirror fails fast instead of blocking.
+          if command -v luajit >/dev/null 2>&1 || command -v lua >/dev/null 2>&1 ; then
+            echo "already present, skipping apt"
+            exit 0
+          fi
+          APT_OPTS="-o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 -o Acquire::Retries=2"
           for attempt in 1 2 3; do
-            if sudo timeout 180 apt-get update -qq && sudo timeout 300 apt-get install -y -qq luajit; then
+            if sudo timeout 300 apt-get install -y -qq $APT_OPTS luajit ; then
               exit 0
             fi
-            echo "apt attempt $attempt failed or timed out - retrying"
-            sudo pkill -9 -f 'apt-get|apt\.systemd' 2>/dev/null || true
-            sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock* 2>/dev/null || true
-            sleep 15
+            echo "apt-get install attempt $attempt failed - refreshing package lists"
+            sudo timeout 120 apt-get update -qq $APT_OPTS || echo "apt-get update failed or timed out, continuing anyway"
+            sleep 10
           done
           echo "apt-get could not install luajit after 3 attempts"
           exit 1
@@ -203,7 +209,15 @@ jobs:
       # Verify no syntax errors were introduced by the sed transformations
       - name: Syntax check all Lua files
         run: |
-          for attempt in 1 2 3; do sudo timeout 180 apt-get update -qq && sudo timeout 300 apt-get install -y -qq lua5.1 && break || sleep 15; done
+          # this step needs luac5.1 specifically, so check for that binary,
+          # not for any lua on PATH
+          if ! command -v luac5.1 >/dev/null 2>&1; then
+            for attempt in 1 2 3; do
+              sudo timeout 300 apt-get install -y -qq lua5.1 && break
+              sudo timeout 120 apt-get update -qq || true
+              sleep 10
+            done
+          fi
           errors=0
           while IFS= read -r -d '' f; do
             if ! luac5.1 -p "$f" 2>/dev/null; then
@@ -268,17 +282,23 @@ jobs:
 
       - name: Install LuaJIT + Graphviz
         run: |
-          # apt on the hosted runners can hang indefinitely on a bad mirror -
-          # this step once sat there for the full 6-hour job limit. Bound every
-          # attempt and retry instead of blocking the whole workflow.
+          # apt-get UPDATE is what hangs on the hosted runners (it fetches from
+          # mirrors); install itself works off the package lists the image
+          # already ships. So: use what is already installed, else install
+          # without updating, and only refresh the lists as a last resort - with
+          # Acquire timeouts so a bad mirror fails fast instead of blocking.
+          if command -v luajit >/dev/null 2>&1 && command -v dot >/dev/null 2>&1 ; then
+            echo "already present, skipping apt"
+            exit 0
+          fi
+          APT_OPTS="-o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 -o Acquire::Retries=2"
           for attempt in 1 2 3; do
-            if sudo timeout 180 apt-get update -qq && sudo timeout 300 apt-get install -y -qq luajit graphviz; then
+            if sudo timeout 300 apt-get install -y -qq $APT_OPTS luajit graphviz ; then
               exit 0
             fi
-            echo "apt attempt $attempt failed or timed out - retrying"
-            sudo pkill -9 -f 'apt-get|apt\.systemd' 2>/dev/null || true
-            sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock* 2>/dev/null || true
-            sleep 15
+            echo "apt-get install attempt $attempt failed - refreshing package lists"
+            sudo timeout 120 apt-get update -qq $APT_OPTS || echo "apt-get update failed or timed out, continuing anyway"
+            sleep 10
           done
           echo "apt-get could not install luajit graphviz after 3 attempts"
           exit 1
