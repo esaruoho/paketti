@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,363 functions** · 10,928 keybindings · 7,541 midimappings · 6,774 menu entries.
+**4,391 functions** · 10,938 keybindings · 7,546 midimappings · 6,804 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (-32) | ✅ | · | · |
+| Nudge Slice 01 by (+16) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2127 functions  ·  ⌨ 2127 · 🎛 821 · ☰ 676
+## Global  ·  2137 functions  ·  ⌨ 2137 · 🎛 826 · ☰ 678
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -782,7 +782,12 @@
 | Alias Identical Pattern Slots | ✅ | ✅ | ✅ |
 | All Samples Loop Cycler (Backwards) | ✅ | · | · |
 | All Samples Loop Cycler (Forwards) | ✅ | · | · |
+| Amigo to Digitakt Chain | ✅ | ✅ | · |
+| Amigo to Impulse Tracker ITI | ✅ | ✅ | · |
+| Amigo to Octatrack ot and wav | ✅ | ✅ | ✅ |
+| Amigo to Polyend PTI | ✅ | ✅ | · |
 | Amigo to Renoise New Instrument | ✅ | ✅ | ✅ |
+| Amigo to WAV with CUE Header | ✅ | ✅ | ✅ |
 | Analyze Sample BPM (4 beats) | ✅ | · | ✅ |
 | Append Random Samples (01) to Instrument | ✅ | · | · |
 | Apply 10-TET Decagono Lange Tuning | ✅ | · | · |
@@ -886,7 +891,12 @@
 | Batch Convert XRNI Folder to Octatrack (WAV+.ot) | ✅ | ✅ | ✅ |
 | Batch Convert XRNI Folder to PTI | ✅ | ✅ | ✅ |
 | Batch Convert XRNI Folder to WAV (with CUE) | ✅ | ✅ | ✅ |
+| Batch Every Amigo in Song to Digitakt Chain | ✅ | · | · |
+| Batch Every Amigo in Song to Impulse Tracker ITI | ✅ | · | · |
+| Batch Every Amigo in Song to Octatrack ot and wav | ✅ | · | · |
+| Batch Every Amigo in Song to Polyend PTI | ✅ | · | · |
 | Batch Every Amigo in Song to Renoise Instruments | ✅ | ✅ | · |
+| Batch Every Amigo in Song to WAV with CUE Header | ✅ | · | · |
 | Batch Every Sampled Instrument in Song to Amigo | ✅ | ✅ | · |
 | Batch Pakettify Wave Files in Folder to XRNI & Load... | ✅ | ✅ | ✅ |
 | Batch Pakettify Wave Files in Folder to XRNI (Save Only)... | ✅ | ✅ | ✅ |
@@ -2884,7 +2894,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1535 functions  ·  ⌨ 0 · 🎛 782 · ☰ 898
+## (menu/midi only)  ·  1553 functions  ·  ⌨ 0 · 🎛 782 · ☰ 916
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -2990,6 +3000,9 @@
 | Align Instrument Names | · | · | ✅ |
 | AM Sinewave 1000Hz (20x mod) | · | · | ✅ |
 | AM Sinewave Custom | · | · | ✅ |
+| Amigo to Digitakt Chain (.wav) | · | · | ✅ |
+| Amigo to Impulse Tracker ITI (.iti) | · | · | ✅ |
+| Amigo to Polyend PTI (.pti) | · | · | ✅ |
 | Analog Filter | · | ✅ | ✅ |
 | Analyze Slice Markers | · | ✅ | ✅ |
 | APC Demo — Light Show | · | · | ✅ |
@@ -3332,7 +3345,12 @@
 | Envelope | · | · | ✅ |
 | EQ 5 | · | ✅ | ✅ |
 | EQ10 XY Control... | · | · | ✅ |
+| Every Amigo in Song to Digitakt Chain (.wav) | · | · | ✅ |
+| Every Amigo in Song to Impulse Tracker ITI (.iti) | · | · | ✅ |
+| Every Amigo in Song to Octatrack (.ot + .wav) | · | · | ✅ |
+| Every Amigo in Song to Polyend PTI (.pti) | · | · | ✅ |
 | Every Amigo in Song to Renoise Instruments | · | · | ✅ |
+| Every Amigo in Song to WAV with CUE Header | · | · | ✅ |
 | Every Sampled Instrument in Song to Amigo | · | · | ✅ |
 | Evolving | · | · | ✅ |
 | Example Tool... | · | · | ✅ |
@@ -3345,8 +3363,18 @@
 | Export (.WAV+.ot) | · | · | ✅ |
 | Export .PTI Instrument | · | ✅ | ✅ |
 | Export All Slots | · | · | ✅ |
+| Export Amigo to Digitakt Chain (.wav) | · | · | ✅ |
+| Export Amigo to Impulse Tracker ITI (.iti) | · | · | ✅ |
+| Export Amigo to Octatrack (.ot + .wav) | · | · | ✅ |
+| Export Amigo to Polyend PTI (.pti) | · | · | ✅ |
+| Export Amigo to WAV with CUE Header | · | · | ✅ |
 | Export Convolver IR into New Instrument | · | · | ✅ |
 | Export Current Sample as IFF... | · | · | ✅ |
+| Export Every Amigo in Song to Digitakt Chain (.wav) | · | · | ✅ |
+| Export Every Amigo in Song to Impulse Tracker ITI (.iti) | · | · | ✅ |
+| Export Every Amigo in Song to Octatrack (.ot + .wav) | · | · | ✅ |
+| Export Every Amigo in Song to Polyend PTI (.pti) | · | · | ✅ |
+| Export Every Amigo in Song to WAV with CUE Header | · | · | ✅ |
 | Export Every Sampled Instrument in Song to Amigo | · | · | ✅ |
 | Export Pattern to MTP | · | · | ✅ |
 | Export Pattern to MTP (auto-split >128) | · | · | ✅ |
