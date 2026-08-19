@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,357 functions** · 10,926 keybindings · 7,539 midimappings · 6,768 menu entries.
+**4,363 functions** · 10,928 keybindings · 7,541 midimappings · 6,774 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2125 functions  ·  ⌨ 2125 · 🎛 819 · ☰ 676
+## Global  ·  2127 functions  ·  ⌨ 2127 · 🎛 821 · ☰ 676
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -886,6 +886,8 @@
 | Batch Convert XRNI Folder to Octatrack (WAV+.ot) | ✅ | ✅ | ✅ |
 | Batch Convert XRNI Folder to PTI | ✅ | ✅ | ✅ |
 | Batch Convert XRNI Folder to WAV (with CUE) | ✅ | ✅ | ✅ |
+| Batch Every Amigo in Song to Renoise Instruments | ✅ | ✅ | · |
+| Batch Every Sampled Instrument in Song to Amigo | ✅ | ✅ | · |
 | Batch Pakettify Wave Files in Folder to XRNI & Load... | ✅ | ✅ | ✅ |
 | Batch Pakettify Wave Files in Folder to XRNI (Save Only)... | ✅ | ✅ | ✅ |
 | Batch Sample Adjust Dialog... | ✅ | ✅ | ✅ |
@@ -2882,7 +2884,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1531 functions  ·  ⌨ 0 · 🎛 782 · ☰ 894
+## (menu/midi only)  ·  1535 functions  ·  ⌨ 0 · 🎛 782 · ☰ 898
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -3330,6 +3332,8 @@
 | Envelope | · | · | ✅ |
 | EQ 5 | · | ✅ | ✅ |
 | EQ10 XY Control... | · | · | ✅ |
+| Every Amigo in Song to Renoise Instruments | · | · | ✅ |
+| Every Sampled Instrument in Song to Amigo | · | · | ✅ |
 | Evolving | · | · | ✅ |
 | Example Tool... | · | · | ✅ |
 | Exciter | · | ✅ | ✅ |
@@ -3343,6 +3347,7 @@
 | Export All Slots | · | · | ✅ |
 | Export Convolver IR into New Instrument | · | · | ✅ |
 | Export Current Sample as IFF... | · | · | ✅ |
+| Export Every Sampled Instrument in Song to Amigo | · | · | ✅ |
 | Export Pattern to MTP | · | · | ✅ |
 | Export Pattern to MTP (auto-split >128) | · | · | ✅ |
 | Export Pattern to Polyend MTP | · | ✅ | · |
@@ -3504,6 +3509,7 @@
 | Import .RX2 | · | · | ✅ |
 | Import .RX2 (ReCycle v2.0 Format) | · | · | ✅ |
 | Import .SF2 (Single XRNI per Preset) | · | · | ✅ |
+| Import Every Amigo in Song to Renoise Instruments | · | · | ✅ |
 | Import MT Project File | · | · | ✅ |
 | Import Polyend MT Project File | · | ✅ | · |
 | Import Polyend Pattern | · | · | ✅ |
@@ -4249,7 +4255,7 @@
 | Slice Move Resolution x[Knob] | · | ✅ | · |
 | Slice Random | · | · | ✅ |
 | Slice Sequential | · | · | ✅ |
-| Sliced Imports Also Go Into Amigo (RX2, REX, PTI, WAV+CUE) Toggle | · | · | ✅ |
+| Sliced Imports Also Go Into Amigo (RX2, REX, PTI, ITI, OT, WAV+CUE) Toggle | · | · | ✅ |
 | SliceSafely (002) | · | · | ✅ |
 | Slow | · | · | ✅ |
 | Smooth | · | · | ✅ |
