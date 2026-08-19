@@ -19528,6 +19528,40 @@ Amigo's slices come back too, including any slicing you did inside Amigo. A roun
 - Keybinding: `Global:Paketti:Amigo to Renoise New Instrument`
 - MIDI Mapping: `Paketti:Amigo to Renoise New Instrument`
 
+## Amigo to Renoise Drumkit
+
+Import normally gives you one sliced instrument. This gives you the slices as separate one-shot samples instead, laid out one per key from C-0, which is what you want for finger drumming and for the drumkit-shaped exporters. You keep both: the sliced instrument and the drumkit built from it.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Renoise Drumkit (One-Shot per Slice)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Renoise Drumkits`
+- Menu: `Main Menu:File:Paketti Import:Import Amigo as Renoise Drumkit (One-Shot per Slice)`
+- Menu: `Instrument Box:Paketti:Amigo:Amigo to Renoise Drumkit (One-Shot per Slice)`
+- Keybinding: `Global:Paketti:Amigo to Renoise Drumkit One-Shot per Slice`
+- Keybinding: `Global:Paketti:Batch Every Amigo in Song to Renoise Drumkits`
+- MIDI Mapping: `Paketti:Amigo to Renoise Drumkit One-Shot per Slice`
+
+## Print Amigo Slices to Pattern
+
+Writes one note per slice into the selected track of the current pattern, spread evenly across it. Amigo maps its slices chromatically upward from its `basenote` parameter — one slice per semitone, starting at C-4 by default, with nothing below the root — so slice k is printed as basenote + k. That mapping was measured by rendering a probe, not assumed.
+
+The note column it fills is cleared first, so re-printing replaces rather than layers.
+
+`Wipe&Slice&Amigo&Print` does the whole thing in one keypress: wipe, slice into N, build the Amigo, print the triggers.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Print Amigo Slices to Pattern`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo&Print (002 … 064)`
+- Keybinding: `Global:Paketti:Print Amigo Slices to Pattern`, `Global:Paketti:Wipe&Slice&Amigo&Print (002 … 064)`
+- MIDI Mapping: `Paketti:Print Amigo Slices to Pattern`
+
+## Transient Slice & Amigo, BPM Slice & Amigo
+
+Two other ways into Amigo. Transient Slice runs Paketti's Beat Detect engine over the sample — it no longer needs the Beat Detect dialog to be open — and hands the detected slices to Amigo. BPM Slice cuts at the song tempo, from a quarter beat up to eight beats per slice.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Transient Slice & Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:BPM Slice & Amigo (Quarter Beat / Half Beat / 1 Beat / 2 Beats / 4 Beats / 8 Beats)`
+- Keybinding: `Global:Paketti:Transient Slice and Amigo`, `Global:Paketti:BPM Slice and Amigo (…)`
+- MIDI Mapping: `Paketti:Transient Slice and Amigo`
+
 ## Wipe & Slice & Amigo
 
 The same shape as Paketti's `Wipe&Slice&Pattern` and `Wipe&Slice&Phrase`: it wipes whatever slicing the selected sample has, cuts it into N equal slices with the existing Wipe&Slice engine, builds the Amigo beside it and opens Amigo's editor. The sampled instrument is kept, exactly like the import path — you end up with the sliced Renoise instrument and its Amigo.

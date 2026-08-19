@@ -8,6 +8,28 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Feature: Amigo drumkits, pattern printing, transient and BPM slicing
+
+`Amigo to Renoise Drumkit` brings an Amigo back as separate one-shot samples, one per slice, laid out one per key from C-0 — rather than as a single sliced instrument. There is a batch version for every Amigo in the song. Both the sliced instrument and the drumkit are kept.
+
+`Print Amigo Slices to Pattern` writes one note per slice into the selected track, spread evenly across the pattern. Amigo maps its slices chromatically upward from its `basenote` parameter, one slice per semitone starting at C-4, with nothing below the root — measured by rendering a probe rather than assumed. `Wipe&Slice&Amigo&Print (002)` through `(064)` does wipe, slice, Amigo and print in one keypress.
+
+`Transient Slice & Amigo` runs Paketti's Beat Detect engine over the sample and hands the detected slices to Amigo. `BPM Slice & Amigo` cuts at the song tempo, from a quarter beat up to eight beats per slice.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Renoise Drumkit (One-Shot per Slice)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Renoise Drumkits`
+- Menu: `Main Menu:File:Paketti Import:Import Amigo as Renoise Drumkit (One-Shot per Slice)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Print Amigo Slices to Pattern`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo&Print (002)` through `(064)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Transient Slice & Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:BPM Slice & Amigo (Quarter Beat / Half Beat / 1 Beat / 2 Beats / 4 Beats / 8 Beats)`
+- Keybinding: `Global:Paketti:Amigo to Renoise Drumkit One-Shot per Slice`, `Global:Paketti:Batch Every Amigo in Song to Renoise Drumkits`
+- Keybinding: `Global:Paketti:Print Amigo Slices to Pattern`, `Global:Paketti:Wipe&Slice&Amigo&Print (002)` through `(064)`
+- Keybinding: `Global:Paketti:Transient Slice and Amigo`, `Global:Paketti:BPM Slice and Amigo (…)`
+- MIDI Mapping: `Paketti:Amigo to Renoise Drumkit One-Shot per Slice`, `Paketti:Print Amigo Slices to Pattern`, `Paketti:Transient Slice and Amigo`
+
+Beat Detect's `AnalyzeSample` now takes an optional parameter table, so the detector can run with no dialog open. Existing callers are unaffected.
+
 ### 2026-08-19 - Improvement: ITI export runs in the background, and .OT import stops interrupting
 
 Exporting an instrument to ITI now runs inside a ProcessSlicer with a progress dialog. Writing the PCM of a long sample takes over a minute, and doing it in one go made Renoise offer to terminate the script. The exporter yields while extracting sample data and between samples, but only when it is actually running inside a coroutine, so anything calling it directly still behaves exactly as before. Measured on a 2.4 million frame, 40 sample, 19MB instrument: 85 seconds, Renoise answering continuously throughout, and the output byte-identical to the synchronous path.

@@ -121,7 +121,15 @@ function BeatDetector:Process(input)
 end
 
 -- Analyze the sample and insert slice markers
-function AnalyzeSample(detection_mode)
+-- params is optional. Without it the values come from the Beat Detect dialog's
+-- sliders as before; with it the detector can run with no dialog open at all,
+-- which is what the headless entry point below uses.
+function AnalyzeSample(detection_mode, params)
+  local function detect_param(key, slider_id, fallback)
+    if params and params[key] ~= nil then return params[key] end
+    if vbs and vbs[slider_id] then return vbs[slider_id].value end
+    return fallback
+  end
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -136,11 +144,15 @@ function AnalyzeSample(detection_mode)
 
   -- Prompt if sample is already sliced
   if sample.is_slice_alias or #sample.slice_markers > 0 then
-    local choice = renoise.app():show_prompt("Sample is already sliced", "Oh no, there's already a sliced sample there, do you want to wipe the slices?", {"Yes", "No"})
-    if choice == "Yes" then
+    if params and params.wipe_existing then
       DeleteSliceMarkers()
     else
-      return
+      local choice = renoise.app():show_prompt("Sample is already sliced", "Oh no, there's already a sliced sample there, do you want to wipe the slices?", {"Yes", "No"})
+      if choice == "Yes" then
+        DeleteSliceMarkers()
+      else
+        return
+      end
     end
   end
 
@@ -154,18 +166,18 @@ function AnalyzeSample(detection_mode)
   local buffer = sample.sample_buffer
 
   -- Parameters for detectors
-  local lowpass_freq = vbs.lowpass_freq_slider.value
-  local rtime_low = vbs.rtime_low_slider.value
-  local peak_on_low = vbs.peak_on_low_slider.value
-  local peak_off_low = vbs.peak_off_low_slider.value
+  local lowpass_freq = detect_param("lowpass_freq", "lowpass_freq_slider", 150)
+  local rtime_low = detect_param("rtime_low", "rtime_low_slider", 0.02)
+  local peak_on_low = detect_param("peak_on_low", "peak_on_low_slider", 0.12)
+  local peak_off_low = detect_param("peak_off_low", "peak_off_low_slider", 0.005)
 
-  local highpass_freq = vbs.highpass_freq_slider.value
-  local rtime_high = vbs.rtime_high_slider.value
-  local peak_on_high = vbs.peak_on_high_slider.value
-  local peak_off_high = vbs.peak_off_high_slider.value
+  local highpass_freq = detect_param("highpass_freq", "highpass_freq_slider", 3000)
+  local rtime_high = detect_param("rtime_high", "rtime_high_slider", 0.02)
+  local peak_on_high = detect_param("peak_on_high", "peak_on_high_slider", 0.12)
+  local peak_off_high = detect_param("peak_off_high", "peak_off_high_slider", 0.005)
 
-  local min_slice_distance_ms = vbs.min_slice_distance_slider.value
-  local zero_crossing_sensitivity = vbs.zero_crossing_slider.value
+  local min_slice_distance_ms = detect_param("min_slice_distance", "min_slice_distance_slider", 50)
+  local zero_crossing_sensitivity = detect_param("zero_crossing", "zero_crossing_slider", 1)
 
   local sample_rate = buffer.sample_rate
   local min_slice_distance_samples = math.floor((min_slice_distance_ms / 1000) * sample_rate)
@@ -241,6 +253,18 @@ function AnalyzeSample(detection_mode)
 end
 
 -- Headless mode function (Combined detection)
+-- Runs the detector with the same defaults BeatSlicerDetect uses, but without
+-- needing the Beat Detect dialog to be open. Existing slices are wiped without
+-- asking, because the callers are one-shot "slice this now" commands.
+function PakettiBeatDetectSliceHeadless(detection_mode)
+  return AnalyzeSample(detection_mode or "combined", {
+    lowpass_freq = 150, rtime_low = 0.02, peak_on_low = 0.12, peak_off_low = 0.005,
+    highpass_freq = 3000, rtime_high = 0.02, peak_on_high = 0.12, peak_off_high = 0.005,
+    min_slice_distance = 50, zero_crossing = 1,
+    wipe_existing = true,
+  })
+end
+
 function BeatSlicerDetect()
   -- Set default values
   vbs.lowpass_freq_slider.value = 150
