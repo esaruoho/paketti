@@ -1013,6 +1013,11 @@ end
 
 -- called from the RX2, REX, PTI, ITI, OT and WAV+CUE loaders once the file has been
 -- decoded into a normal Renoise instrument
+-- the Amigo window this feature opened last, so a ten-file drop leaves one
+-- editor showing the last import instead of ten stacked windows. Editors you
+-- opened yourself are never touched.
+local pakettiAmigoLastOpenedEditor = nil
+
 function PakettiAmigoHandleSlicedImport(instrument_index, label)
   if not PakettiAmigoSlicedImportEnabled() then return false end
   local ok, err, count, dropped, index = PakettiAmigoSendInstrumentToAmigo(instrument_index)
@@ -1022,6 +1027,18 @@ function PakettiAmigoHandleSlicedImport(instrument_index, label)
     return false
   end
   renoise.song().selected_instrument_index = index
+
+  -- show the Amigo you just made, closing the one the previous drop opened
+  if pakettiAmigoLastOpenedEditor then
+    pcall(function() pakettiAmigoLastOpenedEditor.external_editor_visible = false end)
+    pakettiAmigoLastOpenedEditor = nil
+  end
+  local device = PakettiAmigoFindDevice(renoise.song().instruments[index])
+  if device then
+    local shown = pcall(function() device.external_editor_visible = true end)
+    if shown then pakettiAmigoLastOpenedEditor = device end
+  end
+
   local message = (label or "Import") .. " also loaded into Amigo with " .. count .. " slices"
   if dropped > 0 then
     message = message .. " (" .. dropped .. " slices past Amigo's 64 were dropped)"

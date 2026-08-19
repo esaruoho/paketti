@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Improvement: the Amigo editor opens on a sliced import
+
+When a sliced import also goes into Amigo, Amigo's own editor window now opens on the instrument that was just made, so you can hear and tweak it straight away. Dropping ten files gives ten pairs and one editor window showing the last of them rather than ten stacked windows — each new one closes the window the previous import opened. An Amigo editor you opened yourself is never closed.
+
 ### 2026-08-19 - Feature: Amigo batch conversion both ways, plus ITI and OT imports
 
 Two new commands convert a whole song at once. `Batch: Every Amigo in Song to Renoise Instruments` walks the song and builds a sampled Renoise instrument, slice points and all, for every instrument holding Amigo — so a song of 10 Amigos becomes those 10 Amigos followed by 10 sampled instruments. `Batch: Every Sampled Instrument in Song to Amigo` is the mirror image. Both append to the end of the instrument list and never move, alter or remove anything already in the song, which matters because inserting in the middle would renumber every instrument after it and pattern data points at instrument numbers. The Amigo instruments come through byte-identical.
