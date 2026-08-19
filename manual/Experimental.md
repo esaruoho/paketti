@@ -19502,7 +19502,7 @@ Moves a single sample between Renoise and the PotenzaDSP Amigo Sampler plugin, i
 
 Takes the selected sample, writes it as a `.wav` into a **Paketti Amigo Samples** folder in your home directory, and points an Amigo instance at it. If the selected instrument already hosts Amigo, that instance is retargeted; otherwise a new instrument with Amigo loaded is created right after the current one and named after the sample.
 
-Amigo plays from the file on disk rather than from the preset, which is why the wav is written to a permanent folder instead of a temporary one.
+Amigo plays from the file on disk rather than from the preset, which is why the wav is written to a permanent folder instead of a temporary one. Slice markers come along too: they become Amigo's own slice points and Amigo switches into SLICE mode. The source sample is never modified or removed.
 
 **Embedded variant:** additionally asks Amigo to bake the wav into its own preset state, so the preset travels without the file. This needs Amigo AU v1.1.6 or newer — older builds have no Embed, and the command says so rather than pretending it worked.
 
@@ -19526,14 +19526,20 @@ Reads whatever the selected instrument's Amigo is holding and loads it into a br
 - Keybinding: `Global:Paketti:Amigo to Renoise New Instrument`
 - MIDI Mapping: `Paketti:Amigo to Renoise New Instrument`
 
-## RX2 Import Goes Straight Into Amigo
+## RX2 and WAV+CUE Imports Also Go Into Amigo
 
-An Options toggle. When it is on, importing an `.rx2` decodes and slices as usual and then hands the result straight to Amigo: the audio is written to the Paketti Amigo Samples folder, Amigo is loaded onto that same instrument, the slice markers become Amigo's own slice points, and Amigo is switched into SLICE mode. The Renoise samples are removed afterwards, because an instrument holding both a plugin and samples would trigger both on every note.
+An Options toggle. When it is on, importing an `.rx2` — or a WAV with CUE markers via `File:Paketti Import:Load WAV with CUE Markers...` — does everything it normally does, and then builds a **second** instrument right after it holding Amigo with the same audio and the same slice points, switched into SLICE mode.
 
-Amigo has 64 slice slots. An RX2 with more slices than that keeps the first 63 and the status bar says how many were dropped.
+Nothing is destroyed. The Renoise instrument keeps all of its samples and slices; the Amigo instrument sits next to it. They are two separate instruments, so a note never triggers both engines.
 
-- Menu: `Main Menu:Options:RX2 Import Goes Straight Into Amigo Toggle`
-- Keybinding: `Global:Paketti:Toggle RX2 Import Goes Straight Into Amigo`
+Dropping ten RX2 files at once gives ten pairs, in order — each RX2 instrument followed by its Amigo.
+
+Amigo has 64 slice slots. A file with more slices than that keeps the first 63 and the status bar says how many were dropped.
+
+Note that plain WAV files dropped onto Renoise are loaded by Renoise itself and never reach Paketti, so the CUE half of this only applies to the `Load WAV with CUE Markers...` menu entry.
+
+- Menu: `Main Menu:Options:RX2 and WAV+CUE Imports Also Go Into Amigo Toggle`
+- Keybinding: `Global:Paketti:Toggle RX2 and WAV CUE Imports Also Go Into Amigo`
 
 ## Dump Amigo State to Console
 

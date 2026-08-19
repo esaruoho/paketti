@@ -540,7 +540,76 @@ end
 
 --------------------------------------------------------------------------------
 -- RENOISE -> AMIGO
+--
+-- Amigo plays from a file on disk, not from the preset, so the sample is
+-- written to a permanent folder and the preset points at it. Slice markers
+-- come along for the ride: Amigo's slice0..slice63 are normalised 0..1
+-- positions and slicemode 1 puts it into SLICE mode (verified live, AU v1.1.6).
+-- Amigo has 64 slice slots, so a longer sample loses its tail slices.
 --------------------------------------------------------------------------------
+
+PakettiAmigoMaxSlices = 64
+
+-- writes the sample to the Paketti Amigo Samples folder, returns path and name
+local function pakettiAmigoWriteSampleFile(sample, fallback_name)
+  local name = pakettiAmigoSafeName(sample.name ~= "" and sample.name or fallback_name)
+  local path = PakettiAmigoSampleFolder() .. name .. ".wav"
+  if not sample.sample_buffer:save_as(path, "wav") then
+    return nil, nil, "could not write " .. path
+  end
+  return path, name
+end
+
+-- points an Amigo instance at a file and copies the sample's slice markers in
+local function pakettiAmigoApplySample(device, path, sample)
+  local ctx, err = PakettiAmigoReadState(device)
+  if not ctx then return nil, err end
+
+  pakettiAmigoSetProp(ctx.tree, "pathname", pakettiAmigoVarString(path))
+  -- clear any stale embedded payload so the plugin cannot pick up the old sample
+  pakettiAmigoRemoveProp(ctx.tree, "EMBEDDED_FILE")
+  pakettiAmigoSetParam(ctx.tree, "embedsample", 0)
+
+  local slices, dropped = {}, 0
+  if sample then
+    local frames = sample.sample_buffer.number_of_frames
+    local markers = sample.slice_markers
+    if frames > 1 then
+      for i = 1, math.min(#markers, PakettiAmigoMaxSlices - 1) do
+        slices[i] = (markers[i] - 1) / (frames - 1)
+      end
+    end
+    dropped = math.max(0, #markers - (PakettiAmigoMaxSlices - 1))
+  end
+  -- slice0 is the sample start; the markers fill slice1 upward
+  for i = 0, PakettiAmigoMaxSlices - 1 do
+    pakettiAmigoSetParam(ctx.tree, "slice" .. i, slices[i] or 0)
+  end
+  pakettiAmigoSetParam(ctx.tree, "slicemode", (#slices > 0) and 1 or 0)
+
+  PakettiAmigoWriteState(ctx)
+  return #slices, nil, dropped
+end
+
+-- creates a new instrument holding Amigo, right after `after_index`
+local function pakettiAmigoNewInstrumentWithAmigo(after_index, name)
+  local song = renoise.song()
+  local index = after_index + 1
+  song:insert_instrument_at(index)
+  local instrument = song.instruments[index]
+  local ok = pcall(function() instrument.plugin_properties:load_plugin(AMIGO_AU_PATH) end)
+  if not ok or not instrument.plugin_properties.plugin_loaded then
+    pcall(function() instrument.plugin_properties:load_plugin(AMIGO_VST3_PATH) end)
+  end
+  local device = PakettiAmigoFindDevice(instrument)
+  if not device then
+    song:delete_instrument_at(index)
+    return nil, nil, "Amigo plugin is not installed / not scanned by Renoise"
+  end
+  -- loading a plugin renames the instrument, so set the name afterwards
+  instrument.name = name
+  return device, index
+end
 
 function PakettiAmigoRenoiseToAmigo()
   local song = renoise.song()
@@ -550,49 +619,37 @@ function PakettiAmigoRenoiseToAmigo()
     return
   end
 
-  -- write the sample out to a real file - Amigo plays from disk, not from the
-  -- preset, so the file has to survive the session
-  local name = pakettiAmigoSafeName(source.name ~= "" and source.name or song.selected_instrument.name)
-  local path = PakettiAmigoSampleFolder() .. name .. ".wav"
-  local saved = source.sample_buffer:save_as(path, "wav")
-  if not saved then
-    renoise.app():show_status("Renoise to Amigo: could not write " .. path)
-    return
-  end
-
-  -- find an Amigo to put it in: the selected instrument if it already has one,
-  -- otherwise a fresh instrument right after it
-  local device = PakettiAmigoFindDevice(song.selected_instrument)
-  if not device then
-    local index = song.selected_instrument_index + 1
-    song:insert_instrument_at(index)
-    song.selected_instrument_index = index
-    local instrument = song.instruments[index]
-    local loaded = pcall(function() instrument.plugin_properties:load_plugin(AMIGO_AU_PATH) end)
-    if not loaded or not instrument.plugin_properties.plugin_loaded then
-      pcall(function() instrument.plugin_properties:load_plugin(AMIGO_VST3_PATH) end)
-    end
-    device = PakettiAmigoFindDevice(instrument)
-    if not device then
-      renoise.app():show_status("Renoise to Amigo: Amigo plugin is not installed / not scanned by Renoise.")
-      return
-    end
-    instrument.name = name
-  end
-
-  local ctx, err = PakettiAmigoReadState(device)
-  if not ctx then
+  local path, name, err = pakettiAmigoWriteSampleFile(source, song.selected_instrument.name)
+  if not path then
     renoise.app():show_status("Renoise to Amigo: " .. tostring(err))
     return
   end
 
-  pakettiAmigoSetProp(ctx.tree, "pathname", pakettiAmigoVarString(path))
-  -- clear any stale embedded payload so the plugin cannot pick up the old sample
-  pakettiAmigoRemoveProp(ctx.tree, "EMBEDDED_FILE")
-  pakettiAmigoSetParam(ctx.tree, "embedsample", 0)
-  PakettiAmigoWriteState(ctx)
+  -- put it in the selected instrument's Amigo if it already has one, otherwise
+  -- in a fresh instrument right after it. The source sample is never touched.
+  local device = PakettiAmigoFindDevice(song.selected_instrument)
+  if not device then
+    local index
+    device, index, err = pakettiAmigoNewInstrumentWithAmigo(song.selected_instrument_index, name)
+    if not device then
+      renoise.app():show_status("Renoise to Amigo: " .. tostring(err))
+      return
+    end
+    song.selected_instrument_index = index
+  end
 
-  renoise.app():show_status("Renoise to Amigo: " .. name .. ".wav -> " .. device.name)
+  local count, apply_err, dropped = pakettiAmigoApplySample(device, path, source)
+  if not count then
+    renoise.app():show_status("Renoise to Amigo: " .. tostring(apply_err))
+    return
+  end
+
+  local message = "Renoise to Amigo: " .. name .. ".wav -> " .. device.name
+  if count > 0 then
+    message = message .. " with " .. count .. " slices"
+    if dropped > 0 then message = message .. " (" .. dropped .. " past Amigo's 64 dropped)" end
+  end
+  renoise.app():show_status(message)
   print("PakettiAmigo: exported to " .. path)
 end
 
@@ -697,112 +754,77 @@ function PakettiAmigoAmigoToRenoise()
 end
 
 --------------------------------------------------------------------------------
--- convert a sampled instrument into an Amigo instrument, in place
+-- send a freshly imported instrument to Amigo, alongside the original
 --
--- Used by the "RX2 Import goes straight into Amigo" option: the RX2 has already
--- been decoded into a Renoise instrument with slice markers, and this turns that
--- instrument into an Amigo instance holding the same audio and the same slice
--- points. The Renoise samples are removed afterwards - an instrument that keeps
--- both a plugin and samples would trigger both on every note.
---
--- Amigo's slice0..slice63 parameters are normalised 0..1 positions in the
--- sample, and slicemode 1 puts the plugin into SLICE mode (verified live,
--- AU v1.1.6). Amigo has 64 slice slots, so a longer RX2 loses its tail slices.
+-- Used by the "Import Goes Straight Into Amigo" option. The imported Renoise
+-- instrument is left exactly as it is - samples, slices and all - and a second
+-- instrument holding Amigo is created right after it with the same audio and
+-- the same slice points. Two instruments, nothing destroyed, and no double
+-- triggering (a single instrument holding both a plugin and samples would
+-- sound both on every note).
 --------------------------------------------------------------------------------
 
-PakettiAmigoMaxSlices = 64
-
-function PakettiAmigoConvertInstrumentToAmigo(instrument_index)
+function PakettiAmigoSendInstrumentToAmigo(source_index)
   local song = renoise.song()
-  local instrument = song.instruments[instrument_index]
+  local instrument = song.instruments[source_index]
   if not instrument then return false, "no such instrument" end
   local source = instrument.samples[1]
   if not source or not source.sample_buffer or not source.sample_buffer.has_sample_data then
     return false, "instrument has no sample data"
   end
 
-  local name = pakettiAmigoSafeName(source.name ~= "" and source.name or instrument.name)
-  local path = PakettiAmigoSampleFolder() .. name .. ".wav"
-  if not source.sample_buffer:save_as(path, "wav") then
-    return false, "could not write " .. path
+  local path, name, err = pakettiAmigoWriteSampleFile(source, instrument.name)
+  if not path then return false, err end
+
+  local device, index, new_err = pakettiAmigoNewInstrumentWithAmigo(source_index, name)
+  if not device then return false, new_err end
+
+  local count, apply_err, dropped = pakettiAmigoApplySample(device, path, source)
+  if not count then
+    song:delete_instrument_at(index)
+    return false, apply_err
   end
-
-  -- slice markers are frame positions in sample 1; Amigo wants 0..1
-  local frames = source.sample_buffer.number_of_frames
-  local markers = source.slice_markers
-  local slices = {}
-  if frames > 1 then
-    for i = 1, math.min(#markers, PakettiAmigoMaxSlices - 1) do
-      slices[#slices + 1] = (markers[i] - 1) / (frames - 1)
-    end
-  end
-  local dropped = math.max(0, #markers - (PakettiAmigoMaxSlices - 1))
-
-  -- the plugin goes onto this same instrument, and loading it renames the
-  -- instrument, so the name is restored afterwards
-  local loaded = pcall(function() instrument.plugin_properties:load_plugin(AMIGO_AU_PATH) end)
-  if not loaded or not instrument.plugin_properties.plugin_loaded then
-    pcall(function() instrument.plugin_properties:load_plugin(AMIGO_VST3_PATH) end)
-  end
-  local device = PakettiAmigoFindDevice(instrument)
-  if not device then return false, "Amigo plugin is not installed / not scanned by Renoise" end
-
-  local ctx, err = PakettiAmigoReadState(device)
-  if not ctx then return false, err end
-
-  pakettiAmigoSetProp(ctx.tree, "pathname", pakettiAmigoVarString(path))
-  pakettiAmigoRemoveProp(ctx.tree, "EMBEDDED_FILE")
-  pakettiAmigoSetParam(ctx.tree, "embedsample", 0)
-
-  -- slice0 is the sample start; markers fill slice1 upward
-  for i = 0, PakettiAmigoMaxSlices - 1 do
-    pakettiAmigoSetParam(ctx.tree, "slice" .. i, slices[i] or 0)
-  end
-  pakettiAmigoSetParam(ctx.tree, "slicemode", (#slices > 0) and 1 or 0)
-  PakettiAmigoWriteState(ctx)
-
-  -- Renoise refuses to delete samples while slice markers exist (the slice
-  -- samples are derived from them), so drop the markers first. Amigo owns the
-  -- slicing from here on.
-  if #source.slice_markers > 0 then source.slice_markers = {} end
-  for i = #instrument.samples, 1, -1 do
-    instrument:delete_sample_at(i)
-  end
-  instrument.name = name
-
-  return true, nil, #slices, dropped
+  return true, nil, count, dropped, index
 end
 
--- true when RX2 imports should land in Amigo instead of a Renoise instrument
-function PakettiAmigoRX2ImportEnabled()
+-- true when a sliced import (RX2, WAV with CUE markers) should also land in Amigo
+function PakettiAmigoSlicedImportEnabled()
   return preferences and preferences.pakettiAmigoRX2Import and preferences.pakettiAmigoRX2Import.value or false
 end
 
-function PakettiAmigoToggleRX2Import()
-  local on = not PakettiAmigoRX2ImportEnabled()
+function PakettiAmigoToggleSlicedImport()
+  local on = not PakettiAmigoSlicedImportEnabled()
   preferences.pakettiAmigoRX2Import.value = on
   preferences:save_as("preferences.xml")
   if on then
-    renoise.app():show_status("RX2 Import goes straight into Amigo: ON")
+    renoise.app():show_status("RX2 / WAV+CUE imports also go into Amigo: ON")
   else
-    renoise.app():show_status("RX2 Import goes straight into Amigo: OFF (normal Renoise import)")
+    renoise.app():show_status("RX2 / WAV+CUE imports also go into Amigo: OFF")
   end
 end
 
--- called from PakettiRX2Loader once the RX2 has been decoded and sliced
-function PakettiAmigoHandleRX2Import(instrument_index)
-  if not PakettiAmigoRX2ImportEnabled() then return false end
-  local ok, err, count, dropped = PakettiAmigoConvertInstrumentToAmigo(instrument_index)
+-- called from PakettiRX2Loader and PakettiWavCueExtract once the file has been
+-- decoded and sliced into a normal Renoise instrument
+function PakettiAmigoHandleSlicedImport(instrument_index, label)
+  if not PakettiAmigoSlicedImportEnabled() then return false end
+  local ok, err, count, dropped, index = PakettiAmigoSendInstrumentToAmigo(instrument_index)
   if not ok then
-    renoise.app():show_status("RX2 to Amigo: " .. tostring(err) .. " - left as a normal Renoise instrument.")
+    renoise.app():show_status((label or "Import") .. " to Amigo: " .. tostring(err) ..
+      " - the Renoise instrument is untouched.")
     return false
   end
-  local message = "RX2 imported into Amigo with " .. count .. " slices"
+  renoise.song().selected_instrument_index = index
+  local message = (label or "Import") .. " also loaded into Amigo with " .. count .. " slices"
   if dropped > 0 then
     message = message .. " (" .. dropped .. " slices past Amigo's 64 were dropped)"
   end
   renoise.app():show_status(message)
   return true
+end
+
+-- kept for the RX2 loader's existing call site
+function PakettiAmigoHandleRX2Import(instrument_index)
+  return PakettiAmigoHandleSlicedImport(instrument_index, "RX2")
 end
 
 --------------------------------------------------------------------------------
@@ -846,9 +868,9 @@ PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to R
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Dump Amigo State to Console",
   invoke = function() PakettiAmigoDumpState() end}
 
-PakettiAddMenuEntry{name = "Main Menu:Options:RX2 Import Goes Straight Into Amigo Toggle",
-  invoke = function() PakettiAmigoToggleRX2Import() end,
-  selected = function() return PakettiAmigoRX2ImportEnabled() end}
+PakettiAddMenuEntry{name = "Main Menu:Options:RX2 and WAV+CUE Imports Also Go Into Amigo Toggle",
+  invoke = function() PakettiAmigoToggleSlicedImport() end,
+  selected = function() return PakettiAmigoSlicedImportEnabled() end}
 
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Selected Sample to Amigo Sampler",
   invoke = function() PakettiAmigoRenoiseToAmigo() end}
@@ -867,8 +889,8 @@ PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Renoise to Amigo (Select
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Amigo to Renoise (New Instrument)",
   invoke = function() PakettiAmigoAmigoToRenoise() end}
 
-renoise.tool():add_keybinding{name = "Global:Paketti:Toggle RX2 Import Goes Straight Into Amigo",
-  invoke = function() PakettiAmigoToggleRX2Import() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle RX2 and WAV CUE Imports Also Go Into Amigo",
+  invoke = function() PakettiAmigoToggleSlicedImport() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Renoise to Amigo Selected Sample",
   invoke = function() PakettiAmigoRenoiseToAmigo() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Renoise to Amigo Selected Sample Embedded",

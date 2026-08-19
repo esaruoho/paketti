@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Improvement: Amigo import keeps the Renoise instrument, and covers WAV+CUE too
+
+The Amigo import option no longer converts the imported instrument in place. It now leaves the Renoise instrument exactly as it is — every sample, every slice — and builds a second instrument right after it holding Amigo with the same audio and the same slice points. Two instruments, nothing removed, and no double triggering since they are separate.
+
+The same option now also covers WAV files with CUE markers loaded through `File:Paketti Import:Load WAV with CUE Markers...`, so the toggle is renamed to `Main Menu:Options:RX2 and WAV+CUE Imports Also Go Into Amigo Toggle` (keybinding `Global:Paketti:Toggle RX2 and WAV CUE Imports Also Go Into Amigo`). Plain WAV files dropped onto Renoise are loaded by Renoise itself and never reach Paketti, so the CUE half only applies to that menu entry.
+
+Dropping ten RX2 files at once gives ten pairs in order, each RX2 instrument followed by its Amigo.
+
+`Renoise to Amigo` on a single sample now carries slice markers across as well, which it did not before.
+
 ### 2026-08-19 - Feature: RX2 Import can go straight into Amigo, and the old Amigo code is gone
 
 A new Options toggle, `Main Menu:Options:RX2 Import Goes Straight Into Amigo Toggle`, changes what happens when you import an `.rx2`. With it on, the RX2 is decoded and sliced as usual and then handed straight to the Amigo Sampler: the audio is written into your "Paketti Amigo Samples" folder, Amigo is loaded onto that same instrument, every slice marker becomes one of Amigo's own slice points, and Amigo is switched into SLICE mode. The Renoise samples are removed afterwards, because an instrument holding both a plugin and samples would trigger both on every note. Amigo has 64 slice slots, so an RX2 with more slices keeps the first 63 and the status bar says how many were dropped. With the toggle off, RX2 import behaves exactly as before.
