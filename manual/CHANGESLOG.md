@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Improvement: REX and PTI imports also go into Amigo
+
+The Amigo import option now covers `.rex` and `.pti` as well as `.rx2` and WAV with CUE markers, so the toggle is renamed to `Main Menu:Options:Sliced Imports Also Go Into Amigo (RX2, REX, PTI, WAV+CUE) Toggle` (keybinding `Global:Paketti:Toggle Sliced Imports Also Go Into Amigo`). Each import leaves the Renoise instrument untouched and builds a second instrument holding Amigo beside it, with the slice markers carried across.
+
+Also fixed while wiring REX up: REX import used to `return` early when the selected track was the Master track, skipping the rest of the function — including restoring the Auto-Samplify monitoring state it had switched off. It now just skips the macro device and carries on.
+
 ### 2026-08-19 - Improvement: Amigo to Renoise brings the slices back
 
 `Amigo to Renoise` now reconstructs Renoise slice markers from Amigo's own slice points, so slicing you did inside Amigo comes back with the audio. The round trip is frame-exact: a 35-slice RX2 sent into Amigo and pulled back gives 35 Renoise slice markers on precisely the same frames.

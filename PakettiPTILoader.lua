@@ -963,6 +963,11 @@ function pti_loadsample_Worker(filepath, dialog, vb)
   else
     renoise.app():show_status("PTI imported successfully")
   end
+
+  -- Options > "Sliced Imports Also Go Into Amigo"
+  if PakettiAmigoHandleSlicedImport then
+    PakettiAmigoHandleSlicedImport(renoise.song().selected_instrument_index, "PTI")
+  end
 end
 
 -- Separate the hooks - PTI only now

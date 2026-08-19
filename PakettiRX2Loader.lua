@@ -429,7 +429,7 @@ end
   
   renoise.app():show_status("RX2 imported successfully with slice markers")
 
-  -- Options > "RX2 Import Goes Straight Into Amigo": hand the freshly decoded
+  -- Options > "Sliced Imports Also Go Into Amigo": hand the freshly decoded
   -- instrument to the Amigo plugin, slice markers and all. Falls back silently
   -- to the normal Renoise instrument if anything is missing.
   if PakettiAmigoHandleRX2Import then

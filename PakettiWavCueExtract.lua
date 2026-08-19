@@ -800,7 +800,7 @@ function PakettiWavCuePromptAndImportWithCues()
   
   PakettiWavCueImportWavWithCuesIntoSample(sample, file)
 
-  -- Options > "RX2 and WAV+CUE Imports Also Go Into Amigo": build a second
+  -- Options > "Sliced Imports Also Go Into Amigo": build a second
   -- instrument holding Amigo with the same audio and the same cue points.
   -- The Renoise instrument this just filled is left untouched.
   if PakettiAmigoHandleSlicedImport then

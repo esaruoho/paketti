@@ -19528,20 +19528,27 @@ Amigo's slices come back too, including any slicing you did inside Amigo. A roun
 - Keybinding: `Global:Paketti:Amigo to Renoise New Instrument`
 - MIDI Mapping: `Paketti:Amigo to Renoise New Instrument`
 
-## RX2 and WAV+CUE Imports Also Go Into Amigo
+## Sliced Imports Also Go Into Amigo
 
-An Options toggle. When it is on, importing an `.rx2` — or a WAV with CUE markers via `File:Paketti Import:Load WAV with CUE Markers...` — does everything it normally does, and then builds a **second** instrument right after it holding Amigo with the same audio and the same slice points, switched into SLICE mode.
+An Options toggle. When it is on, importing any of these does everything it normally does, and then builds a **second** instrument right after it holding Amigo with the same audio and the same slice points, switched into SLICE mode:
+
+| Format | How it gets there |
+|--------|-------------------|
+| `.rx2` | drag and drop, or `File:Paketti Import:Import .RX2` |
+| `.rex` | drag and drop, or `File:Paketti Import:Import .REX` |
+| `.pti` | drag and drop, or `File:Paketti Import:Import .PTI` |
+| WAV with CUE markers | `File:Paketti Import:Load WAV with CUE Markers...` only |
 
 Nothing is destroyed. The Renoise instrument keeps all of its samples and slices; the Amigo instrument sits next to it. They are two separate instruments, so a note never triggers both engines.
 
-Dropping ten RX2 files at once gives ten pairs, in order — each RX2 instrument followed by its Amigo.
+Dropping ten files at once gives ten pairs, in order — each Renoise instrument followed by its Amigo.
 
 Amigo has 64 slice slots. A file with more slices than that keeps the first 63 and the status bar says how many were dropped.
 
-Note that plain WAV files dropped onto Renoise are loaded by Renoise itself and never reach Paketti, so the CUE half of this only applies to the `Load WAV with CUE Markers...` menu entry.
+Note that plain WAV files dropped onto Renoise are loaded by Renoise itself and never reach Paketti, so the CUE half only applies to that one menu entry.
 
-- Menu: `Main Menu:Options:RX2 and WAV+CUE Imports Also Go Into Amigo Toggle`
-- Keybinding: `Global:Paketti:Toggle RX2 and WAV CUE Imports Also Go Into Amigo`
+- Menu: `Main Menu:Options:Sliced Imports Also Go Into Amigo (RX2, REX, PTI, WAV+CUE) Toggle`
+- Keybinding: `Global:Paketti:Toggle Sliced Imports Also Go Into Amigo`
 
 ## Dump Amigo State to Console
 

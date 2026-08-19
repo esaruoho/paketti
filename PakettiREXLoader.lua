@@ -372,15 +372,24 @@ function rex_loadsample(filename)
   os.remove(aiff_copy)
   dprint("Import completed successfully")
 
-  if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-  if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
-    loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
-    local macro_device = renoise.song().selected_track:device(2)
-    macro_device.display_name = string.format("%02X", renoise.song().selected_instrument_index - 1) .. " " .. get_clean_filename(filename)
-    renoise.song().selected_track.devices[2].is_maximized = false
+  if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
+    -- this used to `return` on the Master track, which skipped the tail of this
+    -- function entirely (including the AutoSamplify restore below)
+    if renoise.song().selected_track.type == 2 then
+      renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.")
+    else
+      loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
+      local macro_device = renoise.song().selected_track:device(2)
+      macro_device.display_name = string.format("%02X", renoise.song().selected_instrument_index - 1) .. " " .. get_clean_filename(filename)
+      renoise.song().selected_track.devices[2].is_maximized = false
+    end
   end
-end
   renoise.app():show_status(string.format("REX cleaned and imported with %d slice markers", #slice_offsets))
+
+  -- Options > "Sliced Imports Also Go Into Amigo"
+  if PakettiAmigoHandleSlicedImport then
+    PakettiAmigoHandleSlicedImport(renoise.song().selected_instrument_index, "REX")
+  end
   
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)

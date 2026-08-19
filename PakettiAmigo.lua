@@ -853,7 +853,7 @@ function PakettiAmigoSendInstrumentToAmigo(source_index)
   return true, nil, count, dropped, index
 end
 
--- true when a sliced import (RX2, WAV with CUE markers) should also land in Amigo
+-- true when a sliced import (RX2, REX, PTI, WAV with CUE markers) should also land in Amigo
 function PakettiAmigoSlicedImportEnabled()
   return preferences and preferences.pakettiAmigoRX2Import and preferences.pakettiAmigoRX2Import.value or false
 end
@@ -863,14 +863,14 @@ function PakettiAmigoToggleSlicedImport()
   preferences.pakettiAmigoRX2Import.value = on
   preferences:save_as("preferences.xml")
   if on then
-    renoise.app():show_status("RX2 / WAV+CUE imports also go into Amigo: ON")
+    renoise.app():show_status("Sliced imports (RX2, REX, PTI, WAV+CUE) also go into Amigo: ON")
   else
-    renoise.app():show_status("RX2 / WAV+CUE imports also go into Amigo: OFF")
+    renoise.app():show_status("Sliced imports also go into Amigo: OFF")
   end
 end
 
--- called from PakettiRX2Loader and PakettiWavCueExtract once the file has been
--- decoded and sliced into a normal Renoise instrument
+-- called from the RX2, REX, PTI and WAV+CUE loaders once the file has been
+-- decoded into a normal Renoise instrument
 function PakettiAmigoHandleSlicedImport(instrument_index, label)
   if not PakettiAmigoSlicedImportEnabled() then return false end
   local ok, err, count, dropped, index = PakettiAmigoSendInstrumentToAmigo(instrument_index)
@@ -934,7 +934,7 @@ PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to R
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Dump Amigo State to Console",
   invoke = function() PakettiAmigoDumpState() end}
 
-PakettiAddMenuEntry{name = "Main Menu:Options:RX2 and WAV+CUE Imports Also Go Into Amigo Toggle",
+PakettiAddMenuEntry{name = "Main Menu:Options:Sliced Imports Also Go Into Amigo (RX2, REX, PTI, WAV+CUE) Toggle",
   invoke = function() PakettiAmigoToggleSlicedImport() end,
   selected = function() return PakettiAmigoSlicedImportEnabled() end}
 
@@ -955,7 +955,7 @@ PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Renoise to Amigo (Select
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Amigo to Renoise (New Instrument)",
   invoke = function() PakettiAmigoAmigoToRenoise() end}
 
-renoise.tool():add_keybinding{name = "Global:Paketti:Toggle RX2 and WAV CUE Imports Also Go Into Amigo",
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Sliced Imports Also Go Into Amigo",
   invoke = function() PakettiAmigoToggleSlicedImport() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Renoise to Amigo Selected Sample",
   invoke = function() PakettiAmigoRenoiseToAmigo() end}
