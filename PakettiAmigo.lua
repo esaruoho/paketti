@@ -178,6 +178,30 @@ local function pakettiAmigoDoubleBytes(value)
   return table.concat(out)
 end
 
+-- and back the other way, so slices made inside Amigo can return to Renoise
+local function pakettiAmigoBytesToDouble(bytes)
+  if #bytes < 8 then return 0 end
+  local b = {bytes:byte(1, 8)}
+  local sign = (b[8] >= 128) and -1 or 1
+  local exponent = (b[8] % 128) * 16 + math.floor(b[7] / 16)
+  local fraction = b[7] % 16
+  for i = 6, 1, -1 do fraction = fraction * 256 + b[i] end
+  if exponent == 0 then
+    if fraction == 0 then return 0 end
+    return sign * math.ldexp(fraction, -1074)
+  end
+  if exponent == 2047 then return sign * math.huge end
+  return sign * math.ldexp(1 + fraction / 4503599627370496, exponent - 1023)
+end
+
+-- decodes a var that holds a double, otherwise nil
+local function pakettiAmigoVarToDouble(varbytes)
+  local size, after = pakettiAmigoReadCompressedInt(varbytes, 1)
+  if size < 9 then return nil end
+  if varbytes:byte(after) ~= 4 then return nil end
+  return pakettiAmigoBytesToDouble(varbytes:sub(after + 1, after + 8))
+end
+
 local function pakettiAmigoVarDouble(value)
   local payload = "\4" .. pakettiAmigoDoubleBytes(value)
   return pakettiAmigoWriteCompressedInt(#payload) .. payload
@@ -239,6 +263,16 @@ end
 
 -- sets a PARAM child's value (Amigo stores every parameter as a PARAM node
 -- with an "id" string and a "value" double)
+local function pakettiAmigoGetParam(root, id)
+  for _, child in ipairs(root.children) do
+    local child_id = pakettiAmigoVarToString(pakettiAmigoGetProp(child, "id") or "")
+    if child_id == id then
+      return pakettiAmigoVarToDouble(pakettiAmigoGetProp(child, "value") or "")
+    end
+  end
+  return nil
+end
+
 local function pakettiAmigoSetParam(root, id, value)
   for _, child in ipairs(root.children) do
     local child_id = pakettiAmigoVarToString(pakettiAmigoGetProp(child, "id") or "")
@@ -749,8 +783,40 @@ function PakettiAmigoAmigoToRenoise()
     instrument:delete_sample_at(last)
   end
 
+  -- bring Amigo's slices back with the audio. Amigo's slice0..slice63 are
+  -- normalised 0..1 positions, so they turn straight back into Renoise slice
+  -- markers - including any slicing you did inside Amigo itself.
+  local slice_count = 0
+  local frames = sample.sample_buffer.number_of_frames
+  if frames > 1 then
+    local positions = {}
+    for i = 0, PakettiAmigoMaxSlices - 1 do
+      local value = pakettiAmigoGetParam(ctx.tree, "slice" .. i)
+      if value and value > 0 and value < 1 then positions[#positions + 1] = value end
+    end
+    table.sort(positions)
+    local previous = 0
+    if #positions > 0 then
+      -- Amigo's slice0 is the sample start, and Renoise spells that as a marker
+      -- on frame 1. Without it the first region would be lost on the way back.
+      sample:insert_slice_marker(1)
+      previous = 1
+      slice_count = 1
+    end
+    for _, value in ipairs(positions) do
+      local frame = math.floor(value * (frames - 1) + 0.5) + 1
+      if frame > previous and frame < frames then
+        sample:insert_slice_marker(frame)
+        previous = frame
+        slice_count = slice_count + 1
+      end
+    end
+  end
+
   if temp_path then os.remove(temp_path) end
-  renoise.app():show_status("Amigo to Renoise: " .. name .. " loaded into instrument " .. string.format("%02X", index - 1))
+  local status = "Amigo to Renoise: " .. name .. " loaded into instrument " .. string.format("%02X", index - 1)
+  if slice_count > 0 then status = status .. " with " .. slice_count .. " slices" end
+  renoise.app():show_status(status)
 end
 
 --------------------------------------------------------------------------------

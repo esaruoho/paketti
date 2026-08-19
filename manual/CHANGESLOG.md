@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Improvement: Amigo to Renoise brings the slices back
+
+`Amigo to Renoise` now reconstructs Renoise slice markers from Amigo's own slice points, so slicing you did inside Amigo comes back with the audio. The round trip is frame-exact: a 35-slice RX2 sent into Amigo and pulled back gives 35 Renoise slice markers on precisely the same frames.
+
+This also gives you a way back if an Amigo instance has slices that its Renoise counterpart is missing — select the Amigo instrument and run `Amigo to Renoise`.
+
 ### 2026-08-19 - Improvement: Amigo import keeps the Renoise instrument, and covers WAV+CUE too
 
 The Amigo import option no longer converts the imported instrument in place. It now leaves the Renoise instrument exactly as it is — every sample, every slice — and builds a second instrument right after it holding Amigo with the same audio and the same slice points. Two instruments, nothing removed, and no double triggering since they are separate.
