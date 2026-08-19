@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,391 functions** · 10,938 keybindings · 7,546 midimappings · 6,804 menu entries.
+**4,406 functions** · 10,973 keybindings · 7,562 midimappings · 6,861 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+16) | ✅ | · | · |
+| Nudge Slice 01 by (+32) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2137 functions  ·  ⌨ 2137 · 🎛 826 · ☰ 678
+## Global  ·  2150 functions  ·  ⌨ 2150 · 🎛 832 · ☰ 690
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -786,6 +786,7 @@
 | Amigo to Impulse Tracker ITI | ✅ | ✅ | · |
 | Amigo to Octatrack ot and wav | ✅ | ✅ | ✅ |
 | Amigo to Polyend PTI | ✅ | ✅ | · |
+| Amigo to Renoise Drumkit One-Shot per Slice | ✅ | ✅ | ✅ |
 | Amigo to Renoise New Instrument | ✅ | ✅ | ✅ |
 | Amigo to WAV with CUE Header | ✅ | ✅ | ✅ |
 | Analyze Sample BPM (4 beats) | ✅ | · | ✅ |
@@ -895,6 +896,7 @@
 | Batch Every Amigo in Song to Impulse Tracker ITI | ✅ | · | · |
 | Batch Every Amigo in Song to Octatrack ot and wav | ✅ | · | · |
 | Batch Every Amigo in Song to Polyend PTI | ✅ | · | · |
+| Batch Every Amigo in Song to Renoise Drumkits | ✅ | · | · |
 | Batch Every Amigo in Song to Renoise Instruments | ✅ | ✅ | · |
 | Batch Every Amigo in Song to WAV with CUE Header | ✅ | · | · |
 | Batch Every Sampled Instrument in Song to Amigo | ✅ | ✅ | · |
@@ -907,6 +909,10 @@
 | BPM Calculation Debug (Comprehensive) | ✅ | · | ✅ |
 | BPM Decrease (-1) | ✅ | ✅ | · |
 | BPM Increase (+1) | ✅ | ✅ | · |
+| BPM Slice and Amigo (1 Beat) | ✅ | · | ✅ |
+| BPM Slice and Amigo (2 Beats) | ✅ | · | ✅ |
+| BPM Slice and Amigo (Half Beat) | ✅ | · | ✅ |
+| BPM Slice and Amigo (Quarter Beat) | ✅ | · | ✅ |
 | BPM-Based Sample Slicer Dialog... | ✅ | ✅ | ✅ |
 | Bypass All AudioUnit (AU) Track DSP Devices on Selected Track | ✅ | · | · |
 | Bypass All Devices on All Tracks | ✅ | ✅ | ✅ |
@@ -1278,6 +1284,8 @@
 | Expose/Hide Selected Track ALL Device Parameters | ✅ | · | ✅ |
 | Extract MIDI Mappings to Console | ✅ | · | · |
 | F4 Shift Midi Immediately | ✅ | · | · |
+| Fade Both Slice Ends 0.5ms | ✅ | · | ✅ |
+| Fade Out Slice Ends 0.5ms | ✅ | ✅ | ✅ |
 | File Warehouse | ✅ | · | ✅ |
 | Fill Empty Sample Slots (Randomized Folder) | ✅ | · | ✅ |
 | Find Note (Next, Pattern) | ✅ | ✅ | ✅ |
@@ -2146,6 +2154,7 @@
 | Populate Send Tracks for Selected Track | ✅ | · | ✅ |
 | Previous Wavetable Cycle | ✅ | ✅ | · |
 | Print Active MIDI Mappings to Console | ✅ | · | · |
+| Print Amigo Slices to Pattern | ✅ | ✅ | ✅ |
 | PTI Export | ✅ | · | · |
 | Put Audition Slot to Pattern | ✅ | · | · |
 | Quantization Decrease (-1) | ✅ | · | · |
@@ -2624,6 +2633,7 @@
 | Simple Play Record Follow | ✅ | ✅ | · |
 | Simple Play Record Follow (2nd) | ✅ | · | · |
 | Slice Count From Selection | ✅ | · | ✅ |
+| Slice Fades Dialog... | ✅ | ✅ | ✅ |
 | Slice Step All Rows to Phrases Bank | ✅ | ✅ | · |
 | Slice Step Cycle Output Mode | ✅ | ✅ | · |
 | Slice Step Randomize to New Track | ✅ | ✅ | · |
@@ -2797,6 +2807,7 @@
 | TouchOSC Sample Recorder and Record | ✅ | · | · |
 | TPL Decrease (-1) | ✅ | · | · |
 | TPL Increase (+1) | ✅ | · | · |
+| Transient Slice and Amigo | ✅ | ✅ | ✅ |
 | Transpose Blocks Dialog... | ✅ | · | ✅ |
 | Transpose Shift -12 (All Instruments) | ✅ | ✅ | ✅ |
 | Transpose Shift -12 (Selected Instrument) | ✅ | ✅ | ✅ |
@@ -2870,6 +2881,8 @@
 | Wipe Song Patterns | ✅ | · | · |
 | Wipe Song Retain Sample | ✅ | · | ✅ |
 | Wipe&Slice (002) | ✅ | ✅ | ✅ |
+| Wipe&Slice&Amigo (002) | ✅ | ✅ | ✅ |
+| Wipe&Slice&Amigo&Print (002) | ✅ | · | ✅ |
 | Wipe&Slice&Pattern (002) | ✅ | ✅ | · |
 | Wipe&Slice&Phrase (002) | ✅ | ✅ | · |
 | Wipe&Slice&Write to Pattern | ✅ | · | ✅ |
@@ -2894,7 +2907,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1553 functions  ·  ⌨ 0 · 🎛 782 · ☰ 916
+## (menu/midi only)  ·  1555 functions  ·  ⌨ 0 · 🎛 782 · ☰ 918
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -3349,6 +3362,7 @@
 | Every Amigo in Song to Impulse Tracker ITI (.iti) | · | · | ✅ |
 | Every Amigo in Song to Octatrack (.ot + .wav) | · | · | ✅ |
 | Every Amigo in Song to Polyend PTI (.pti) | · | · | ✅ |
+| Every Amigo in Song to Renoise Drumkits | · | · | ✅ |
 | Every Amigo in Song to Renoise Instruments | · | · | ✅ |
 | Every Amigo in Song to WAV with CUE Header | · | · | ✅ |
 | Every Sampled Instrument in Song to Amigo | · | · | ✅ |
@@ -3537,6 +3551,7 @@
 | Import .RX2 | · | · | ✅ |
 | Import .RX2 (ReCycle v2.0 Format) | · | · | ✅ |
 | Import .SF2 (Single XRNI per Preset) | · | · | ✅ |
+| Import Amigo as Renoise Drumkit (One-Shot per Slice) | · | · | ✅ |
 | Import Every Amigo in Song to Renoise Instruments | · | · | ✅ |
 | Import MT Project File | · | · | ✅ |
 | Import Polyend MT Project File | · | ✅ | · |
