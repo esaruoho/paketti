@@ -19528,6 +19528,26 @@ Amigo's slices come back too, including any slicing you did inside Amigo. A roun
 - Keybinding: `Global:Paketti:Amigo to Renoise New Instrument`
 - MIDI Mapping: `Paketti:Amigo to Renoise New Instrument`
 
+## Amigo to hardware formats
+
+Three export targets, each available for the selected Amigo and for every Amigo in the song at once. Paketti's existing Octatrack, Digitakt and WAV+CUE writers do the actual writing, so the files are the same ones those exporters have always produced.
+
+| Target | What you get |
+|--------|--------------|
+| Octatrack | `name.wav` + `name.ot`, slices in the .ot slice table and as CUE markers in the wav |
+| Digitakt Chain | `name.wav`, the slices laid out as chain slots with CUE markers at the slot boundaries |
+| WAV with CUE Header | `name.wav` with the slices as CUE markers, plus a `name.cue` sidecar |
+
+The Amigo instruments are only read — their plugin state is byte-identical afterwards, and the Renoise instrument used to hand the audio to the exporter is temporary and removed again. The batch versions ask for a folder and never overwrite: a name already in that folder becomes `name-2`, `name-3`.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Octatrack (.ot + .wav)` / `…to Digitakt Chain (.wav)` / `…to WAV with CUE Header`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to …` (all three)
+- Menu: `Main Menu:File:Paketti Export:Export Amigo to …` and `Export Every Amigo in Song to …` (all three)
+- Menu: `Instrument Box:Paketti:Amigo:…` (all six)
+- Keybinding: `Global:Paketti:Amigo to Octatrack ot and wav` / `…to Digitakt Chain` / `…to WAV with CUE Header`
+- Keybinding: `Global:Paketti:Batch Every Amigo in Song to …` (all three)
+- MIDI Mapping: `Paketti:Amigo to Octatrack ot and wav` / `…to Digitakt Chain` / `…to WAV with CUE Header`
+
 ## Batch, both ways
 
 Two commands that work on the whole song at once. Both **append** to the end of the instrument list and never move, alter or remove anything already in the song — appending matters, because inserting in the middle would renumber every instrument after it and your pattern data points at instrument numbers.

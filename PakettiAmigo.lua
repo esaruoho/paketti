@@ -1053,6 +1053,170 @@ function PakettiAmigoHandleRX2Import(instrument_index)
 end
 
 --------------------------------------------------------------------------------
+-- AMIGO -> HARDWARE FORMATS (Octatrack .ot+.wav, Digitakt chain, WAV+CUE)
+--
+-- Paketti already knows how to write all three, so this only has to carry the
+-- audio and the slice points over to those exporters. The Amigo is read, never
+-- written: the Renoise instrument used to hand the sample to the exporter is
+-- temporary and is removed again afterwards.
+--------------------------------------------------------------------------------
+
+local function pakettiAmigoPathSeparator()
+  return (os.platform() == "WINDOWS") and "\\" or "/"
+end
+
+-- one entry per export target. `taken` decides when a name in a batch folder is
+-- already in use, since Octatrack writes two files per export.
+local pakettiAmigoExportTargets = {
+  ot = {
+    label = "Octatrack (.ot + .wav)",
+    taken = function(folder, name)
+      return io.exists(folder .. name .. ".wav") or io.exists(folder .. name .. ".ot")
+    end,
+    run = function(path) PakettiOTExport(path) end,
+  },
+  digitakt = {
+    label = "Digitakt chain (.wav)",
+    taken = function(folder, name) return io.exists(folder .. name .. ".wav") end,
+    run = function(path)
+      export_digitakt_chain{
+        digitakt_version = "digitakt2",
+        export_mode = "chain",
+        slot_count = nil,
+        mono_method = "average",
+        apply_fadeout = true,
+        apply_dither = false,
+        pad_with_zero = false,
+        output_path = path,
+      }
+    end,
+  },
+  wavcue = {
+    label = "WAV with CUE header",
+    taken = function(folder, name)
+      return io.exists(folder .. name .. ".wav") or io.exists(folder .. name .. ".cue")
+    end,
+    run = function(path) PakettiWavCueExportSampleWithCues(true, path) end,
+  },
+}
+
+local function pakettiAmigoUniqueExportPath(target, folder, name, used)
+  local base, attempt = name, 1
+  while target.taken(folder, name) or used[name:lower()] do
+    attempt = attempt + 1
+    name = base .. "-" .. attempt
+  end
+  used[name:lower()] = true
+  return folder .. name .. ".wav"
+end
+
+-- folder = nil asks for a filename, otherwise the name comes from the Amigo
+local function pakettiAmigoExportDeviceVia(target, device, folder, used, output_path)
+  local song = renoise.song()
+  local at_index, reuse = pakettiAmigoAppendIndex()
+  local ok, name, slice_count, err = PakettiAmigoExtractDeviceToInstrument(device, at_index, reuse)
+  if not ok then return false, nil, 0, err end
+
+  song.selected_instrument_index = at_index
+  song.selected_sample_index = 1
+
+  local path = output_path
+  if not path or path == "" then
+    if folder and folder ~= "" then
+      path = pakettiAmigoUniqueExportPath(target, folder, name, used)
+    else
+      path = renoise.app():prompt_for_filename_to_write("*.wav", "Save Amigo as " .. target.label .. "...")
+    end
+  end
+  if not path or path == "" then
+    song:delete_instrument_at(at_index)
+    return false, name, 0, "cancelled"
+  end
+
+  local ran, run_err = pcall(function() target.run(path) end)
+  song:delete_instrument_at(at_index)
+  if not ran then return false, name, 0, tostring(run_err) end
+  return true, name, slice_count, nil
+end
+
+-- the selected instrument's Amigo. output_path is optional and skips the dialog.
+function PakettiAmigoExportSelectedTo(target_key, output_path)
+  local target = pakettiAmigoExportTargets[target_key]
+  if not target then return end
+  local device = PakettiAmigoFindDevice(renoise.song().selected_instrument)
+  if not device then
+    renoise.app():show_status("Amigo to " .. target.label ..
+      ": select an instrument that has the Amigo plugin loaded.")
+    return
+  end
+  local ok, name, slice_count, err = pakettiAmigoExportDeviceVia(target, device, nil, {}, output_path)
+  if not ok then
+    if err ~= "cancelled" then
+      renoise.app():show_status("Amigo to " .. target.label .. ": " .. tostring(err))
+    end
+    return
+  end
+  renoise.app():show_status("Amigo to " .. target.label .. ": " .. name ..
+    " exported with " .. slice_count .. " slices")
+end
+
+-- every Amigo in the song. target_folder is optional and skips the dialog.
+function PakettiAmigoBatchExportTo(target_key, target_folder)
+  local target = pakettiAmigoExportTargets[target_key]
+  if not target then return end
+  local song = renoise.song()
+  local devices, sources = {}, {}
+  for i = 1, #song.instruments do
+    local device = PakettiAmigoFindDevice(song.instruments[i])
+    if device then
+      devices[#devices + 1] = device
+      sources[#sources + 1] = i
+    end
+  end
+  if #devices == 0 then
+    renoise.app():show_status("Amigo to " .. target.label ..
+      ": this song has no instruments with the Amigo plugin.")
+    return
+  end
+
+  local folder = target_folder
+  if not folder or folder == "" then
+    folder = renoise.app():prompt_for_path("Export every Amigo as " .. target.label .. " into...")
+  end
+  if not folder or folder == "" then
+    renoise.app():show_status("Amigo to " .. target.label .. ": cancelled.")
+    return
+  end
+  local separator = pakettiAmigoPathSeparator()
+  if folder:sub(-1) ~= separator then folder = folder .. separator end
+
+  local used, made, failed = {}, 0, {}
+  for n = 1, #devices do
+    local ok, name, slice_count, err = pakettiAmigoExportDeviceVia(target, devices[n], folder, used)
+    if ok then
+      made = made + 1
+      print(string.format("PakettiAmigo: instrument %02X -> %s as %s (%d slices)",
+        sources[n] - 1, name, target.label, slice_count))
+    else
+      failed[#failed + 1] = string.format("%02X (%s)", sources[n] - 1, tostring(err))
+    end
+  end
+
+  local status = "Amigo to " .. target.label .. ": exported " .. made .. " of " ..
+    #devices .. " Amigos into " .. folder
+  if #failed > 0 then status = status .. " - skipped " .. table.concat(failed, ", ") end
+  renoise.app():show_status(status)
+  print("PakettiAmigo: " .. status)
+end
+
+function PakettiAmigoToOT(output_path) PakettiAmigoExportSelectedTo("ot", output_path) end
+function PakettiAmigoToDigitakt(output_path) PakettiAmigoExportSelectedTo("digitakt", output_path) end
+function PakettiAmigoToWavCue(output_path) PakettiAmigoExportSelectedTo("wavcue", output_path) end
+function PakettiAmigoBatchAmigosToOT(folder) PakettiAmigoBatchExportTo("ot", folder) end
+function PakettiAmigoBatchAmigosToDigitakt(folder) PakettiAmigoBatchExportTo("digitakt", folder) end
+function PakettiAmigoBatchAmigosToWavCue(folder) PakettiAmigoBatchExportTo("wavcue", folder) end
+
+--------------------------------------------------------------------------------
 -- what is in there? (console dump, handy when a preset misbehaves)
 --------------------------------------------------------------------------------
 
@@ -1097,6 +1261,43 @@ PakettiAddMenuEntry{name = "Main Menu:Options:Sliced Imports Also Go Into Amigo 
   invoke = function() PakettiAmigoToggleSlicedImport() end,
   selected = function() return PakettiAmigoSlicedImportEnabled() end}
 
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Octatrack (.ot + .wav)",
+  invoke = function() PakettiAmigoToOT() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Octatrack (.ot + .wav)",
+  invoke = function() PakettiAmigoBatchAmigosToOT() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Digitakt Chain (.wav)",
+  invoke = function() PakettiAmigoToDigitakt() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Digitakt Chain (.wav)",
+  invoke = function() PakettiAmigoBatchAmigosToDigitakt() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to WAV with CUE Header",
+  invoke = function() PakettiAmigoToWavCue() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to WAV with CUE Header",
+  invoke = function() PakettiAmigoBatchAmigosToWavCue() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Amigo to Octatrack (.ot + .wav)",
+  invoke = function() PakettiAmigoToOT() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Every Amigo in Song to Octatrack (.ot + .wav)",
+  invoke = function() PakettiAmigoBatchAmigosToOT() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Amigo to Digitakt Chain (.wav)",
+  invoke = function() PakettiAmigoToDigitakt() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Every Amigo in Song to Digitakt Chain (.wav)",
+  invoke = function() PakettiAmigoBatchAmigosToDigitakt() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Amigo to WAV with CUE Header",
+  invoke = function() PakettiAmigoToWavCue() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Every Amigo in Song to WAV with CUE Header",
+  invoke = function() PakettiAmigoBatchAmigosToWavCue() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to Octatrack (.ot + .wav)",
+  invoke = function() PakettiAmigoToOT() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to Octatrack (.ot + .wav)",
+  invoke = function() PakettiAmigoBatchAmigosToOT() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to Digitakt Chain (.wav)",
+  invoke = function() PakettiAmigoToDigitakt() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to Digitakt Chain (.wav)",
+  invoke = function() PakettiAmigoBatchAmigosToDigitakt() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to WAV with CUE Header",
+  invoke = function() PakettiAmigoToWavCue() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to WAV with CUE Header",
+  invoke = function() PakettiAmigoBatchAmigosToWavCue() end}
+
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Renoise Instruments",
   invoke = function() PakettiAmigoBatchAmigosToRenoise() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Sampled Instrument in Song to Amigo",
@@ -1129,6 +1330,18 @@ PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Amigo to Renoise (New In
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Sliced Imports Also Go Into Amigo",
   invoke = function() PakettiAmigoToggleSlicedImport() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to Octatrack ot and wav",
+  invoke = function() PakettiAmigoToOT() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to Octatrack ot and wav",
+  invoke = function() PakettiAmigoBatchAmigosToOT() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to Digitakt Chain",
+  invoke = function() PakettiAmigoToDigitakt() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to Digitakt Chain",
+  invoke = function() PakettiAmigoBatchAmigosToDigitakt() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to WAV with CUE Header",
+  invoke = function() PakettiAmigoToWavCue() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to WAV with CUE Header",
+  invoke = function() PakettiAmigoBatchAmigosToWavCue() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to Renoise Instruments",
   invoke = function() PakettiAmigoBatchAmigosToRenoise() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Sampled Instrument in Song to Amigo",
@@ -1140,6 +1353,12 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Renoise to Amigo Selected S
 renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to Renoise New Instrument",
   invoke = function() PakettiAmigoAmigoToRenoise() end}
 
+renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Octatrack ot and wav",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoToOT() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Digitakt Chain",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoToDigitakt() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Amigo to WAV with CUE Header",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoToWavCue() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Batch Every Amigo in Song to Renoise Instruments",
   invoke = function(message) if message:is_trigger() then PakettiAmigoBatchAmigosToRenoise() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Batch Every Sampled Instrument in Song to Amigo",

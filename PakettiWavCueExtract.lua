@@ -619,7 +619,8 @@ function PakettiWavCueWriteCueChunksToWav(wav_path, slice_markers, sample_rate, 
 end
 
 -- Export sample with slice markers to WAV + CUE files
-function PakettiWavCueExportSampleWithCues(include_cue_header)
+-- output_path is optional: batch callers supply one to skip the file dialog
+function PakettiWavCueExportSampleWithCues(include_cue_header, output_path)
   local song = renoise.song()
   local sample = song.selected_sample
   
@@ -640,8 +641,10 @@ function PakettiWavCueExportSampleWithCues(include_cue_header)
   end
   
   -- Prompt for save location
-  local default_name = sample.name:gsub("[^%w%s%-_]", "_") .. ".wav"
-  local wav_path = renoise.app():prompt_for_filename_to_write("wav", "Export WAV with CUE markers")
+  local wav_path = output_path
+  if not wav_path or wav_path == "" then
+    wav_path = renoise.app():prompt_for_filename_to_write("wav", "Export WAV with CUE markers")
+  end
   
   if not wav_path or wav_path == "" then
     return

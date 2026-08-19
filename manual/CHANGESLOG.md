@@ -8,6 +8,27 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Feature: Amigo exports to Octatrack, Digitakt and WAV+CUE
+
+Whatever an Amigo is holding can now be written straight out as hardware-ready files, either for the selected Amigo or for every Amigo in the song at once. Octatrack gives a `.wav` plus a `.ot` with the slice table; Digitakt gives a chain `.wav` with the slices as chain slots; WAV with CUE Header gives a `.wav` carrying the slices as CUE markers plus a `.cue` sidecar. Paketti's existing exporters do the writing, so the files are the same ones those commands have always produced.
+
+The Amigo instruments are only read — their plugin state is byte-identical afterwards, and the Renoise instrument used to carry the audio to the exporter is temporary and removed again. The batch versions ask for a folder and never overwrite anything already in it.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Octatrack (.ot + .wav)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Digitakt Chain (.wav)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to WAV with CUE Header`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Octatrack (.ot + .wav)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Digitakt Chain (.wav)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to WAV with CUE Header`
+- Menu: the same six under `Main Menu:File:Paketti Export:` and `Instrument Box:Paketti:Amigo:`
+- Keybinding: `Global:Paketti:Amigo to Octatrack ot and wav`, `Global:Paketti:Amigo to Digitakt Chain`, `Global:Paketti:Amigo to WAV with CUE Header`
+- Keybinding: `Global:Paketti:Batch Every Amigo in Song to Octatrack ot and wav`, `... to Digitakt Chain`, `... to WAV with CUE Header`
+- MIDI Mapping: `Paketti:Amigo to Octatrack ot and wav`, `Paketti:Amigo to Digitakt Chain`, `Paketti:Amigo to WAV with CUE Header`
+
+### 2026-08-19 - Fix: Digitakt chain export no longer doubles a sliced instrument
+
+Exporting a sliced instrument as a Digitakt chain put the entire source loop in front of its own slices, because sample 1 of a sliced instrument is the whole thing and samples 2 and up are the slices — the chain came out exactly twice as long as it should be. The chain now starts at the slices.
+
 ### 2026-08-19 - Improvement: the Amigo editor opens on a sliced import
 
 When a sliced import also goes into Amigo, Amigo's own editor window now opens on the instrument that was just made, so you can hear and tweak it straight away. Dropping ten files gives ten pairs and one editor window showing the last of them rather than ten stacked windows — each new one closes the window the previous import opened. An Amigo editor you opened yourself is never closed.

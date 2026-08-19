@@ -461,8 +461,18 @@ function export_digitakt_chain(params)
   -- Process all samples
   local processed_samples = {}
   local skipped_count = 0
-  
-  for i = 1, #instrument.samples do
+
+  -- On a sliced instrument, sample 1 is the whole thing and samples 2..n are
+  -- its slices. Chaining sample 1 as well would put the entire loop in front of
+  -- its own slices and double the length of the chain, so start at the slices.
+  local first_sample = 1
+  if instrument.samples[1] and #instrument.samples[1].slice_markers > 0 and #instrument.samples > 1 then
+    first_sample = 2
+    print(string.format("PakettiDigitakt: Sliced instrument - chaining its %d slices, not the parent sample",
+      #instrument.samples - 1))
+  end
+
+  for i = first_sample, #instrument.samples do
     local sample = instrument.samples[i]
     if sample and sample.sample_buffer.has_sample_data then
       -- Convert sample rate and bit depth if needed
