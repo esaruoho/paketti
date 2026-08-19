@@ -500,17 +500,32 @@ function iti_build_sample(sample, sample_index)
 end
 
 function iti_extract_sample_data(buffer, is_16bit, is_stereo)
-  local data = {}
   local num_frames = buffer.number_of_frames
   local num_channels = is_stereo and 2 or 1
-  
+
   dprint("  Extracting PCM data:", num_frames, "frames,", num_channels, "channel(s)")
-  
+
+  -- Bytes are collected into fixed-size blocks and turned into strings a block
+  -- at a time. Building one string per frame meant millions of small Lua
+  -- strings for a long sample, which took minutes and tripped Renoise's
+  -- "script not responding" watchdog on a batch export.
+  local BLOCK = 4096
+  local chunks, block, count = {}, {}, 0
+
+  local function push(byte)
+    count = count + 1
+    block[count] = byte
+    if count == BLOCK then
+      chunks[#chunks + 1] = string.char(unpack(block, 1, count))
+      count = 0
+    end
+  end
+
   for frame = 1, num_frames do
     for channel = 1, num_channels do
       -- Get sample value (-1.0 to 1.0)
       local value = buffer:sample_data(channel, frame)
-      
+
       if is_16bit then
         -- Convert to signed 16-bit integer (-32768 to 32767)
         -- Use proper scaling: negative values use 32768, positive use 32767
@@ -520,16 +535,17 @@ function iti_extract_sample_data(buffer, is_16bit, is_stereo)
         else
           int_value = math.floor(value * 32768 + 0.5)
         end
-        
+
         -- Clamp to valid range
         if int_value < -32768 then int_value = -32768 end
         if int_value > 32767 then int_value = 32767 end
-        
+
         -- Convert to unsigned for writing (two's complement)
         if int_value < 0 then int_value = int_value + 65536 end
-        
-        -- Write as little-endian word
-        table.insert(data, iti_write_word(int_value))
+
+        -- Little-endian word
+        push(int_value % 256)
+        push(math.floor(int_value / 256) % 256)
       else
         -- Convert to signed 8-bit integer (-128 to 127)
         local int_value
@@ -538,20 +554,24 @@ function iti_extract_sample_data(buffer, is_16bit, is_stereo)
         else
           int_value = math.floor(value * 128 + 0.5)
         end
-        
+
         -- Clamp to valid range
         if int_value < -128 then int_value = -128 end
         if int_value > 127 then int_value = 127 end
-        
+
         -- Convert to unsigned for writing (two's complement)
         if int_value < 0 then int_value = int_value + 256 end
-        
-        table.insert(data, iti_write_byte(int_value))
+
+        push(int_value)
       end
     end
   end
-  
-  return table.concat(data)
+
+  if count > 0 then
+    chunks[#chunks + 1] = string.char(unpack(block, 1, count))
+  end
+
+  return table.concat(chunks)
 end
 
 -- Menu entry and keybinding for ITI export

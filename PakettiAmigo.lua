@@ -1070,6 +1070,7 @@ end
 local pakettiAmigoExportTargets = {
   ot = {
     label = "Octatrack (.ot + .wav)",
+    extension = "wav",
     taken = function(folder, name)
       return io.exists(folder .. name .. ".wav") or io.exists(folder .. name .. ".ot")
     end,
@@ -1077,6 +1078,7 @@ local pakettiAmigoExportTargets = {
   },
   digitakt = {
     label = "Digitakt chain (.wav)",
+    extension = "wav",
     taken = function(folder, name) return io.exists(folder .. name .. ".wav") end,
     run = function(path)
       export_digitakt_chain{
@@ -1093,10 +1095,27 @@ local pakettiAmigoExportTargets = {
   },
   wavcue = {
     label = "WAV with CUE header",
+    extension = "wav",
     taken = function(folder, name)
       return io.exists(folder .. name .. ".wav") or io.exists(folder .. name .. ".cue")
     end,
     run = function(path) PakettiWavCueExportSampleWithCues(true, path) end,
+  },
+  -- Polyend PTI holds 48 slices; Amigo can hold 64, so a heavily sliced Amigo
+  -- loses the tail. The PTI exporter itself decides how to truncate.
+  pti = {
+    label = "Polyend PTI (.pti)",
+    extension = "pti",
+    taken = function(folder, name) return io.exists(folder .. name .. ".pti") end,
+    run = function(path) pti_savesample_to_path(path) end,
+  },
+  -- Impulse Tracker ITI writes the instrument, so a sliced Amigo arrives as the
+  -- full sample plus one sample per slice, the way Renoise itself keyzones it.
+  iti = {
+    label = "Impulse Tracker ITI (.iti)",
+    extension = "iti",
+    taken = function(folder, name) return io.exists(folder .. name .. ".iti") end,
+    run = function(path) iti_export_instrument(renoise.song().selected_instrument, path) end,
   },
 }
 
@@ -1107,7 +1126,7 @@ local function pakettiAmigoUniqueExportPath(target, folder, name, used)
     name = base .. "-" .. attempt
   end
   used[name:lower()] = true
-  return folder .. name .. ".wav"
+  return folder .. name .. "." .. (target.extension or "wav")
 end
 
 -- folder = nil asks for a filename, otherwise the name comes from the Amigo
@@ -1125,7 +1144,8 @@ local function pakettiAmigoExportDeviceVia(target, device, folder, used, output_
     if folder and folder ~= "" then
       path = pakettiAmigoUniqueExportPath(target, folder, name, used)
     else
-      path = renoise.app():prompt_for_filename_to_write("*.wav", "Save Amigo as " .. target.label .. "...")
+      path = renoise.app():prompt_for_filename_to_write(target.extension or "wav",
+        "Save Amigo as " .. target.label .. "...")
     end
   end
   if not path or path == "" then
@@ -1215,6 +1235,10 @@ function PakettiAmigoToWavCue(output_path) PakettiAmigoExportSelectedTo("wavcue"
 function PakettiAmigoBatchAmigosToOT(folder) PakettiAmigoBatchExportTo("ot", folder) end
 function PakettiAmigoBatchAmigosToDigitakt(folder) PakettiAmigoBatchExportTo("digitakt", folder) end
 function PakettiAmigoBatchAmigosToWavCue(folder) PakettiAmigoBatchExportTo("wavcue", folder) end
+function PakettiAmigoToPTI(output_path) PakettiAmigoExportSelectedTo("pti", output_path) end
+function PakettiAmigoToITI(output_path) PakettiAmigoExportSelectedTo("iti", output_path) end
+function PakettiAmigoBatchAmigosToPTI(folder) PakettiAmigoBatchExportTo("pti", folder) end
+function PakettiAmigoBatchAmigosToITI(folder) PakettiAmigoBatchExportTo("iti", folder) end
 
 --------------------------------------------------------------------------------
 -- what is in there? (console dump, handy when a preset misbehaves)
@@ -1273,6 +1297,14 @@ PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to W
   invoke = function() PakettiAmigoToWavCue() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to WAV with CUE Header",
   invoke = function() PakettiAmigoBatchAmigosToWavCue() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Polyend PTI (.pti)",
+  invoke = function() PakettiAmigoToPTI() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Polyend PTI (.pti)",
+  invoke = function() PakettiAmigoBatchAmigosToPTI() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Impulse Tracker ITI (.iti)",
+  invoke = function() PakettiAmigoToITI() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Impulse Tracker ITI (.iti)",
+  invoke = function() PakettiAmigoBatchAmigosToITI() end}
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Amigo to Octatrack (.ot + .wav)",
   invoke = function() PakettiAmigoToOT() end}
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Every Amigo in Song to Octatrack (.ot + .wav)",
@@ -1285,6 +1317,14 @@ PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Amigo to WAV wi
   invoke = function() PakettiAmigoToWavCue() end}
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Every Amigo in Song to WAV with CUE Header",
   invoke = function() PakettiAmigoBatchAmigosToWavCue() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Amigo to Polyend PTI (.pti)",
+  invoke = function() PakettiAmigoToPTI() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Every Amigo in Song to Polyend PTI (.pti)",
+  invoke = function() PakettiAmigoBatchAmigosToPTI() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Amigo to Impulse Tracker ITI (.iti)",
+  invoke = function() PakettiAmigoToITI() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Every Amigo in Song to Impulse Tracker ITI (.iti)",
+  invoke = function() PakettiAmigoBatchAmigosToITI() end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to Octatrack (.ot + .wav)",
   invoke = function() PakettiAmigoToOT() end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to Octatrack (.ot + .wav)",
@@ -1297,6 +1337,14 @@ PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to WAV with CUE H
   invoke = function() PakettiAmigoToWavCue() end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to WAV with CUE Header",
   invoke = function() PakettiAmigoBatchAmigosToWavCue() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to Polyend PTI (.pti)",
+  invoke = function() PakettiAmigoToPTI() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to Polyend PTI (.pti)",
+  invoke = function() PakettiAmigoBatchAmigosToPTI() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to Impulse Tracker ITI (.iti)",
+  invoke = function() PakettiAmigoToITI() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to Impulse Tracker ITI (.iti)",
+  invoke = function() PakettiAmigoBatchAmigosToITI() end}
 
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Renoise Instruments",
   invoke = function() PakettiAmigoBatchAmigosToRenoise() end}
@@ -1342,6 +1390,14 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to WAV with CUE Heade
   invoke = function() PakettiAmigoToWavCue() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to WAV with CUE Header",
   invoke = function() PakettiAmigoBatchAmigosToWavCue() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to Polyend PTI",
+  invoke = function() PakettiAmigoToPTI() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to Polyend PTI",
+  invoke = function() PakettiAmigoBatchAmigosToPTI() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to Impulse Tracker ITI",
+  invoke = function() PakettiAmigoToITI() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to Impulse Tracker ITI",
+  invoke = function() PakettiAmigoBatchAmigosToITI() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to Renoise Instruments",
   invoke = function() PakettiAmigoBatchAmigosToRenoise() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Sampled Instrument in Song to Amigo",
@@ -1359,6 +1415,10 @@ renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Digitakt Chain",
   invoke = function(message) if message:is_trigger() then PakettiAmigoToDigitakt() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Amigo to WAV with CUE Header",
   invoke = function(message) if message:is_trigger() then PakettiAmigoToWavCue() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Polyend PTI",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoToPTI() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Impulse Tracker ITI",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoToITI() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Batch Every Amigo in Song to Renoise Instruments",
   invoke = function(message) if message:is_trigger() then PakettiAmigoBatchAmigosToRenoise() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Batch Every Sampled Instrument in Song to Amigo",

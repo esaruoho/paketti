@@ -19530,17 +19530,19 @@ Amigo's slices come back too, including any slicing you did inside Amigo. A roun
 
 ## Amigo to hardware formats
 
-Three export targets, each available for the selected Amigo and for every Amigo in the song at once. Paketti's existing Octatrack, Digitakt and WAV+CUE writers do the actual writing, so the files are the same ones those exporters have always produced.
+Five export targets, each available for the selected Amigo and for every Amigo in the song at once. Paketti's existing Octatrack, Digitakt and WAV+CUE writers do the actual writing, so the files are the same ones those exporters have always produced.
 
 | Target | What you get |
 |--------|--------------|
 | Octatrack | `name.wav` + `name.ot`, slices in the .ot slice table and as CUE markers in the wav |
-| Digitakt Chain | `name.wav`, the slices laid out as chain slots with CUE markers at the slot boundaries |
+| Digitakt Chain | `name.wav` resampled to 48kHz, the slices laid out as chain slots with CUE markers at the slot boundaries |
 | WAV with CUE Header | `name.wav` with the slices as CUE markers, plus a `name.cue` sidecar |
+| Polyend PTI | `name.pti`. PTI holds 48 slices against Amigo's 64, so a heavily sliced Amigo loses the tail |
+| Impulse Tracker ITI | `name.iti` holding the full sample plus one sample per slice, the way Renoise itself keyzones a sliced instrument. Slow on long samples — a 9.5MB sample takes several minutes and Renoise may offer to terminate the script; answer No and let it finish |
 
 The Amigo instruments are only read — their plugin state is byte-identical afterwards, and the Renoise instrument used to hand the audio to the exporter is temporary and removed again. The batch versions ask for a folder and never overwrite: a name already in that folder becomes `name-2`, `name-3`.
 
-- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Octatrack (.ot + .wav)` / `…to Digitakt Chain (.wav)` / `…to WAV with CUE Header`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Octatrack (.ot + .wav)` / `…to Digitakt Chain (.wav)` / `…to WAV with CUE Header` / `…to Polyend PTI (.pti)` / `…to Impulse Tracker ITI (.iti)`
 - Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to …` (all three)
 - Menu: `Main Menu:File:Paketti Export:Export Amigo to …` and `Export Every Amigo in Song to …` (all three)
 - Menu: `Instrument Box:Paketti:Amigo:…` (all six)

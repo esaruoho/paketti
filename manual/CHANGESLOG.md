@@ -8,6 +8,35 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Fix: Digitakt export now actually resamples
+
+The Digitakt exporter wrote a 48kHz header onto whatever rate the source happened to be, without converting it. A 44.1kHz one-second sample came out as 44100 frames labelled 48000Hz, so the chain played about 8.8% fast and short on the hardware. It tried to convert by calling RenderSampleAtNewRate on the song's own sample inside a pcall — which edited your instrument if it worked, and silently did nothing when it didn't.
+
+The extracted audio is now resampled properly instead, leaving everything in the song untouched. Upsampling uses Catmull-Rom cubic interpolation; downsampling lowpasses first with an 8th-order Butterworth at 45% of the target rate so nothing folds back as aliasing. Verified: a 1kHz sine at 44.1kHz and the same at 96kHz both come out as 48000 frames at 48kHz, still 1kHz, at the original level, and a 30kHz tone downsampled from 96kHz lands 39dB down instead of folding to 18kHz at full level.
+
+This applies to every Digitakt export, including `Digitakt Quick Export (Mono)`, `(Stereo)` and `(Chain Mode)`.
+
+### 2026-08-19 - Fix: PTI export crashed on any instrument with an AHDSR envelope
+
+Exporting to PTI read `.duration` off the AHDSR modulation device to get its decay stage. On current Renoise that property does not exist — the device exposes `.decay` — so the read threw and killed the whole export, writing nothing. Since the Paketti default instrument carries a Volume AHDSR, PTI export failed on anything loaded through it. It now reads `.decay` and falls back to `.duration` for older builds.
+
+### 2026-08-19 - Improvement: ITI export is faster on long samples
+
+The ITI exporter built one Lua string per sample frame, which for a 9.5MB sample meant several million tiny strings. Bytes are now collected into 4096-byte blocks. Output is byte-identical — verified by checksum against the previous exporter on four files.
+
+### 2026-08-19 - Feature: Amigo also exports to Polyend PTI and Impulse Tracker ITI
+
+Two more export targets alongside Octatrack, Digitakt and WAV+CUE, again for the selected Amigo and for every Amigo in the song at once. PTI holds 48 slices against Amigo's 64, so a heavily sliced Amigo loses its tail slices. ITI writes the full sample plus one sample per slice, the way Renoise itself keyzones a sliced instrument.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Polyend PTI (.pti)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Impulse Tracker ITI (.iti)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Polyend PTI (.pti)`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Impulse Tracker ITI (.iti)`
+- Menu: the same four under `Main Menu:File:Paketti Export:` and `Instrument Box:Paketti:Amigo:`
+- Keybinding: `Global:Paketti:Amigo to Polyend PTI`, `Global:Paketti:Amigo to Impulse Tracker ITI`
+- Keybinding: `Global:Paketti:Batch Every Amigo in Song to Polyend PTI`, `... to Impulse Tracker ITI`
+- MIDI Mapping: `Paketti:Amigo to Polyend PTI`, `Paketti:Amigo to Impulse Tracker ITI`
+
 ### 2026-08-19 - Feature: Amigo exports to Octatrack, Digitakt and WAV+CUE
 
 Whatever an Amigo is holding can now be written straight out as hardware-ready files, either for the selected Amigo or for every Amigo in the song at once. Octatrack gives a `.wav` plus a `.ot` with the slice table; Digitakt gives a chain `.wav` with the slices as chain slots; WAV with CUE Header gives a `.wav` carrying the slices as CUE markers plus a `.cue` sidecar. Paketti's existing exporters do the writing, so the files are the same ones those commands have always produced.

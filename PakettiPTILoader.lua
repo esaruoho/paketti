@@ -1320,16 +1320,24 @@ function extractModulationForPTIExport(renoise_instrument)
       -- is "<Target> <Type>", e.g. "Volume AHDSR", "Pitch Stepper", "Cutoff LFO".
       local dname = device.name or ""
       if dname:find("AHDSR") then
-        -- AHDSR parameters are attack / hold / duration / sustain / release.
-        -- Renoise calls the decay stage "duration" (there is no .decay); PTI's
-        -- envelope slot is named "decay", so map duration -> decay.
+        -- The decay stage is called .decay on current Renoise and was .duration
+        -- on older builds. Reading the wrong one THROWS and kills the whole PTI
+        -- export, so try both. (Probed live: SampleAhdsrModulationDevice here
+        -- exposes attack / hold / decay / sustain / release, no .duration.)
+        local decay_value = 0
+        local got, param = pcall(function() return device.decay end)
+        if not got or param == nil then
+          got, param = pcall(function() return device.duration end)
+        end
+        if got and param ~= nil then decay_value = param.value end
+
         result.envelopes[env_idx] = {
           enabled = device.is_active,
           amount = 1.0,
           delay = 0,
           attack = device.attack.value,
           hold = device.hold.value,
-          decay = device.duration.value,
+          decay = decay_value,
           sustain = device.sustain.value,
           release = device.release.value,
         }

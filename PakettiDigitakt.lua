@@ -100,6 +100,98 @@ local function convert_to_mono(sample_data_left, sample_data_right, method)
 end
 
 -- Extract sample data from Renoise sample
+--------------------------------------------------------------------------------
+-- Sample rate conversion
+--
+-- The Digitakt wants a fixed rate (48kHz on Digitakt II, 48kHz on Digitakt I),
+-- and a 44.1kHz sample written out with a 48kHz header without being resampled
+-- plays back roughly 8.8% fast and short. This converts the extracted float
+-- data instead, so nothing in the song is modified.
+--
+-- Upsampling uses Catmull-Rom cubic interpolation. Downsampling lowpasses first
+-- with a 4th-order Butterworth at 45% of the target rate, otherwise everything
+-- above the new Nyquist folds back as aliasing.
+--------------------------------------------------------------------------------
+
+-- one RBJ lowpass biquad, applied in place
+local function digitakt_biquad_lowpass(data, sample_rate, cutoff, q)
+  local w0 = 2 * math.pi * cutoff / sample_rate
+  local cos_w0, sin_w0 = math.cos(w0), math.sin(w0)
+  local alpha = sin_w0 / (2 * q)
+  local a0 = 1 + alpha
+  local b0 = ((1 - cos_w0) / 2) / a0
+  local b1 = (1 - cos_w0) / a0
+  local b2 = b0
+  local a1 = (-2 * cos_w0) / a0
+  local a2 = (1 - alpha) / a0
+
+  -- prime the state with the first sample so the filter does not open with a
+  -- step response blip on material that starts away from zero
+  local seed = data[1] or 0
+  local x1, x2, y1, y2 = seed, seed, seed, seed
+  for i = 1, #data do
+    local x0 = data[i]
+    local y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+    x2, x1 = x1, x0
+    y2, y1 = y1, y0
+    data[i] = y0
+  end
+end
+
+local function digitakt_resample_channel(source, source_rate, target_rate)
+  if source_rate == target_rate or #source == 0 then return source end
+
+  local input = source
+  if target_rate < source_rate then
+    -- anti-alias before decimating: 8th-order Butterworth as four cascaded
+    -- biquads. A 30kHz tone going to 48kHz comes out around -26dB instead of
+    -- folding back to 18kHz at full level.
+    input = {}
+    for i = 1, #source do input[i] = source[i] end
+    local cutoff = target_rate * 0.45
+    for _, q in ipairs({0.50979558, 0.60134489, 0.89997622, 2.56291545}) do
+      digitakt_biquad_lowpass(input, source_rate, cutoff, q)
+    end
+  end
+
+  local ratio = target_rate / source_rate
+  local input_frames = #input
+  local output_frames = math.floor(input_frames * ratio + 0.5)
+  if output_frames < 1 then output_frames = 1 end
+
+  local out = {}
+  for j = 1, output_frames do
+    local position = (j - 1) / ratio + 1
+    local index = math.floor(position)
+    local t = position - index
+
+    local i0 = index - 1 if i0 < 1 then i0 = 1 end
+    local i1 = index     if i1 < 1 then i1 = 1 elseif i1 > input_frames then i1 = input_frames end
+    local i2 = index + 1 if i2 > input_frames then i2 = input_frames end
+    local i3 = index + 2 if i3 > input_frames then i3 = input_frames end
+
+    local p0, p1, p2, p3 = input[i0], input[i1], input[i2], input[i3]
+    local a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3
+    local b = p0 - 2.5 * p1 + 2 * p2 - 0.5 * p3
+    local c = -0.5 * p0 + 0.5 * p2
+    local value = ((a * t + b) * t + c) * t + p1
+
+    if value > 1 then value = 1 elseif value < -1 then value = -1 end
+    out[j] = value
+  end
+  return out
+end
+
+-- resamples every channel of an extract_sample_data() result
+local function digitakt_resample_sample_data(sample_data, source_rate, target_rate)
+  if source_rate == target_rate then return sample_data end
+  local converted = {}
+  for channel = 1, #sample_data do
+    converted[channel] = digitakt_resample_channel(sample_data[channel], source_rate, target_rate)
+  end
+  return converted
+end
+
 local function extract_sample_data(sample, target_channels, mono_method)
   local buffer = sample.sample_buffer
   if not buffer.has_sample_data then 
@@ -475,32 +567,19 @@ function export_digitakt_chain(params)
   for i = first_sample, #instrument.samples do
     local sample = instrument.samples[i]
     if sample and sample.sample_buffer.has_sample_data then
-      -- Convert sample rate and bit depth if needed
-      local needs_conversion = (sample.sample_buffer.sample_rate ~= config.sample_rate) or 
-                              (sample.sample_buffer.bit_depth ~= config.bit_depth)
-      
-      if needs_conversion then
-        print(string.format("PakettiDigitakt: Converting sample %d from %dHz/%dbit to %dHz/%dbit", 
-          i, sample.sample_buffer.sample_rate, sample.sample_buffer.bit_depth,
-          config.sample_rate, config.bit_depth))
-        
-        -- Use Paketti's conversion function if available
-        if RenderSampleAtNewRate then
-          local old_index = song.selected_sample_index
-          song.selected_sample_index = i
-          local success = pcall(function()
-            RenderSampleAtNewRate(config.sample_rate, config.bit_depth)
-          end)
-          song.selected_sample_index = old_index
-          
-          if not success then
-            print("PakettiDigitakt: Conversion failed for sample " .. i .. ", using original")
-          end
-        end
-      end
-      
-      -- Extract sample data
+      local source_rate = sample.sample_buffer.sample_rate
+
+      -- Extract sample data, then convert the rate on the extracted floats.
+      -- This used to call RenderSampleAtNewRate on the song's own sample, which
+      -- both edited the user's instrument and silently did nothing when it
+      -- failed - the file then got a 48kHz header on 44.1kHz audio.
       local sample_data = extract_sample_data(sample, config.channels, params.mono_method)
+      if sample_data and source_rate ~= config.sample_rate then
+        print(string.format("PakettiDigitakt: Resampling sample %d from %dHz to %dHz (%d frames)",
+          i, source_rate, config.sample_rate, #sample_data[1]))
+        sample_data = digitakt_resample_sample_data(sample_data, source_rate, config.sample_rate)
+        print(string.format("PakettiDigitakt: Resampled to %d frames", #sample_data[1]))
+      end
       if sample_data then
         table.insert(processed_samples, sample_data)
         print(string.format("PakettiDigitakt: Processed sample %d: '%s' (%d frames)", 
