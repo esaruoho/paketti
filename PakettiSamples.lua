@@ -396,9 +396,12 @@ end
 
 
 ---------------
-function pitchBendDrumkitLoader()
-  -- Prompt the user to select multiple sample files to load
-  local selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read({"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, "Paketti PitchBend Drumkit Sample Loader")
+-- files is optional: pass a list to skip the file dialog
+function pitchBendDrumkitLoader(files)
+  local selected_sample_filenames = files
+  if not selected_sample_filenames then
+    selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read({"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, "Paketti PitchBend Drumkit Sample Loader")
+  end
 
   -- Check if files are selected, if not, return
   if #selected_sample_filenames == 0 then
@@ -1158,8 +1161,14 @@ local pitchbend_loader_progress = {
   dialog = nil
 }
 
-function pitchBendMultipleSampleLoader(normalize)
-  local selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read({"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, "Paketti PitchBend Multiple Sample Loader")
+-- on_finished is optional and is called with (first_index, last_index) once the
+-- ProcessSlicer has loaded everything - the Amigo chaining commands use it
+function pitchBendMultipleSampleLoader(normalize, on_finished, files)
+  -- files is optional: pass a list to skip the file dialog
+  local selected_sample_filenames = files
+  if not selected_sample_filenames then
+    selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read({"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, "Paketti PitchBend Multiple Sample Loader")
+  end
 
   if #selected_sample_filenames == 0 then
     renoise.app():show_status("No file selected.")
@@ -1174,7 +1183,7 @@ function pitchBendMultipleSampleLoader(normalize)
   pitchbend_loader_progress.total_files = #selected_sample_filenames
   
   -- Create ProcessSlicer for the loading operation
-  pitchbend_loader_progress.slicer = ProcessSlicer(pitchBendMultipleSampleLoader_process, selected_sample_filenames, normalize)
+  pitchbend_loader_progress.slicer = ProcessSlicer(pitchBendMultipleSampleLoader_process, selected_sample_filenames, normalize, on_finished)
   pitchbend_loader_progress.dialog, pitchbend_loader_progress.vb = pitchbend_loader_progress.slicer:create_dialog("Loading Pitchbend Samples...")
   
   -- Start the process
@@ -1223,7 +1232,8 @@ function pitchBendMultipleSampleLoader_update_progress()
 end
 
 
-function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normalize)
+function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normalize, on_finished)
+  local first_created_index = renoise.song().selected_instrument_index + 1
   -- Completely stop AutoSamplify monitoring to prevent double-processing
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -1317,6 +1327,10 @@ function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normal
   -- Reset progress tracking when complete
   pitchbend_loader_progress.current_file_index = 0
   pitchbend_loader_progress.current_filename = ""
+
+  if on_finished then
+    on_finished(first_created_index, renoise.song().selected_instrument_index)
+  end
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}

@@ -182,6 +182,12 @@ local function digitakt_resample_channel(source, source_rate, target_rate)
   return out
 end
 
+-- Exposed so other Paketti features can reuse this converter rather than
+-- growing a second one (PakettiAmigo's drumkit chain builder uses it).
+function PakettiResampleChannel(source, source_rate, target_rate)
+  return digitakt_resample_channel(source, source_rate, target_rate)
+end
+
 -- resamples every channel of an extract_sample_data() result
 local function digitakt_resample_sample_data(sample_data, source_rate, target_rate)
   if source_rate == target_rate then return sample_data end

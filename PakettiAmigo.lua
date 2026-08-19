@@ -458,6 +458,22 @@ end
 -- opened yourself are never touched.
 local pakettiAmigoLastOpenedEditor = nil
 
+-- Runs work inside a ProcessSlicer with a progress dialog. Writing a long ITI
+-- takes minutes, and doing it in one go made Renoise put up "script not
+-- responding"; inside a coroutine the exporters yield instead. `work` is called
+-- with a report(text) function.
+local function pakettiAmigoRunSliced(title, work)
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    work(function(text)
+      if vb and vb.views and vb.views.progress_text then vb.views.progress_text.text = text end
+    end)
+    if dialog and dialog.visible then dialog:close() end
+  end)
+  dialog, vb = slicer:create_dialog(title)
+  slicer:start()
+end
+
 local function pakettiAmigoShowEditorFor(instrument_index)
   if pakettiAmigoLastOpenedEditor then
     pcall(function() pakettiAmigoLastOpenedEditor.external_editor_visible = false end)
@@ -952,6 +968,201 @@ function PakettiAmigoBPMSliceAndAmigo(beats_per_slice)
 end
 
 --------------------------------------------------------------------------------
+-- LOADERS THAT END UP IN AMIGO
+--
+-- Two chained commands, both reusing the loaders they are named after rather
+-- than reimplementing them:
+--
+--   Pitchbend Loader to Amigo : Paketti's PitchBend Multiple Sample Loader
+--       loads each file into its own instrument with the pitchbend template,
+--       and each of those then gets an Amigo built beside it.
+--
+--   Drumkit Loader to Amigo   : Paketti's PitchBend Drumkit Loader builds the
+--       kit, the Octatrack drumkit builder concatenates those samples into one
+--       sliced sample (it already caps at 64, which is exactly Amigo's limit),
+--       and that sliced sample goes into Amigo.
+--------------------------------------------------------------------------------
+
+function PakettiAmigoPitchbendLoadToAmigo(normalize, files)
+  pitchBendMultipleSampleLoader(normalize, function(first_index, last_index)
+    local song = renoise.song()
+    local made, failed = 0, 0
+    -- walk backwards: each Amigo is inserted after its source, which shifts
+    -- every later index along
+    for index = last_index, first_index, -1 do
+      local instrument = song.instruments[index]
+      local sample = instrument and instrument.samples[1]
+      if sample and sample.sample_buffer and sample.sample_buffer.has_sample_data
+        and not PakettiAmigoFindDevice(instrument) then
+        local ok = PakettiAmigoSendInstrumentToAmigo(index)
+        if ok then made = made + 1 else failed = failed + 1 end
+      end
+    end
+    if made > 0 then
+      song.selected_instrument_index = math.min(#song.instruments, first_index + 1)
+      pakettiAmigoShowEditorFor(song.selected_instrument_index)
+    end
+    local message = "Pitchbend Loader to Amigo: " .. made .. " sample(s) loaded and booted into Amigo"
+    if failed > 0 then message = message .. " (" .. failed .. " could not be sent)" end
+    renoise.app():show_status(message)
+  end, files)
+end
+
+-- Concatenates an instrument's samples into ONE sample with a slice marker at
+-- every boundary, in a new instrument right after the source. Capped at
+-- max_slices (Amigo holds 64). Runs inside a ProcessSlicer, so it yields.
+--
+-- Paketti's Octatrack drumkit builder does the same job, but it currently
+-- produces an empty instrument (verified: stock PakettiOTDrumkitSmart on a
+-- three-sample kit leaves "OT Drumkit of ..." with 0 samples), so this does not
+-- build on it.
+function PakettiAmigoBuildChain(source_index, max_slices, on_finished)
+  local song = renoise.song()
+  local source = song.instruments[source_index]
+  if not source then return end
+
+  local sources = {}
+  for i = 1, #source.samples do
+    local sample = source.samples[i]
+    if sample.sample_buffer and sample.sample_buffer.has_sample_data
+      and #sample.slice_markers == 0 then
+      sources[#sources + 1] = sample
+      if #sources >= max_slices then break end
+    end
+  end
+  local dropped = 0
+  for i = #sources + 1, #source.samples do
+    local sample = source.samples[i]
+    if sample.sample_buffer and sample.sample_buffer.has_sample_data then dropped = dropped + 1 end
+  end
+  if #sources == 0 then
+    renoise.app():show_status("Drumkit chain: that instrument has no plain samples to chain.")
+    return
+  end
+
+  -- one target format for the whole chain
+  local rate, channels, depth = 0, 1, 16
+  for _, sample in ipairs(sources) do
+    rate = math.max(rate, sample.sample_buffer.sample_rate)
+    channels = math.max(channels, sample.sample_buffer.number_of_channels)
+    depth = math.max(depth, sample.sample_buffer.bit_depth)
+  end
+
+  pakettiAmigoRunSliced("Building drumkit chain...", function(report)
+    -- pull every sample into plain tables first, resampling to the target rate
+    local blocks, total = {}, 0
+    for index, sample in ipairs(sources) do
+      report(string.format("Reading %d/%d: %s", index, #sources, sample.name or ""))
+      local buffer = sample.sample_buffer
+      local block = {}
+      for channel = 1, channels do
+        local read_channel = math.min(channel, buffer.number_of_channels)
+        local data = {}
+        for frame = 1, buffer.number_of_frames do
+          data[frame] = buffer:sample_data(read_channel, frame)
+        end
+        if buffer.sample_rate ~= rate and PakettiResampleChannel then
+          data = PakettiResampleChannel(data, buffer.sample_rate, rate)
+        end
+        block[channel] = data
+      end
+      blocks[index] = block
+      total = total + #block[1]
+      coroutine.yield()
+    end
+
+    local target_index = source_index + 1
+    song:insert_instrument_at(target_index)
+    local target = song.instruments[target_index]
+    target.name = (source.name ~= "" and source.name or "Drumkit") .. " Chain"
+    target:insert_sample_at(1)
+    local chain = target.samples[1]
+    chain.name = target.name
+    chain.sample_buffer:create_sample_data(rate, depth, channels, total)
+    chain.sample_buffer:prepare_sample_data_changes()
+
+    local position, starts = 1, {}
+    for index, block in ipairs(blocks) do
+      report(string.format("Writing %d/%d", index, #blocks))
+      starts[#starts + 1] = position
+      for channel = 1, channels do
+        local data = block[channel]
+        for frame = 1, #data do
+          chain.sample_buffer:set_sample_data(channel, position + frame - 1, data[frame])
+        end
+        coroutine.yield()
+      end
+      position = position + #block[1]
+    end
+    chain.sample_buffer:finalize_sample_data_changes()
+
+    -- marker on frame 1 is the sample start, which Amigo already has
+    for i = 2, #starts do chain:insert_slice_marker(starts[i]) end
+
+    song.selected_instrument_index = target_index
+    song.selected_sample_index = 1
+    if on_finished then on_finished(target_index, #starts, dropped) end
+  end)
+end
+
+function PakettiAmigoDrumkitLoadToAmigo(files)
+  local song = renoise.song()
+
+  pitchBendDrumkitLoader(files)
+
+  -- the loader reuses the selected instrument when it is empty rather than
+  -- always inserting, so judge success by what the instrument now holds
+  local kit_index = song.selected_instrument_index
+  local kit = song.instruments[kit_index]
+  local first = kit and kit.samples[1]
+  if not first or not first.sample_buffer or not first.sample_buffer.has_sample_data then
+    renoise.app():show_status("Drumkit Loader to Amigo: no drumkit was loaded.")
+    return
+  end
+
+  PakettiAmigoBuildChain(kit_index, PakettiAmigoMaxSlices, function(chain_index, chained, dropped)
+    local ok, err, count, past, amigo_index = PakettiAmigoSendInstrumentToAmigo(chain_index)
+    if not ok then
+      renoise.app():show_status("Drumkit Loader to Amigo: " .. tostring(err) ..
+        " - the chain instrument is untouched.")
+      return
+    end
+    renoise.song().selected_instrument_index = amigo_index
+    pakettiAmigoShowEditorFor(amigo_index)
+    local message = string.format("Drumkit Loader to Amigo: %d samples chained, %d Amigo slices",
+      chained, count)
+    if dropped > 0 then
+      message = message .. string.format(" (%d samples past Amigo's %d were left out)",
+        dropped, PakettiAmigoMaxSlices)
+    end
+    renoise.app():show_status(message)
+  end)
+end
+
+function PakettiAmigoChainInstrumentToAmigo()
+  local song = renoise.song()
+  if PakettiAmigoFindDevice(song.selected_instrument) then
+    renoise.app():show_status("Chain to Amigo: that instrument is an Amigo - select a sampled one.")
+    return
+  end
+  PakettiAmigoBuildChain(song.selected_instrument_index, PakettiAmigoMaxSlices,
+    function(chain_index, chained, dropped)
+      local ok, err, count, past, amigo_index = PakettiAmigoSendInstrumentToAmigo(chain_index)
+      if not ok then
+        renoise.app():show_status("Chain to Amigo: " .. tostring(err))
+        return
+      end
+      renoise.song().selected_instrument_index = amigo_index
+      pakettiAmigoShowEditorFor(amigo_index)
+      local message = string.format("Chain to Amigo: %d samples chained, %d Amigo slices", chained, count)
+      if dropped > 0 then
+        message = message .. string.format(" (%d past Amigo's %d were left out)", dropped, PakettiAmigoMaxSlices)
+      end
+      renoise.app():show_status(message)
+    end)
+end
+
+--------------------------------------------------------------------------------
 -- PRINT AMIGO SLICES TO THE PATTERN
 --
 -- Measured live by rendering a probe: Amigo maps its slices chromatically
@@ -1341,22 +1552,6 @@ end
 -- temporary and is removed again afterwards.
 --------------------------------------------------------------------------------
 
--- Runs work inside a ProcessSlicer with a progress dialog. Writing a long ITI
--- takes minutes, and doing it in one go made Renoise put up "script not
--- responding"; inside a coroutine the exporters yield instead. `work` is called
--- with a report(text) function.
-local function pakettiAmigoRunSliced(title, work)
-  local slicer, dialog, vb
-  slicer = ProcessSlicer(function()
-    work(function(text)
-      if vb and vb.views and vb.views.progress_text then vb.views.progress_text.text = text end
-    end)
-    if dialog and dialog.visible then dialog:close() end
-  end)
-  dialog, vb = slicer:create_dialog(title)
-  slicer:start()
-end
-
 local function pakettiAmigoPathSeparator()
   return (os.platform() == "WINDOWS") and "\\" or "/"
 end
@@ -1711,6 +1906,22 @@ PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:BPM Slice 
   invoke = function() PakettiAmigoBPMSliceAndAmigo(4) end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:BPM Slice & Amigo (8 Beats)",
   invoke = function() PakettiAmigoBPMSliceAndAmigo(8) end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Pitchbend Loader to Amigo...",
+  invoke = function() PakettiAmigoPitchbendLoadToAmigo(false) end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Pitchbend Loader to Amigo (Normalize)...",
+  invoke = function() PakettiAmigoPitchbendLoadToAmigo(true) end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Chain Instrument Samples into Amigo",
+  invoke = function() PakettiAmigoChainInstrumentToAmigo() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Drumkit Loader to Amigo...",
+  invoke = function() PakettiAmigoDrumkitLoadToAmigo() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Load:Pitchbend Loader to Amigo...",
+  invoke = function() PakettiAmigoPitchbendLoadToAmigo(false) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Load:Drumkit Loader to Amigo...",
+  invoke = function() PakettiAmigoDrumkitLoadToAmigo() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Pitchbend Loader to Amigo...",
+  invoke = function() PakettiAmigoPitchbendLoadToAmigo(false) end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Drumkit Loader to Amigo...",
+  invoke = function() PakettiAmigoDrumkitLoadToAmigo() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Print Amigo Slices to Pattern",
   invoke = function() PakettiAmigoPrintSlicesToPattern() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo&Print (002)",
@@ -1811,6 +2022,14 @@ renoise.tool():add_keybinding{name = "Global:Paketti:BPM Slice and Amigo (4 Beat
   invoke = function() PakettiAmigoBPMSliceAndAmigo(4) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:BPM Slice and Amigo (8 Beats)",
   invoke = function() PakettiAmigoBPMSliceAndAmigo(8) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Pitchbend Loader to Amigo",
+  invoke = function() PakettiAmigoPitchbendLoadToAmigo(false) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Pitchbend Loader to Amigo (Normalize)",
+  invoke = function() PakettiAmigoPitchbendLoadToAmigo(true) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Chain Instrument Samples into Amigo",
+  invoke = function() PakettiAmigoChainInstrumentToAmigo() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Drumkit Loader to Amigo",
+  invoke = function() PakettiAmigoDrumkitLoadToAmigo() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Print Amigo Slices to Pattern",
   invoke = function() PakettiAmigoPrintSlicesToPattern() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Wipe&Slice&Amigo&Print (002)",
@@ -1864,6 +2083,10 @@ renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Impulse Tracker ITI",
   invoke = function(message) if message:is_trigger() then PakettiAmigoToITI() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Transient Slice and Amigo",
   invoke = function(message) if message:is_trigger() then PakettiAmigoTransientSliceAndAmigo() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Pitchbend Loader to Amigo",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoPitchbendLoadToAmigo(false) end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Drumkit Loader to Amigo",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoDrumkitLoadToAmigo() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Print Amigo Slices to Pattern",
   invoke = function(message) if message:is_trigger() then PakettiAmigoPrintSlicesToPattern() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Renoise Drumkit One-Shot per Slice",

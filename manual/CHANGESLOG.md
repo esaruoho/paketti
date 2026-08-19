@@ -8,6 +8,24 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-20 - Fix: Octatrack drumkit builders wrote to frame 0 and crashed
+
+Every Octatrack drumkit builder copied its audio with `set_sample_data(ch, dest_pos + frame - 1, ...)`, where `dest_pos` starts at 1 and `frame` counts from 0 — so the very first write addressed frame 0, which Renoise rejects with `invalid frame index '0'`. The error killed the ProcessSlicer coroutine part way through, leaving a drumkit instrument with allocated but empty audio and no slice markers, and Renoise then disabled the tool's idle notifier "to prevent further errors". Five copies of the same line, across the Smart, Mono and Play-to-End builders, are corrected to `dest_pos + frame`.
+
+### 2026-08-20 - Feature: Pitchbend Loader and Drumkit Loader can boot straight into Amigo
+
+`Pitchbend Loader to Amigo` runs Paketti's PitchBend Multiple Sample Loader and then builds an Amigo beside each instrument it created, opening the editor on the last one. `Drumkit Loader to Amigo` runs the PitchBend Drumkit Loader, chains the loaded samples into one sample with a slice marker at every boundary, and sends that into Amigo — capped at Amigo's 64 slices, with the status saying how many samples were left out. `Chain Instrument Samples into Amigo` does the chaining half on an instrument you already have.
+
+Both loaders now take an optional file list so they can be driven without a dialog, and the pitchbend loader takes an optional completion callback.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Pitchbend Loader to Amigo...` (and Normalize)
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Drumkit Loader to Amigo...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Chain Instrument Samples into Amigo`
+- Menu: `Instrument Box:Paketti:Load:Pitchbend Loader to Amigo...` / `Drumkit Loader to Amigo...`
+- Menu: `Main Menu:File:Paketti Import:Pitchbend Loader to Amigo...` / `Drumkit Loader to Amigo...`
+- Keybinding: `Global:Paketti:Pitchbend Loader to Amigo` (and Normalize), `Global:Paketti:Drumkit Loader to Amigo`, `Global:Paketti:Chain Instrument Samples into Amigo`
+- MIDI Mapping: `Paketti:Pitchbend Loader to Amigo`, `Paketti:Drumkit Loader to Amigo`
+
 ### 2026-08-20 - Fix: phrase preset loading now finds subfolders, and actually loads them all
 
 `Load All Phrase Presets from Folder (.xrnz)` only looked at the top level of the folder you picked. It now walks every subfolder underneath as well, at any depth, and loads them in path order.

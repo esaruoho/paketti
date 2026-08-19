@@ -1908,7 +1908,9 @@ function PakettiOTDrumkitSmart_ProcessSlicer()
 end
 
 -- Smart version - converts to stereo if any sample is stereo, otherwise mono (64 slices max)
-function PakettiOTDrumkitSmart()
+-- on_finished is optional: when given, the Octatrack export prompt is skipped
+-- and the callback is called with the index of the combined drumkit instrument
+function PakettiOTDrumkitSmart(on_finished)
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -1950,7 +1952,7 @@ function PakettiOTDrumkitSmart()
   
   -- Create ProcessSlicer with worker function that has access to dialog and vb
   local process_slicer = ProcessSlicer(function()
-    PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, dialog, vb)
+    PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, dialog, vb, on_finished)
   end)
   
   dialog, vb = process_slicer:create_dialog("Creating Octatrack Drumkit...")
@@ -1961,7 +1963,7 @@ function PakettiOTDrumkitSmart()
 end
 
 -- Efficient worker function for ProcessSlicer (Smart version) - yields every 20 samples
-function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, dialog, vb)
+function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, dialog, vb, on_finished)
   local song = renoise.song()
   
   print("-- OT Drumkit Smart: Starting drumkit creation from instrument: " .. source_instrument.name)
@@ -2156,7 +2158,7 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, 
               source_value = 0.0
             end
           end
-          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame - 1, source_value)
+          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame, source_value)
         end
       end
       
@@ -2197,6 +2199,13 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, 
   renoise.app():show_status(string.format("OT Smart: Drumkit completed - %d slices, %s", #slice_positions, target_channels == 2 and "Stereo" or "Mono"))
   print("-- OT Drumkit Smart: Drumkit creation completed successfully")
   
+  -- A caller that asked for a callback wants the combined instrument for its own
+  -- purposes, so do not interrupt it with the Octatrack export prompt
+  if on_finished then
+    on_finished(song.selected_instrument_index, #slice_positions)
+    return
+  end
+
   -- Show export dialog
   local export_result = renoise.app():show_prompt("Octatrack Drumkit Created", 
     string.format("Octatrack drumkit created successfully!\n\n• %d slices\n• Format: %s, 44.1kHz, 16-bit\n\nExport to Octatrack files (.wav + .ot)?", 
@@ -2400,7 +2409,7 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples, d
       for frame = 0, this_chunk - 1 do
         -- For mono target, always use channel 1 (already converted to mono above)
         local source_value = sample_data.data[1][source_pos + frame]
-        combined_sample.sample_buffer:set_sample_data(1, dest_pos + frame - 1, source_value)
+        combined_sample.sample_buffer:set_sample_data(1, dest_pos + frame, source_value)
       end
       
       source_pos = source_pos + this_chunk
@@ -2724,7 +2733,7 @@ function PakettiOTDrumkitSmart_Legacy()
               source_value = 0.0
             end
           end
-          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame - 1, source_value)
+          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame, source_value)
         end
       end
       
@@ -3091,7 +3100,7 @@ function PakettiOTDrumkitMono_Legacy()
       for frame = 0, this_chunk - 1 do
         -- For mono target, always use channel 1 (already converted to mono above)
         local source_value = sample_data.data[1][source_pos + frame]
-        combined_sample.sample_buffer:set_sample_data(1, dest_pos + frame - 1, source_value)
+        combined_sample.sample_buffer:set_sample_data(1, dest_pos + frame, source_value)
       end
       
       source_pos = source_pos + this_chunk
@@ -3645,7 +3654,7 @@ function PakettiOTDrumkitPlayToEnd_Worker(source_instrument, num_samples, dialog
               source_value = 0.0
             end
           end
-          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame - 1, source_value)
+          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame, source_value)
         end
       end
       
