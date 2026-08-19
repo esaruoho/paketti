@@ -2,11 +2,11 @@
 
 *Non-technical. Every Paketti capability as **a feature, in a place, reachable through one or more doors** — keyboard shortcut · MIDI mapping · menu entry. Parameter variants (e.g. Transpose −120…+120) are collapsed into the one feature they are. Auto-generated from the running code by `.spine/features.py`; do not hand-edit.*
 
-## 4,514 distinct features across 93 groups
+## 4,515 distinct features across 94 groups
 
 | Feature group | features | ⌨ keyboard | 🎛 MIDI | ☰ menu |
 |---|--:|--:|--:|--:|
-| **(top level)** | 3076 | 2302 | 2575 | 636 |
+| **(top level)** | 3079 | 2305 | 2578 | 639 |
 | **(misc)** | 308 | 181 | 176 | 188 |
 | **Paketti Groovebox 8120** | 65 | 0 | 65 | 0 |
 | **!Preferences** | 64 | 0 | 29 | 64 |
@@ -21,17 +21,17 @@
 | **Microtonal Tunings** | 36 | 0 | 22 | 29 |
 | **Devices** | 36 | 11 | 28 | 36 |
 | **Phrases** | 34 | 29 | 33 | 34 |
-| **Instruments** | 30 | 6 | 16 | 30 |
 | **Pattern** | 28 | 23 | 22 | 28 |
+| **Instruments** | 26 | 2 | 12 | 26 |
 | **MPC Cycler** | 25 | 0 | 25 | 14 |
 | **Octatrack** | 23 | 5 | 23 | 23 |
 | **Load** | 23 | 20 | 17 | 23 |
 | **DSP** | 22 | 3 | 20 | 22 |
 | **Preset++** | 19 | 7 | 10 | 19 |
 | **Samples** | 18 | 9 | 14 | 18 |
+| **Amigo** | 15 | 5 | 15 | 15 |
 | **Plugins/Devices** | 14 | 0 | 5 | 14 |
 | **Automation Curves** | 14 | 0 | 13 | 14 |
-| **Amigo** | 14 | 4 | 14 | 14 |
 | **Save** | 13 | 9 | 10 | 13 |
 | **V3.5** | 12 | 7 | 4 | 12 |
 | **Nudge** | 12 | 12 | 12 | 12 |
@@ -46,7 +46,7 @@
 | **Steppers** | 8 | 2 | 8 | 8 |
 | **Other Trackers** | 8 | 0 | 1 | 8 |
 | **Navigation** | 8 | 4 | 8 | 8 |
-| **06 Drive** | 8 | 0 | 3 | 8 |
+| **03 Pitch** | 8 | 0 | 3 | 8 |
 | **Transpose** | 7 | 4 | 4 | 7 |
 | **AKWF** | 7 | 7 | 2 | 7 |
 | **Transport** | 6 | 6 | 5 | 6 |
@@ -76,7 +76,7 @@
 
 ## Every feature, by group
 
-### (top level)  ·  3076 features  ·  ⌨2302 🎛2575 ☰636
+### (top level)  ·  3079 features  ·  ⌨2305 🎛2578 ☰639
 
 - **(Dxx) Selection Slide Pitch Down +1** — _MIDI · menu_
 - **(Gxx) Selection Glide +1** — _MIDI · menu_
@@ -136,6 +136,7 @@
 - **Apply 10-TET Decagono Lange Tuning** — _keyboard · MIDI_
 - **Apply 36-EDO Tuning** — _keyboard · MIDI_
 - **Apply Colundi Tuning** — _keyboard · MIDI_
+- **Apply Custom LFO Preset 01** — _keyboard · MIDI · menu_
 - **Apply Golden Pythagorean Tuning** — _keyboard · MIDI_
 - **Apply Heavy Swing (75%) to Phrase** — _keyboard · MIDI_
 - **Apply Humanize to Phrase** — _keyboard · MIDI_
@@ -237,6 +238,7 @@
 - **Batch Convert SF2 to XRNI** — _keyboard · MIDI_
 - **Batch Convert SFZ to XRNI & Load [Trigger]** — _MIDI_
 - **Batch Convert SFZ to XRNI (Save Only) [Trigger]** — _MIDI_
+- **Batch Convert XRNI Folder to PTI...** — _keyboard · MIDI · menu_
 - **Batch Every Amigo in Song to Digitakt Chain** — _keyboard · MIDI_
 - **Batch Every Amigo in Song to Impulse Tracker ITI** — _keyboard · MIDI_
 - **Batch Every Amigo in Song to Octatrack ot and wav** — _keyboard · MIDI_
@@ -690,6 +692,7 @@
 - **Double Double Beatsync Lines (Selected Sample)** — _keyboard · MIDI_
 - **Double Double BPM** — _keyboard_
 - **Double EditStep** — _keyboard · MIDI_
+- **Double LFO Envelope Resolution** — _keyboard · MIDI · menu_
 - **Double Slice Count** — _keyboard_
 - **Dump Available Effects/Plugins to Dialog...** — _MIDI_
 - **Dump Current Instrument parameters** — _keyboard · MIDI_
@@ -957,6 +960,7 @@
 - **Halve Halve Beatsync Lines (All)** — _keyboard · MIDI_
 - **Halve Halve Beatsync Lines (Selected Sample)** — _keyboard · MIDI_
 - **Halve Halve BPM** — _keyboard · MIDI_
+- **Halve LFO Envelope Resolution** — _keyboard · MIDI · menu_
 - **Halve Slice Count** — _keyboard_
 - **Hide All Effect Columns** — _keyboard · MIDI · menu_
 - **Hide All Instrument Properties** — _keyboard · menu_
@@ -1093,8 +1097,6 @@
 - **Increase Phrase Length by LPB** — _keyboard · MIDI_
 - **Init Phrase Settings** — _keyboard · MIDI_
 - **Initialize for Groovebox 8120** — _keyboard · menu_
-- **Inject Key Trackers + Hydras to FX Chain 120** — _keyboard · menu_
-- **Inject LFO->Gainer->Send Chains to All FX Chains** — _keyboard · menu_
 - **Insert Inverter Device to TrackDSP/SampleFX** — _keyboard · MIDI_
 - **Insert New Instrument** — _keyboard · MIDI · menu_
 - **Insert New Instrument (2nd)** — _keyboard · MIDI_
@@ -1217,6 +1219,7 @@
 - **Load Devices Dialog...** — _MIDI_
 - **Load FabFilter One** — _keyboard_
 - **Load Instrument (.XRNI) Slot01** — _keyboard · menu_
+- **Load LFO from Slot 01** — _keyboard · menu_
 - **Load MIDI Mappings from File (Merge)...** — _keyboard · MIDI · menu_
 - **Load MIDI Mappings from File (Replace All)...** — _keyboard · MIDI · menu_
 - **Load Modulation Device (01 Volume) AHDSR** — _keyboard · MIDI_
@@ -1619,7 +1622,7 @@
 - **Nudge Phrase Up by 2 Steps** — _MIDI_
 - **Nudge Sequence Selection Down** — _keyboard · MIDI · menu_
 - **Nudge Sequence Selection Up** — _keyboard · MIDI · menu_
-- **Nudge Slice 01 by (-32)** — _keyboard_
+- **Nudge Slice 01 by (-1)** — _keyboard_
 - **Nudge Up** — _keyboard · MIDI_
 - **Nudge Up by Delay** — _keyboard · MIDI_
 - **Nudge Up by Row** — _keyboard · MIDI_
@@ -2736,7 +2739,6 @@
 - **Slice Step Row 1 to Phrase** — _keyboard · MIDI_
 - **Slice Step Row 1 to Phrase [Trigger]** — _MIDI_
 - **Slice to Pattern Sequencer Dialog...** — _keyboard · MIDI · menu_
-- **Slice Tools Dialog...** — _keyboard · MIDI · menu_
 - **SlicePro Create Beat-Synced Phrases** — _keyboard · MIDI_
 - **SlicePro Create Uniform Phrases** — _keyboard · MIDI_
 - **Slices to Pattern (beat sync only)** — _keyboard · MIDI · menu_
@@ -2836,6 +2838,7 @@
 - **Step Sequencer FX Randomizer...** — _MIDI · menu_
 - **Stop Playback (Panic) x[Toggle]** — _MIDI_
 - **Store as PhraseGrid State** — _MIDI · menu_
+- **Store Current LFO to Slot 01** — _keyboard · menu_
 - **Strip Silence from All Samples** — _keyboard · MIDI_
 - **Sub Column Command Absolute Control** — _MIDI_
 - **Sub Column Command Relative Control** — _MIDI_
@@ -4096,39 +4099,6 @@
 - **Toggle Selected Phrase Looping** — _keyboard · MIDI · menu_
 - **Wipe Phrases on Selected Instrument** — _keyboard · menu_
 
-### Instruments  ·  30 features  ·  ⌨6 🎛16 ☰30
-
-- **Apply Custom LFO Preset 01** — _keyboard · MIDI · menu_
-- **Batch Convert XRNI Folder to PTI...** — _keyboard · MIDI · menu_
-- **Center** — _menu_
-- **Curve - Bell (Peak)** — _MIDI · menu_
-- **Curve - Double Peak** — _MIDI · menu_
-- **Curve - Double Valley** — _MIDI · menu_
-- **Curve - Exponential Down** — _MIDI · menu_
-- **Curve - Exponential Up** — _MIDI · menu_
-- **Curve - Linear Down** — _MIDI · menu_
-- **Curve - Linear Up** — _MIDI · menu_
-- **Curve - Logarithmic Down** — _MIDI · menu_
-- **Curve - Logarithmic Up** — _MIDI · menu_
-- **Curve - U-Shape (Valley)** — _MIDI · menu_
-- **Double LFO Envelope Resolution** — _keyboard · MIDI · menu_
-- **Dump Amigo State to Console** — _menu_
-- **Dump REX Structure to Text** — _menu_
-- **Flip** — _menu_
-- **Global Volume Reduce Reduce All Samples by -4.5dB** — _MIDI · menu_
-- **Halve LFO Envelope Resolution** — _keyboard · MIDI · menu_
-- **Humanize** — _menu_
-- **Invert** — _menu_
-- **LFO Envelope Editor...** — _MIDI · menu_
-- **Load LFO from Slot 01** — _keyboard · menu_
-- **Max** — _menu_
-- **Min** — _menu_
-- **Mirror** — _menu_
-- **Randomize** — _menu_
-- **Scale 150%** — _menu_
-- **Slapback** — _menu_
-- **Store Current LFO to Slot 01** — _keyboard · menu_
-
 ### Pattern  ·  28 features  ·  ⌨23 🎛22 ☰28
 
 - **Clear all Pattern Names** — _keyboard · MIDI · menu_
@@ -4159,6 +4129,35 @@
 - **Wonkify Current Pattern** — _keyboard · MIDI · menu_
 - **Wonkify Generate Chain** — _keyboard · MIDI · menu_
 - **Wonkify Settings...** — _menu_
+
+### Instruments  ·  26 features  ·  ⌨2 🎛12 ☰26
+
+- **Center** — _menu_
+- **Curve - Bell (Peak)** — _MIDI · menu_
+- **Curve - Double Peak** — _MIDI · menu_
+- **Curve - Double Valley** — _MIDI · menu_
+- **Curve - Exponential Down** — _MIDI · menu_
+- **Curve - Exponential Up** — _MIDI · menu_
+- **Curve - Linear Down** — _MIDI · menu_
+- **Curve - Linear Up** — _MIDI · menu_
+- **Curve - Logarithmic Down** — _MIDI · menu_
+- **Curve - Logarithmic Up** — _MIDI · menu_
+- **Curve - U-Shape (Valley)** — _MIDI · menu_
+- **Dump Amigo State to Console** — _menu_
+- **Dump REX Structure to Text** — _menu_
+- **Flip** — _menu_
+- **Global Volume Reduce Reduce All Samples by -4.5dB** — _MIDI · menu_
+- **Humanize** — _menu_
+- **Inject Key Trackers + Hydras to FX Chain 120** — _keyboard · menu_
+- **Inject LFO->Gainer->Send Chains to All FX Chains** — _keyboard · menu_
+- **Invert** — _menu_
+- **LFO Envelope Editor...** — _MIDI · menu_
+- **Max** — _menu_
+- **Min** — _menu_
+- **Mirror** — _menu_
+- **Randomize** — _menu_
+- **Scale 150%** — _menu_
+- **Slapback** — _menu_
 
 ### MPC Cycler  ·  25 features  ·  ⌨0 🎛25 ☰14
 
@@ -4308,6 +4307,24 @@
 - **Trim Selected Sample to Selection** — _keyboard · MIDI · menu_
 - **Trim Selected Sample to Selection and Normalize** — _keyboard · MIDI · menu_
 
+### Amigo  ·  15 features  ·  ⌨5 🎛15 ☰15
+
+- ** Every Amigo in Song to Digitakt Chain (.wav)** — _MIDI · menu_
+- ** Every Amigo in Song to Impulse Tracker ITI (.iti)** — _MIDI · menu_
+- ** Every Amigo in Song to Octatrack (.ot + .wav)** — _MIDI · menu_
+- ** Every Amigo in Song to Polyend PTI (.pti)** — _MIDI · menu_
+- ** Every Amigo in Song to Renoise Instruments** — _MIDI · menu_
+- ** Every Amigo in Song to WAV with CUE Header** — _MIDI · menu_
+- ** Every Sampled Instrument in Song to Amigo** — _MIDI · menu_
+- **Amigo to Digitakt Chain (.wav)** — _MIDI · menu_
+- **Amigo to Impulse Tracker ITI (.iti)** — _MIDI · menu_
+- **Amigo to Octatrack (.ot + .wav)** — _keyboard · MIDI · menu_
+- **Amigo to Polyend PTI (.pti)** — _MIDI · menu_
+- **Amigo to Renoise (New Instrument)** — _keyboard · MIDI · menu_
+- **Amigo to WAV with CUE Header** — _keyboard · MIDI · menu_
+- **Renoise to Amigo (Selected Sample)** — _keyboard · MIDI · menu_
+- **Wipe&Slice&Amigo (002)** — _keyboard · MIDI · menu_
+
 ### Plugins/Devices  ·  14 features  ·  ⌨0 🎛5 ☰14
 
 - **Available Routings for Track...** — _MIDI · menu_
@@ -4341,23 +4358,6 @@
 - **Selection Up->Center (Linear)** — _MIDI · menu_
 - **Set to Center** — _MIDI · menu_
 - **Top to Center (Exp)** — _MIDI · menu_
-
-### Amigo  ·  14 features  ·  ⌨4 🎛14 ☰14
-
-- ** Every Amigo in Song to Digitakt Chain (.wav)** — _MIDI · menu_
-- ** Every Amigo in Song to Impulse Tracker ITI (.iti)** — _MIDI · menu_
-- ** Every Amigo in Song to Octatrack (.ot + .wav)** — _MIDI · menu_
-- ** Every Amigo in Song to Polyend PTI (.pti)** — _MIDI · menu_
-- ** Every Amigo in Song to Renoise Instruments** — _MIDI · menu_
-- ** Every Amigo in Song to WAV with CUE Header** — _MIDI · menu_
-- ** Every Sampled Instrument in Song to Amigo** — _MIDI · menu_
-- **Amigo to Digitakt Chain (.wav)** — _MIDI · menu_
-- **Amigo to Impulse Tracker ITI (.iti)** — _MIDI · menu_
-- **Amigo to Octatrack (.ot + .wav)** — _keyboard · MIDI · menu_
-- **Amigo to Polyend PTI (.pti)** — _MIDI · menu_
-- **Amigo to Renoise (New Instrument)** — _keyboard · MIDI · menu_
-- **Amigo to WAV with CUE Header** — _keyboard · MIDI · menu_
-- **Renoise to Amigo (Selected Sample)** — _keyboard · MIDI · menu_
 
 ### Save  ·  13 features  ·  ⌨9 🎛10 ☰13
 
@@ -4546,7 +4546,7 @@
 - **Cycle Forward through Global View Presets** — _keyboard · MIDI · menu_
 - **Enable/Disable Auto-Capture Track** — _keyboard · MIDI · menu_
 
-### 06 Drive  ·  8 features  ·  ⌨0 🎛3 ☰8
+### 03 Pitch  ·  8 features  ·  ⌨0 🎛3 ☰8
 
 - ***LFO** — _MIDI · menu_
 - **AHDSR** — _menu_
@@ -4816,6 +4816,10 @@
 ### SliceSafely  ·  1 features  ·  ⌨0 🎛0 ☰1
 
 - **SliceSafely (002)** — _menu_
+
+### Slice Tools  ·  1 features  ·  ⌨1 🎛1 ☰1
+
+- **Slice Tools Dialog...** — _keyboard · MIDI · menu_
 
 ### Set Sample Zoom  ·  1 features  ·  ⌨0 🎛1 ☰1
 

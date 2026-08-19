@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,392 functions** · 10,944 keybindings · 7,552 midimappings · 6,822 menu entries.
+**4,391 functions** · 10,938 keybindings · 7,546 midimappings · 6,804 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (-1) | ✅ | · | · |
+| Nudge Slice 01 by (+16) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2138 functions  ·  ⌨ 2138 · 🎛 827 · ☰ 679
+## Global  ·  2137 functions  ·  ⌨ 2137 · 🎛 826 · ☰ 678
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -2870,7 +2870,6 @@
 | Wipe Song Patterns | ✅ | · | · |
 | Wipe Song Retain Sample | ✅ | · | ✅ |
 | Wipe&Slice (002) | ✅ | ✅ | ✅ |
-| Wipe&Slice&Amigo (002) | ✅ | ✅ | ✅ |
 | Wipe&Slice&Pattern (002) | ✅ | ✅ | · |
 | Wipe&Slice&Phrase (002) | ✅ | ✅ | · |
 | Wipe&Slice&Write to Pattern | ✅ | · | ✅ |
