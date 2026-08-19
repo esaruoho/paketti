@@ -1145,7 +1145,12 @@ function ot_import_filehook(filename)
     renoise.app():show_status("OT Import: Analyzed .ot file (no corresponding .wav found)")
     print("OT Import: Successfully analyzed .ot file:", filename)
   end
-  
+
+  -- Options > "Sliced Imports Also Go Into Amigo"
+  if sample_loaded and PakettiAmigoHandleSlicedImport then
+    PakettiAmigoHandleSlicedImport(renoise.song().selected_instrument_index, "OT")
+  end
+
   return true
 end
 

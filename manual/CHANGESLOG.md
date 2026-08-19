@@ -8,6 +8,25 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Feature: Amigo batch conversion both ways, plus ITI and OT imports
+
+Two new commands convert a whole song at once. `Batch: Every Amigo in Song to Renoise Instruments` walks the song and builds a sampled Renoise instrument, slice points and all, for every instrument holding Amigo — so a song of 10 Amigos becomes those 10 Amigos followed by 10 sampled instruments. `Batch: Every Sampled Instrument in Song to Amigo` is the mirror image. Both append to the end of the instrument list and never move, alter or remove anything already in the song, which matters because inserting in the middle would renumber every instrument after it and pattern data points at instrument numbers. The Amigo instruments come through byte-identical.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Renoise Instruments`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Sampled Instrument in Song to Amigo`
+- Menu: `Main Menu:File:Paketti Import:Import Every Amigo in Song to Renoise Instruments`
+- Menu: `Main Menu:File:Paketti Export:Export Every Sampled Instrument in Song to Amigo`
+- Menu: `Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to Renoise Instruments`
+- Menu: `Instrument Box:Paketti:Amigo:Batch: Every Sampled Instrument in Song to Amigo`
+- Keybinding: `Global:Paketti:Batch Every Amigo in Song to Renoise Instruments`
+- Keybinding: `Global:Paketti:Batch Every Sampled Instrument in Song to Amigo`
+- MIDI Mapping: `Paketti:Batch Every Amigo in Song to Renoise Instruments`
+- MIDI Mapping: `Paketti:Batch Every Sampled Instrument in Song to Amigo`
+
+Exported wavs no longer overwrite each other. Two samples sharing a name become `name.wav` and `name-2.wav`, and a file already sitting in the Paketti Amigo Samples folder is never clobbered — the one exception being a re-export into an Amigo that already points at that exact file. Names are also capped at 80 characters, because Octatrack `.ot` samples arrive named with their whole slice table baked in and produced a 208-character filename.
+
+The import option now covers `.iti` and `.ot` as well, so it is renamed to `Main Menu:Options:Sliced Imports Also Go Into Amigo (RX2, REX, PTI, ITI, OT, WAV+CUE) Toggle`.
+
 ### 2026-08-19 - Improvement: REX and PTI imports also go into Amigo
 
 The Amigo import option now covers `.rex` and `.pti` as well as `.rx2` and WAV with CUE markers, so the toggle is renamed to `Main Menu:Options:Sliced Imports Also Go Into Amigo (RX2, REX, PTI, WAV+CUE) Toggle` (keybinding `Global:Paketti:Toggle Sliced Imports Also Go Into Amigo`). Each import leaves the Renoise instrument untouched and builds a second instrument holding Amigo beside it, with the slice markers carried across.

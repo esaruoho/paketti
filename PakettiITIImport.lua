@@ -263,6 +263,11 @@ function iti_loadinstrument(filename)
     dprint("ITI import completed - no samples loaded")
   end
   
+  -- Options > "Sliced Imports Also Go Into Amigo"
+  if PakettiAmigoHandleSlicedImport then
+    PakettiAmigoHandleSlicedImport(renoise.song().selected_instrument_index, "ITI")
+  end
+
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   
