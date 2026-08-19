@@ -8,6 +8,17 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-20 - Fix: phrase preset loading now finds subfolders, and actually loads them all
+
+`Load All Phrase Presets from Folder (.xrnz)` only looked at the top level of the folder you picked. It now walks every subfolder underneath as well, at any depth, and loads them in path order.
+
+While testing that, a worse bug surfaced: the loader called `load_instrument_phrase()` once per file without making a new phrase slot first, and that call fills the *selected* slot — so every file overwrote the previous one and you ended up with a single phrase no matter how many files you chose, while the status line cheerfully reported the full count. Each file now gets its own slot.
+
+New companion on the export side: `Save Phrases of All Instruments as Presets (Subfolders)` walks the whole song and writes one subfolder per instrument (`1A_InstrumentName/01_PhraseName.xrnz`), which is exactly the tree the recursive loader reads back.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Save Phrases of All Instruments as Presets (Subfolders)...`
+- Keybinding: `Global:Paketti:Save Phrases of All Instruments as Presets (Subfolders)...`
+
 ### 2026-08-19 - Feature: Slice Fades — bake short fades into slice boundaries
 
 Autofade already gives you click-free slices at playback time, and for most uses that is the right answer. Slice Fades is for when you want the fade baked into the audio instead: exported slices, hardware with no autofade, or simply wanting to see it in the waveform.

@@ -805,39 +805,141 @@ end
 -- LOAD ALL PHRASE PRESETS FROM FOLDER (.xrnz)
 ----------------------------------------------------------------------
 
-local function load_all_phrase_presets_from_folder()
+-- Saves the phrases of EVERY instrument that has any, one subfolder per
+-- instrument, so the tree round-trips with the recursive loader below.
+-- target_folder is optional: pass one to skip the folder dialog
+function PakettiSaveAllInstrumentsPhrasesAsPresets(target_folder)
   local song = renoise.song()
   if not song then
     renoise.app():show_warning("No song loaded.")
     return
   end
 
-  local folder = renoise.app():prompt_for_path("Select folder containing phrase presets (.xrnz)")
+  local instruments_with_phrases = {}
+  for i = 1, #song.instruments do
+    if #song.instruments[i].phrases > 0 then
+      table.insert(instruments_with_phrases, i)
+    end
+  end
+  if #instruments_with_phrases == 0 then
+    renoise.app():show_warning("No instrument in this song has any phrases.")
+    return
+  end
+
+  local folder = target_folder
+  if not folder or folder == "" then
+    folder = renoise.app():prompt_for_path("Select destination folder (one subfolder per instrument)")
+  end
+  if not folder or folder == "" then return end
+  folder = folder:gsub("[/\\]$", "")
+
+  local previous_instrument = song.selected_instrument_index
+  local previous_phrase = song.selected_phrase_index
+  local saved, made_folders, errors_list = 0, 0, {}
+
+  for _, instrument_index in ipairs(instruments_with_phrases) do
+    local instrument = song.instruments[instrument_index]
+    local instrument_name = instrument.name
+    if not instrument_name or instrument_name == "" then
+      instrument_name = string.format("Instrument_%02X", instrument_index - 1)
+    end
+    local subfolder = string.format("%s/%02X_%s", folder, instrument_index - 1,
+      sanitize_filename(instrument_name))
+    if not io.exists(subfolder) then
+      os.mkdir(subfolder)
+      made_folders = made_folders + 1
+    end
+
+    song.selected_instrument_index = instrument_index
+    for i = 1, #instrument.phrases do
+      song.selected_phrase_index = i
+      local phrase_name = instrument.phrases[i].name
+      if not phrase_name or phrase_name == "" then
+        phrase_name = string.format("Phrase_%02d", i)
+      end
+      local filename = string.format("%02d_%s.xrnz", i, sanitize_filename(phrase_name))
+      local full_path = subfolder .. "/" .. filename
+      local ok, err = pcall(function() renoise.app():save_instrument_phrase(full_path) end)
+      if ok then
+        saved = saved + 1
+        renoise.app():show_status(string.format("Saving phrases... %d saved", saved))
+      else
+        table.insert(errors_list, string.format("%s: %s", filename, tostring(err)))
+      end
+    end
+  end
+
+  song.selected_instrument_index = previous_instrument
+  if #song.instruments[previous_instrument].phrases > 0 then
+    song.selected_phrase_index = math.min(previous_phrase,
+      #song.instruments[previous_instrument].phrases)
+  end
+
+  if #errors_list > 0 then
+    local message = string.format("Saved %d phrases from %d instruments into %d subfolders of:\n%s\n\nErrors:\n",
+      saved, #instruments_with_phrases, made_folders, folder)
+    for i = 1, math.min(#errors_list, 10) do message = message .. "- " .. errors_list[i] .. "\n" end
+    if #errors_list > 10 then message = message .. string.format("... and %d more", #errors_list - 10) end
+    renoise.app():show_warning(message)
+  else
+    renoise.app():show_status(string.format(
+      "Saved %d phrases from %d instruments into %s", saved, #instruments_with_phrases, folder))
+  end
+end
+
+-- Collects .xrnz phrase presets from a folder AND every subfolder under it.
+-- PhraseMate and the old flat scan here only looked at the top level.
+function PakettiCollectPhrasePresetsRecursive(folder)
+  local results = {}
+  local sep = package.config:sub(1, 1)
+
+  local ok_files, files = pcall(os.filenames, folder, "*.xrnz")
+  if ok_files and files then
+    for _, name in ipairs(files) do
+      table.insert(results, folder .. sep .. name)
+    end
+  end
+
+  local ok_dirs, dirs = pcall(os.dirnames, folder)
+  if ok_dirs and dirs then
+    for _, dir in ipairs(dirs) do
+      if not dir:match("^%.") then
+        for _, path in ipairs(PakettiCollectPhrasePresetsRecursive(folder .. sep .. dir)) do
+          table.insert(results, path)
+        end
+      end
+    end
+  end
+
+  return results
+end
+
+-- target_folder is optional: pass one to skip the folder dialog
+function PakettiLoadAllPhrasePresetsFromFolder(target_folder)
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_warning("No song loaded.")
+    return
+  end
+
+  local folder = target_folder
+  if not folder or folder == "" then
+    folder = renoise.app():prompt_for_path("Select folder containing phrase presets (.xrnz), subfolders included")
+  end
   if not folder or folder == "" then return end
 
   -- Remove trailing slash
   folder = folder:gsub("[/\\]$", "")
 
-  -- Scan for .xrnz files
-  local files = {}
-  local ok, all_names = pcall(os.filenames, folder)
-  if not ok or not all_names then
-    renoise.app():show_warning("Could not read folder: " .. folder)
-    return
-  end
-
-  for _, name in ipairs(all_names) do
-    if name:lower():match("%.xrnz$") then
-      table.insert(files, name)
-    end
-  end
+  -- Scan for .xrnz files in this folder and every subfolder
+  local files = PakettiCollectPhrasePresetsRecursive(folder)
 
   if #files == 0 then
-    renoise.app():show_warning("No .xrnz phrase preset files found in:\n" .. folder)
+    renoise.app():show_warning("No .xrnz phrase preset files found in (or under):\n" .. folder)
     return
   end
 
-  -- Sort alphabetically
+  -- Sort by full path, so subfolders come through in a predictable order
   table.sort(files, function(a, b) return a:lower() < b:lower() end)
 
   -- Check capacity
@@ -867,10 +969,17 @@ local function load_all_phrase_presets_from_folder()
   local loaded = 0
   local errors_list = {}
 
-  for _, name in ipairs(files) do
-    local full_path = folder .. "/" .. name
+  for _, full_path in ipairs(files) do
+    local name = full_path:match("([^/\\]+)$") or full_path
 
+    -- load_instrument_phrase() fills the SELECTED phrase slot, so without
+    -- making a fresh slot first every file overwrote the previous one and you
+    -- ended up with exactly one phrase however many files you picked
     local load_ok, err = pcall(function()
+      instrument = song.selected_instrument
+      local target = #instrument.phrases + 1
+      instrument:insert_phrase_at(target)
+      song.selected_phrase_index = target
       renoise.app():load_instrument_phrase(full_path)
     end)
 
@@ -971,7 +1080,15 @@ PakettiAddMenuEntry{
 
 PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",
-  invoke = function() load_all_phrase_presets_from_folder() end
+  invoke = function() PakettiLoadAllPhrasePresetsFromFolder() end
+}
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Instruments:Save Phrases of All Instruments as Presets (Subfolders)...",
+  invoke = function() PakettiSaveAllInstrumentsPhrasesAsPresets() end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Save Phrases of All Instruments as Presets (Subfolders)...",
+  invoke = function() PakettiSaveAllInstrumentsPhrasesAsPresets() end
 }
 
 renoise.tool():add_keybinding{
@@ -981,7 +1098,7 @@ renoise.tool():add_keybinding{
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Load All Phrase Presets from Folder (.xrnz)...",
-  invoke = function() load_all_phrase_presets_from_folder() end
+  invoke = function() PakettiLoadAllPhrasePresetsFromFolder() end
 }
 
 renoise.tool():add_midi_mapping{
@@ -997,7 +1114,7 @@ renoise.tool():add_midi_mapping{
   name = "Paketti:Load All Phrase Presets from Folder (.xrnz)... x[Button]",
   invoke = function(message)
     if message:is_trigger() then
-      load_all_phrase_presets_from_folder()
+      PakettiLoadAllPhrasePresetsFromFolder()
     end
   end
 }
