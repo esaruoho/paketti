@@ -4,21 +4,21 @@
 
 ## Where Paketti touches Renoise
 
-- **25,396 unique registration points**
-  - **10,973 keyboard shortcuts**
-  - **6,861 menu entries**
+- **25,398 unique registration points**
+  - **10,974 keyboard shortcuts**
+  - **6,862 menu entries**
   - **7,562 MIDI mappings**
 
-**Validation:** Paketti's own runtime counters say 10,968 keybindings / 7,561 MIDI / 6,858 menus — matching.
+**Validation:** Paketti's own runtime counters say 10,969 keybindings / 7,561 MIDI / 6,859 menus — matching.
 
 ## What Paketti does for Renoise
 
-Paketti is a **25,396-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
+Paketti is a **25,398-action layer** bolted onto Renoise. *Where* those actions live tells you its character:
 
-- **Keyboard- and MIDI-first.** 7,149 shortcuts fire *anywhere* (the Global region) and 7,562 actions are MIDI-mappable — most of Paketti is reachable without ever opening a menu. It's built for speed and for hardware.
+- **Keyboard- and MIDI-first.** 7,150 shortcuts fire *anywhere* (the Global region) and 7,562 actions are MIDI-mappable — most of Paketti is reachable without ever opening a menu. It's built for speed and for hardware.
 - **Pattern-centric.** ~3,859 actions live in the Pattern Editor / Matrix / Sequencer / Phrase views — the tracker grid where you actually make the music is where Paketti is heaviest.
 - **A sample & instrument powerhouse.** ~4,216 actions across the Sample Editor, Navigator, Keyzone, Mappings and Instrument Box — a whole sampler workflow grafted on.
-- **Menus are the catalogue.** 6,861 menu entries make every feature browsable when you don't remember the shortcut.
+- **Menus are the catalogue.** 6,862 menu entries make every feature browsable when you don't remember the shortcut.
 - **Lighter, deliberate touch on mixing / FX / automation** (~782) — present, but not the focus. Paketti augments the tracker and the sampler; it doesn't rebuild the mixer.
 
 **In one line:** Paketti turns Renoise into a keyboard- and MIDI-driven, pattern-and-sample-centric production environment — most of its power reachable instantly from a key or a controller.
@@ -52,18 +52,18 @@ Paketti is a **25,396-action layer** bolted onto Renoise. *Where* those actions 
 | **Files** | | | | |
 | &nbsp;&nbsp;DiskBrowserFiles | 0 | 63 | 0 | 63 |
 | **Menus & global** | | | | |
-| &nbsp;&nbsp;Global | 7,149 | 482 | 515 | 8,146 |
+| &nbsp;&nbsp;Global | 7,150 | 482 | 515 | 8,147 |
 | &nbsp;&nbsp;Paketti | 0 | 0 | 6,957 | 6,957 |
-| &nbsp;&nbsp;MainMenuTools | 0 | 1,162 | 0 | 1,162 |
+| &nbsp;&nbsp;MainMenuTools | 0 | 1,163 | 0 | 1,163 |
 | &nbsp;&nbsp;MainMenuFile | 0 | 91 | 0 | 91 |
 | &nbsp;&nbsp;MainMenuView | 0 | 60 | 0 | 60 |
 | **Other** | | | | |
 | &nbsp;&nbsp;Modulation Set | 0 | 48 | 0 | 48 |
 | &nbsp;&nbsp;Sononymph | 0 | 0 | 5 | 5 |
 | &nbsp;&nbsp;Instrument Phrases | 0 | 4 | 0 | 4 |
-| &nbsp;&nbsp; Sample FX Mixer | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; DSP Device | 0 | 1 | 0 | 1 |
 | &nbsp;&nbsp; Mixer | 0 | 1 | 0 | 1 |
+| &nbsp;&nbsp; Sample FX Mixer | 0 | 1 | 0 | 1 |
 
 ## Robustness: 198/198 files load clean, 0 brittle
 
