@@ -22,6 +22,7 @@ concurrency:
 jobs:
   functions:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout (on the branch, so we can push back)
         uses: actions/checkout@v4
@@ -29,7 +30,21 @@ jobs:
           ref: ${{ github.ref_name }}
 
       - name: Install luajit
-        run: sudo apt-get update && sudo apt-get install -y luajit
+        run: |
+          # apt on the hosted runners can hang indefinitely on a bad mirror -
+          # this step once sat there for the full 6-hour job limit. Bound every
+          # attempt and retry instead of blocking the whole workflow.
+          for attempt in 1 2 3; do
+            if sudo timeout 180 apt-get update -qq && sudo timeout 300 apt-get install -y -qq luajit; then
+              exit 0
+            fi
+            echo "apt attempt $attempt failed or timed out - retrying"
+            sudo pkill -9 -f 'apt-get|apt\.systemd' 2>/dev/null || true
+            sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock* 2>/dev/null || true
+            sleep 15
+          done
+          echo "apt-get could not install luajit after 3 attempts"
+          exit 1
 
       - name: Generate the function index (zero-token, for-loops resolved)
         run: python3 .spine/functions.py "$GITHUB_WORKSPACE"

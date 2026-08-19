@@ -18,13 +18,28 @@ jobs:
   # never produce a release / .xrnx.
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
           submodules: false
       - name: Install luajit
-        run: sudo apt-get update && sudo apt-get install -y luajit
+        run: |
+          # apt on the hosted runners can hang indefinitely on a bad mirror -
+          # this step once sat there for the full 6-hour job limit. Bound every
+          # attempt and retry instead of blocking the whole workflow.
+          for attempt in 1 2 3; do
+            if sudo timeout 180 apt-get update -qq && sudo timeout 300 apt-get install -y -qq luajit; then
+              exit 0
+            fi
+            echo "apt attempt $attempt failed or timed out - retrying"
+            sudo pkill -9 -f 'apt-get|apt\.systemd' 2>/dev/null || true
+            sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock* 2>/dev/null || true
+            sleep 15
+          done
+          echo "apt-get could not install luajit after 3 attempts"
+          exit 1
       - name: Check duplicate registrations + brittle files
         run: python3 .spine/check.py "$GITHUB_WORKSPACE"
 
@@ -33,6 +48,7 @@ jobs:
     needs: validate
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     outputs:
       tag_name: ${{ steps.gen.outputs.tag_name }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -77,6 +93,7 @@ jobs:
   package-api6:
     needs: create-release
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -127,6 +144,7 @@ jobs:
   package-api5:
     needs: create-release
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -185,7 +203,7 @@ jobs:
       # Verify no syntax errors were introduced by the sed transformations
       - name: Syntax check all Lua files
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq lua5.1 > /dev/null 2>&1
+          for attempt in 1 2 3; do sudo timeout 180 apt-get update -qq && sudo timeout 300 apt-get install -y -qq lua5.1 && break || sleep 15; done
           errors=0
           while IFS= read -r -d '' f; do
             if ! luac5.1 -p "$f" 2>/dev/null; then
@@ -241,6 +259,7 @@ jobs:
   package-spine:
     needs: create-release
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -248,7 +267,21 @@ jobs:
           submodules: false
 
       - name: Install LuaJIT + Graphviz
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq luajit graphviz
+        run: |
+          # apt on the hosted runners can hang indefinitely on a bad mirror -
+          # this step once sat there for the full 6-hour job limit. Bound every
+          # attempt and retry instead of blocking the whole workflow.
+          for attempt in 1 2 3; do
+            if sudo timeout 180 apt-get update -qq && sudo timeout 300 apt-get install -y -qq luajit graphviz; then
+              exit 0
+            fi
+            echo "apt attempt $attempt failed or timed out - retrying"
+            sudo pkill -9 -f 'apt-get|apt\.systemd' 2>/dev/null || true
+            sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock* 2>/dev/null || true
+            sleep 15
+          done
+          echo "apt-get could not install luajit graphviz after 3 attempts"
+          exit 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
