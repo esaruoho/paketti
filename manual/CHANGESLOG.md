@@ -8,6 +8,21 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Feature: Wipe & Slice & Amigo
+
+One command that wipes the selected sample's slicing, cuts it into N equal slices with the existing Wipe&Slice engine, builds the Amigo beside it and opens Amigo's editor. Same shape as `Wipe&Slice&Pattern` and `Wipe&Slice&Phrase`, and like the import path it keeps the sliced Renoise instrument rather than replacing it.
+
+Counts stop at 64 because that is how many slice slots Amigo has.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo (002)` through `(064)`
+- Menu: the same six under `Instrument Box:Paketti:Amigo:` and `Sample Editor:Paketti:Amigo:`
+- Keybinding: `Global:Paketti:Wipe&Slice&Amigo (002)` through `(064)`
+- MIDI Mapping: `Paketti:Wipe&Slice&Amigo (002)` through `(064)`
+
+### 2026-08-19 - Fix: a slice marker on frame 1 no longer costs an Amigo slot
+
+Amigo's `slice0` already means the sample start, so a Renoise slice marker sitting on frame 1 was being written into a slot of its own — it duplicated the start and pushed the last real cut point out of the 64 available slots. Frame-1 markers are now skipped, so 64 Renoise slices land in Amigo's 64 slots exactly. Verified: 64 slices out, all 64 slots used, 64 slices back with a maximum frame difference of zero.
+
 ### 2026-08-19 - Fix: Digitakt export now actually resamples
 
 The Digitakt exporter wrote a 48kHz header onto whatever rate the source happened to be, without converting it. A 44.1kHz one-second sample came out as 44100 frames labelled 48000Hz, so the chain played about 8.8% fast and short on the hardware. It tried to convert by calling RenderSampleAtNewRate on the song's own sample inside a pcall — which edited your instrument if it worked, and silently did nothing when it didn't.

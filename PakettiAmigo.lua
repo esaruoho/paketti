@@ -622,13 +622,19 @@ local function pakettiAmigoApplySample(device, path, sample)
   local slices, dropped = {}, 0
   if sample then
     local frames = sample.sample_buffer.number_of_frames
-    local markers = sample.slice_markers
+    -- Amigo's slice0 IS the sample start, so a Renoise marker sitting on frame 1
+    -- would only duplicate it and waste a slot. Dropping it means 64 Renoise
+    -- slices land in Amigo's 64 slots exactly, with nothing lost.
+    local cuts = {}
+    for _, marker in ipairs(sample.slice_markers) do
+      if marker > 1 then cuts[#cuts + 1] = marker end
+    end
     if frames > 1 then
-      for i = 1, math.min(#markers, PakettiAmigoMaxSlices - 1) do
-        slices[i] = (markers[i] - 1) / (frames - 1)
+      for i = 1, math.min(#cuts, PakettiAmigoMaxSlices - 1) do
+        slices[i] = (cuts[i] - 1) / (frames - 1)
       end
     end
-    dropped = math.max(0, #markers - (PakettiAmigoMaxSlices - 1))
+    dropped = math.max(0, #cuts - (PakettiAmigoMaxSlices - 1))
   end
   -- slice0 is the sample start; the markers fill slice1 upward
   for i = 0, PakettiAmigoMaxSlices - 1 do
@@ -1018,6 +1024,18 @@ end
 -- opened yourself are never touched.
 local pakettiAmigoLastOpenedEditor = nil
 
+local function pakettiAmigoShowEditorFor(instrument_index)
+  if pakettiAmigoLastOpenedEditor then
+    pcall(function() pakettiAmigoLastOpenedEditor.external_editor_visible = false end)
+    pakettiAmigoLastOpenedEditor = nil
+  end
+  local device = PakettiAmigoFindDevice(renoise.song().instruments[instrument_index])
+  if device then
+    local shown = pcall(function() device.external_editor_visible = true end)
+    if shown then pakettiAmigoLastOpenedEditor = device end
+  end
+end
+
 function PakettiAmigoHandleSlicedImport(instrument_index, label)
   if not PakettiAmigoSlicedImportEnabled() then return false end
   local ok, err, count, dropped, index = PakettiAmigoSendInstrumentToAmigo(instrument_index)
@@ -1029,15 +1047,7 @@ function PakettiAmigoHandleSlicedImport(instrument_index, label)
   renoise.song().selected_instrument_index = index
 
   -- show the Amigo you just made, closing the one the previous drop opened
-  if pakettiAmigoLastOpenedEditor then
-    pcall(function() pakettiAmigoLastOpenedEditor.external_editor_visible = false end)
-    pakettiAmigoLastOpenedEditor = nil
-  end
-  local device = PakettiAmigoFindDevice(renoise.song().instruments[index])
-  if device then
-    local shown = pcall(function() device.external_editor_visible = true end)
-    if shown then pakettiAmigoLastOpenedEditor = device end
-  end
+  pakettiAmigoShowEditorFor(index)
 
   local message = (label or "Import") .. " also loaded into Amigo with " .. count .. " slices"
   if dropped > 0 then
@@ -1050,6 +1060,45 @@ end
 -- kept for the RX2 loader's existing call site
 function PakettiAmigoHandleRX2Import(instrument_index)
   return PakettiAmigoHandleSlicedImport(instrument_index, "RX2")
+end
+
+--------------------------------------------------------------------------------
+-- Wipe & Slice & Amigo
+--
+-- The same shape as Paketti's Wipe&Slice&Pattern and Wipe&Slice&Phrase: wipe
+-- whatever slicing the sample has, cut it into N equal slices with the existing
+-- slicerough() engine, then build the Amigo beside it and open its editor. The
+-- sampled instrument is kept, exactly like the import path.
+--------------------------------------------------------------------------------
+
+function PakettiAmigoWipeSliceAndAmigo(slice_count)
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Wipe&Slice&Amigo: select a sample with audio data first.")
+    return
+  end
+  if PakettiAmigoFindDevice(song.selected_instrument) then
+    renoise.app():show_status("Wipe&Slice&Amigo: that instrument is an Amigo - select the sampled one instead.")
+    return
+  end
+
+  slicerough(slice_count)
+
+  local source_index = song.selected_instrument_index
+  local ok, err, count, dropped, index = PakettiAmigoSendInstrumentToAmigo(source_index)
+  if not ok then
+    renoise.app():show_status("Wipe&Slice&Amigo: " .. tostring(err) .. " - the sliced instrument is untouched.")
+    return
+  end
+  song.selected_instrument_index = index
+  pakettiAmigoShowEditorFor(index)
+
+  local message = "Wipe&Slice&Amigo: " .. slice_count .. " slices -> Amigo"
+  if dropped > 0 then
+    message = message .. " (" .. dropped .. " past Amigo's 64 were dropped)"
+  end
+  renoise.app():show_status(message)
 end
 
 --------------------------------------------------------------------------------
@@ -1285,6 +1334,18 @@ PakettiAddMenuEntry{name = "Main Menu:Options:Sliced Imports Also Go Into Amigo 
   invoke = function() PakettiAmigoToggleSlicedImport() end,
   selected = function() return PakettiAmigoSlicedImportEnabled() end}
 
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo (002)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(2) end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo (004)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(4) end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo (008)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(8) end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo (016)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(16) end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo (032)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(32) end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Wipe&Slice&Amigo (064)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(64) end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Amigo to Octatrack (.ot + .wav)",
   invoke = function() PakettiAmigoToOT() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Amigo:Batch: Every Amigo in Song to Octatrack (.ot + .wav)",
@@ -1325,6 +1386,30 @@ PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Amigo to Impuls
   invoke = function() PakettiAmigoToITI() end}
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Every Amigo in Song to Impulse Tracker ITI (.iti)",
   invoke = function() PakettiAmigoBatchAmigosToITI() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Wipe&Slice&Amigo (002)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(2) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Wipe&Slice&Amigo (002)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(2) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Wipe&Slice&Amigo (004)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(4) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Wipe&Slice&Amigo (004)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(4) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Wipe&Slice&Amigo (008)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(8) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Wipe&Slice&Amigo (008)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(8) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Wipe&Slice&Amigo (016)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(16) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Wipe&Slice&Amigo (016)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(16) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Wipe&Slice&Amigo (032)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(32) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Wipe&Slice&Amigo (032)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(32) end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Wipe&Slice&Amigo (064)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(64) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Wipe&Slice&Amigo (064)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(64) end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Amigo to Octatrack (.ot + .wav)",
   invoke = function() PakettiAmigoToOT() end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Amigo:Batch: Every Amigo in Song to Octatrack (.ot + .wav)",
@@ -1378,6 +1463,18 @@ PakettiAddMenuEntry{name = "Sample Editor:Paketti:Amigo:Amigo to Renoise (New In
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Sliced Imports Also Go Into Amigo",
   invoke = function() PakettiAmigoToggleSlicedImport() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Wipe&Slice&Amigo (002)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(2) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Wipe&Slice&Amigo (004)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(4) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Wipe&Slice&Amigo (008)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(8) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Wipe&Slice&Amigo (016)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(16) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Wipe&Slice&Amigo (032)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(32) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Wipe&Slice&Amigo (064)",
+  invoke = function() PakettiAmigoWipeSliceAndAmigo(64) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to Octatrack ot and wav",
   invoke = function() PakettiAmigoToOT() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Every Amigo in Song to Octatrack ot and wav",
@@ -1409,6 +1506,18 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Renoise to Amigo Selected S
 renoise.tool():add_keybinding{name = "Global:Paketti:Amigo to Renoise New Instrument",
   invoke = function() PakettiAmigoAmigoToRenoise() end}
 
+renoise.tool():add_midi_mapping{name = "Paketti:Wipe&Slice&Amigo (002)",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoWipeSliceAndAmigo(2) end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Wipe&Slice&Amigo (004)",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoWipeSliceAndAmigo(4) end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Wipe&Slice&Amigo (008)",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoWipeSliceAndAmigo(8) end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Wipe&Slice&Amigo (016)",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoWipeSliceAndAmigo(16) end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Wipe&Slice&Amigo (032)",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoWipeSliceAndAmigo(32) end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Wipe&Slice&Amigo (064)",
+  invoke = function(message) if message:is_trigger() then PakettiAmigoWipeSliceAndAmigo(64) end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Octatrack ot and wav",
   invoke = function(message) if message:is_trigger() then PakettiAmigoToOT() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Amigo to Digitakt Chain",
