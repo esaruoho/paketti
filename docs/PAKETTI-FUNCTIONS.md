@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+16) | ✅ | · | · |
+| Nudge Slice 01 by (-32) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -2766,7 +2766,6 @@
 | Toggle Paketti Dialog of Dialogs... | ✅ | · | · |
 | Toggle Pattern Status Monitor | ✅ | · | ✅ |
 | Toggle Phrase Follow Pattern Playback Hack | ✅ | · | · |
-| Toggle RX2 and WAV CUE Imports Also Go Into Amigo | ✅ | · | · |
 | Toggle Sample Properties | ✅ | · | · |
 | Toggle Sampling & Write Trigger to Pattern | ✅ | ✅ | ✅ |
 | Toggle Select Track Selects Instrument | ✅ | ✅ | · |
@@ -2776,6 +2775,7 @@
 | Toggle Sequence Selection (All) On/Off | ✅ | · | ✅ |
 | Toggle Sequence Selection 00 | ✅ | · | · |
 | Toggle Sequence Selection to Loop | ✅ | · | ✅ |
+| Toggle Sliced Imports Also Go Into Amigo | ✅ | · | · |
 | Toggle Solo Tracks | ✅ | ✅ | ✅ |
 | Toggle Sononym Auto-Transfer [Trigger] | ✅ | ✅ | ✅ |
 | Toggle Timed Require Debug | ✅ | · | ✅ |
@@ -4060,7 +4060,6 @@
 | Row01 Sample Slider | · | ✅ | · |
 | Row01 Show | · | ✅ | · |
 | Row01 Step01 | · | ✅ | · |
-| RX2 and WAV+CUE Imports Also Go Into Amigo Toggle | · | · | ✅ |
 | Sample Buffer Selection 01 Start x[Knob] | · | ✅ | · |
 | Sample Buffer Selection 02 End x[Knob] | · | ✅ | · |
 | Sample Editor | · | · | ✅ |
@@ -4250,6 +4249,7 @@
 | Slice Move Resolution x[Knob] | · | ✅ | · |
 | Slice Random | · | · | ✅ |
 | Slice Sequential | · | · | ✅ |
+| Sliced Imports Also Go Into Amigo (RX2, REX, PTI, WAV+CUE) Toggle | · | · | ✅ |
 | SliceSafely (002) | · | · | ✅ |
 | Slow | · | · | ✅ |
 | Smooth | · | · | ✅ |

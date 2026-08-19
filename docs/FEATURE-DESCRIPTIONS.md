@@ -3422,7 +3422,7 @@
 - Nudge Phrase Up by 1 Step
 - Nudge Phrase Up by 2 Steps
 - Nudge Sequence Selection Down
-- Nudge Slice 01 by (+16)
+- Nudge Slice 01 by (-32)
 - Nudge Up by 1 Line
 - Nudge Up by 1 Step
 - Nudge Up by 2 Steps
@@ -3972,7 +3972,6 @@
 - Quick Select Lines 1-16
 - Quick Select Second Half
 - Quick Swap (Slot 01)
-- RX2 and WAV+CUE Imports Also Go Into Amigo Toggle
 - Random - Apply Random Chord
 - Random 01 Sample to Pattern
 - Random All
@@ -4745,6 +4744,7 @@
 - SlicePro Silent Apply
 - SliceSafely (002)
 - SliceSafely Dialog...
+- Sliced Imports Also Go Into Amigo (RX2, REX, PTI, WAV+CUE) Toggle
 - Slices to Pattern (beat sync only)
 - Slices to Pattern (detected BPM, from current row)
 - Slices to Pattern (detected BPM, from first row)
@@ -4995,7 +4995,6 @@
 - Toggle Phrase Follow Pattern Playback Hack
 - Toggle Phrase Transport
 - Toggle Preview Mode [Trigger]
-- Toggle RX2 and WAV CUE Imports Also Go Into Amigo
 - Toggle Sample Properties
 - Toggle Sampling & Write Trigger to Pattern
 - Toggle Select Track Selects Instrument
@@ -5012,6 +5011,7 @@
 - Toggle Show Only Panning Columns
 - Toggle Show Only Volume Columns
 - Toggle Signed/Unsigned
+- Toggle Sliced Imports Also Go Into Amigo
 - Toggle Slot 1
 - Toggle Slot 1 Show/Hide
 - Toggle Sononym Auto-Transfer [Trigger]
