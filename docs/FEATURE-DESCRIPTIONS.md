@@ -3456,7 +3456,7 @@
 - Nudge Phrase Up by 1 Step
 - Nudge Phrase Up by 2 Steps
 - Nudge Sequence Selection Down
-- Nudge Slice 01 by (+1)
+- Nudge Slice 01 by (+16)
 - Nudge Up by 1 Line
 - Nudge Up by 1 Step
 - Nudge Up by 2 Steps
