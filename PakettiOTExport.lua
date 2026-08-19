@@ -1,7 +1,11 @@
 -- Control variable for showing debug dialog after drag & drop import
 -- Set to true to show debug dialog when dragging .ot files into Renoise
 -- Set to false to import silently (default behavior)
-local show_debug_dialog_on_import = true
+-- The .OT analysis dialog is a debugging aid: it pops up modally on EVERY .ot
+-- import, which gets in the way when you are just dropping files in (and now
+-- sits in front of the Amigo editor). Off by default; the dialog is still
+-- available on demand from Tools > Paketti as "Octatrack .OT Debug Dialog".
+local show_debug_dialog_on_import = false
 
 local header = { 
   0x46, 0x4F, 0x52, 0x4D, 

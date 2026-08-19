@@ -1110,6 +1110,22 @@ end
 -- temporary and is removed again afterwards.
 --------------------------------------------------------------------------------
 
+-- Runs work inside a ProcessSlicer with a progress dialog. Writing a long ITI
+-- takes minutes, and doing it in one go made Renoise put up "script not
+-- responding"; inside a coroutine the exporters yield instead. `work` is called
+-- with a report(text) function.
+local function pakettiAmigoRunSliced(title, work)
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    work(function(text)
+      if vb and vb.views and vb.views.progress_text then vb.views.progress_text.text = text end
+    end)
+    if dialog and dialog.visible then dialog:close() end
+  end)
+  dialog, vb = slicer:create_dialog(title)
+  slicer:start()
+end
+
 local function pakettiAmigoPathSeparator()
   return (os.platform() == "WINDOWS") and "\\" or "/"
 end
@@ -1123,13 +1139,13 @@ local pakettiAmigoExportTargets = {
     taken = function(folder, name)
       return io.exists(folder .. name .. ".wav") or io.exists(folder .. name .. ".ot")
     end,
-    run = function(path) PakettiOTExport(path) end,
+    run = function(path, report) PakettiOTExport(path) end,
   },
   digitakt = {
     label = "Digitakt chain (.wav)",
     extension = "wav",
     taken = function(folder, name) return io.exists(folder .. name .. ".wav") end,
-    run = function(path)
+    run = function(path, report)
       export_digitakt_chain{
         digitakt_version = "digitakt2",
         export_mode = "chain",
@@ -1148,7 +1164,7 @@ local pakettiAmigoExportTargets = {
     taken = function(folder, name)
       return io.exists(folder .. name .. ".wav") or io.exists(folder .. name .. ".cue")
     end,
-    run = function(path) PakettiWavCueExportSampleWithCues(true, path) end,
+    run = function(path, report) PakettiWavCueExportSampleWithCues(true, path) end,
   },
   -- Polyend PTI holds 48 slices; Amigo can hold 64, so a heavily sliced Amigo
   -- loses the tail. The PTI exporter itself decides how to truncate.
@@ -1156,7 +1172,7 @@ local pakettiAmigoExportTargets = {
     label = "Polyend PTI (.pti)",
     extension = "pti",
     taken = function(folder, name) return io.exists(folder .. name .. ".pti") end,
-    run = function(path) pti_savesample_to_path(path) end,
+    run = function(path, report) pti_savesample_to_path(path) end,
   },
   -- Impulse Tracker ITI writes the instrument, so a sliced Amigo arrives as the
   -- full sample plus one sample per slice, the way Renoise itself keyzones it.
@@ -1164,7 +1180,7 @@ local pakettiAmigoExportTargets = {
     label = "Impulse Tracker ITI (.iti)",
     extension = "iti",
     taken = function(folder, name) return io.exists(folder .. name .. ".iti") end,
-    run = function(path) iti_export_instrument(renoise.song().selected_instrument, path) end,
+    run = function(path, report) iti_export_instrument(renoise.song().selected_instrument, path, report) end,
   },
 }
 
@@ -1179,7 +1195,7 @@ local function pakettiAmigoUniqueExportPath(target, folder, name, used)
 end
 
 -- folder = nil asks for a filename, otherwise the name comes from the Amigo
-local function pakettiAmigoExportDeviceVia(target, device, folder, used, output_path)
+local function pakettiAmigoExportDeviceVia(target, device, folder, used, output_path, report)
   local song = renoise.song()
   local at_index, reuse = pakettiAmigoAppendIndex()
   local ok, name, slice_count, err = PakettiAmigoExtractDeviceToInstrument(device, at_index, reuse)
@@ -1202,7 +1218,7 @@ local function pakettiAmigoExportDeviceVia(target, device, folder, used, output_
     return false, name, 0, "cancelled"
   end
 
-  local ran, run_err = pcall(function() target.run(path) end)
+  local ran, run_err = pcall(function() target.run(path, report) end)
   song:delete_instrument_at(at_index)
   if not ran then return false, name, 0, tostring(run_err) end
   return true, name, slice_count, nil
@@ -1218,15 +1234,29 @@ function PakettiAmigoExportSelectedTo(target_key, output_path)
       ": select an instrument that has the Amigo plugin loaded.")
     return
   end
-  local ok, name, slice_count, err = pakettiAmigoExportDeviceVia(target, device, nil, {}, output_path)
-  if not ok then
-    if err ~= "cancelled" then
-      renoise.app():show_status("Amigo to " .. target.label .. ": " .. tostring(err))
+  -- ask for the filename here, on the main thread - a modal file dialog opened
+  -- from inside the ProcessSlicer coroutine is asking for trouble
+  local path = output_path
+  if not path or path == "" then
+    path = renoise.app():prompt_for_filename_to_write(target.extension or "wav",
+      "Save Amigo as " .. target.label .. "...")
+    if not path or path == "" then
+      renoise.app():show_status("Amigo to " .. target.label .. ": cancelled.")
+      return
     end
-    return
   end
-  renoise.app():show_status("Amigo to " .. target.label .. ": " .. name ..
-    " exported with " .. slice_count .. " slices")
+
+  pakettiAmigoRunSliced("Amigo to " .. target.label .. "...", function(report)
+    local ok, name, slice_count, err = pakettiAmigoExportDeviceVia(target, device, nil, {}, path, report)
+    if not ok then
+      if err ~= "cancelled" then
+        renoise.app():show_status("Amigo to " .. target.label .. ": " .. tostring(err))
+      end
+      return
+    end
+    renoise.app():show_status("Amigo to " .. target.label .. ": " .. name ..
+      " exported with " .. slice_count .. " slices")
+  end)
 end
 
 -- every Amigo in the song. target_folder is optional and skips the dialog.
@@ -1259,23 +1289,28 @@ function PakettiAmigoBatchExportTo(target_key, target_folder)
   local separator = pakettiAmigoPathSeparator()
   if folder:sub(-1) ~= separator then folder = folder .. separator end
 
-  local used, made, failed = {}, 0, {}
-  for n = 1, #devices do
-    local ok, name, slice_count, err = pakettiAmigoExportDeviceVia(target, devices[n], folder, used)
-    if ok then
-      made = made + 1
-      print(string.format("PakettiAmigo: instrument %02X -> %s as %s (%d slices)",
-        sources[n] - 1, name, target.label, slice_count))
-    else
-      failed[#failed + 1] = string.format("%02X (%s)", sources[n] - 1, tostring(err))
+  pakettiAmigoRunSliced("Amigo to " .. target.label .. "...", function(report)
+    local used, made, failed = {}, 0, {}
+    for n = 1, #devices do
+      report(string.format("Amigo %d/%d...", n, #devices))
+      local ok, name, slice_count, err = pakettiAmigoExportDeviceVia(target, devices[n], folder, used,
+        nil, function(text) report(string.format("Amigo %d/%d - %s", n, #devices, text)) end)
+      if ok then
+        made = made + 1
+        print(string.format("PakettiAmigo: instrument %02X -> %s as %s (%d slices)",
+          sources[n] - 1, name, target.label, slice_count))
+      else
+        failed[#failed + 1] = string.format("%02X (%s)", sources[n] - 1, tostring(err))
+      end
+      coroutine.yield()
     end
-  end
 
-  local status = "Amigo to " .. target.label .. ": exported " .. made .. " of " ..
-    #devices .. " Amigos into " .. folder
-  if #failed > 0 then status = status .. " - skipped " .. table.concat(failed, ", ") end
-  renoise.app():show_status(status)
-  print("PakettiAmigo: " .. status)
+    local status = "Amigo to " .. target.label .. ": exported " .. made .. " of " ..
+      #devices .. " Amigos into " .. folder
+    if #failed > 0 then status = status .. " - skipped " .. table.concat(failed, ", ") end
+    renoise.app():show_status(status)
+    print("PakettiAmigo: " .. status)
+  end)
 end
 
 function PakettiAmigoToOT(output_path) PakettiAmigoExportSelectedTo("ot", output_path) end

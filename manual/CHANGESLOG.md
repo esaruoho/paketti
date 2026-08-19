@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-19 - Improvement: ITI export runs in the background, and .OT import stops interrupting
+
+Exporting an instrument to ITI now runs inside a ProcessSlicer with a progress dialog. Writing the PCM of a long sample takes over a minute, and doing it in one go made Renoise offer to terminate the script. The exporter yields while extracting sample data and between samples, but only when it is actually running inside a coroutine, so anything calling it directly still behaves exactly as before. Measured on a 2.4 million frame, 40 sample, 19MB instrument: 85 seconds, Renoise answering continuously throughout, and the output byte-identical to the synchronous path.
+
+The same applies to `Batch Convert XRNI Folder to ITI` and friends, and to the Amigo export commands. In every case the file and folder pickers stay on the main thread — only the writing moves into the background.
+
+Octatrack `.ot` import no longer pops its analysis dialog on every import. That dialog is a debugging aid and it interrupted every single drag-and-drop; it is still available on demand from `Sample Editor:Paketti:Octatrack:Debug (.ot)`.
+
 ### 2026-08-19 - Feature: Wipe & Slice & Amigo
 
 One command that wipes the selected sample's slicing, cuts it into N equal slices with the existing Wipe&Slice engine, builds the Amigo beside it and opens Amigo's editor. Same shape as `Wipe&Slice&Pattern` and `Wipe&Slice&Phrase`, and like the import path it keeps the sliced Renoise instrument rather than replacing it.

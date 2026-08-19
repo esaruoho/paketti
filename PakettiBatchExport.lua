@@ -15,9 +15,13 @@
 -- Reuses PakettiCollectXRNIFilesRecursive (defined in PakettiPTILoader.lua).
 
 -- Generic driver. cfg = { label = "8SVX", export = function(inst, base_no_ext) -> files_written }
+-- Runs the whole batch inside a ProcessSlicer so Renoise stays responsive:
+-- exporting a folder of long samples (ITI especially) otherwise blocks the UI
+-- long enough for Renoise to offer to terminate the script.
 function PakettiBatchXRNIExportRun(cfg)
-  local song = renoise.song()
-
+  -- The folder picker runs here, on the main thread. Showing a modal file
+  -- dialog from inside the ProcessSlicer's idle-driven coroutine is asking for
+  -- trouble, so only the export loop goes in the coroutine.
   local parent = renoise.app():prompt_for_path(
     "Select folder of .xrni to batch-export to " .. cfg.label .. " (recurses subfolders)")
   if not parent or parent == "" then
@@ -35,8 +39,21 @@ function PakettiBatchXRNIExportRun(cfg)
     renoise.app():show_status("Batch XRNI->" .. cfg.label .. ": No .xrni files found in folder or subfolders")
     return
   end
-
   table.sort(xrni_files, function(a, b) return a:lower() < b:lower() end)
+
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    PakettiBatchXRNIExportWorker(cfg, parent, xrni_files, function(text)
+      if vb and vb.views and vb.views.progress_text then vb.views.progress_text.text = text end
+    end)
+    if dialog and dialog.visible then dialog:close() end
+  end)
+  dialog, vb = slicer:create_dialog("Batch XRNI -> " .. tostring(cfg.label) .. "...")
+  slicer:start()
+end
+
+function PakettiBatchXRNIExportWorker(cfg, parent, xrni_files, report)
+  local song = renoise.song()
 
   print("------------")
   print(string.format("-- Batch XRNI->%s: Found %d .xrni files under %s", cfg.label, #xrni_files, parent))
@@ -88,6 +105,8 @@ function PakettiBatchXRNIExportRun(cfg)
     end
 
     renoise.app():show_status(string.format("Batch XRNI->%s: %d/%d done...", cfg.label, done, #xrni_files))
+    if report then report(string.format("%d/%d - %s", i, #xrni_files, xrni_path:match("([^/\\]+)$") or "")) end
+    coroutine.yield()
   end
 
   local msg = string.format("Batch XRNI->%s complete: %d/%d instruments, %d files written",
@@ -165,6 +184,8 @@ end
 
 function PakettiBatchXRNIToITI()
   PakettiBatchXRNIExportRun{ label = "ITI", export = function(inst, base)
+    -- iti_export_instrument yields on its own when it is running inside a
+    -- coroutine, which keeps Renoise responsive on long samples
     local ok = iti_export_instrument(inst, base .. ".iti")
     return ok and 1 or 0
   end }

@@ -78,11 +78,15 @@ local SAMPLE_SUSTAIN_LOOP = 32
 local SAMPLE_PINGPONG_LOOP = 64
 local SAMPLE_PINGPONG_SUSTAIN = 128
 
-function iti_export_instrument(instrument, filepath)
+-- progress(text) is optional and is called as each sample is written
+function iti_export_instrument(instrument, filepath, progress)
   if not instrument then
     renoise.app():show_status("ITI Export Error: No instrument selected")
     return false
   end
+
+  local total_samples = #instrument.samples
+  iti_export_progress = false
   
   dprint("Starting ITI export for instrument:", instrument.name)
   
@@ -100,6 +104,14 @@ function iti_export_instrument(instrument, filepath)
   for i = 1, #instrument.samples do
     local sample = instrument.samples[i]
     if sample and sample.sample_buffer.has_sample_data then
+      if progress then
+        progress(string.format("Writing sample %d/%d: %s", i, total_samples, sample.name or ""))
+        iti_export_progress = function(done, total)
+          progress(string.format("Writing sample %d/%d: %s (%d%%)",
+            i, total_samples, sample.name or "", math.floor(done / total * 100)))
+        end
+      end
+      if coroutine.running() ~= nil then coroutine.yield() end
       local header, data = iti_build_sample(sample, i)
       if header and data then
         table.insert(sample_headers, header)
@@ -383,6 +395,11 @@ function iti_build_envelopes(instrument)
   return result
 end
 
+-- set by iti_export_instrument so the PCM extractor can report where it is.
+-- false rather than nil: assigning nil does not declare the global, and the
+-- read further down would then throw under Renoise's strict-globals guard.
+iti_export_progress = false
+
 function iti_build_sample(sample, sample_index)
   local buffer = sample.sample_buffer
   if not buffer or not buffer.has_sample_data then
@@ -493,13 +510,17 @@ function iti_build_sample(sample, sample_index)
   dprint("  Sample header:", #header, "bytes")
   
   -- Extract and write sample data (uncompressed PCM)
-  local pcm_data = iti_extract_sample_data(buffer, export_16bit, export_stereo)
+  local pcm_data = iti_extract_sample_data(buffer, export_16bit, export_stereo, iti_export_progress)
   dprint("  Sample data:", #pcm_data, "bytes")
   
   return header, pcm_data
 end
 
-function iti_extract_sample_data(buffer, is_16bit, is_stereo)
+-- progress(done_frames, total_frames) is optional. When this runs inside a
+-- ProcessSlicer coroutine it also yields periodically, so Renoise stays
+-- responsive instead of putting up "script not responding" on a long sample.
+function iti_extract_sample_data(buffer, is_16bit, is_stereo, progress)
+  local in_coroutine = (coroutine.running() ~= nil)
   local num_frames = buffer.number_of_frames
   local num_channels = is_stereo and 2 or 1
 
@@ -522,6 +543,10 @@ function iti_extract_sample_data(buffer, is_16bit, is_stereo)
   end
 
   for frame = 1, num_frames do
+    if in_coroutine and frame % 4096 == 0 then
+      if progress then progress(frame, num_frames) end
+      coroutine.yield()
+    end
     for channel = 1, num_channels do
       -- Get sample value (-1.0 to 1.0)
       local value = buffer:sample_data(channel, frame)
@@ -607,11 +632,30 @@ function pakettiITIExportDialog()
   -- Show save dialog
   local filepath = renoise.app():prompt_for_filename_to_write("iti", "Export Impulse Tracker Instrument")
   
-  if filepath and filepath ~= "" then
-    iti_export_instrument(instrument, filepath)
-  else
+  if not filepath or filepath == "" then
     renoise.app():show_status("ITI export cancelled")
+    return
   end
+
+  -- Run inside a ProcessSlicer: writing the PCM of a long sample takes minutes,
+  -- and doing it in one go made Renoise put up "script not responding".
+  PakettiITIExportSliced(instrument, filepath)
+end
+
+-- Exports in the background with a progress dialog. on_finished is optional.
+function PakettiITIExportSliced(instrument, filepath, on_finished)
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    local ok = iti_export_instrument(instrument, filepath, function(text)
+      if vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = text
+      end
+    end)
+    if dialog and dialog.visible then dialog:close() end
+    if on_finished then on_finished(ok) end
+  end)
+  dialog, vb = slicer:create_dialog("Exporting ITI...")
+  slicer:start()
 end
 
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
