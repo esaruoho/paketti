@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-20 - Fix: one failing background task no longer disables all of them
+
+When a ProcessSlicer worker threw, ProcessSlicer re-raised the error from inside an `app_idle` notifier. Renoise responds to that by disabling the tool's notifiers "to prevent further errors" — which silently kills **every** ProcessSlicer feature in Paketti (PTI loading, the sample loaders, ITI export, the Amigo batches) until Renoise is quit and relaunched. Reloading the tool does not bring them back, so the tool looks loaded and simply does nothing in the background.
+
+It now stops that one task and reports it instead of re-raising, so the rest of the tool keeps working.
+
+The report is also worth reading now. Previously the log only showed `process_slicer.lua:89`, which says nothing about which feature broke. It now prints the failing worker's own traceback, captured from its coroutine before it is torn down, plus a status-bar pointer to the scripting console.
+
 ### 2026-08-20 - Fix: Octatrack drumkit builders wrote to frame 0 and crashed
 
 Every Octatrack drumkit builder copied its audio with `set_sample_data(ch, dest_pos + frame - 1, ...)`, where `dest_pos` starts at 1 and `frame` counts from 0 — so the very first write addressed frame 0, which Renoise rejects with `invalid frame index '0'`. The error killed the ProcessSlicer coroutine part way through, leaving a drumkit instrument with allocated but empty audio and no slice markers, and Renoise then disabled the tool's idle notifier "to prevent further errors". Five copies of the same line, across the Smart, Mono and Play-to-End builders, are corrected to `dest_pos + frame`.

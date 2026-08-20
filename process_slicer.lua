@@ -83,10 +83,25 @@ function ProcessSlicer:__on_idle()
       self.__process_thread, unpack(self.__process_func_args))
     
     if (not succeeded) then
-      -- Stop the process on errors
+      -- Grab the failing worker's own traceback BEFORE stopping, otherwise all
+      -- the log ever showed was this file's line number, which says nothing
+      -- about which feature actually broke.
+      local traceback = "(no traceback available)"
+      if debug and debug.traceback and self.__process_thread then
+        local ok, result = pcall(debug.traceback, self.__process_thread, error_message, 1)
+        if ok and result then traceback = result end
+      end
+
       self:stop()
-      -- Forward the error
-      error(error_message) 
+
+      -- Do NOT re-raise here. Raising inside an app_idle notifier makes Renoise
+      -- disable the tool's notifiers "to prevent further errors", which kills
+      -- EVERY ProcessSlicer feature in Paketti until Renoise is restarted - one
+      -- bad worker used to take the whole tool's background processing with it.
+      print("*** ProcessSlicer: the background task failed and was stopped ***")
+      print(tostring(error_message))
+      print(traceback)
+      renoise.app():show_status("Paketti: a background task failed - see the scripting console for details")
     end
     
   -- Stop when the process function completed
