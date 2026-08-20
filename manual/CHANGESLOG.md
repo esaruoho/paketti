@@ -34,12 +34,6 @@ Both loaders now take an optional file list so they can be driven without a dial
 - Keybinding: `Global:Paketti:Pitchbend Loader to Amigo` (and Normalize), `Global:Paketti:Drumkit Loader to Amigo`, `Global:Paketti:Chain Instrument Samples into Amigo`
 - MIDI Mapping: `Paketti:Pitchbend Loader to Amigo`, `Paketti:Drumkit Loader to Amigo`
 
-### 2026-08-20 - Fix: never write Amigo's embedsample parameter on the VST3
-
-Amigo 2.0.1's VST3 exposes an `embedsample` parameter but does not implement it — setting it produces no `EMBEDDED_FILE`, and moments after writing it the plugin crashed in `Process` on the audio thread, taking Renoise with it. Amigo 1.0.2's VST3 had no such parameter at all, so this could not happen before. `Renoise to Amigo (Embedded)` now refuses on anything other than the AU and says so; the sample is linked by pathname regardless, which is what actually makes it play.
-
-Everything else about Amigo 2.0.1 needed no changes: the plugin state format is unchanged, and a no-op rewrite of a 2.0.1 preset comes back byte-identical on both AU and VST3.
-
 ### 2026-08-20 - Feature: import a whole phrase tree, one instrument per subfolder
 
 `Load Phrase Presets from Folder Tree (One Instrument per Subfolder)` walks a folder and all its subfolders and gives each folder its own instrument, named after that folder. It is the mirror image of `Save Phrases of All Instruments as Presets (Subfolders)`, so an exported tree comes back as the instruments it came from instead of collapsing into one. It also removes the 126-phrase ceiling as a way to lose files: a folder holding more than that spills into `FolderName (2)`, `(3)` and so on.
