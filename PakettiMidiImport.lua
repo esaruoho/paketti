@@ -833,6 +833,22 @@ function PakettiSaveAllInstrumentsPhrasesAsPresets(target_folder)
   if not folder or folder == "" then return end
   folder = folder:gsub("[/\\]$", "")
 
+  -- Make sure the destination exists BEFORE writing anything. Renoise's
+  -- os.mkdir does not create missing parents, and save_instrument_phrase throws
+  -- a modal error per file - so a bad destination used to bury the screen in one
+  -- dialog per phrase instead of saying "that folder does not exist" once.
+  if not io.exists(folder) then
+    local built = ""
+    for part in folder:gmatch("[^/\\]+") do
+      built = (built == "" and (folder:sub(1, 1) == "/" and "/" or "") or built .. "/") .. part
+      if not io.exists(built) then os.mkdir(built) end
+    end
+  end
+  if not io.exists(folder) then
+    renoise.app():show_warning("Phrase export: could not create the destination folder:\n" .. folder)
+    return
+  end
+
   local previous_instrument = song.selected_instrument_index
   local previous_phrase = song.selected_phrase_index
   local saved, made_folders, errors_list = 0, 0, {}
@@ -848,6 +864,13 @@ function PakettiSaveAllInstrumentsPhrasesAsPresets(target_folder)
     if not io.exists(subfolder) then
       os.mkdir(subfolder)
       made_folders = made_folders + 1
+    end
+    if not io.exists(subfolder) then
+      -- one clear message, then stop. Carrying on would throw a modal error for
+      -- every single phrase in the song.
+      renoise.app():show_warning("Phrase export: could not create\n" .. subfolder ..
+        "\n\nStopped after " .. saved .. " phrases.")
+      return
     end
 
     song.selected_instrument_index = instrument_index
@@ -865,6 +888,11 @@ function PakettiSaveAllInstrumentsPhrasesAsPresets(target_folder)
         renoise.app():show_status(string.format("Saving phrases... %d saved", saved))
       else
         table.insert(errors_list, string.format("%s: %s", filename, tostring(err)))
+        -- save_instrument_phrase puts up its own modal error, so one failure
+        -- means every remaining phrase would put up another one
+        renoise.app():show_warning("Phrase export: writing failed and was stopped.\n\n" ..
+          filename .. "\n" .. tostring(err))
+        return
       end
     end
   end
@@ -912,6 +940,111 @@ function PakettiCollectPhrasePresetsRecursive(folder)
   end
 
   return results
+end
+
+-- Loads a whole tree of .xrnz presets, giving each folder its OWN instrument
+-- named after that folder. This is the mirror image of
+-- PakettiSaveAllInstrumentsPhrasesAsPresets, so an exported tree round-trips
+-- back to the instruments it came from instead of collapsing into one.
+--
+-- It also removes the 126-phrase ceiling as a reason to lose files: a folder
+-- holding more than that spills into "<folder> (2)", "(3)" and so on, so
+-- everything in the tree actually arrives.
+--
+-- target_folder is optional: pass one to skip the folder dialog.
+function PakettiLoadPhrasePresetsPerSubfolder(target_folder)
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_warning("No song loaded.")
+    return
+  end
+
+  local folder = target_folder
+  if not folder or folder == "" then
+    folder = renoise.app():prompt_for_path("Select folder tree of phrase presets (one instrument per subfolder)")
+  end
+  if not folder or folder == "" then return end
+  folder = folder:gsub("[/\\]$", "")
+
+  local files = PakettiCollectPhrasePresetsRecursive(folder)
+  if #files == 0 then
+    renoise.app():show_warning("No .xrnz phrase preset files found in (or under):\n" .. folder)
+    return
+  end
+  table.sort(files, function(a, b) return a:lower() < b:lower() end)
+
+  -- group by the directory each file sits in, keeping first-seen order
+  local groups, order = {}, {}
+  for _, path in ipairs(files) do
+    local dir = path:match("^(.*)[/\\][^/\\]+$") or folder
+    if not groups[dir] then groups[dir] = {} order[#order + 1] = dir end
+    table.insert(groups[dir], path)
+  end
+
+  song:describe_undo("Load Phrase Presets per Subfolder")
+
+  local made_instruments, loaded, errors_list = 0, 0, {}
+
+  for _, dir in ipairs(order) do
+    local label = dir:match("([^/\\]+)$") or dir
+    local paths = groups[dir]
+    local position = 1
+    local pass = 0
+
+    while position <= #paths do
+      pass = pass + 1
+      local index = song.selected_instrument_index + 1
+      if not safeInsertInstrumentAt(song, index) then
+        table.insert(errors_list, "hit the instrument limit before finishing " .. label)
+        position = #paths + 1
+        break
+      end
+      song.selected_instrument_index = index
+      pakettiPreferencesDefaultInstrumentLoader()
+      local instrument = song.instruments[song.selected_instrument_index]
+      made_instruments = made_instruments + 1
+      -- a folder with more than 126 phrases spills into "<folder> (2)", "(3)"...
+      instrument.name = (pass == 1) and label or string.format("%s (%d)", label, pass)
+
+      local room = 126
+      while position <= #paths and room > 0 do
+        local path = paths[position]
+        local name = path:match("([^/\\]+)$") or path
+        local ok, err = pcall(function()
+          instrument = song.instruments[song.selected_instrument_index]
+          local target = #instrument.phrases + 1
+          instrument:insert_phrase_at(target)
+          song.selected_phrase_index = target
+          renoise.app():load_instrument_phrase(path)
+        end)
+        if ok then
+          loaded = loaded + 1
+          renoise.app():show_status(string.format("Loading phrases... %d/%d (%s)", loaded, #files, label))
+        else
+          table.insert(errors_list, string.format("%s: %s", name, tostring(err)))
+        end
+        position = position + 1
+        room = room - 1
+      end
+
+    end
+  end
+
+  if loaded > 0 then
+    renoise.app().window.active_middle_frame = 3
+  end
+
+  local message = string.format("Loaded %d phrase presets into %d instruments from %s",
+    loaded, made_instruments, folder)
+  if #errors_list > 0 then
+    local warning = message .. "\n\nProblems:\n"
+    for i = 1, math.min(#errors_list, 10) do warning = warning .. "- " .. errors_list[i] .. "\n" end
+    if #errors_list > 10 then warning = warning .. string.format("... and %d more", #errors_list - 10) end
+    renoise.app():show_warning(warning)
+  else
+    renoise.app():show_status(message)
+  end
+  print("-- " .. message)
 end
 
 -- target_folder is optional: pass one to skip the folder dialog
@@ -1081,6 +1214,18 @@ PakettiAddMenuEntry{
 PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",
   invoke = function() PakettiLoadAllPhrasePresetsFromFolder() end
+}
+PakettiAddMenuEntry{
+  name = "Main Menu:Tools:Paketti:Instruments:Load Phrase Presets from Folder Tree (One Instrument per Subfolder)...",
+  invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Load Phrase Presets from Folder Tree (Per Subfolder)...",
+  invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Load Phrase Presets from Folder Tree (Per Subfolder)",
+  invoke = function(message) if message:is_trigger() then PakettiLoadPhrasePresetsPerSubfolder() end end
 }
 PakettiAddMenuEntry{
   name = "Main Menu:Tools:Paketti:Instruments:Save Phrases of All Instruments as Presets (Subfolders)...",

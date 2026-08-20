@@ -34,6 +34,22 @@ Both loaders now take an optional file list so they can be driven without a dial
 - Keybinding: `Global:Paketti:Pitchbend Loader to Amigo` (and Normalize), `Global:Paketti:Drumkit Loader to Amigo`, `Global:Paketti:Chain Instrument Samples into Amigo`
 - MIDI Mapping: `Paketti:Pitchbend Loader to Amigo`, `Paketti:Drumkit Loader to Amigo`
 
+### 2026-08-20 - Feature: import a whole phrase tree, one instrument per subfolder
+
+`Load Phrase Presets from Folder Tree (One Instrument per Subfolder)` walks a folder and all its subfolders and gives each folder its own instrument, named after that folder. It is the mirror image of `Save Phrases of All Instruments as Presets (Subfolders)`, so an exported tree comes back as the instruments it came from instead of collapsing into one. It also removes the 126-phrase ceiling as a way to lose files: a folder holding more than that spills into `FolderName (2)`, `(3)` and so on.
+
+All four phrase batch commands are now documented in the manual under "Phrase Presets: Batch Import and Export", which is where to point people who ask where this lives.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Load Phrase Presets from Folder Tree (One Instrument per Subfolder)...`
+- Keybinding: `Global:Paketti:Load Phrase Presets from Folder Tree (Per Subfolder)...`
+- MIDI Mapping: `Paketti:Load Phrase Presets from Folder Tree (Per Subfolder)`
+
+### 2026-08-20 - Fix: phrase export creates its destination, and stops instead of flooding the screen
+
+`Save Phrases of All Instruments as Presets (Subfolders)` called `os.mkdir` for each per-instrument subfolder, but Renoise's `os.mkdir` does not create missing parents — so pointing it at a folder that did not exist yet failed for every single phrase, and `save_instrument_phrase` puts up a modal error each time. Exporting a song with dozens of phrases buried the screen in dialogs.
+
+It now creates the destination path up front, checks it worked, and stops with one clear message if a folder cannot be created or a write fails.
+
 ### 2026-08-20 - Fix: phrase preset loading now finds subfolders, and actually loads them all
 
 `Load All Phrase Presets from Folder (.xrnz)` only looked at the top level of the folder you picked. It now walks every subfolder underneath as well, at any depth, and loads them in path order.
