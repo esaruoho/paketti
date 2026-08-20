@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,411 functions** · 10,978 keybindings · 7,564 midimappings · 6,870 menu entries.
+**4,406 functions** · 10,973 keybindings · 7,562 midimappings · 6,861 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (-1) | ✅ | · | · |
+| Nudge Slice 01 by (+32) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2155 functions  ·  ⌨ 2155 · 🎛 834 · ☰ 695
+## Global  ·  2150 functions  ·  ⌨ 2150 · 🎛 832 · ☰ 690
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -945,7 +945,6 @@
 | Capture Trigger Notes from Sample Dialog | ✅ | ✅ | · |
 | Catch Octave | ✅ | · | ✅ |
 | CCizer Loader... | ✅ | · | ✅ |
-| Chain Instrument Samples into Amigo | ✅ | · | ✅ |
 | Change Master Track Volume by +0.1dB | ✅ | · | · |
 | Change Selected Track Volume by +0.1dB | ✅ | · | · |
 | Claude Chat Dialog | ✅ | · | ✅ |
@@ -1168,7 +1167,6 @@
 | Double Phrase LPB | ✅ | · | ✅ |
 | Double Slice Count | ✅ | · | · |
 | Double Slices | ✅ | ✅ | ✅ |
-| Drumkit Loader to Amigo | ✅ | ✅ | ✅ |
 | Dump Current Instrument parameters | ✅ | · | · |
 | Dump Phrase to Pattern at Cursor | ✅ | ✅ | ✅ |
 | Duplicate & Wonkify Pattern | ✅ | ✅ | ✅ |
@@ -2046,8 +2044,6 @@
 | PhraseVoice Toggle Phrase 01 | ✅ | ✅ | · |
 | Pick & Move Toggle | ✅ | · | ✅ |
 | PitchBend Drumkit Instrument Init | ✅ | · | ✅ |
-| Pitchbend Loader to Amigo | ✅ | ✅ | ✅ |
-| Pitchbend Loader to Amigo (Normalize) | ✅ | · | ✅ |
 | PitchStepper Demo | ✅ | · | ✅ |
 | Place Sample to End at Pattern End | ✅ | ✅ | ✅ |
 | Play & Loop Pattern 01 | ✅ | ✅ | · |
@@ -2307,7 +2303,6 @@
 | Save Current Sample as 8SVX... | ✅ | · | ✅ |
 | Save Current Sample as IFF... | ✅ | · | ✅ |
 | Save MIDI Mappings (.xrnm)... | ✅ | ✅ | ✅ |
-| Save Phrases of All Instruments as Presets (Subfolders)... | ✅ | · | ✅ |
 | Save Sample to Smart/Backup Folder 1 | ✅ | ✅ | ✅ |
 | Save Sidechain Recipe Dialog | ✅ | · | · |
 | Save Song (2nd) | ✅ | · | · |
