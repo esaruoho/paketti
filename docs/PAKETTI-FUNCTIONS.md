@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,406 functions** · 10,973 keybindings · 7,562 midimappings · 6,861 menu entries.
+**4,413 functions** · 10,979 keybindings · 7,565 midimappings · 6,871 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+32) | ✅ | · | · |
+| Nudge Slice 01 by (-32) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2150 functions  ·  ⌨ 2150 · 🎛 832 · ☰ 690
+## Global  ·  2156 functions  ·  ⌨ 2156 · 🎛 835 · ☰ 695
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -945,6 +945,7 @@
 | Capture Trigger Notes from Sample Dialog | ✅ | ✅ | · |
 | Catch Octave | ✅ | · | ✅ |
 | CCizer Loader... | ✅ | · | ✅ |
+| Chain Instrument Samples into Amigo | ✅ | · | ✅ |
 | Change Master Track Volume by +0.1dB | ✅ | · | · |
 | Change Selected Track Volume by +0.1dB | ✅ | · | · |
 | Claude Chat Dialog | ✅ | · | ✅ |
@@ -1167,6 +1168,7 @@
 | Double Phrase LPB | ✅ | · | ✅ |
 | Double Slice Count | ✅ | · | · |
 | Double Slices | ✅ | ✅ | ✅ |
+| Drumkit Loader to Amigo | ✅ | ✅ | ✅ |
 | Dump Current Instrument parameters | ✅ | · | · |
 | Dump Phrase to Pattern at Cursor | ✅ | ✅ | ✅ |
 | Duplicate & Wonkify Pattern | ✅ | ✅ | ✅ |
@@ -1584,6 +1586,7 @@
 | Load OhmForce OhmBoyz | ✅ | · | · |
 | Load OhmForce Predatohm | ✅ | · | · |
 | Load Paketti MIDI Mappings | ✅ | ✅ | ✅ |
+| Load Phrase Presets from Folder Tree (Per Subfolder)... | ✅ | ✅ | · |
 | Load Plaid Zap .XRNI | ✅ | · | ✅ |
 | Load QuikQuak FusionField | ✅ | · | · |
 | Load Random AKWF Sample | ✅ | · | ✅ |
@@ -2044,6 +2047,8 @@
 | PhraseVoice Toggle Phrase 01 | ✅ | ✅ | · |
 | Pick & Move Toggle | ✅ | · | ✅ |
 | PitchBend Drumkit Instrument Init | ✅ | · | ✅ |
+| Pitchbend Loader to Amigo | ✅ | ✅ | ✅ |
+| Pitchbend Loader to Amigo (Normalize) | ✅ | · | ✅ |
 | PitchStepper Demo | ✅ | · | ✅ |
 | Place Sample to End at Pattern End | ✅ | ✅ | ✅ |
 | Play & Loop Pattern 01 | ✅ | ✅ | · |
@@ -2303,6 +2308,7 @@
 | Save Current Sample as 8SVX... | ✅ | · | ✅ |
 | Save Current Sample as IFF... | ✅ | · | ✅ |
 | Save MIDI Mappings (.xrnm)... | ✅ | ✅ | ✅ |
+| Save Phrases of All Instruments as Presets (Subfolders)... | ✅ | · | ✅ |
 | Save Sample to Smart/Backup Folder 1 | ✅ | ✅ | ✅ |
 | Save Sidechain Recipe Dialog | ✅ | · | · |
 | Save Song (2nd) | ✅ | · | · |
@@ -2907,7 +2913,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1555 functions  ·  ⌨ 0 · 🎛 782 · ☰ 918
+## (menu/midi only)  ·  1556 functions  ·  ⌨ 0 · 🎛 782 · ☰ 919
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -3608,6 +3614,7 @@
 | Load from File | · | · | ✅ |
 | Load IFF Sample File (8SVX/16SV)... | · | · | ✅ |
 | Load or Show Esa Ruoho ParaEQ (AU) [Trigger] | · | ✅ | ✅ |
+| Load Phrase Presets from Folder Tree (One Instrument per Subfolder)... | · | · | ✅ |
 | Load Plugins Dialog... | · | ✅ | · |
 | Load Plugins... | · | · | ✅ |
 | Load Random 128 IFFs | · | · | ✅ |
