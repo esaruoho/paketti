@@ -761,6 +761,18 @@ function PakettiAmigoRenoiseToAmigoEmbedded()
     renoise.app():show_status("Renoise to Amigo (embedded): " .. tostring(err))
     return
   end
+  -- Only the AU implements Embed. Amigo 2.0.1's VST3 exposes an `embedsample`
+  -- parameter but nothing behind it: setting it produced no EMBEDDED_FILE, and
+  -- moments later the plugin crashed in Process on the audio thread (Renoise:
+  -- "The VST3 plugin 'PotenzaDSP: Amigo' crashed in ... 'Process'"). 1.0.2's
+  -- VST3 had no such parameter at all. Until that is fixed upstream, never
+  -- write it on a VST3 - the sample is already linked by pathname anyway.
+  if ctx.format ~= "AU" then
+    renoise.app():show_status("Renoise to Amigo: sample linked. Embed needs the AU - " ..
+      "the VST3 does not implement it, and writing to it can crash the plugin.")
+    return
+  end
+
   pakettiAmigoSetParam(ctx.tree, "embedsample", 1)
   PakettiAmigoWriteState(ctx)
 
