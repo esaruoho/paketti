@@ -7,13 +7,13 @@
    4358 wav
    1195 png
     701 xrnc
-    249 lua
+    250 lua
     210 gif
-    133 txt
-     52 md
+    134 txt
+     56 md
      49 xrni
      20 xml
-     16 py
+     19 py
      15 feature
      12 xrdp
 ```
@@ -26,8 +26,8 @@
      55 Research
      55 Presets
      32 Sononymph
+     29 features
      27 ccizer
-     20 features
      15 tunings
      15 DeviceChains
      14 docs
@@ -43,7 +43,7 @@ main.lua
 ```
 ## Structural hubs (refs · module — the most-imported = wiring backbone)
 ```
-   11  json
+   12  json
     3  cFilesystem
     2  slaxdom
     2  cValue
@@ -88,6 +88,7 @@ main.lua
 1 check -> json
 1 features -> json
 1 functions -> json
+1 gen-sessions -> json
 1 loop-roundtrip -> json
 1 main -> AppMain
 1 main -> FormulaDeviceManual
@@ -95,7 +96,7 @@ main.lua
 1 main -> Paketti35
 1 main -> PakettiAKWF
 1 main -> PakettiActionSelector
-1 main -> PakettiAmigoInspect
+1 main -> PakettiAmigo
 1 main -> PakettiArpeggiator
 1 main -> PakettiAudioProcessing
 1 main -> PakettiAutoSamplify
@@ -242,6 +243,7 @@ main.lua
 1 main -> PakettiSlabOPatterns
 1 main -> PakettiSlice
 1 main -> PakettiSliceEffectStepSequencer
+1 main -> PakettiSliceFades
 1 main -> PakettiSlicePro
 1 main -> PakettiSliceSafely
 1 main -> PakettiSliceToolsDialog
@@ -282,7 +284,7 @@ main.lua
 1 pmcp -> json
 1 recapture -> json
 1 vault-to-manual -> json
-  ── 221 edges total ──
+  ── 223 edges total ──
 ```
 ## The wiring, drawn
 
@@ -315,6 +317,7 @@ graph LR
   check["check"] -->|1| json["json"]
   features["features"] -->|1| json["json"]
   functions["functions"] -->|1| json["json"]
+  gen_sessions["gen-sessions"] -->|1| json["json"]
   loop_roundtrip["loop-roundtrip"] -->|1| json["json"]
   main["main"] -->|1| AppMain["AppMain"]
   main["main"] -->|1| FormulaDeviceManual["FormulaDeviceManual"]
@@ -322,7 +325,7 @@ graph LR
   main["main"] -->|1| Paketti35["Paketti35"]
   main["main"] -->|1| PakettiAKWF["PakettiAKWF"]
   main["main"] -->|1| PakettiActionSelector["PakettiActionSelector"]
-  main["main"] -->|1| PakettiAmigoInspect["PakettiAmigoInspect"]
+  main["main"] -->|1| PakettiAmigo["PakettiAmigo"]
   main["main"] -->|1| PakettiArpeggiator["PakettiArpeggiator"]
   main["main"] -->|1| PakettiAudioProcessing["PakettiAudioProcessing"]
   main["main"] -->|1| PakettiAutoSamplify["PakettiAutoSamplify"]
@@ -469,6 +472,7 @@ graph LR
   main["main"] -->|1| PakettiSlabOPatterns["PakettiSlabOPatterns"]
   main["main"] -->|1| PakettiSlice["PakettiSlice"]
   main["main"] -->|1| PakettiSliceEffectStepSequencer["PakettiSliceEffectStepSequencer"]
+  main["main"] -->|1| PakettiSliceFades["PakettiSliceFades"]
   main["main"] -->|1| PakettiSlicePro["PakettiSlicePro"]
   main["main"] -->|1| PakettiSliceSafely["PakettiSliceSafely"]
   main["main"] -->|1| PakettiSliceToolsDialog["PakettiSliceToolsDialog"]
