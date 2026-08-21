@@ -9,6 +9,10 @@
 #      the commit. Deterministic Python parsing — no Claude, no tokens.
 # Installed by `convey hooks install`. Canonical source: Convey templates/hooks/.
 #
+# A repo keeps its OWN extra commit-time jobs in a sibling `.githooks/
+# pre-commit.local` — sourced (not clobbered) at the end of this hook — so a repo
+# can consume Convey's canonical stamp engine WITHOUT losing repo-specific work.
+#
 # Direct-commit stamp lines carry no self-SHA (the commit doesn't exist yet); the
 # exact commit is recoverable with `git blame` / `git log -L`. The merge path
 # (post-merge) records the merge sha instead.
@@ -42,5 +46,16 @@ if git diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
     [ -n "$REPO_TOP" ] && ( cd "$REPO_TOP" \
        && nohup convey dreamgraph --no-open >/dev/null 2>&1 & ) >/dev/null 2>&1
   fi
+fi
+
+# --- Repo-local extension (whitelabeled drop-in) -----------------------------
+# Convey owns this canonical pre-commit; a repo keeps its OWN extra jobs in a
+# sibling `.githooks/pre-commit.local`. SOURCED (not exec'd) so it shares $DIR
+# and $DATE and can `git add` derived files INTO this commit. `convey hooks
+# install` never writes pre-commit.local, so re-installing the canonical hooks
+# can't clobber it. A quiet no-op when absent; must never abort the commit.
+if [ -f "$DIR/pre-commit.local" ]; then
+  # shellcheck source=/dev/null
+  . "$DIR/pre-commit.local" || true
 fi
 exit 0

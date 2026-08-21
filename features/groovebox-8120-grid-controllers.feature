@@ -74,83 +74,95 @@ Context: Global
 #   2026-06-11  direct-commit  touched: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState PakettiEightOneTwentyGetStepYxx PakettiEightOneTwentyToggleStepYxx
 #   2026-06-11  direct-commit  touched: PakettiEightOneTwentyGetStepState PakettiEightOneTwentyToggleStepState
 
+  @hw-verified
   Scenario: APC pad toggles a step on the selected row (headless)
     Given the APC Key 25 step sequencer is armed and the 8120 dialog is closed
     When the user presses a top-row pad
     Then that step toggles on the selected row's pattern
     And the pad lights green
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11
 
+  @hw-verified
   Scenario: APC mid-row pad toggles per-step probability (headless)
     Given the APC Key 25 step sequencer is armed and the 8120 dialog is closed
     When the user presses a probability-row pad on a step that has a note
     Then a 0Y Maybe effect is written to that step in the pattern
     And the pad lights red
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11
 
+  @hw-verified
   Scenario: APC bottom row selects the instrument/row
     Given the APC Key 25 step sequencer is armed
     When the user presses a bottom-row pad
     Then that row becomes the selected/focused row
     And the whole grid repaints for the new row
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11
 
+  @hw-verified
   Scenario: APC works headless via the Auto-Start setting
     Given "Main Menu:Options:Auto-Start AKAI APC Key 25" is enabled
     When Renoise launches or a song loads with an APC Key 25 connected
     Then the step sequencer arms without opening the 8120 dialog
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11
 
+  @hw-verified
   Scenario: A MidiMix press reflects on the APC and vice-versa
     Given both the MidiMix bridge and the APC sequencer are active on the same 8120
     When the user toggles a step on the MidiMix
     Then the same step lights up on the APC grid
     And selecting a different row on either controller updates both
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11
 
+  @hw-verified
   Scenario: LPD8 pages its 8 pads over the focused row (no forced step mode)
     Given the LPD8 step sequencer is started in any step mode
     When the user presses a pad
     Then that step toggles on the selected row and the pad LED highlights it
     # Detail (pages, follow, 4+4, row-select): features/groovebox-8120-lpd8.feature
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11
 
+  @built
   Scenario: Follow is per-controller and independent
     Given the 8120 dialog is open
     When the user ticks the MidiMix follow checkbox but leaves the APC follow checkbox off
     Then preference pakettiGroovebox8120FollowMidiMix is set true and saved
     And pakettiGroovebox8120FollowAPC stays false
     And the MidiMix tracks the playhead while the APC keeps showing all its steps (non-rotating)
-    # @built 2026-06-12  # code-complete; not yet hardware-verified
+    # built 2026-06-12  # code-complete; not yet hardware-verified
 
+  @built
   Scenario: Each controller's follow persists and applies headlessly on the next session
     Given a controller's own follow preference was left on in a previous session
     When that controller arms (dialog open, or via its Auto-Start setting)
     Then it reads its own saved preference and follows the playhead without any dialog action
-    # @built 2026-06-12  # code-complete; not yet hardware-verified
+    # built 2026-06-12  # code-complete; not yet hardware-verified
 
+  @built
   Scenario: APC follow restores the 16+16 paged layout at 32 steps
     Given the 8120 is in 32-step mode and the APC sequencer is armed
     When the APC follow checkbox is on
     Then the APC shows 16 steps + 16 probability for the current page (not all 32 steps)
     And the page snaps to the playhead during playback (page 0 = 1..16, page 1 = 17..32)
-    # @built 2026-06-12  # code-complete; not yet hardware-verified
+    # built 2026-06-12  # code-complete; not yet hardware-verified
 
+  @built
   Scenario: APC left non-rotating shows every step at 32 steps
     Given the 8120 is in 32-step mode and the APC sequencer is armed
     When the APC follow checkbox is off
     Then all 32 steps are shown across the top four pad rows and the grid never pages
-    # @built 2026-06-12  # code-complete; not yet hardware-verified
+    # built 2026-06-12  # code-complete; not yet hardware-verified
 
+  @built
   Scenario: MidiMix follow windows its 16 LEDs over a 32-step pattern
     Given the 8120 is in 32-step mode and the MidiMix bridge is open
     When the MidiMix follow checkbox is on and the transport is playing
     Then the 16 LEDs page between steps 1-16 and 17-32 to keep the playhead visible
-    # @built 2026-06-12  # code-complete; not yet hardware-verified
+    # built 2026-06-12  # code-complete; not yet hardware-verified
 
+  @built
   Scenario: A controller's follow keybinding stays in sync with its own checkbox
     Given the 8120 dialog is open with the LPD8 follow checkbox off
     When the user triggers "Global:Paketti:Paketti Groovebox 8120 LPD8 Toggle Follow Page"
     Then only the LPD8 follow turns on (APC and MidiMix are unaffected)
     And the LPD8 follow checkbox updates to checked
-    # @built 2026-06-12  # code-complete; not yet hardware-verified
+    # built 2026-06-12  # code-complete; not yet hardware-verified

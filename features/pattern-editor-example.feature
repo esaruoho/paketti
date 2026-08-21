@@ -3,6 +3,10 @@ Context: Pattern Editor
 
   # This is the shape: a Context: line (or the context's name in the title) wires
   # this feature to the Pattern Editor binding-tree node. Drop more like it.
+  # Doc example. Replace with real symbols if this ever describes shipped code.
+  # WATCH: ReplaceWithYourSymbols
+  # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+
 
   Scenario: Replicate the current row down the pattern
     Given the cursor is on a note in the Pattern Editor

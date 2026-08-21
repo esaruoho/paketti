@@ -43,6 +43,11 @@ Context: Mixer
   # =====================================================================
   # PART A — Batch scan: what's missing across a folder of songs
   # =====================================================================
+  # This card is @designed, so the symbol does not exist yet. Watching it now
+  # means the RESULT-LOG starts stamping itself the moment the file is created.
+  # WATCH: PakettiDeviceHotswap
+  # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+
 
   @designed
   Scenario: Scan a folder of .xrns and report missing devices per song

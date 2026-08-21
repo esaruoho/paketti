@@ -34,6 +34,9 @@ Context: Global
   # LEG 1 — PakettiMCP: the real MCP server (HTTP JSON-RPC 2.0, 79 tools)
   # PakettiMCPMain.lua + PakettiMCP/{server,router,json,dialog}.lua + tools/*.lua
   # =====================================================================
+  # WATCH: PakettiClaudeProbeRun _PakettiClaudeReply PakettiMCPMain
+  # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+
 
   @built @hw-verified
   Scenario: Start the MCP server

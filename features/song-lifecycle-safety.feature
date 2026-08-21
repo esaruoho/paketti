@@ -151,18 +151,21 @@ Context: Global
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 #   2026-06-09  direct-commit  touched: app_release_document_observable
 
+  @hw-verified
   Scenario: 8120 survives New Song with its canvas open
     Given the Groovebox 8120 dialog and canvas are open
     When the user triggers New Song
     Then 8120 detaches its observers and closes on app_release_document_observable
     And Renoise frees the old song without a SIGSEGV
 
+  @built @untested-in-renoise
   Scenario: HyperEdit must survive New Song / Load Song with its canvas open
     Given the HyperEdit dialog and canvas are open with song observers attached
     When the user triggers New Song or Load Song
     Then HyperEdit must detach transport/track/device observers and close on app_release_document_observable
     And Renoise must free the old song without a SIGSEGV in TWeakRefOwner::SOnWeakReferencableDying
 
+  @built @untested-in-renoise
   Scenario: ParameterEditor must survive New Song / Load Song with its canvas open
     Given the ParameterEditor (CanvasExperiments) dialog is open observing the selected device
     When the user triggers New Song or Load Song

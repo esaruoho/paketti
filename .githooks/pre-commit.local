@@ -1,0 +1,37 @@
+# -----------------------------------------------------------------------------
+# pre-commit.local — repo-specific commit-time jobs for the report-card system.
+#
+# SOURCED (not exec'd) by the canonical pre-commit, so it shares $DIR and $DATE
+# and can `git add` derived files INTO this commit. The canonical pre-commit is
+# owned by the report-card skill / Convey and gets overwritten on reinstall;
+# THIS file is yours and is never clobbered.
+#
+# Must NEVER `exit` (that would abort the parent hook) and must stay defensive —
+# every step is a quiet no-op on failure.
+#
+# Job: when a card is staged, regenerate the DERIVED indices from the cards'
+# @grade tags — so status is COMPUTED from the .feature source of truth, never
+# hand-typed — and stage them into THIS commit:
+#   1. STATUS.md            (gen-status.py)   — the test matrix
+#   2. README.md            (print-card.py)   — the browsable feature reference
+#   3. SESSIONS.generated.md(gen-sessions.py) — the conversations behind the cards
+# -----------------------------------------------------------------------------
+CARDS_DIR="${REPORT_CARDS_DIR:-features}"
+
+if git diff --cached --name-only 2>/dev/null | grep -q "^${CARDS_DIR}/.*\.feature$"; then
+  if command -v python3 >/dev/null 2>&1; then
+    REPO="$(git rev-parse --show-toplevel 2>/dev/null)"
+    C="$REPO/$CARDS_DIR"
+
+    python3 "$C/gen-status.py" --cards-dir "$C" >/dev/null 2>&1 \
+      && git add -- "$C/STATUS.md" 2>/dev/null || true
+
+    python3 "$C/print-card.py" --cards-dir "$C" --readme >/dev/null 2>&1 \
+      && git add -- "$C/README.md" 2>/dev/null || true
+
+    # Session registry is machine-local (reads ~/.claude transcripts); quiet
+    # no-op on clones/CI where the transcripts dir doesn't exist.
+    python3 "$C/gen-sessions.py" --cards-dir "$C" >/dev/null 2>&1 \
+      && git add -- "$C/SESSIONS.generated.md" 2>/dev/null || true
+  fi
+fi

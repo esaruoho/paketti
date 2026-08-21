@@ -30,6 +30,9 @@ Context: Global
   # PART A — Auto-Start PakettiMCP (the resilience toggle)
   # PakettiMCPMain.lua + pref PakettiMCPAutoStart
   # =====================================================================
+  # WATCH: PakettiMCPAutoStart PakettiMCPMain
+  # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+
 
   @built
   Scenario: Turning Auto-Start ON starts the server and keeps it up

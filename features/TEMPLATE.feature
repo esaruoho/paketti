@@ -18,6 +18,11 @@ Context: <Renoise context>      # Global | Pattern Editor | Sample Editor | Inst
   # Write one Scenario per observable behavior. Given = starting state, When = the binding
   # or menu entry the user triggers (use the REAL name so it matches the binding index),
   # Then = the observable result.
+  # Replace with the real proc/function names this card owns. The hooks match
+  # by SYMBOL against changed diff lines, so keep them distinctive (never 'apply').
+  # WATCH: ReplaceWithYourSymbols
+  # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+
 
   Scenario: <what happens, in a few words>
     Given <the starting state — what's selected / open / loaded>

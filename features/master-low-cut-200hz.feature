@@ -23,21 +23,24 @@ Context: Global
   # WATCH: PakettiToggleMasterLowCut200 PakettiMasterLowCut200SetState PakettiMasterLowCut200Momentary
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
 
+  @hw-verified
   Scenario: Punch in the low-cut
     Given the song is playing
     When the user triggers "Paketti:Master Low-Cut 200Hz Toggle"
     Then a Digital Filter high-pass at ~200Hz is added to the master track
     And everything below 200Hz is filtered out
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11
 
+  @hw-verified
   Scenario: Punch it off
     Given the master low-cut is active
     When the user triggers "Paketti:Master Low-Cut 200Hz Toggle"
     Then the tagged high-pass device is removed and the low end returns
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11
 
+  @hw-verified
   Scenario: Momentary hold
     Given the song is playing
     When the user holds a button mapped to "Paketti:Master Low-Cut 200Hz Hold"
     Then the high-pass is active while held and removed on release
-    # @hw-verified 2026-06-11
+    # hw-verified 2026-06-11

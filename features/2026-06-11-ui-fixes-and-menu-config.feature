@@ -22,6 +22,9 @@
 
 Feature: Groovebox 8120 Kit loader status column alignment
   # cite: PakettiEightOneTwenty.lua PakettiEightOneTwentyKitCatLabel + loadSequentialKitAll status lines | commit f20dc24
+  # WATCH: PakettiEightOneTwentyKitCatLabel PakettiShouldRegisterMenuEntry pakettiMenuConfigDialog cv_read_row_steps
+  # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+
   @built @runtime-verified
   Scenario: Per-part status lines align the "Loading/Queued" column
     Given the Kit loader shows "Part N/8 [Category]: Loading ..." for 8 categories

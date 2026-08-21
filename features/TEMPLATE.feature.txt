@@ -1,0 +1,45 @@
+# =============================================================================
+# WIKI PAGE / REPORT CARD: <one-line title of the behaviour cluster>
+#
+# WHAT THIS CARD SPAWNS:
+#   codespace  — <which files / procs / components this behaviour lives in>
+#   thinkspace — <name>.session.md (the conversation that produced it)
+#   areaspace  — OWNS: <what this unit is allowed to touch>
+#                MUST NOT TOUCH: <the boundary>
+#
+# Report-card legend (grade tags, weakest -> strongest):
+#   @designed @built @code-verified @build-verified @sim-verified
+#   @runtime-verified @hw-verified   |   @untested @runtime-untested
+#   @hw-untested @todo @partial   |   @stock (pre-existing, not ours)
+#
+# Innards linked back to this card (grep "<name>"):
+#   <FILE.ext> - <proc / function / block and what it does>
+#
+# Commit log:   <hash>  <subject>
+# SESSION:      <name>.session.md
+# RESULT:       Feature delivery <hash> (direct to main, no PR); card <hash>
+#
+# WATCH: SymbolA SymbolB SymbolC
+#   ^ the symbols the git hooks watch. When a staged diff touches one of these,
+#     pre-commit appends a dated line under RESULT-LOG below, in the same commit.
+#
+# RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+# =============================================================================
+
+Feature: <behaviour title>
+  As a <role>, I want <capability>, So that <benefit>.
+
+  @shipped @build-verified @runtime-untested
+  Scenario: <ONE behaviour, ONE verifiable outcome>
+    # cite: <FILE.ext> <SomeProc> (~line NNN) — what satisfies the claim ; commit <hash>
+    Given <the starting state>
+    When <the single action>
+    Then <the concrete, verifiable outcome — never "it works">
+    And <a further outcome>
+
+  @stock
+  Scenario: <the old behaviour this must NOT break>
+    # cite: <FILE.ext> <OtherProc> (~line NNN) — unchanged upstream path
+    Given <starting state>
+    When <the action that used to work>
+    Then <it still does exactly what it did>

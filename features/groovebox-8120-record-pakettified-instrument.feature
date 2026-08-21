@@ -29,18 +29,20 @@ Context: Global
 #   2026-06-10  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
 #   2026-06-09  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
 
+  @built @untested-in-renoise
   Scenario: Record press loads a Paketti Default Instrument then starts recording
     Given the Groovebox 8120 dialog is open
     And a row's instrument slot is selected
     When the user presses Record on that row
     Then the Paketti Default Instrument is loaded into that row's instrument slot
     And sample recording starts immediately
-    # @built @untested-in-renoise
+    # built untested-in-renoise
 
+  @built @untested-in-renoise
   Scenario: Second Record press injects the sample into the Paketti chassis
     Given recording is in progress on a row whose slot holds the Paketti Default Instrument
     When the user presses Record again
     Then recording stops
     And the recorded sample is mapped 00-7F as the row's primary sample
     And the recorded sample is pointed at the instrument's modulation set (Pakettified)
-    # @built @untested-in-renoise
+    # built untested-in-renoise

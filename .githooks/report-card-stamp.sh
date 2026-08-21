@@ -46,9 +46,20 @@ logged_any=0
 while IFS= read -r card; do
   [ -n "$card" ] && [ -e "$card" ] || continue
 
-  watch_line="$(grep -m1 '# WATCH:' "$card" 2>/dev/null || true)"
-  [ -n "$watch_line" ] || continue                 # card not opted in
-  grep -Fq 'RESULT-LOG >>' "$card" || continue     # no append marker
+  # Opt-in markers must be REAL header directives — a line that STARTS with the
+  # marker (leading whitespace allowed), NOT a quoted mention inside Gherkin
+  # prose (e.g. a step that says `the "# WATCH:" line`). Anchoring to line-start
+  # is what stops a card that merely *describes* the convention from opting
+  # itself in (and stamping junk like "the of it line").
+  #
+  # Leading whitespace IS allowed because some card dialects put the banner
+  # INSIDE the `Feature:` block, indented two spaces (e.g. Paketti). A strict
+  # column-0 anchor made every such card a silent no-op — the hooks ran and
+  # stamped nothing, for months, with no error. Verified against the
+  # impulse-tracker card set: relaxing this matches exactly the same cards.
+  watch_line="$(grep -m1 -E '^[[:space:]]*# WATCH:' "$card" 2>/dev/null || true)"
+  [ -n "$watch_line" ] || continue                  # card not opted in
+  grep -qE '^[[:space:]]*#.*RESULT-LOG >>' "$card" || continue  # no append marker
 
   # Dedup (merge path passes the sha; commit path passes empty = always log).
   if [ -n "$DEDUP_KEY" ] && grep -Fq "$DEDUP_KEY" "$card"; then
@@ -66,12 +77,19 @@ while IFS= read -r card; do
   matched="${matched# }"
   [ -n "$matched" ] || continue                    # none of this card's symbols changed
 
-  line="#   $STAMP_DATE  $TAG  touched: $matched"
+  stamp="$STAMP_DATE  $TAG  touched: $matched"
 
+  # Insert after the REAL marker line (same anchor as the opt-in check), never
+  # after a prose mention of "RESULT-LOG >>". The inserted line copies the
+  # marker's own indentation so an indented banner stays visually intact.
   tmp="$(mktemp)" || continue
-  awk -v m='RESULT-LOG >>' -v line="$line" '
+  awk -v stamp="$stamp" '
     { print }
-    (index($0, m) > 0 && !done) { print line; done = 1 }
+    ($0 ~ /^[[:space:]]*#.*RESULT-LOG >>/ && !done) {
+      indent = $0; sub(/[^[:space:]].*$/, "", indent)
+      print indent "#   " stamp
+      done = 1
+    }
   ' "$card" > "$tmp" && mv "$tmp" "$card"
 
   [ "$GIT_ADD" = "1" ] && git add -- "$card" 2>/dev/null

@@ -23,6 +23,9 @@ Feature: Parameter Editor exposes on the Mixer the parameter you're modifying
   # cite: PakettiCanvasExperiments.lua drag handler (Edit-A branch) | REQUEST #1
   # BUG: show_in_mixer=true was nested inside `if follow_automation`, so with
   # Automation Sync OFF, dragging a bar never exposed the param on the mixer.
+  # WATCH: PakettiExposeAutomatedParamsOnMixer
+  # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+
   @built @logic-verified
   Scenario: Dragging a parameter with "Expose on Mixer" on surfaces it in the mixer
     Given the Parameter Editor is open on a device
