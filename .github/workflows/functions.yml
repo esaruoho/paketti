@@ -10,9 +10,11 @@ on:
     branches:
       - master
 
-# needed so the workflow can commit the regenerated docs back
+# This workflow may regenerate docs in the runner, but it must not push commits
+# back to master. Bot commit-back makes a human checkout fall behind immediately
+# after a successful push.
 permissions:
-  contents: write
+  contents: read
 
 # never let two runs race the same push
 concurrency:
@@ -61,18 +63,11 @@ jobs:
       - name: Feed the changelog into per-feature descriptions (precise, zero-token)
         run: python3 .spine/changelog-manual.py "$GITHUB_WORKSPACE"
 
-      - name: Commit the index + manual if they changed
+      - name: Report generated docs diff without pushing
         run: |
-          git config user.email "action@github.com"
-          git config user.name "GitHub Action"
-          # -f: docs/ is gitignored (the .gitignore 'Docs/' rule is case-insensitive on macOS),
-          # so the tracked docs (like FEATURE-MAP.md) are all force-added. manual/ is tracked normally.
-          git add -f docs/PAKETTI-FUNCTIONS.md docs/paketti-functions.json docs/FEATURE-DESCRIPTIONS.md
-          git add manual/Experimental.md
-          if git diff --cached --quiet; then
-            echo "function index + manual unchanged — nothing to commit"
+          if git diff --quiet -- docs/PAKETTI-FUNCTIONS.md docs/paketti-functions.json docs/FEATURE-DESCRIPTIONS.md manual/Experimental.md; then
+            echo "function index + manual unchanged"
           else
-            # [skip ci] so this commit does not re-trigger the workflow (no loop)
-            git commit -m "docs: regenerate function index + sync manual [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            echo "function index + manual would change:"
+            git diff --stat -- docs/PAKETTI-FUNCTIONS.md docs/paketti-functions.json docs/FEATURE-DESCRIPTIONS.md manual/Experimental.md
           fi
