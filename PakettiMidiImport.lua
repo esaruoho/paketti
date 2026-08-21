@@ -1151,22 +1151,18 @@ end
 -- REGISTRATION
 ----------------------------------------------------------------------
 
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:MIDI Drum Pattern to Phrase (Import)...",
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:MIDI Drum Pattern to Phrase (Import)...",
   invoke = function()
     local path = renoise.app():prompt_for_filename_to_read({"mid", "midi"}, "Select MIDI file to import as phrase")
     if path and path ~= "" then
       dudeMidi(path)
     end
-  end
-}
+  end}
 
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:MIDI Folder Batch Import to Phrases...",
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:MIDI Folder Batch Import to Phrases...",
   invoke = function()
     show_midi_import_dialog()
-  end
-}
+  end}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:MIDI Drum Pattern to Phrase (Import)...",
@@ -1206,31 +1202,28 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:Save All Phrases as Presets (.xrnz)...",
-  invoke = function() save_all_phrases_as_presets() end
-}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Save All Phrases as Presets (.xrnz)...",invoke = function() save_all_phrases_as_presets() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",invoke = function() PakettiLoadAllPhrasePresetsFromFolder() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Load Phrase Presets from Folder Tree (One Instrument per Subfolder)...",invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Save Phrases of All Instruments as Presets (Subfolders)...",invoke = function() PakettiSaveAllInstrumentsPhrasesAsPresets() end}
 
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",
-  invoke = function() PakettiLoadAllPhrasePresetsFromFolder() end
-}
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:Load Phrase Presets from Folder Tree (One Instrument per Subfolder)...",
-  invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end
-}
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Load Phrase Presets from Folder Tree (Per Subfolder)...",
-  invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end
-}
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Load Phrase Presets from Folder Tree (Per Subfolder)",
-  invoke = function(message) if message:is_trigger() then PakettiLoadPhrasePresetsPerSubfolder() end end
-}
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:Save Phrases of All Instruments as Presets (Subfolders)...",
-  invoke = function() PakettiSaveAllInstrumentsPhrasesAsPresets() end
-}
+PakettiAddMenuEntry{name = "Phrase Editor:Paketti:Instruments:Save All Phrases as Presets (.xrnz)...",invoke = function() save_all_phrases_as_presets() end}
+PakettiAddMenuEntry{name = "Phrase Editor:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",invoke = function() PakettiLoadAllPhrasePresetsFromFolder() end}
+PakettiAddMenuEntry{name = "Phrase Editor:Paketti:Instruments:Load Phrase Presets from Folder Tree (One Instrument per Subfolder)...",invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end}
+PakettiAddMenuEntry{name = "Phrase Editor:Paketti:Instruments:Save Phrases of All Instruments as Presets (Subfolders)...",invoke = function() PakettiSaveAllInstrumentsPhrasesAsPresets() end}
+
+PakettiAddMenuEntry{name = "Phrase Grid:Paketti:Instruments:Save All Phrases as Presets (.xrnz)...",invoke = function() save_all_phrases_as_presets() end}
+PakettiAddMenuEntry{name = "Phrase Grid:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",invoke = function() PakettiLoadAllPhrasePresetsFromFolder() end}
+PakettiAddMenuEntry{name = "Phrase Grid:Paketti:Instruments:Load Phrase Presets from Folder Tree (One Instrument per Subfolder)...",invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end}
+PakettiAddMenuEntry{name = "Phrase Grid:Paketti:Instruments:Save Phrases of All Instruments as Presets (Subfolders)...",invoke = function() PakettiSaveAllInstrumentsPhrasesAsPresets() end}
+
+PakettiAddMenuEntry{name = "Phrase Mappings:Paketti:Instruments:Save All Phrases as Presets (.xrnz)...",invoke = function() save_all_phrases_as_presets() end}
+PakettiAddMenuEntry{name = "Phrase Mappings:Paketti:Instruments:Load All Phrase Presets from Folder (.xrnz)...",invoke = function() PakettiLoadAllPhrasePresetsFromFolder() end}
+PakettiAddMenuEntry{name = "Phrase Mappings:Paketti:Instruments:Load Phrase Presets from Folder Tree (One Instrument per Subfolder)...",invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end}
+PakettiAddMenuEntry{name = "Phrase Mappings:Paketti:Instruments:Save Phrases of All Instruments as Presets (Subfolders)...",invoke = function() PakettiSaveAllInstrumentsPhrasesAsPresets() end}
+
+renoise.tool():add_keybinding{name = "Global:Paketti:Load Phrase Presets from Folder Tree (Per Subfolder)...",invoke = function() PakettiLoadPhrasePresetsPerSubfolder() end}
+renoise.tool():add_midi_mapping{name = "Paketti:Load Phrase Presets from Folder Tree (Per Subfolder)",invoke = function(message) if message:is_trigger() then PakettiLoadPhrasePresetsPerSubfolder() end end}
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Save Phrases of All Instruments as Presets (Subfolders)...",
   invoke = function() PakettiSaveAllInstrumentsPhrasesAsPresets() end
