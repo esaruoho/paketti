@@ -111,7 +111,7 @@ def main():
     lines.append("")
     for f in undoc:
         lines.append(f"- {f}")
-    OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    OUT.write_text("\n".join(line.rstrip() for line in lines) + "\n", encoding="utf-8")
     print(f"wrote {OUT} — {len(described)} described, {len(undoc)} undocumented")
     return 0
 

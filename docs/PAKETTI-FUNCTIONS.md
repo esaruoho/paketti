@@ -4,7 +4,7 @@
 > every push by `.github/workflows/functions.yml`. Each row is one FUNCTION; the columns
 > show which of its three doors exist — ⌨ KeyBinding · 🎛 MidiMapping · ☰ MenuEntry.
 
-**4,321 functions** · 10,881 keybindings · 7,329 midimappings · 6,721 menu entries.
+**4,413 functions** · 10,979 keybindings · 7,565 midimappings · 6,883 menu entries.
 
 ## Sample Editor  ·  124 functions  ·  ⌨ 124 · 🎛 43 · ☰ 81
 
@@ -68,7 +68,7 @@
 | Normalize All Instruments to -12dB | ✅ | ✅ | ✅ |
 | Normalize Selected Instrument to -12dB | ✅ | ✅ | · |
 | Normalize Selected Sample to -12dB | ✅ | ✅ | ✅ |
-| Nudge Slice 01 by (+10) | ✅ | · | · |
+| Nudge Slice 01 by (+32) | ✅ | · | · |
 | Octatrack Generate Drumkit (Force Mono) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Play to End) | ✅ | ✅ | ✅ |
 | Octatrack Generate Drumkit (Smart Mono/Stereo) | ✅ | ✅ | ✅ |
@@ -181,7 +181,7 @@
 | Parama Param Previous Parameter | ✅ | · | ✅ |
 | To Pattern Editor | ✅ | · | ✅ |
 
-## Pattern Editor  ·  489 functions  ·  ⌨ 489 · 🎛 210 · ☰ 187
+## Pattern Editor  ·  489 functions  ·  ⌨ 489 · 🎛 211 · ☰ 188
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -556,7 +556,6 @@
 | Selection to Phrase | ✅ | ✅ | ✅ |
 | Selection Volume Offset +1 | ✅ | ✅ | · |
 | Set Delay for All Same Notes in Track... | ✅ | · | ✅ |
-| Set Global LPB to 001 | ✅ | · | · |
 | Set Note to Octave 0 with EditStep | ✅ | · | · |
 | Set Note to Octave 0 without EditStep | ✅ | · | · |
 | Set Pattern Length to 001 (001) | ✅ | ✅ | · |
@@ -597,6 +596,7 @@
 | Switch Effect Column/Note Column | ✅ | · | ✅ |
 | Switch Note Instrument Dialog... | ✅ | · | ✅ |
 | Tag Selected Note Column as Trigger | ✅ | · | · |
+| Toggle 0G01 at Current Row | ✅ | ✅ | ✅ |
 | Toggle All Columns | ✅ | · | ✅ |
 | Toggle All Columns (No Sample Effects) | ✅ | · | ✅ |
 | Toggle Auto-Input Tuning | ✅ | ✅ | ✅ |
@@ -752,7 +752,7 @@
 | Impulse Tracker ALT-D Double Select W/ Automation | ✅ | · | · |
 | Impulse Tracker ALT-U Unmark Selection | ✅ | · | · |
 
-## Global  ·  2106 functions  ·  ⌨ 2106 · 🎛 807 · ☰ 665
+## Global  ·  2156 functions  ·  ⌨ 2156 · 🎛 835 · ☰ 695
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -782,6 +782,13 @@
 | Alias Identical Pattern Slots | ✅ | ✅ | ✅ |
 | All Samples Loop Cycler (Backwards) | ✅ | · | · |
 | All Samples Loop Cycler (Forwards) | ✅ | · | · |
+| Amigo to Digitakt Chain | ✅ | ✅ | · |
+| Amigo to Impulse Tracker ITI | ✅ | ✅ | · |
+| Amigo to Octatrack ot and wav | ✅ | ✅ | ✅ |
+| Amigo to Polyend PTI | ✅ | ✅ | · |
+| Amigo to Renoise Drumkit One-Shot per Slice | ✅ | ✅ | ✅ |
+| Amigo to Renoise New Instrument | ✅ | ✅ | ✅ |
+| Amigo to WAV with CUE Header | ✅ | ✅ | ✅ |
 | Analyze Sample BPM (4 beats) | ✅ | · | ✅ |
 | Append Random Samples (01) to Instrument | ✅ | · | · |
 | Apply 10-TET Decagono Lange Tuning | ✅ | · | · |
@@ -885,6 +892,14 @@
 | Batch Convert XRNI Folder to Octatrack (WAV+.ot) | ✅ | ✅ | ✅ |
 | Batch Convert XRNI Folder to PTI | ✅ | ✅ | ✅ |
 | Batch Convert XRNI Folder to WAV (with CUE) | ✅ | ✅ | ✅ |
+| Batch Every Amigo in Song to Digitakt Chain | ✅ | · | · |
+| Batch Every Amigo in Song to Impulse Tracker ITI | ✅ | · | · |
+| Batch Every Amigo in Song to Octatrack ot and wav | ✅ | · | · |
+| Batch Every Amigo in Song to Polyend PTI | ✅ | · | · |
+| Batch Every Amigo in Song to Renoise Drumkits | ✅ | · | · |
+| Batch Every Amigo in Song to Renoise Instruments | ✅ | ✅ | · |
+| Batch Every Amigo in Song to WAV with CUE Header | ✅ | · | · |
+| Batch Every Sampled Instrument in Song to Amigo | ✅ | ✅ | · |
 | Batch Pakettify Wave Files in Folder to XRNI & Load... | ✅ | ✅ | ✅ |
 | Batch Pakettify Wave Files in Folder to XRNI (Save Only)... | ✅ | ✅ | ✅ |
 | Batch Sample Adjust Dialog... | ✅ | ✅ | ✅ |
@@ -894,6 +909,10 @@
 | BPM Calculation Debug (Comprehensive) | ✅ | · | ✅ |
 | BPM Decrease (-1) | ✅ | ✅ | · |
 | BPM Increase (+1) | ✅ | ✅ | · |
+| BPM Slice and Amigo (1 Beat) | ✅ | · | ✅ |
+| BPM Slice and Amigo (2 Beats) | ✅ | · | ✅ |
+| BPM Slice and Amigo (Half Beat) | ✅ | · | ✅ |
+| BPM Slice and Amigo (Quarter Beat) | ✅ | · | ✅ |
 | BPM-Based Sample Slicer Dialog... | ✅ | ✅ | ✅ |
 | Bypass All AudioUnit (AU) Track DSP Devices on Selected Track | ✅ | · | · |
 | Bypass All Devices on All Tracks | ✅ | ✅ | ✅ |
@@ -926,6 +945,7 @@
 | Capture Trigger Notes from Sample Dialog | ✅ | ✅ | · |
 | Catch Octave | ✅ | · | ✅ |
 | CCizer Loader... | ✅ | · | ✅ |
+| Chain Instrument Samples into Amigo | ✅ | · | ✅ |
 | Change Master Track Volume by +0.1dB | ✅ | · | · |
 | Change Selected Track Volume by +0.1dB | ✅ | · | · |
 | Claude Chat Dialog | ✅ | · | ✅ |
@@ -987,6 +1007,7 @@
 | Computer Keyboard Velocity (Double) | ✅ | ✅ | · |
 | Computer Keyboard Velocity (Halve) | ✅ | ✅ | · |
 | Configure Launch App Selection... | ✅ | · | ✅ |
+| Configure Parameter Editor for Selected Device | ✅ | · | ✅ |
 | Continue Sequence 00 From Same Line | ✅ | ✅ | ✅ |
 | Contour Shuttle Record Off, Follow On | ✅ | · | · |
 | Contour Shuttle Record On, Follow Off | ✅ | · | · |
@@ -1008,6 +1029,7 @@
 | Create Identical Track | ✅ | · | ✅ |
 | Create New Instrument & Loop from Selection | ✅ | ✅ | ✅ |
 | Create New Instrument from Selection with Slices | ✅ | · | ✅ |
+| Create New Multiband Send Track (Direct Send) (Preset++) | ✅ | · | ✅ |
 | Create New Multiband Send Track (Keep Source) (Preset++) | ✅ | · | ✅ |
 | Create New Multiband Send Track (Mute Source) (Preset++) | ✅ | · | ✅ |
 | Create New Phrase using Paketti Settings | ✅ | ✅ | ✅ |
@@ -1017,12 +1039,15 @@
 | Create New Rhythmic Slice DrumChain with Current Slices (Normalized) | ✅ | · | ✅ |
 | Create New Rhythmic Slice DrumChain with Current Slices (Randomize) | ✅ | · | ✅ |
 | Create New Rhythmic Slice DrumChain with Current Slices (Randomize) (Normalized) | ✅ | · | ✅ |
+| Create New Send Track (Direct Send) (Preset++) | ✅ | · | ✅ |
 | Create New Send Track (Keep Source) (Preset++) | ✅ | · | ✅ |
 | Create New Send Track (Mute Source) (Preset++) | ✅ | · | ✅ |
 | Create New Send Track (Preset++) | ✅ | · | ✅ |
 | Create New Track with Channelstrip | ✅ | · | ✅ |
 | Create New Track&Load Random Device Chain/Preset | ✅ | · | · |
 | Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing | ✅ | · | ✅ |
+| Create Phrase Per Slice | ✅ | ✅ | ✅ |
+| Create Phrase Per Slice and Keymap | ✅ | ✅ | ✅ |
 | Create Random AKWF Wavetable (032) | ✅ | · | ✅ |
 | Create Random AKWF Wavetable (032,loop) | ✅ | · | ✅ |
 | Create Random Distributed Slices | ✅ | ✅ | ✅ |
@@ -1143,6 +1168,7 @@
 | Double Phrase LPB | ✅ | · | ✅ |
 | Double Slice Count | ✅ | · | · |
 | Double Slices | ✅ | ✅ | ✅ |
+| Drumkit Loader to Amigo | ✅ | ✅ | ✅ |
 | Dump Current Instrument parameters | ✅ | · | · |
 | Dump Phrase to Pattern at Cursor | ✅ | ✅ | ✅ |
 | Duplicate & Wonkify Pattern | ✅ | ✅ | ✅ |
@@ -1260,6 +1286,8 @@
 | Expose/Hide Selected Track ALL Device Parameters | ✅ | · | ✅ |
 | Extract MIDI Mappings to Console | ✅ | · | · |
 | F4 Shift Midi Immediately | ✅ | · | · |
+| Fade Both Slice Ends 0.5ms | ✅ | · | ✅ |
+| Fade Out Slice Ends 0.5ms | ✅ | ✅ | ✅ |
 | File Warehouse | ✅ | · | ✅ |
 | Fill Empty Sample Slots (Randomized Folder) | ✅ | · | ✅ |
 | Find Note (Next, Pattern) | ✅ | ✅ | ✅ |
@@ -1558,6 +1586,7 @@
 | Load OhmForce OhmBoyz | ✅ | · | · |
 | Load OhmForce Predatohm | ✅ | · | · |
 | Load Paketti MIDI Mappings | ✅ | ✅ | ✅ |
+| Load Phrase Presets from Folder Tree (Per Subfolder)... | ✅ | ✅ | · |
 | Load Plaid Zap .XRNI | ✅ | · | ✅ |
 | Load QuikQuak FusionField | ✅ | · | · |
 | Load Random AKWF Sample | ✅ | · | ✅ |
@@ -1670,6 +1699,7 @@
 | Loop Set Texture | ✅ | · | · |
 | LPB Decrease (-1) | ✅ | · | · |
 | LPB Increase (+1) | ✅ | · | · |
+| Map Phrases One Per Key | ✅ | ✅ | ✅ |
 | Master Low-Cut 200Hz Toggle | ✅ | ✅ | ✅ |
 | Master TDR Kotelnikov Show/Hide | ✅ | · | · |
 | Master Track Mono/Pan Cycle | ✅ | ✅ | ✅ |
@@ -1808,6 +1838,7 @@
 | Open Offset Dialog... | ✅ | · | · |
 | Open Paketti Pattern / Phrase Init Preferences... | ✅ | ✅ | ✅ |
 | Open Player Pro Note Column Dialog... | ✅ | · | ✅ |
+| Open Selected Device with Parameter Editor | ✅ | ✅ | ✅ |
 | Open Sononymph Dialog... | ✅ | ✅ | · |
 | Open User Preferences Dialog... | ✅ | · | · |
 | Open Visible Pages to Fit Parameters | ✅ | · | · |
@@ -2016,6 +2047,8 @@
 | PhraseVoice Toggle Phrase 01 | ✅ | ✅ | · |
 | Pick & Move Toggle | ✅ | · | ✅ |
 | PitchBend Drumkit Instrument Init | ✅ | · | ✅ |
+| Pitchbend Loader to Amigo | ✅ | ✅ | ✅ |
+| Pitchbend Loader to Amigo (Normalize) | ✅ | · | ✅ |
 | PitchStepper Demo | ✅ | · | ✅ |
 | Place Sample to End at Pattern End | ✅ | ✅ | ✅ |
 | Play & Loop Pattern 01 | ✅ | ✅ | · |
@@ -2126,6 +2159,7 @@
 | Populate Send Tracks for Selected Track | ✅ | · | ✅ |
 | Previous Wavetable Cycle | ✅ | ✅ | · |
 | Print Active MIDI Mappings to Console | ✅ | · | · |
+| Print Amigo Slices to Pattern | ✅ | ✅ | ✅ |
 | PTI Export | ✅ | · | · |
 | Put Audition Slot to Pattern | ✅ | · | · |
 | Quantization Decrease (-1) | ✅ | · | · |
@@ -2229,6 +2263,8 @@
 | Render Pattern to Phrases | ✅ | ✅ | ✅ |
 | Render Pattern to Phrases (8 slices) | ✅ | · | · |
 | Render Phrase to Sample | ✅ | ✅ | ✅ |
+| Renoise to Amigo Selected Sample | ✅ | ✅ | ✅ |
+| Renoise to Amigo Selected Sample Embedded | ✅ | · | ✅ |
 | Repeater 1 / 1 Dotted | ✅ | · | · |
 | Repeater 1 / 1 Even | ✅ | · | · |
 | Repeater 1 / 1 Triplet | ✅ | · | · |
@@ -2272,6 +2308,7 @@
 | Save Current Sample as 8SVX... | ✅ | · | ✅ |
 | Save Current Sample as IFF... | ✅ | · | ✅ |
 | Save MIDI Mappings (.xrnm)... | ✅ | ✅ | ✅ |
+| Save Phrases of All Instruments as Presets (Subfolders)... | ✅ | · | ✅ |
 | Save Sample to Smart/Backup Folder 1 | ✅ | ✅ | ✅ |
 | Save Sidechain Recipe Dialog | ✅ | · | · |
 | Save Song (2nd) | ✅ | · | · |
@@ -2398,6 +2435,7 @@
 | Set Drumkit to Overlap Random | ✅ | · | ✅ |
 | Set EditStep & Quantization to 00 | ✅ | ✅ | · |
 | Set EditStep to 00 | ✅ | ✅ | · |
+| Set Global LPB to 001 | ✅ | · | · |
 | Set Instrument Box Slot Size 1 (Normal) | ✅ | · | · |
 | Set Instrument Box Slot Size 2 (Small) | ✅ | · | · |
 | Set Instrument Box Slot Size 3 (Large) | ✅ | · | · |
@@ -2601,6 +2639,7 @@
 | Simple Play Record Follow | ✅ | ✅ | · |
 | Simple Play Record Follow (2nd) | ✅ | · | · |
 | Slice Count From Selection | ✅ | · | ✅ |
+| Slice Fades Dialog... | ✅ | ✅ | ✅ |
 | Slice Step All Rows to Phrases Bank | ✅ | ✅ | · |
 | Slice Step Cycle Output Mode | ✅ | ✅ | · |
 | Slice Step Randomize to New Track | ✅ | ✅ | · |
@@ -2625,6 +2664,7 @@
 | Sort Samples by Multiple Criteria | ✅ | ✅ | · |
 | Sort Samples by Name | ✅ | ✅ | · |
 | Sort Samples by Velocity | ✅ | · | · |
+| Spread Phrases Across Keyboard | ✅ | ✅ | ✅ |
 | Squeeze Note Columns (Pattern) | ✅ | ✅ | ✅ |
 | Squeeze Note Columns (Whole Song) | ✅ | ✅ | ✅ |
 | Stack All Samples in Instrument with Velocity Mapping Split | ✅ | · | ✅ |
@@ -2649,6 +2689,12 @@
 | Start/Stop Sample Recording and Pakettify | ✅ | · | · |
 | Stem Loader Create Phrases from Slices | ✅ | ✅ | · |
 | Stem Slice Randomizer Dialog... | ✅ | · | · |
+| Step Mute Show/Hide Dialog | ✅ | ✅ | · |
+| Step Mute Toggle Current Row | ✅ | ✅ | · |
+| Step Mute Unmute All in Track | ✅ | ✅ | · |
+| Step Mute Window Next | ✅ | ✅ | · |
+| Step Mute Window Previous | ✅ | ✅ | · |
+| Step Mute Window Size 8 | ✅ | · | · |
 | Step Sequencer FX Randomizer Dialog... | ✅ | · | · |
 | Store Current LFO to Slot 01 | ✅ | · | ✅ |
 | Strip Silence | ✅ | ✅ | ✅ |
@@ -2757,6 +2803,7 @@
 | Toggle Sequence Selection (All) On/Off | ✅ | · | ✅ |
 | Toggle Sequence Selection 00 | ✅ | · | · |
 | Toggle Sequence Selection to Loop | ✅ | · | ✅ |
+| Toggle Sliced Imports Also Go Into Amigo | ✅ | · | · |
 | Toggle Solo Tracks | ✅ | ✅ | ✅ |
 | Toggle Sononym Auto-Transfer [Trigger] | ✅ | ✅ | ✅ |
 | Toggle Timed Require Debug | ✅ | · | ✅ |
@@ -2766,6 +2813,7 @@
 | TouchOSC Sample Recorder and Record | ✅ | · | · |
 | TPL Decrease (-1) | ✅ | · | · |
 | TPL Increase (+1) | ✅ | · | · |
+| Transient Slice and Amigo | ✅ | ✅ | ✅ |
 | Transpose Blocks Dialog... | ✅ | · | ✅ |
 | Transpose Shift -12 (All Instruments) | ✅ | ✅ | ✅ |
 | Transpose Shift -12 (Selected Instrument) | ✅ | ✅ | ✅ |
@@ -2839,6 +2887,8 @@
 | Wipe Song Patterns | ✅ | · | · |
 | Wipe Song Retain Sample | ✅ | · | ✅ |
 | Wipe&Slice (002) | ✅ | ✅ | ✅ |
+| Wipe&Slice&Amigo (002) | ✅ | ✅ | ✅ |
+| Wipe&Slice&Amigo&Print (002) | ✅ | · | ✅ |
 | Wipe&Slice&Pattern (002) | ✅ | ✅ | · |
 | Wipe&Slice&Phrase (002) | ✅ | ✅ | · |
 | Wipe&Slice&Write to Pattern | ✅ | · | ✅ |
@@ -2863,7 +2913,7 @@
 | Zero Crossings Advanced Dialog | ✅ | ✅ | · |
 | ∿ Squiggly Sinewave to Clipboard (macOS) | ✅ | · | · |
 
-## (menu/midi only)  ·  1514 functions  ·  ⌨ 0 · 🎛 776 · ☰ 883
+## (menu/midi only)  ·  1556 functions  ·  ⌨ 0 · 🎛 782 · ☰ 919
 
 | Function | ⌨ | 🎛 | ☰ |
 |---|:--:|:--:|:--:|
@@ -2969,6 +3019,9 @@
 | Align Instrument Names | · | · | ✅ |
 | AM Sinewave 1000Hz (20x mod) | · | · | ✅ |
 | AM Sinewave Custom | · | · | ✅ |
+| Amigo to Digitakt Chain (.wav) | · | · | ✅ |
+| Amigo to Impulse Tracker ITI (.iti) | · | · | ✅ |
+| Amigo to Polyend PTI (.pti) | · | · | ✅ |
 | Analog Filter | · | ✅ | ✅ |
 | Analyze Slice Markers | · | ✅ | ✅ |
 | APC Demo — Light Show | · | · | ✅ |
@@ -3180,10 +3233,12 @@
 | Create Empty Phrase (16 lines) | · | ✅ | ✅ |
 | Create Hat Trigger Instrument | · | ✅ | · |
 | Create Kick Trigger Instrument | · | ✅ | · |
+| Create New Multiband Send Track (Direct Send) | · | · | ✅ |
 | Create New Multiband Send Track (Keep Source) | · | · | ✅ |
 | Create New Multiband Send Track (Mute Source) | · | · | ✅ |
 | Create New Pattern from Selection | · | · | ✅ |
 | Create New Send Track | · | · | ✅ |
+| Create New Send Track (Direct Send) | · | · | ✅ |
 | Create New Send Track (Keep Source) | · | · | ✅ |
 | Create New Send Track (Mute Source) | · | · | ✅ |
 | Create Phrase | · | · | ✅ |
@@ -3275,6 +3330,7 @@
 | Double Tap | · | · | ✅ |
 | Drunk (Slot 01) | · | · | ✅ |
 | DSP Chain | · | · | ✅ |
+| Dump Amigo State to Console | · | · | ✅ |
 | Dump Available Effects/Plugins to Dialog... | · | ✅ | · |
 | Dump Complete Renoise API | · | · | ✅ |
 | Dump REX Structure to Text | · | · | ✅ |
@@ -3308,6 +3364,14 @@
 | Envelope | · | · | ✅ |
 | EQ 5 | · | ✅ | ✅ |
 | EQ10 XY Control... | · | · | ✅ |
+| Every Amigo in Song to Digitakt Chain (.wav) | · | · | ✅ |
+| Every Amigo in Song to Impulse Tracker ITI (.iti) | · | · | ✅ |
+| Every Amigo in Song to Octatrack (.ot + .wav) | · | · | ✅ |
+| Every Amigo in Song to Polyend PTI (.pti) | · | · | ✅ |
+| Every Amigo in Song to Renoise Drumkits | · | · | ✅ |
+| Every Amigo in Song to Renoise Instruments | · | · | ✅ |
+| Every Amigo in Song to WAV with CUE Header | · | · | ✅ |
+| Every Sampled Instrument in Song to Amigo | · | · | ✅ |
 | Evolving | · | · | ✅ |
 | Example Tool... | · | · | ✅ |
 | Exciter | · | ✅ | ✅ |
@@ -3319,14 +3383,27 @@
 | Export (.WAV+.ot) | · | · | ✅ |
 | Export .PTI Instrument | · | ✅ | ✅ |
 | Export All Slots | · | · | ✅ |
+| Export Amigo to Digitakt Chain (.wav) | · | · | ✅ |
+| Export Amigo to Impulse Tracker ITI (.iti) | · | · | ✅ |
+| Export Amigo to Octatrack (.ot + .wav) | · | · | ✅ |
+| Export Amigo to Polyend PTI (.pti) | · | · | ✅ |
+| Export Amigo to WAV with CUE Header | · | · | ✅ |
 | Export Convolver IR into New Instrument | · | · | ✅ |
 | Export Current Sample as IFF... | · | · | ✅ |
+| Export Every Amigo in Song to Digitakt Chain (.wav) | · | · | ✅ |
+| Export Every Amigo in Song to Impulse Tracker ITI (.iti) | · | · | ✅ |
+| Export Every Amigo in Song to Octatrack (.ot + .wav) | · | · | ✅ |
+| Export Every Amigo in Song to Polyend PTI (.pti) | · | · | ✅ |
+| Export Every Amigo in Song to WAV with CUE Header | · | · | ✅ |
+| Export Every Sampled Instrument in Song to Amigo | · | · | ✅ |
 | Export Pattern to MTP | · | · | ✅ |
 | Export Pattern to MTP (auto-split >128) | · | · | ✅ |
 | Export Pattern to Polyend MTP | · | ✅ | · |
 | Export Pattern to Polyend MTP (auto-split) | · | ✅ | · |
 | Export Polyend Project | · | ✅ | ✅ |
 | Export Sample Chain... | · | · | ✅ |
+| Export Selected Sample to Amigo Sampler | · | · | ✅ |
+| Export Selected Sample to Amigo Sampler (Embedded) | · | · | ✅ |
 | Export Selection to MTP | · | · | ✅ |
 | Export Selection to Polyend MTP | · | ✅ | · |
 | Export to Octatrack (.ot only) | · | · | ✅ |
@@ -3480,11 +3557,14 @@
 | Import .RX2 | · | · | ✅ |
 | Import .RX2 (ReCycle v2.0 Format) | · | · | ✅ |
 | Import .SF2 (Single XRNI per Preset) | · | · | ✅ |
+| Import Amigo as Renoise Drumkit (One-Shot per Slice) | · | · | ✅ |
+| Import Every Amigo in Song to Renoise Instruments | · | · | ✅ |
 | Import MT Project File | · | · | ✅ |
 | Import Polyend MT Project File | · | ✅ | · |
 | Import Polyend Pattern | · | · | ✅ |
 | Import Polyend Pattern Tracks | · | · | ✅ |
 | Import Polyend Project | · | · | ✅ |
+| Import Sample from Amigo Sampler | · | · | ✅ |
 | Import Selected Sample to Selected Convolver | · | ✅ | ✅ |
 | Import STRD Bank... | · | · | ✅ |
 | Import Wavetable (.WT)... | · | · | ✅ |
@@ -3534,6 +3614,7 @@
 | Load from File | · | · | ✅ |
 | Load IFF Sample File (8SVX/16SV)... | · | · | ✅ |
 | Load or Show Esa Ruoho ParaEQ (AU) [Trigger] | · | ✅ | ✅ |
+| Load Phrase Presets from Folder Tree (One Instrument per Subfolder)... | · | · | ✅ |
 | Load Plugins Dialog... | · | ✅ | · |
 | Load Plugins... | · | · | ✅ |
 | Load Random 128 IFFs | · | · | ✅ |
@@ -4209,6 +4290,7 @@
 | Show Selected Instrument Pitch Stepper | · | ✅ | ✅ |
 | Show Selected Instrument Resonance Stepper | · | ✅ | ✅ |
 | Show Selected Instrument Volume Stepper | · | ✅ | ✅ |
+| Show Step Mute Dialog... | · | · | ✅ |
 | Show/Hide External Editor for Device | · | · | ✅ |
 | Show/Hide External Editor for Plugin | · | · | ✅ |
 | Show/Hide Slot 01 on Master | · | · | ✅ |
@@ -4223,6 +4305,7 @@
 | Slice Move Resolution x[Knob] | · | ✅ | · |
 | Slice Random | · | · | ✅ |
 | Slice Sequential | · | · | ✅ |
+| Sliced Imports Also Go Into Amigo (RX2, REX, PTI, ITI, OT, WAV+CUE) Toggle | · | · | ✅ |
 | SliceSafely (002) | · | · | ✅ |
 | Slow | · | · | ✅ |
 | Smooth | · | · | ✅ |
@@ -4251,6 +4334,13 @@
 | Step by EditStep (Wheel) x[Knob] | · | ✅ | · |
 | Step by EditStep Backward x[Trigger] | · | ✅ | · |
 | Step by EditStep Forward x[Trigger] | · | ✅ | · |
+| Step Mute (Non-Destructive)... | · | · | ✅ |
+| Step Mute APCKey25 Step 01 [Trigger] | · | ✅ | · |
+| Step Mute Launchpad Step 01 [Trigger] | · | ✅ | · |
+| Step Mute LPD8 Step 01 [Trigger] | · | ✅ | · |
+| Step Mute MidiMix Step 01 [Trigger] | · | ✅ | · |
+| Step Mute Set Window Size 8 [Trigger] | · | ✅ | · |
+| Step Mute Toggle Step 01 [Trigger] | · | ✅ | · |
 | Step Sequencer FX Randomizer | · | ✅ | ✅ |
 | Stepper | · | · | ✅ |
 | Stereo Expander | · | ✅ | ✅ |
@@ -4305,6 +4395,7 @@
 | Toggle Latch Mode | · | · | ✅ |
 | Toggle Loop End Parameter Monitor | · | · | ✅ |
 | Toggle Marker Position (CTRL-F7) | · | · | ✅ |
+| Toggle Mute Current Row | · | · | ✅ |
 | Toggle Pattern Scanner | · | · | ✅ |
 | Toggle Phrase Auto-Spawn on Selection | · | ✅ | · |
 | Toggle Phrase Transport | · | ✅ | ✅ |
@@ -4341,6 +4432,7 @@
 | Tuning Comparison A/B... | · | · | ✅ |
 | Uncollapser | · | ✅ | · |
 | Unison Generator Dialog | · | · | ✅ |
+| Unmute All in Track | · | · | ✅ |
 | Velocity | · | · | ✅ |
 | Velocity Tracking | · | · | ✅ |
 | VolDelayPan Slider Dialog... | · | · | ✅ |
