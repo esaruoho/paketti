@@ -19574,6 +19574,8 @@ Takes the selected sample, writes it as a `.wav` into a **Paketti Amigo Samples*
 
 Amigo plays from the file on disk rather than from the preset, which is why the wav is written to a permanent folder instead of a temporary one. Slice markers come along too: they become Amigo's own slice points and Amigo switches into SLICE mode. The source sample is never modified or removed.
 
+Loop points come along as well. Renoise's forward, ping-pong and reverse loop modes all map onto Amigo's own `loop`, `pingpong` and `reverse` settings. Amigo has no separate loop end — it loops from `loopstart` to `sampleend` — so a Renoise loop end becomes `sampleend`, which matches how a tracker behaves anyway, since audio past the loop end is never heard. Sliced samples are left alone, because in slice mode Amigo plays slices and the loop settings do not mean the same thing.
+
 **Embedded variant:** additionally asks Amigo to bake the wav into its own preset state, so the preset travels without the file. This needs Amigo AU v1.1.6 or newer — older builds have no Embed, and the command says so rather than pretending it worked.
 
 - Menu: `Main Menu:File:Paketti Export:Export Selected Sample to Amigo Sampler`

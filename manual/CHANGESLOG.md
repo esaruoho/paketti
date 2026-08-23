@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Fix: Loop Points Now Reach Amigo
+
+Every sample sent to Amigo arrived unlooped. Amigo has `loop`, `loopstart`, `pingpong`, `reverse` and `sampleend` parameters and Paketti never wrote any of them, so the loop points of a looped `.MOD` sample, a looped IFF, or any loop set by hand in Renoise were simply dropped on the way in.
+
+They are carried across now, for everything sent to Amigo rather than just modules. Renoise's forward, ping-pong and reverse loop modes all map over. Amigo has no `loopend` — it loops from `loopstart` to `sampleend` — so a Renoise loop end becomes `sampleend`, which is also how ProTracker behaves, since audio past the loop end is never heard.
+
+Sliced samples are left alone: in slice mode Amigo plays slices and the loop settings do not mean the same thing.
+
+Verified against CastleMaster.mod, which has two looping samples among six. `ST-12:newwhist` loops from byte 1286 for 3672 of its 5786 and arrived as `loop=1, loopstart=0.222299, sampleend=0.856871`; `ST-22:human` loops its whole length and arrived as `loop=1, loopstart=0.0, sampleend=1.0`; the other four arrived with `loop=0`.
+
 ### 2026-08-23 - Fix: release tags and .xrnx filenames now use Finnish time
 
 Release tags are generated on a GitHub Actions runner, and those run in UTC. A push at 21:34 Finnish time produced a release tagged `2026-08-23_18-34-35`, and the `.xrnx` files carried that same three-hours-behind stamp in their filenames — so the build you just made always looked like it came from the afternoon.

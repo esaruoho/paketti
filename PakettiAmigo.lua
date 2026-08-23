@@ -675,6 +675,44 @@ local function pakettiAmigoApplySample(device, path, sample)
   end
   pakettiAmigoSetParam(ctx.tree, "slicemode", (#slices > 0) and 1 or 0)
 
+  -- Carry the loop across.
+  --
+  -- Amigo has loop / loopstart / pingpong / reverse / sampleend, all normalised
+  -- 0..1 like the slice positions. There is no loopend: Amigo loops from
+  -- loopstart to sampleend, so a Renoise loop_end maps onto sampleend, which is
+  -- also how ProTracker behaves - audio past the loop end is never heard.
+  --
+  -- Without this every sample arrived in Amigo unlooped, which threw away the
+  -- loop points of every looped .MOD sample, every looped IFF, and any loop the
+  -- user had set by hand in Renoise.
+  --
+  -- Only in SAMPLE mode: in SLICE mode Amigo plays slices and the loop settings
+  -- do not mean the same thing, so a sliced sample is left alone.
+  if sample and #slices == 0 then
+    local frames = sample.sample_buffer.number_of_frames
+    local mode = sample.loop_mode
+    local looping = mode ~= renoise.Sample.LOOP_MODE_OFF
+
+    if looping and frames > 1 then
+      local span = frames - 1
+      local first = math.max(0, math.min(1, (sample.loop_start - 1) / span))
+      local last = math.max(0, math.min(1, (sample.loop_end - 1) / span))
+      pakettiAmigoSetParam(ctx.tree, "loop", 1)
+      pakettiAmigoSetParam(ctx.tree, "loopstart", first)
+      pakettiAmigoSetParam(ctx.tree, "sampleend", last)
+      pakettiAmigoSetParam(ctx.tree, "pingpong",
+        (mode == renoise.Sample.LOOP_MODE_PING_PONG) and 1 or 0)
+      pakettiAmigoSetParam(ctx.tree, "reverse",
+        (mode == renoise.Sample.LOOP_MODE_REVERSE) and 1 or 0)
+    else
+      pakettiAmigoSetParam(ctx.tree, "loop", 0)
+      pakettiAmigoSetParam(ctx.tree, "loopstart", 0)
+      pakettiAmigoSetParam(ctx.tree, "sampleend", 1)
+      pakettiAmigoSetParam(ctx.tree, "pingpong", 0)
+      pakettiAmigoSetParam(ctx.tree, "reverse", 0)
+    end
+  end
+
   PakettiAmigoWriteState(ctx)
   return #slices, nil, dropped
 end
