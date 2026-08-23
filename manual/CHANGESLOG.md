@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Improvement: PitchBend Loaders Accept .MOD, .REX, .RX2, .IFF and More (Linux Fix)
+
+The PitchBend Multiple Sample Loader and the PitchBend Drumkit Sample Loader only ever offered `.wav`, `.aif`, `.flac`, `.mp3` and `.aiff` in their file dialog. On macOS that filter is a hint you can work around; on Linux the file dialog enforces it, so Linux users simply could not select a `.mod`, `.rex` or `.rx2` at all. Even where the file could be picked, the loaders called Renoise's plain audio loader on it, which does not understand those formats.
+
+Both halves are fixed. **On Linux the file dialog now opens wide (`*`)** — an extension list can never be complete, since an Amiga module named `mod.SongName` carries no extension at all and files copied off old media routinely have the wrong case or none. macOS and Windows keep a readable list, now covering every format Paketti can convert.
+
+Anything that is not plain audio is converted before loading. A `.mod` is decoded into one sample per module sample, so a 31-sample module becomes 31 entries in the loader — which is what a "multiple sample loader" should do with a module. `.rex`, `.rx2`, `.iff`, `.8svx`, `.16sv`, `.iti`, `.ot`, `.wt` and `.mti` are handled by the Paketti loader that already owns each format: it builds its instrument, the audio is taken out of it, and the instrument is removed again, leaving your song exactly as it was. Plain audio passes straight through with no re-encoding.
+
+Converted samples keep their real names, so a module gives you `ST-12_newwhist` rather than `paketti_temp_1787509778_482014`.
+
+`.pti`, `.sf2` and `.exs` load in the background on their own and cannot be converted this way. Rather than silently dropping them, the loader names them and points you at `File > Paketti Import`. Anything else that cannot be converted is reported the same way instead of failing quietly.
+
 ### 2026-08-23 - Fix: RX2 import could freeze Renoise on Linux
 
 A Linux user hit `PakettiRX2Loader.lua:300 ... failed to execute in one of its file import hooks` followed by `Script execution terminated by user`. That second line is the tell: the import was not erroring, it was **hanging**, and the user aborted Renoise's long-running-script prompt.

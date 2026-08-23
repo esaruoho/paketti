@@ -400,12 +400,26 @@ end
 function pitchBendDrumkitLoader(files)
   local selected_sample_filenames = files
   if not selected_sample_filenames then
-    selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read({"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, "Paketti PitchBend Drumkit Sample Loader")
+    selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read(
+      PakettiLoadableExtensions(), "Paketti PitchBend Drumkit Sample Loader")
   end
 
   -- Check if files are selected, if not, return
   if #selected_sample_filenames == 0 then
     renoise.app():show_status("No files selected.")
+    return
+  end
+
+  -- .mod, .rex, .rx2, .iff and friends are not things load_from() understands,
+  -- so turn them into plain wavs first. Plain audio passes through untouched.
+  local picked = #selected_sample_filenames
+  local expanded, temp_files, failures =
+    PakettiExpandLoadableFiles(selected_sample_filenames)
+  PakettiExpandLoadableReport("Drumkit Loader", picked, #expanded, failures)
+  selected_sample_filenames = expanded
+  if #selected_sample_filenames == 0 then
+    renoise.app():show_status("Drumkit Loader: none of the selected files could be converted to audio.")
+    PakettiExpandLoadableCleanup(temp_files)
     return
   end
 
@@ -497,6 +511,10 @@ function pitchBendDrumkitLoader(files)
     --sample.autofade = true
     --sample.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
   end
+
+  -- Everything is in Renoise's own buffers now, so the wavs converted from
+  -- .mod / .rex / .iff can go.
+  PakettiExpandLoadableCleanup(temp_files)
 
   -- Check if there are more samples than the limit
   if #selected_sample_filenames > max_samples then
@@ -1158,7 +1176,10 @@ local pitchbend_loader_progress = {
   total_files = 0,
   slicer = nil,
   vb = nil,
-  dialog = nil
+  dialog = nil,
+  -- wavs converted from .mod / .rex / .iff and friends, deleted once the
+  -- ProcessSlicer has finished loading them
+  temp_files = nil
 }
 
 -- on_finished is optional and is called with (first_index, last_index) once the
@@ -1167,11 +1188,26 @@ function pitchBendMultipleSampleLoader(normalize, on_finished, files)
   -- files is optional: pass a list to skip the file dialog
   local selected_sample_filenames = files
   if not selected_sample_filenames then
-    selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read({"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, "Paketti PitchBend Multiple Sample Loader")
+    selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read(
+      PakettiLoadableExtensions(), "Paketti PitchBend Multiple Sample Loader")
   end
 
   if #selected_sample_filenames == 0 then
     renoise.app():show_status("No file selected.")
+    return
+  end
+
+  -- .mod, .rex, .rx2, .iff and friends are not things load_from() understands,
+  -- so turn them into plain wavs first. A 31-sample .mod expands into 31
+  -- entries here, which is exactly what a multiple sample loader should do.
+  local picked = #selected_sample_filenames
+  local expanded, temp_files, failures =
+    PakettiExpandLoadableFiles(selected_sample_filenames)
+  PakettiExpandLoadableReport("Multiple Sample Loader", picked, #expanded, failures)
+  selected_sample_filenames = expanded
+  if #selected_sample_filenames == 0 then
+    renoise.app():show_status("Multiple Sample Loader: none of the selected files could be converted to audio.")
+    PakettiExpandLoadableCleanup(temp_files)
     return
   end
 
@@ -1181,7 +1217,8 @@ function pitchBendMultipleSampleLoader(normalize, on_finished, files)
   pitchbend_loader_progress.current_file_index = 0
   pitchbend_loader_progress.current_filename = ""
   pitchbend_loader_progress.total_files = #selected_sample_filenames
-  
+  pitchbend_loader_progress.temp_files = temp_files
+
   -- Create ProcessSlicer for the loading operation
   pitchbend_loader_progress.slicer = ProcessSlicer(pitchBendMultipleSampleLoader_process, selected_sample_filenames, normalize, on_finished)
   pitchbend_loader_progress.dialog, pitchbend_loader_progress.vb = pitchbend_loader_progress.slicer:create_dialog("Loading Pitchbend Samples...")
@@ -1209,6 +1246,9 @@ function pitchBendMultipleSampleLoader_update_progress()
     elseif not progress.slicer:running() then
       -- Process completed or stopped
       renoise.tool():remove_timer(pitchBendMultipleSampleLoader_update_progress)
+      -- the converted wavs have been loaded into Renoise by now, so the temp
+      -- copies on disk are no longer needed
+      PakettiExpandLoadableCleanup(progress.temp_files)
       if progress.dialog and progress.dialog.visible then
         progress.dialog:close()
       end

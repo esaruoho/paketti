@@ -4779,6 +4779,21 @@ Comprehensive guide to Paketti's sample loading, drumkit creation, and sample ma
 
 ## PitchBend Sample Loaders
 
+### What file formats the PitchBend loaders accept
+
+Both the Multiple Sample Loader and the Drumkit Sample Loader accept far more than plain audio.
+
+**Plain audio** — `.wav`, `.aif`, `.aiff`, `.flac`, `.mp3`, `.ogg`, `.wv`, `.caf`, `.snd`, `.au`, `.voc` — loads directly, with no conversion and no re-encoding.
+
+**Converted for you** — `.mod`, `.rex`, `.rx2`, `.iff`, `.8svx`, `.16sv`, `.iti`, `.ot`, `.wt`, `.mti`. A `.mod` is decoded into one entry per module sample, so a 31-sample module gives you 31 samples in the loader. The rest are handled by the Paketti importer that already owns each format, behind the scenes: it builds its instrument, the audio is taken out of it, and the instrument is removed again — your song is left exactly as it was. Converted samples keep their real names, so a module gives you `ST-12_newwhist`, not a temp filename.
+
+**Not accepted here** — `.pti`, `.sf2` and `.exs` load in the background on their own, so they cannot be converted inside the loader. They are named in the status bar and should be loaded from `File > Paketti Import` instead. Anything else that cannot be converted is reported the same way rather than failing quietly.
+
+**On Linux the file dialog opens wide (`*`)** rather than filtering by extension. The GTK file dialog enforces its filter strictly, and an extension list can never be complete — an Amiga module named `mod.SongName` carries no extension at all, and files copied off old media often have the wrong case or none. So on Linux you pick whatever you like and Paketti decides what to do with it. macOS and Windows treat the filter as a hint and keep the readable list.
+
+Note that `.rx2` needs a decoder that only ships as a Windows executable, so `.rx2` does not work on Linux — the file can be selected, and the reason is reported, but it cannot be converted there.
+
+
 ### Paketti PitchBend Multiple Sample Loader
 **Shortcuts:**
 - `Global:Paketti:Paketti PitchBend Multiple Sample Loader` ⌨️ 📋
