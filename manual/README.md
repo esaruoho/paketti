@@ -338,6 +338,19 @@ Rips every sample out of a whole folder of modules at once. Each sample is writt
 
 Progress is shown in a dialog with a Cancel button, and Renoise stays usable while it runs. 15-sample Soundtracker modules and the multi-channel tags (`6CHN`, `8CHN`, `10CH`-`32CH`, `OKTA`, `CD81`, StarTrekker `FA0x`, and more) are all handled, not just 4-channel `M.K.`.
 
+#### Batch Convert .MOD to .XRNI
+
+`Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .MOD to .XRNI...` (also under `Main Menu:File:Paketti Import`, `Instrument Box:Paketti:Load`, `Sample Editor:Paketti:Export` and `Disk Browser Files:Paketti:Import/Export`; keybinding `Global:Paketti:Batch Convert .MOD to .XRNI`).
+
+Turns a whole folder of modules into Renoise instruments, with the Paketti default instrument, your loader preferences and the module's loop points applied.
+
+- **Instruments** — `One .XRNI per sample` writes `modulename-NN-samplename.xrni`; `One .XRNI per module` writes `modulename.xrni` with every sample of the module inside it.
+- **Source Folder** — the folder to scan. `Include subfolders` walks the whole tree.
+- **Write .XRNI to** — beside each `.mod`, or all into one folder.
+- **Skip .xrni files that already exist** — resume an interrupted run.
+
+Each instrument is built in a temporary instrument slot which is removed again, so your own instruments and your selected instrument are left as they were. Progress is shown with a Cancel button.
+
 #### Batch Convert .XRNI to .WAV
 
 `Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .XRNI to .WAV...` (also under `Main Menu:File:Paketti Import`, `Instrument Box:Paketti:Load`, `Sample Editor:Paketti:Export` and `Disk Browser Files:Paketti:Import/Export`; keybinding `Global:Paketti:Batch Convert .XRNI to .WAV`).

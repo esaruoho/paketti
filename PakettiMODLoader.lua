@@ -59,16 +59,85 @@ function PakettiMODCollectFiles(folder, recurse)
 end
 
 --------------------------------------------------------------------------------
+-- shared: one parsed .MOD sample -> one Renoise sample slot
+--------------------------------------------------------------------------------
+
+--- Loads one parsed .MOD sample into `sample_index` of `ins`, applying Paketti's
+--- loader preferences and the module's loop points. Creates the slot when it is
+--- missing. Used by both "Load Samples from .MOD" and the batch .MOD -> .XRNI
+--- converter, so the two cannot drift apart.
+--- Returns true plus the display name, or false plus an error message.
+function PakettiMODApplySampleToSlot(ins, sample_index, info)
+  local name = (#info.name > 0 and info.name) or ("Sample_" .. info.index)
+
+  -- The in-Renoise path has always stamped 44100 Hz on the temp WAV; the samples
+  -- are pitched by keyzone anyway. The batch .WAV exporter is the one that cares
+  -- about the real Amiga rate.
+  local wav = PakettiMODParser.build_wav(PakettiMODParser.sign_flip(info.data), 44100)
+
+  local tmp = pakettiGetTempFilePath(".wav")
+  local wrote, write_err = PakettiMODParser.write_file(tmp, wav)
+  if not wrote then return false, tostring(write_err) end
+
+  while #ins.samples < sample_index do
+    ins:insert_sample_at(#ins.samples + 1)
+  end
+
+  local samp = ins.samples[sample_index]
+  if not samp.sample_buffer:load_from(tmp) then
+    os.remove(tmp)
+    return false, "Renoise could not load the converted audio"
+  end
+  os.remove(tmp)
+
+  samp.name = name
+  samp.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+  samp.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+  samp.autofade           = preferences.pakettiLoaderAutofade.value
+  samp.autoseek           = preferences.pakettiLoaderAutoseek.value
+  samp.oneshot            = preferences.pakettiLoaderOneshot.value
+  samp.new_note_action    = preferences.pakettiLoaderNNA.value
+  samp.loop_release       = preferences.pakettiLoaderLoopExit.value
+
+  if info.loop_length and info.loop_length > 5 then
+    local sample_length = samp.sample_buffer.number_of_frames
+    local loop_start = info.loop_start + 1
+    local loop_end = info.loop_start + info.loop_length
+
+    if loop_start > sample_length then
+      -- the module points its loop past the end of its own sample data
+      name = name .. " (invalid loopstart)"
+      samp.name = name
+      samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+    else
+      if loop_end > sample_length then loop_end = sample_length end
+      samp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+      samp.loop_start = loop_start
+      samp.loop_end = loop_end
+    end
+  else
+    samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+  end
+
+  return true, name
+end
+
+--------------------------------------------------------------------------------
 -- Load Samples from .MOD (single module -> Renoise instruments)
 --------------------------------------------------------------------------------
 
-function load_samples_from_mod()
+--- Loads every sample of one .mod as its own Renoise instrument.
+--- `mod_file` is optional: pass a path to run without the file dialog (which is
+--- what makes this testable headlessly), omit it to prompt.
+function load_samples_from_mod(mod_file)
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
 
-  local mod_file = renoise.app():prompt_for_filename_to_read(
-    { "*.mod","mod.*" }, "Load .MOD file"
-  )
+  if not mod_file then
+    mod_file = renoise.app():prompt_for_filename_to_read(
+      { "*.mod","mod.*" }, "Load .MOD file"
+    )
+  end
   if not mod_file then
     renoise.app():show_status("No MOD selected.")
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -90,74 +159,23 @@ function load_samples_from_mod()
   end
 
   for _, info in ipairs(mod.samples) do
-    local name = (#info.name > 0 and info.name) or ("Sample_" .. info.index)
+    local next_ins = renoise.song().selected_instrument_index + 1
+    if not safeInsertInstrumentAt(renoise.song(), next_ins) then
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+      return
+    end
+    renoise.song().selected_instrument_index = next_ins
+    pakettiPreferencesDefaultInstrumentLoader()
+    local ins = renoise.song().selected_instrument
+    ins.macros_visible = true
+    ins.sample_modulation_sets[1].name = "Pitchbend"
 
-    -- The in-Renoise loader has always stamped 44100 Hz on the temp WAV; the
-    -- samples are pitched by keyzone anyway. The batch .WAV exporter is the
-    -- one that cares about the real Amiga rate.
-    local wav = PakettiMODParser.build_wav(PakettiMODParser.sign_flip(info.data), 44100)
-
-    local tmp = pakettiGetTempFilePath(".wav")
-    local wrote, write_err = PakettiMODParser.write_file(tmp, wav)
-    if not wrote then
-      renoise.app():show_status(tostring(write_err))
+    local ok, name_or_err = PakettiMODApplySampleToSlot(ins, 1, info)
+    if ok then
+      ins.name = name_or_err
+      renoise.app():show_status(("Loaded “%s”"):format(name_or_err))
     else
-      local next_ins = renoise.song().selected_instrument_index + 1
-      if not safeInsertInstrumentAt(renoise.song(), next_ins) then
-        os.remove(tmp)
-        PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
-        return
-      end
-      renoise.song().selected_instrument_index = next_ins
-      pakettiPreferencesDefaultInstrumentLoader()
-      local ins = renoise.song().selected_instrument
-
-      ins.name = name
-      ins.macros_visible = true
-      ins.sample_modulation_sets[1].name = "Pitchbend"
-
-      if #ins.samples == 0 then ins:insert_sample_at(1) end
-      renoise.song().selected_sample_index = 1
-
-      local samp = ins.samples[1]
-      if samp.sample_buffer:load_from(tmp) then
-        samp.name = name
-
-        samp.interpolation_mode = preferences.pakettiLoaderInterpolation.value
-        samp.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-        samp.autofade           = preferences.pakettiLoaderAutofade.value
-        samp.autoseek           = preferences.pakettiLoaderAutoseek.value
-        samp.oneshot            = preferences.pakettiLoaderOneshot.value
-        samp.new_note_action    = preferences.pakettiLoaderNNA.value
-        samp.loop_release       = preferences.pakettiLoaderLoopExit.value
-
-        if info.loop_length and info.loop_length > 5 then
-          local sample_length = samp.sample_buffer.number_of_frames
-          local calculated_loop_start = info.loop_start + 1
-          local calculated_loop_end = info.loop_start + info.loop_length
-
-          if calculated_loop_start > sample_length then
-            samp.name = name .. " (invalid loopstart)"
-            ins.name = name .. " (invalid loopstart)"
-            samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
-          else
-            if calculated_loop_end > sample_length then
-              calculated_loop_end = sample_length
-            end
-            samp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
-            samp.loop_start = calculated_loop_start
-            samp.loop_end = calculated_loop_end
-          end
-        else
-          samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
-        end
-
-        renoise.app():show_status(("Loaded “%s”"):format(name))
-      else
-        renoise.app():show_status(("Failed to load “%s”"):format(name))
-      end
-
-      os.remove(tmp)
+      renoise.app():show_status(("Failed to load sample %d: %s"):format(info.index, tostring(name_or_err)))
     end
   end
 

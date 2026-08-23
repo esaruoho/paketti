@@ -35,6 +35,27 @@ Both run on the same `.MOD` parser as `Load Samples from .MOD`, so they read 15-
 - MIDI Mapping: `Paketti:Load .MOD Samples to Amigo`
 - MIDI Mapping: `Paketti:Load .MOD as Wavetable to Amigo`
 
+### 2026-08-23 - Feature: Batch Convert .MOD to .XRNI
+
+Point Paketti at a folder of ProTracker/Soundtracker modules and it turns them into Renoise instruments. Unlike the .WAV converter the output is real instruments, so the Paketti default instrument (Pitchbend modulation set, macros visible), your sample loader preferences and the module's own loop points all come along.
+
+Two grouping modes:
+
+- **One .XRNI per sample** (default) — `modulename-NN-samplename.xrni`, matching how the .WAV converter names its output and how `Load Samples from .MOD` splits a module up.
+- **One .XRNI per module** — `modulename.xrni`, every sample of the module in a single instrument in the module's own sample order.
+
+The rest matches the .MOD to .WAV converter: source folder, optional recursion, write beside each `.mod` or into one output folder, "Skip .xrni files that already exist" for resuming an interrupted run, ProcessSlicer progress with a Cancel button. Each instrument is built in a temporary instrument slot and the slot is removed again whether the save worked or not, so a long run never walks into the 255-instrument ceiling and your own instruments and selected instrument are left as they were.
+
+The per-sample loading logic is now shared with `Load Samples from .MOD` instead of being written twice, so the two cannot drift apart. `Load Samples from .MOD` also takes an optional file path now, so it can be driven without the file dialog.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .MOD to .XRNI...`
+- Menu: `Main Menu:File:Paketti Import:Batch Convert .MOD to .XRNI...`
+- Menu: `Instrument Box:Paketti:Load:Batch Convert .MOD to .XRNI...`
+- Menu: `Sample Editor:Paketti:Export:Batch Convert .MOD to .XRNI...`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Batch Convert .MOD to .XRNI...`
+- Keybinding: `Global:Paketti:Batch Convert .MOD to .XRNI`
+- MIDI Mapping: `Paketti:Batch Convert .MOD to .XRNI`
+
 ### 2026-08-23 - Feature: Batch Convert .XRNI to .WAV
 
 The same thing as the .MOD batch converter, for Renoise's own instruments. Point it at a folder of `.xrni` files and every sample of every instrument comes out as `instrumentname-NN-samplename.wav`.

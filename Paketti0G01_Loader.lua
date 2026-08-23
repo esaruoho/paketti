@@ -338,6 +338,12 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiXRNIToWAVSeparateOutput=false,
   pakettiXRNIToWAVRecurse=true,
   pakettiXRNIToWAVSkipExisting=false,
+  pakettiMODToXRNISourceFolder="",
+  pakettiMODToXRNIOutputFolder="",
+  pakettiMODToXRNISeparateOutput=false,
+  pakettiMODToXRNIRecurse=true,
+  pakettiMODToXRNIPerModule=false,  -- false = one .xrni per sample, true = one .xrni per module
+  pakettiMODToXRNISkipExisting=false,
   pakettiStemLoaderDestructive=false,  -- When enabled, clears all tracks and patterns before loading stems
   pakettiStemLoaderAutoSliceOnMixedRates=true,  -- Auto-switch to slice mode when mixed sample rates detected
   pakettiLoadToAllTracksPosition=true,  -- false = First (position 2), true = Last (end of chain)
