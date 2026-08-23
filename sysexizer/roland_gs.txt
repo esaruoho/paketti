@@ -1,0 +1,17 @@
+# Roland GS - DT1 parameter change, F0 41 10 42 12 <addr> <data> <checksum> F7.
+# The ~ marks where the checksum region starts (address byte 1), SUM emits it.
+@device Roland GS (DT1)
+@channel 1
+@delay 30
+
+GS Reset              : F0 41 10 42 12 ~ 40 00 7F 00 SUM F7
+Master Volume         : F0 41 10 42 12 ~ 40 00 04 VV SUM F7 : 0 127 127
+Master Pan            : F0 41 10 42 12 ~ 40 00 06 VV SUM F7 : 1 127 64
+Master Key Shift      : F0 41 10 42 12 ~ 40 00 05 VV SUM F7 : 40 88 64
+Reverb Macro          : F0 41 10 42 12 ~ 40 01 30 VV SUM F7 : 0 7 4
+Reverb Level          : F0 41 10 42 12 ~ 40 01 33 VV SUM F7 : 0 127 64
+Reverb Time           : F0 41 10 42 12 ~ 40 01 34 VV SUM F7 : 0 127 64
+Chorus Macro          : F0 41 10 42 12 ~ 40 01 38 VV SUM F7 : 0 7 2
+Chorus Level          : F0 41 10 42 12 ~ 40 01 3A VV SUM F7 : 0 127 64
+Chorus Depth          : F0 41 10 42 12 ~ 40 01 3D VV SUM F7 : 0 127 19
+Chorus Rate           : F0 41 10 42 12 ~ 40 01 3C VV SUM F7 : 0 127 3

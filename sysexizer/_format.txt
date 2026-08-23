@@ -1,0 +1,28 @@
+# Paketti Sysexizer - definition file format
+#
+# Lines starting with # are comments. Blank lines are ignored.
+#
+# Directives:
+#   @device  <name shown in the dialog>
+#   @channel <1..16>   default MIDI channel for this device
+#   @delay   <ms>      gap between messages when dumping a .syx file
+#
+# Controls, one per line, max 32 (they fill slots 01..32 in order):
+#
+#   <name> : <hex template> : <min> <max> <default>
+#
+# The ": min max default" part is optional and defaults to 0 127 0.
+#
+# Template tokens:
+#   XX      literal hex byte (F0 and F7 are required first and last)
+#   XX+CH   literal hex byte plus (channel-1)   e.g. 10+CH on channel 3 -> 12
+#   CH      bare (channel-1) byte
+#   VV      the control's value as one 7-bit byte
+#   VH VL   high / low 7-bit halves of a 14-bit value
+#   ~       opens a checksum region (emits nothing itself)
+#   SUM     Roland/Yamaha checksum of everything since ~   ((0x80 - sum) % 0x80)
+#
+# Each slot 01..32 has a permanent MIDI mapping named
+#   "Paketti:Sysexizer Control NN [Knob]"
+# so you bind your hardware knob once and it follows whichever definition
+# file you load.

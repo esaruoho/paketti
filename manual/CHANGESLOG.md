@@ -8,6 +8,25 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Feature: Sysexizer — SysEx Control Surface and .syx File Dumper
+
+Renoise has no native device that sends System Exclusive, so where CCizer builds a `*Instr. MIDI Control` device and lets Renoise do the sending, Sysexizer owns its own surface and transmits the bytes itself. It is the same idea though: plain text files describe a synth, and you pick one from a popup.
+
+The dialog has 32 slots. Each slot has a permanent MIDI mapping — `Paketti:Sysexizer Control 01 [Knob]` through `Paketti:Sysexizer Control 32 [Knob]` — so you bind a hardware knob or fader once, and it keeps working across every definition file you load afterwards. Incoming 0-127 is scaled into whatever range the definition gives that control, so a knob sweeping a parameter that only accepts 40-88 sends 40-88, not 0-127.
+
+Definition files live in the `sysexizer` folder as `.txt`, one control per line: a name, the SysEx template as hex, and an optional `min max default`. Templates take literal hex bytes plus a handful of tokens — `VV` for the value, `VH`/`VL` for the two halves of a 14-bit value, `CH` and `XX+CH` for channel substitution (so Yamaha's `1n` byte becomes `10+CH`), and `~` … `SUM` for a Roland/Yamaha checksum over a marked region. Shipping with it: `universal.txt` (Device Inquiry, Master Volume/Balance, GM On/Off — all from the MIDI 1.0 spec), `roland_gs.txt` (GS Reset, master and reverb/chorus parameters, checksummed), `_format.txt` documenting the format, and a Yamaha TX16W template whose lines are deliberately left commented out because the TX16W implementation chart was not available to verify them against.
+
+The `.syx` dumper reads a SysEx file, splits it into individual `F0`…`F7` messages and sends them to a chosen output port. It paces itself: MIDI runs at 31250 baud, so a 512-byte block needs about 164 ms on the wire, and firing the next message before the previous one has drained backs up the driver queue — which lets short messages overtake long ones already queued. That was verified on a loopback port, where a 6-byte terminator arrived six places early behind eight 512-byte blocks. Each gap is now the message's own transmission time plus a configurable inter-message delay, and a 4102-byte nine-block dump arrives in order, byte-identical.
+
+- Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer Control Surface...`
+- Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer Dump .syx File...`
+- Keybinding: `Global:Paketti:Sysexizer Control Surface`
+- Keybinding: `Global:Paketti:Sysexizer Send All Controls`
+- Keybinding: `Global:Paketti:Sysexizer Dump Syx File`
+- MIDI Mapping: `Paketti:Sysexizer Control 01 [Knob]` … `Paketti:Sysexizer Control 32 [Knob]`
+- MIDI Mapping: `Paketti:Sysexizer Send All Controls`
+- MIDI Mapping: `Paketti:Sysexizer Dump Syx File`
+
 ### 2026-08-23 - Fix: .MOD Header Garbage in Raw Loaders, and One Parser Instead of Two
 
 `Load .MOD as Sample` and the Multi-File Raw Loader each carried their own copy of the `.MOD` offset maths, older and wronger than the one in the parser. Both are gone; there is now a single implementation.

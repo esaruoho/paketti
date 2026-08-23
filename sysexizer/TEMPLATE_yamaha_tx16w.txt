@@ -1,0 +1,23 @@
+# Yamaha TX16W - TEMPLATE, NOT VERIFIED.
+#
+# I do not have the TX16W SysEx implementation chart, and I will not invent
+# byte addresses for it. Every line below is commented out on purpose.
+#
+# Yamaha parameter-change messages are shaped like:
+#     F0 43 1n <model id> <param hi> <param lo> <data> F7
+# where n = channel-1, which the 10+CH token produces.
+#
+# Fill in the real <model id> and parameter addresses from the TX16W manual
+# (or from the byte stream captured off the machine's own front panel edits),
+# then uncomment. Everything else in Sysexizer already works.
+#
+@device Yamaha TX16W (template - fill in from manual)
+@channel 1
+@delay 30
+#
+# Filter Cutoff       : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 64
+# Filter Resonance    : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 0
+# Amp Attack          : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 0
+# Amp Decay           : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 64
+# Amp Sustain         : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 127
+# Amp Release         : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 32

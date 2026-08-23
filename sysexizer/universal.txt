@@ -1,0 +1,12 @@
+# MIDI Universal System Exclusive - defined by the MIDI 1.0 spec, vendor independent.
+# These are safe to send to anything; the Inquiry makes a device identify itself.
+@device Universal SysEx (MIDI spec)
+@channel 1
+@delay 30
+
+Device Inquiry        : F0 7E 7F 06 01 F7
+Master Volume         : F0 7E 7F 04 01 00 VV F7 : 0 127 127
+Master Balance        : F0 7E 7F 04 02 00 VV F7 : 0 127 64
+GM System On          : F0 7E 7F 09 01 F7
+GM System Off         : F0 7E 7F 09 02 F7
+GM2 System On         : F0 7E 7F 09 03 F7

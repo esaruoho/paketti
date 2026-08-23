@@ -591,6 +591,46 @@ This is what Paketti is all about, workflow improvements that "make sense (tm)" 
 Also, every Paketti instrument comes in pre-baked with Pitchbend support - so you don't have to set it up yourself. Just load a sample using Paketti (or Clean Render, or Unison Generate, or eSpeak generate, or yt-dlp download, or .RX2 / .REX / .PTI / .IFF / .SF2 import), and you're already ready to control that specific instrument's macro knobs.
 
 
+### Sysexizer — SysEx Control Surface and .syx Dumper
+
+Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer Control Surface...`
+Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer Dump .syx File...`
+Keybinding: `Global:Paketti:Sysexizer Control Surface`
+
+CCizer gives you a text file of CC numbers and turns it into a MIDI Control device. Sysexizer does the same thing for System Exclusive — the parameters a synth exposes *only* over SysEx, with no CC equivalent. Renoise has no device that sends SysEx, so Sysexizer sends the bytes itself.
+
+The dialog is 32 slots. Load a definition file from the popup, and the slots fill with that synth's parameters. Move a slider and the SysEx goes out of the selected MIDI port immediately.
+
+**Binding your controller.** Each of the 32 slots has a permanent MIDI mapping, `Paketti:Sysexizer Control 01 [Knob]` through `Paketti:Sysexizer Control 32 [Knob]`. Bind your knobs and faders to those once in Renoise's MIDI Mapping dialog and they stay bound — the names never change, so loading a different definition file re-points the same knobs at a different synth. Your controller sends 0-127 and Sysexizer scales it into whatever range the parameter actually accepts.
+
+**Writing a definition file.** Drop a `.txt` into the `sysexizer` folder next to the tool. One control per line:
+
+```
+@device  Roland GS (DT1)
+@channel 1
+@delay   30
+
+Master Volume : F0 41 10 42 12 ~ 40 00 04 VV SUM F7 : 0 127 127
+```
+
+Hex bytes are literal. The tokens are:
+
+| Token | Meaning |
+|-------|---------|
+| `VV` | the control's value as one 7-bit byte |
+| `VH` `VL` | high / low 7-bit halves of a 14-bit value |
+| `CH` | bare (channel - 1) byte |
+| `XX+CH` | literal byte plus (channel - 1) — Yamaha's `1n` is `10+CH` |
+| `~` | opens a checksum region (emits nothing itself) |
+| `SUM` | Roland/Yamaha checksum of everything since `~` |
+
+The trailing `: min max default` is optional and defaults to `0 127 0`. Lines starting with `#` are comments, and files whose names start with `_` are treated as documentation and hidden from the popup.
+
+Included: `universal.txt` (Device Inquiry, Master Volume/Balance, GM On/Off — straight from the MIDI 1.0 spec, safe to send to anything), `roland_gs.txt` (checksummed GS parameters), `_format.txt` (the format reference), and a Yamaha TX16W template. The TX16W lines are commented out on purpose — the byte addresses need filling in from the machine's implementation chart, which was not available to verify against. Everything around them works.
+
+**Dumping .syx files.** `Load .syx...` reads a SysEx file and splits it into individual `F0`…`F7` messages; `Dump to Port` sends them to the selected output. It paces itself rather than firing everything at once. MIDI is 31250 baud, so a 512-byte block takes about 164 ms to actually leave — push messages faster than that and the driver queue backs up, at which point short messages overtake long ones already waiting. The gap between messages is therefore each message's own transmission time plus the `Msg gap ms` value, which you can raise for older hardware that needs time to write each block to memory. `Stop` aborts a dump in progress.
+
+
 ## Pattern Editor
 
 ## Mixer
