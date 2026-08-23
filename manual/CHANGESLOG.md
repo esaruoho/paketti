@@ -8,6 +8,22 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Fix: RX2 import could freeze Renoise on Linux
+
+A Linux user hit `PakettiRX2Loader.lua:300 ... failed to execute in one of its file import hooks` followed by `Script execution terminated by user`. That second line is the tell: the import was not erroring, it was **hanging**, and the user aborted Renoise's long-running-script prompt.
+
+On Linux the `.rx2` decoder is a Windows executable run through Wine, and the command was a bare `wine decoder.exe ...` passed to `os.execute()`, which blocks Renoise's UI thread with no time limit. Two normal Wine situations then freeze Renoise outright: a fresh WINEPREFIX pops the "Wine Mono / Wine Gecko is not installed" installer dialogs (which can open *behind* Renoise, so they are never dismissed), and a wedged wineserver never returns either.
+
+Three changes:
+
+- **Wine is checked before it is used.** If Wine is not installed, RX2 import now stops immediately with a message saying so and how to install it, instead of handing an unrunnable command to the shell.
+- **The installer dialogs are suppressed and the run is time-limited.** The decoder is invoked with `WINEDLLOVERRIDES=mscoree,mshtml=` so Wine never opens the Mono/Gecko prompts, and wrapped in `timeout` (when available) so the worst case is a clear error after two minutes rather than a frozen Renoise. A timeout says what to do — run `wine --version` once in a terminal to let Wine finish its first-run setup.
+- **Paths are quoted for the shell properly.** The command was built with Lua's `%q`, which escapes for Lua source, not for `/bin/sh`. A sample path containing `$`, a backtick, or a quote was passed through to the shell and expanded — `$HOME` became the home directory and backticks ran as a command. This affected every platform, not just Linux. Paths are now single-quoted with correct escaping.
+
+The command building was duplicated across the single-file import and both batch RX2 converters, each with its own copy of the Linux branch; all three now share one builder, so this cannot be fixed in one and left broken in the others.
+
+Verified on macOS (import of a 15-slice `.rx2` still produces a 16-sample instrument with 15 slice markers) and by round-tripping a path containing spaces, quotes, `$HOME` and backticks through a real shell. **The Linux path itself is not verified** — I have no Linux machine to test on.
+
 ### 2026-08-23 - Feature: .MOD Samples Straight Into Amigo
 
 Two new ways to get an Amiga module into the PotenzaDSP Amigo Sampler.

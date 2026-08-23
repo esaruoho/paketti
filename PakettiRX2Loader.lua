@@ -76,6 +76,97 @@ local function is_instrument_empty(instrument)
 end
 
 --------------------------------------------------------------------------------
+-- Running the external decoder
+--
+-- macOS and Windows run a native decoder binary. Linux runs the WINDOWS decoder
+-- under Wine, and that is where every Linux report has come from, because two
+-- things make a bare `wine decoder.exe ...` block the Renoise UI thread forever:
+--
+--   * a fresh WINEPREFIX pops the "Wine Mono / Wine Gecko is not installed"
+--     GUI installer dialogs. If the user never sees or dismisses them (they can
+--     open behind Renoise), wine never returns.
+--   * a wedged wineserver never returns either.
+--
+-- os.execute() blocks the UI thread, so either case ends as "Script execution
+-- terminated by user" after the user aborts Renoise's long-running-script
+-- prompt, with a traceback pointing at the import hook and no idea why.
+--
+-- WINEDLLOVERRIDES suppresses the installer dialogs, and `timeout` bounds the
+-- whole thing so the worst case is a clear error instead of a frozen Renoise.
+--------------------------------------------------------------------------------
+
+-- Quote a path for /bin/sh. Lua's %q escapes for LUA source, not for the shell,
+-- so a path containing a quote or a backslash could produce a broken command.
+local function rx2_shell_quote(str)
+  return "'" .. tostring(str):gsub("'", "'\\''") .. "'"
+end
+
+-- true when `name` is runnable from the shell
+local function rx2_have_command(name)
+  return os.execute("command -v " .. name .. " >/dev/null 2>&1") == 0
+end
+
+-- Cached so a batch of 200 .rx2 files does not shell out twice per file.
+local rx2_wine_checked, rx2_wine_present = false, false
+local rx2_timeout_checked, rx2_timeout_present = false, false
+
+function PakettiRX2WineAvailable()
+  if not rx2_wine_checked then
+    rx2_wine_checked = true
+    rx2_wine_present = rx2_have_command("wine")
+  end
+  return rx2_wine_present
+end
+
+local function rx2_timeout_available()
+  if not rx2_timeout_checked then
+    rx2_timeout_checked = true
+    rx2_timeout_present = rx2_have_command("timeout")
+  end
+  return rx2_timeout_present
+end
+
+-- How long the decoder may run before Wine is killed, in seconds. A long .rx2
+-- decodes in well under a second; anything past this is a hang, not work.
+local RX2_DECODER_TIMEOUT_SECONDS = 120
+
+--- Builds the shell command that decodes one .rx2 into a .wav plus a slice .txt.
+--- Shared by the single-file import and both batch converters so the Linux
+--- handling can never be fixed in one of them and left broken in the others.
+function PakettiRX2BuildDecoderCommand(os_name, decoder_path, input_path, wav_output, txt_output, sdk_path)
+  local q = rx2_shell_quote
+  local args = string.format("%s %s %s %s",
+    q(input_path), q(wav_output), q(txt_output), q(sdk_path))
+
+  if os_name ~= "LINUX" then
+    return string.format("%s %s 2>&1", decoder_path, args)
+  end
+
+  local prefix = "WINEDEBUG=-all WINEDLLOVERRIDES=" .. q("mscoree,mshtml=") .. " "
+  if rx2_timeout_available() then
+    prefix = prefix .. "timeout " .. RX2_DECODER_TIMEOUT_SECONDS .. " "
+  end
+  return string.format("%swine %s %s 2>&1", prefix, q(decoder_path), args)
+end
+
+--- Turns an os.execute() status from the decoder into something a user can act
+--- on. Returns nil when the status is not one we can explain.
+function PakettiRX2ExplainDecoderFailure(os_name, status)
+  if os_name ~= "LINUX" then return nil end
+  -- `timeout` reports 124; os.execute in Lua 5.1 hands back the raw wait status
+  if status == 124 or status == 31744 then
+    return string.format(
+      "Wine did not finish within %d seconds and was stopped. Run "
+      .. "'wine --version' in a terminal once to let Wine finish its first-run setup.",
+      RX2_DECODER_TIMEOUT_SECONDS)
+  end
+  if status == 127 or status == 32512 then
+    return "Wine could not be started (command not found)."
+  end
+  return nil
+end
+
+--------------------------------------------------------------------------------
 -- OS-specific configuration and setup
 --------------------------------------------------------------------------------
 local function setup_os_specific_paths()
@@ -120,7 +211,18 @@ local function setup_os_specific_paths()
   elseif os_name == "LINUX" then
     rex_decoder_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator .. "rex2decoder_win.exe"
     sdk_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator
-    renoise.app():show_status("Hi, Linux user, remember to have WINE installed.")
+
+    -- Fail here with a readable message rather than handing an unrunnable
+    -- command to os.execute() and blocking the UI thread on it.
+    if not PakettiRX2WineAvailable() then
+      renoise.app():show_error(
+        "RX2 import needs Wine on Linux.\n\n"
+        .. "The .rx2 decoder is a Windows executable, so Paketti runs it through Wine. "
+        .. "Install Wine from your distribution's package manager (for example "
+        .. "'sudo apt install wine' or 'sudo pacman -S wine'), then run 'wine --version' "
+        .. "once in a terminal so Wine can finish its first-run setup, and try again.")
+      setup_success = false
+    end
   end
   
   return setup_success, rex_decoder_path, sdk_path
@@ -267,24 +369,8 @@ print (wav_output)
 print (txt_output)
 
 -- Build and run the command to execute the external decoder
-local cmd
-if os_name == "LINUX" then
-  cmd = string.format("wine %q %q %q %q %q 2>&1", 
-    rex_decoder_path,  -- decoder executable
-    filename,          -- input file
-    wav_output,        -- output WAV file
-    txt_output,        -- output TXT file
-    sdk_path           -- SDK directory
-  )
-else
-  cmd = string.format("%s %q %q %q %q 2>&1", 
-    rex_decoder_path,  -- decoder executable
-    filename,          -- input file
-    wav_output,        -- output WAV file
-    txt_output,        -- output TXT file
-    sdk_path           -- SDK directory
-  )
-end
+local cmd = PakettiRX2BuildDecoderCommand(
+  os_name, rex_decoder_path, filename, wav_output, txt_output, sdk_path)
 
 print("----- Running External Decoder Command -----")
 print(cmd)
@@ -306,7 +392,13 @@ if (result ~= 0) then
     renoise.app():show_status("Decoder returned exit code " .. tostring(result) .. "; using generated files.")
   else
     print("Decoder returned error code", result)
-    renoise.app():show_status("External decoder failed with error code " .. tostring(result))
+    local why = PakettiRX2ExplainDecoderFailure(os_name, result)
+    if why then
+      print("RX2 decoder: " .. why)
+      renoise.app():show_error("RX2 import failed.\n\n" .. why)
+    else
+      renoise.app():show_status("External decoder failed with error code " .. tostring(result))
+    end
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
@@ -868,14 +960,8 @@ function PakettiBatchRX2ToOT()
     local temp_txt = TEMP_FOLDER .. separator .. base_name .. "_" .. timestamp .. "_slices.txt"
     
     -- Build and run the decoder command
-    local cmd
-    if os_name == "LINUX" then
-      cmd = string.format("wine %q %q %q %q %q 2>&1", 
-        rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
-    else
-      cmd = string.format("%s %q %q %q %q 2>&1", 
-        rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
-    end
+    local cmd = PakettiRX2BuildDecoderCommand(
+      os_name, rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
     
     print("Running decoder: " .. cmd)
     local result = os.execute(cmd)
@@ -1061,14 +1147,8 @@ function PakettiBatchRX2ToXRNI_Worker(
     local temp_txt = TEMP_FOLDER .. separator .. base_name .. "_" .. timestamp .. "_slices.txt"
 
     -- Run the external decoder
-    local cmd
-    if os_name == "LINUX" then
-      cmd = string.format("wine %q %q %q %q %q 2>&1",
-        rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
-    else
-      cmd = string.format("%s %q %q %q %q 2>&1",
-        rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
-    end
+    local cmd = PakettiRX2BuildDecoderCommand(
+      os_name, rex_decoder_path, rx2_path, temp_wav, temp_txt, sdk_path)
     print("Running decoder: " .. cmd)
     os.execute(cmd)
 
