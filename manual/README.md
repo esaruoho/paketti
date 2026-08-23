@@ -631,6 +631,32 @@ Included: `universal.txt` (Device Inquiry, Master Volume/Balance, GM On/Off — 
 **Dumping .syx files.** `Load .syx...` reads a SysEx file and splits it into individual `F0`…`F7` messages; `Dump to Port` sends them to the selected output. It paces itself rather than firing everything at once. MIDI is 31250 baud, so a 512-byte block takes about 164 ms to actually leave — push messages faster than that and the driver queue backs up, at which point short messages overtake long ones already waiting. The gap between messages is therefore each message's own transmission time plus the `Msg gap ms` value, which you can raise for older hardware that needs time to write each block to memory. `Stop` aborts a dump in progress.
 
 
+### Sysexizer SysEx Monitor — reverse engineering an undocumented synth
+
+Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer SysEx Monitor...`
+Keybinding: `Global:Paketti:Sysexizer SysEx Monitor`
+
+Some synths never had their SysEx format published. The Yamaha TX16W manual says outright that the machine sends System Exclusive for front panel switches and parameter changes, and then tells programmers to contact Yamaha for the details — a document that is not in the manual and is not coming.
+
+You can get it from the machine instead. Connect the synth's MIDI Out to your computer, open the Monitor and pick that input. Then:
+
+1. Move one parameter on the synth's front panel. A message appears in the list.
+2. Move the **same** parameter to a different value. A second message appears.
+3. Press **Diff Last Two**.
+
+If exactly one byte changed, that byte is the parameter's value and everything around it is its address — and the Monitor writes the definition line for you:
+
+```
+My Parameter : F0 43 10 7A 00 4A VV F7 : 0 127 0
+```
+
+Rename it, save it into a `.txt` in the `sysexizer` folder, and that parameter now has a slider and a MIDI mapping in the Sysexizer control surface. Repeat per parameter and you have built an editor for a synth nobody documented.
+
+If the diff reports several changed bytes, the message probably carries a checksum (see the `~` and `SUM` tokens) or the two captures were different message types. If lengths differ, they are definitely different messages — capture again, moving only the one control.
+
+**Save .syx...** writes every captured message to a file, so a bulk dump pulled off the synth can be sent back later with `Dump to Port`. Incoming SysEx reaches Renoise in 256-byte chunks rather than whole messages; the Monitor reassembles them, so a long dump shows as one message.
+
+
 ## Pattern Editor
 
 ## Mixer

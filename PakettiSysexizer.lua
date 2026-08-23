@@ -50,7 +50,11 @@ local sx = {
   building = false,
   dump_timer = nil,
   dump_index = 0,
-  log = {}
+  log = {},
+  mon_dev = nil,
+  mon_name = nil,
+  mon_partial = nil,
+  mon_msgs = {}
 }
 
 for i = 1, SLOT_COUNT do
@@ -696,11 +700,224 @@ function PakettiSysexizerHexString(bytes)
 end
 
 --------------------------------------------------------------------------------
+-- SysEx Monitor: capture what a synth sends, so its format can be reverse
+-- engineered when the manufacturer never published one.
+--
+-- The TX16W is the motivating case: its manual says it transmits SysEx for front
+-- panel switches and parameter changes, but points programmers at Yamaha for the
+-- byte format. Wiggle a parameter, capture, diff two captures, and the moving byte
+-- is the parameter address.
+--
+-- Renoise delivers incoming SysEx in 256-BYTE CHUNKS, not whole messages, so this
+-- accumulates bytes and cuts on F0..F7 itself. A dump straight from the callback
+-- would be shredded into 256-byte pieces.
+--------------------------------------------------------------------------------
+
+local monitor_dialog = nil
+local monitor_vb = nil
+
+local function monitor_refresh_view()
+  if not (monitor_dialog and monitor_dialog.visible and monitor_vb) then return end
+  local lines = {}
+  local n = #sx.mon_msgs
+  local first = math.max(1, n - 30)
+  for i = first, n do
+    local m = sx.mon_msgs[i]
+    lines[#lines + 1] = string.format("[%03d] %3d bytes  %s", i, #m, bytes_to_hex(m))
+  end
+  if n == 0 then lines[1] = "(nothing captured yet -- move a control on the synth)" end
+  if monitor_vb.views["sysexizer_mon_text"] then
+    monitor_vb.views["sysexizer_mon_text"].text = table.concat(lines, "\n")
+  end
+  if monitor_vb.views["sysexizer_mon_count"] then
+    monitor_vb.views["sysexizer_mon_count"].text = string.format("%d captured", n)
+  end
+end
+
+function PakettiSysexizerMonitorStop()
+  if sx.mon_dev then
+    pcall(function() sx.mon_dev:close() end)
+    sx.mon_dev = nil
+    sx.mon_name = nil
+  end
+  sx.mon_partial = nil
+end
+
+function PakettiSysexizerMonitorStart(port_name)
+  PakettiSysexizerMonitorStop()
+  if not port_name or port_name == "" then return false end
+  -- Nothing in this callback may throw: an error escaping it makes Renoise disable
+  -- every notifier this tool owns until Renoise is restarted.
+  local function on_sysex(chunk)
+    pcall(function()
+      for _, b in ipairs(chunk) do
+        if b == 0xF0 then
+          sx.mon_partial = { b }
+        elseif sx.mon_partial then
+          sx.mon_partial[#sx.mon_partial + 1] = b
+          if b == 0xF7 then
+            sx.mon_msgs[#sx.mon_msgs + 1] = sx.mon_partial
+            sx.mon_partial = nil
+            monitor_refresh_view()
+          end
+        end
+      end
+    end)
+  end
+  local ok, dev = pcall(function()
+    return renoise.Midi.create_input_device(port_name, function() end, on_sysex)
+  end)
+  if not ok or not dev then
+    sx_log("could not open MIDI input '%s'", tostring(port_name))
+    return false
+  end
+  sx.mon_dev = dev
+  sx.mon_name = port_name
+  sx_log("monitoring SysEx on '%s'", port_name)
+  return true
+end
+
+function PakettiSysexizerMonitorClear()
+  sx.mon_msgs = {}
+  sx.mon_partial = nil
+  monitor_refresh_view()
+end
+
+-- Compare the last two captures byte by byte. Same length + one differing byte is
+-- the giveaway: that offset is the parameter value, and the bytes around it are its
+-- address.
+function PakettiSysexizerMonitorDiff()
+  local n = #sx.mon_msgs
+  if n < 2 then
+    renoise.app():show_status("Sysexizer Monitor: need at least two captured messages")
+    return nil
+  end
+  local a, b = sx.mon_msgs[n - 1], sx.mon_msgs[n]
+  local out = {}
+  if #a ~= #b then
+    out[#out + 1] = string.format("lengths differ: %d vs %d -- not the same message type", #a, #b)
+  else
+    local diffs = {}
+    for i = 1, #a do
+      if a[i] ~= b[i] then
+        diffs[#diffs + 1] = string.format("offset %d: %02X -> %02X", i, a[i], b[i])
+      end
+    end
+    if #diffs == 0 then
+      out[#out + 1] = "identical -- the control did not change anything"
+    else
+      out[#out + 1] = string.format("%d byte(s) changed between the last two messages:", #diffs)
+      for _, d in ipairs(diffs) do out[#out + 1] = "  " .. d end
+      if #diffs == 1 then
+        local off = tonumber(diffs[1]:match("offset (%d+)"))
+        local tmpl = {}
+        for i = 1, #a do tmpl[#tmpl + 1] = (i == off) and "VV" or string.format("%02X", a[i]) end
+        out[#out + 1] = ""
+        out[#out + 1] = "definition line for this control:"
+        out[#out + 1] = "  My Parameter : " .. table.concat(tmpl, " ") .. " : 0 127 0"
+      end
+    end
+  end
+  local text = table.concat(out, "\n")
+  print("-- Sysexizer Monitor diff:\n" .. text)
+  renoise.app():show_message(text)
+  return text
+end
+
+function PakettiSysexizerMonitorSave()
+  if #sx.mon_msgs == 0 then
+    renoise.app():show_status("Sysexizer Monitor: nothing captured")
+    return false
+  end
+  local path = renoise.app():prompt_for_filename_to_write("syx", "Save captured SysEx")
+  if not path or path == "" then return false end
+  local f = io.open(path, "wb")
+  if not f then
+    renoise.app():show_error("Sysexizer: cannot write " .. path)
+    return false
+  end
+  local total = 0
+  for _, m in ipairs(sx.mon_msgs) do
+    local chars = {}
+    for _, b in ipairs(m) do chars[#chars + 1] = string.char(b) end
+    f:write(table.concat(chars))
+    total = total + #m
+  end
+  f:close()
+  sx_log("saved %d messages (%d bytes) to %s", #sx.mon_msgs, total, path)
+  renoise.app():show_status(string.format("Sysexizer: saved %d messages to %s", #sx.mon_msgs, path))
+  return true
+end
+
+function PakettiSysexizerMonitorDialog()
+  if monitor_dialog and monitor_dialog.visible then
+    monitor_dialog:close()
+    monitor_dialog = nil
+    return
+  end
+  monitor_vb = renoise.ViewBuilder()
+  local building = true
+
+  local in_names = renoise.Midi.available_input_devices()
+  local items = { "<no port>" }
+  for _, n in ipairs(in_names) do items[#items + 1] = n end
+  local index = 1
+  for i, n in ipairs(items) do
+    if n == sx.mon_name then index = i break end
+  end
+
+  local content = monitor_vb:column{
+    margin = 8,
+    spacing = 6,
+    monitor_vb:row{
+      spacing = 6,
+      monitor_vb:text{ text = "MIDI In", width = 60, font = "bold" },
+      monitor_vb:popup{
+        width = 240,
+        items = items,
+        value = index,
+        notifier = function(i)
+          if building then return end
+          if i == 1 then PakettiSysexizerMonitorStop()
+          else PakettiSysexizerMonitorStart(items[i]) end
+        end
+      },
+      monitor_vb:text{ id = "sysexizer_mon_count", text = string.format("%d captured", #sx.mon_msgs), width = 100 },
+      monitor_vb:button{ text = "Clear", width = 60, notifier = function() PakettiSysexizerMonitorClear() end },
+      monitor_vb:button{ text = "Diff Last Two", width = 100, notifier = function() PakettiSysexizerMonitorDiff() end },
+      monitor_vb:button{ text = "Save .syx...", width = 90, notifier = function() PakettiSysexizerMonitorSave() end }
+    },
+    monitor_vb:text{
+      text = "Move one control on the synth, move it again, then press Diff Last Two.",
+      width = 700
+    },
+    monitor_vb:multiline_text{
+      id = "sysexizer_mon_text",
+      width = 700,
+      height = 300,
+      font = "mono",
+      text = "(nothing captured yet -- move a control on the synth)"
+    }
+  }
+
+  local keyhandler = function(dlg, key)
+    if key.name == "esc" then dlg:close() monitor_dialog = nil return nil end
+    return key
+  end
+
+  monitor_dialog = renoise.app():show_custom_dialog("Paketti Sysexizer - SysEx Monitor", content, keyhandler)
+  building = false
+  if index > 1 then PakettiSysexizerMonitorStart(items[index]) end
+  monitor_refresh_view()
+end
+
+--------------------------------------------------------------------------------
 -- registrations (last -- house rule 18)
 --------------------------------------------------------------------------------
 
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI:Sysexizer Control Surface...", invoke=function() PakettiSysexizerDialog() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI:Sysexizer Dump .syx File...", invoke=function() PakettiSysexizerBrowseAndDump() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI:Sysexizer SysEx Monitor...", invoke=function() PakettiSysexizerMonitorDialog() end}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Sysexizer Control Surface",
@@ -713,6 +930,10 @@ renoise.tool():add_keybinding{
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Sysexizer Dump Syx File",
   invoke = function() PakettiSysexizerBrowseAndDump() end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Sysexizer SysEx Monitor",
+  invoke = function() PakettiSysexizerMonitorDialog() end
 }
 
 renoise.tool():add_midi_mapping{

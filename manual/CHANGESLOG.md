@@ -14,6 +14,19 @@ Release tags are generated on a GitHub Actions runner, and those run in UTC. A p
 
 The tag is now stamped in `Europe/Helsinki`. Existing tags keep their old UTC names; from the next build onward the timestamp matches the wall clock it was built at, which means the first new tag will appear to jump forward three hours. Daylight saving is handled by the zone itself, and the hour that repeats at the autumn fallback is harmless because "newest release" is resolved by GitHub's creation date, never by sorting the tag text.
 
+### 2026-08-23 - Feature: Sysexizer SysEx Monitor — Capture and Diff a Synth's Own SysEx
+
+Plenty of synths never had their System Exclusive format published. The Yamaha TX16W is the case in point: its manual says the machine transmits SysEx for front panel switches and parameter changes, then tells programmers to contact Yamaha for the byte format. That document is not in the manual and not coming.
+
+You do not need it. The machine tells you itself. Move a parameter on the front panel, capture what it emits, move the same parameter to a different value, capture again — the byte that changed is the value, and the bytes around it are the address.
+
+The Monitor does that. Pick a MIDI input, and every complete SysEx message that arrives is listed with its length and full hex. `Diff Last Two` compares the two most recent captures and reports every differing byte offset; when exactly one byte moved, it writes the finished Sysexizer definition line for you, with `VV` already in the right place, ready to paste into a `.txt` in the `sysexizer` folder. `Save .syx...` writes everything captured to a file.
+
+Incoming SysEx arrives from Renoise in 256-byte chunks rather than whole messages, so the Monitor reassembles `F0`…`F7` itself — a long bulk dump is listed as one message, not shredded into pieces.
+
+- Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer SysEx Monitor...`
+- Keybinding: `Global:Paketti:Sysexizer SysEx Monitor`
+
 ### 2026-08-23 - Feature: Sysexizer — SysEx Control Surface and .syx File Dumper
 
 Renoise has no native device that sends System Exclusive, so where CCizer builds a `*Instr. MIDI Control` device and lets Renoise do the sending, Sysexizer owns its own surface and transmits the bytes itself. It is the same idea though: plain text files describe a synth, and you pick one from a popup.
