@@ -43,7 +43,7 @@ end
 local function paketti_mod_module_basename(filename)
   local base = filename:gsub("%.[mM][oO][dD]$", "")
   base = base:gsub("^[mM][oO][dD]%.", "")
-  return PakettiMODParser.sanitize_filename(base, "module")
+  return pakettiFSPath.sanitize_filename(base, "module")
 end
 
 -- True when a filename looks like a ProTracker module by name alone.
@@ -55,32 +55,7 @@ end
 -- Collects .mod files under a folder. Recurses into subfolders when asked,
 -- skipping hidden ones. Returns a sorted array of absolute paths.
 function PakettiMODCollectFiles(folder, recurse)
-  local results = {}
-  local sep = package.config:sub(1, 1)
-
-  local ok_files, files = pcall(os.filenames, folder)
-  if ok_files and files then
-    for _, fn in ipairs(files) do
-      if paketti_mod_is_mod_filename(fn) then
-        table.insert(results, folder .. sep .. fn)
-      end
-    end
-  end
-
-  if recurse then
-    local ok_dirs, dirs = pcall(os.dirnames, folder)
-    if ok_dirs and dirs then
-      for _, d in ipairs(dirs) do
-        if not d:match("^%.") then
-          local sub = PakettiMODCollectFiles(folder .. sep .. d, true)
-          for _, p in ipairs(sub) do table.insert(results, p) end
-        end
-      end
-    end
-  end
-
-  table.sort(results, function(a, b) return a:lower() < b:lower() end)
-  return results
+  return pakettiFSPath.collect_files(folder, recurse, paketti_mod_is_mod_filename)
 end
 
 --------------------------------------------------------------------------------
@@ -216,7 +191,8 @@ function PakettiMODConvertFileToWAVs(mod_path, output_folder, rate_mode, skip_ex
   local written = 0
 
   for _, info in ipairs(mod.samples) do
-    local sample_name = PakettiMODParser.sanitize_filename(info.name, "untitled")
+    local sample_name = pakettiFSPath.sanitize_filename(
+      pakettiFSPath.strip_audio_extension(info.name), "untitled")
     local out_path = string.format("%s%s%s-%02d-%s.wav",
       output_folder, sep, module_name, info.index, sample_name)
 

@@ -338,6 +338,18 @@ Rips every sample out of a whole folder of modules at once. Each sample is writt
 
 Progress is shown in a dialog with a Cancel button, and Renoise stays usable while it runs. 15-sample Soundtracker modules and the multi-channel tags (`6CHN`, `8CHN`, `10CH`-`32CH`, `OKTA`, `CD81`, StarTrekker `FA0x`, and more) are all handled, not just 4-channel `M.K.`.
 
+#### Batch Convert .XRNI to .WAV
+
+`Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .XRNI to .WAV...` (also under `Main Menu:File:Paketti Import`, `Instrument Box:Paketti:Load`, `Sample Editor:Paketti:Export` and `Disk Browser Files:Paketti:Import/Export`; keybinding `Global:Paketti:Batch Convert .XRNI to .WAV`).
+
+The same converter for Renoise's own instruments. Every sample of every `.xrni` in a folder is written out as `instrumentname-NN-samplename.wav`, keeping the sample's own rate and bit depth.
+
+- **Source Folder** — the folder to scan. `Include subfolders` walks the whole tree.
+- **Write .WAV to** — beside each `.xrni`, or all into one folder.
+- **Skip .wav files that already exist** — resume an interrupted run.
+
+Each instrument is loaded into a temporary instrument slot and removed again, so your own instruments and your selected instrument are left as they were. Progress is shown with a Cancel button.
+
 ### Export
 
 #### Export PTI

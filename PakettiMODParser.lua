@@ -140,30 +140,6 @@ function PakettiMODParser.finetune_rate(base_rate, finetune)
 end
 
 --------------------------------------------------------------------------------
--- filename sanitising
---------------------------------------------------------------------------------
-
---- Makes a .MOD sample/song name safe to use as a filename component on
---- macOS, Windows and Linux. Returns fallback when nothing usable is left.
-function PakettiMODParser.sanitize_filename(name, fallback)
-  fallback = fallback or "untitled"
-  if type(name) ~= "string" then return fallback end
-
-  -- drop NULs and other control characters, then the characters Windows and
-  -- the Finder refuse
-  local s = name:gsub("%c", "")
-  s = s:gsub("[/\\:%*%?\"<>|]", "_")
-  s = s:gsub("^%s+", ""):gsub("%s+$", "")
-  s = s:gsub("%s+", " ")
-  s = s:gsub("%.+$", "")
-
-  if s == "" then return fallback end
-  if #s > 64 then s = s:sub(1, 64):gsub("%s+$", "") end
-  if s == "" then return fallback end
-  return s
-end
-
---------------------------------------------------------------------------------
 -- parse
 --------------------------------------------------------------------------------
 

@@ -8,6 +8,51 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Feature: .MOD Samples Straight Into Amigo
+
+Two new ways to get an Amiga module into the PotenzaDSP Amigo Sampler.
+
+`Load .MOD Samples to Amigo` makes one Amigo per sample — a 31-sample module becomes 31 Amigo instruments, each named after the sample in the module and carrying its loop points. `Load .MOD as Wavetable to Amigo` makes one Amigo holding the whole module: every sample is welded head to tail into a single sample with a slice marker at each join, so 31 samples become 31 slices playable chromatically up the keyboard. Samples are resampled to one common rate before joining, so the merge does not pitch anything wrong.
+
+Both run on the same `.MOD` parser as `Load Samples from .MOD`, so they read 15-sample Soundtracker modules as well as 31-sample ones. Both run on a ProcessSlicer with a progress dialog, so Renoise stays usable while the plugin instances load. Amigo's 64-slice ceiling is passed through rather than assumed — a `.MOD` carries at most 31 samples so it cannot bite, but the status line would report any that were left out.
+
+- Menu: `Main Menu:File:Paketti Import:Load .MOD Samples to Amigo`
+- Menu: `Main Menu:File:Paketti Import:Load .MOD as Wavetable to Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Load .MOD Samples to Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Load .MOD as Wavetable to Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD Samples to Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD as Wavetable to Amigo`
+- Menu: `Instrument Box:Paketti:Load:Load .MOD Samples to Amigo`
+- Menu: `Instrument Box:Paketti:Load:Load .MOD as Wavetable to Amigo`
+- Menu: `Sample Editor:Paketti:Load:Load .MOD Samples to Amigo`
+- Menu: `Sample Editor:Paketti:Load:Load .MOD as Wavetable to Amigo`
+- Menu: `Sample Navigator:Paketti:Load .MOD Samples to Amigo`
+- Menu: `Sample Navigator:Paketti:Load .MOD as Wavetable to Amigo`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Load .MOD Samples to Amigo`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Load .MOD as Wavetable to Amigo`
+- Keybinding: `Global:Paketti:Load .MOD Samples to Amigo`
+- Keybinding: `Global:Paketti:Load .MOD as Wavetable to Amigo`
+- MIDI Mapping: `Paketti:Load .MOD Samples to Amigo`
+- MIDI Mapping: `Paketti:Load .MOD as Wavetable to Amigo`
+
+### 2026-08-23 - Feature: Batch Convert .XRNI to .WAV
+
+The same thing as the .MOD batch converter, for Renoise's own instruments. Point it at a folder of `.xrni` files and every sample of every instrument comes out as `instrumentname-NN-samplename.wav`.
+
+Unlike the .MOD converter this one goes through Renoise, because a `.xrni` is a zip archive whose audio may be FLAC: each instrument is loaded into a temporary instrument slot, its sample buffers are written out, and the slot is deleted again. Sample rate and bit depth are whatever the instrument already had — a 24-bit 44.1 kHz sample comes out 24-bit 44.1 kHz. Your own instruments are untouched and the selected instrument is put back when the run finishes; the scratch slot is removed whether the instrument loaded or not, so a long run never walks into the 255-instrument ceiling.
+
+Options match the .MOD converter: source folder, optional recursion into subfolders, write beside each `.xrni` or into one output folder, and "Skip .wav files that already exist" for resuming an interrupted run. It runs on a ProcessSlicer with progress and a Cancel button. Empty sample slots are skipped, and sample names that already carry a file extension no longer produce `kick.wav.wav`.
+
+The filename sanitising and folder walking are now shared by both converters (in `PakettiFSPath.lua`) rather than written twice.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .XRNI to .WAV...`
+- Menu: `Main Menu:File:Paketti Import:Batch Convert .XRNI to .WAV...`
+- Menu: `Instrument Box:Paketti:Load:Batch Convert .XRNI to .WAV...`
+- Menu: `Sample Editor:Paketti:Export:Batch Convert .XRNI to .WAV...`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Batch Convert .XRNI to .WAV...`
+- Keybinding: `Global:Paketti:Batch Convert .XRNI to .WAV`
+- MIDI Mapping: `Paketti:Batch Convert .XRNI to .WAV`
+
 ### 2026-08-23 - Feature: Batch Convert .MOD to .WAV
 
 Point Paketti at a folder of ProTracker/Soundtracker modules and it writes every sample of every module out as its own `.wav`, named `modulename-NN-samplename.wav` — so 500 modules become 500 x samples-per-module WAV files in one pass. Sample names that are empty or contain characters the filesystem refuses are cleaned up automatically (an unnamed sample becomes `untitled`), and the two-digit number keeps the files in the module's own sample order.

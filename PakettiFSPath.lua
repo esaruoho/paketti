@@ -1,9 +1,11 @@
 --[[============================================================================
 PakettiFSPath.lua — Cross-platform filesystem path utilities
 
-Pure-Lua path manipulation (no Renoise API dependencies) and a sample-relocation
+Pure-Lua path manipulation (no Renoise API dependencies), a sample-relocation
 helper used by importers that consume files containing absolute paths to other
-files (EXS24, NKI/Kontakt, GIG, Polyend Tracker .mtp, Octatrack .ot pairs, etc).
+files (EXS24, NKI/Kontakt, GIG, Polyend Tracker .mtp, Octatrack .ot pairs, etc),
+and the filename-sanitising / folder-walking helpers shared by Paketti's batch
+converters (see the bottom of this file).
 
 Derived from matt-allan/renoise-exs24's fspath.lua (MIT, 2018) — adapted for
 Paketti (GPLv3). The MIT attribution below satisfies the MIT license
@@ -197,4 +199,90 @@ function pakettiFSPath.resolve(reference_path, anchor_path, extra_roots)
   end
 
   return nil
+end
+
+--------------------------------------------------------------------------------
+-- Shared helpers for batch converters
+--
+-- sanitize_filename is pure Lua. collect_files uses Renoise's os.filenames /
+-- os.dirnames extensions, so it is the one function in this file that needs the
+-- Renoise host (it is never called at load time).
+--------------------------------------------------------------------------------
+
+---Make an arbitrary name safe to use as a filename component on macOS, Windows
+---and Linux. Returns `fallback` when nothing usable is left.
+---@param name string
+---@param fallback string?
+---@return string
+function pakettiFSPath.sanitize_filename(name, fallback)
+  fallback = fallback or "untitled"
+  if type(name) ~= "string" then return fallback end
+
+  -- drop control characters (NUL padding included), then the characters
+  -- Windows and the Finder refuse
+  local s = name:gsub("%c", "")
+  s = s:gsub("[/\\:%*%?\"<>|]", "_")
+  s = s:gsub("^%s+", ""):gsub("%s+$", "")
+  s = s:gsub("%s+", " ")
+  s = s:gsub("%.+$", "")
+
+  if s == "" then return fallback end
+  if #s > 64 then s = s:sub(1, 64):gsub("%s+$", "") end
+  if s == "" then return fallback end
+  return s
+end
+
+---Strip a trailing audio-file extension from a name. Renoise sample names very
+---often carry the source filename including its extension, which would otherwise
+---produce "kick.wav.wav" when exporting. Only the extensions Renoise itself can
+---import are removed, so a sample genuinely called "Track 1.2" keeps its name.
+---@param name string
+---@return string
+function pakettiFSPath.strip_audio_extension(name)
+  if type(name) ~= "string" then return "" end
+  local stem, ext = name:match("^(.*)%.([%w%d]+)$")
+  if not stem or stem == "" then return name end
+  local AUDIO_EXTENSIONS = {
+    wav = true, wave = true, aif = true, aiff = true, aifc = true, flac = true,
+    ogg = true, mp3 = true, m4a = true, caf = true, w64 = true, snd = true,
+    au = true, voc = true, iff = true, ["8svx"] = true, ["16sv"] = true,
+    raw = true, rex = true, rx2 = true,
+  }
+  if AUDIO_EXTENSIONS[ext:lower()] then return stem end
+  return name
+end
+
+---Collect files under a folder, keeping only those `match_fn(filename)` accepts.
+---Recurses into subfolders when asked, skipping hidden ones. Returns a
+---case-insensitively sorted array of absolute paths.
+---@param folder string
+---@param recurse boolean?
+---@param match_fn fun(filename: string): boolean
+---@return string[]
+function pakettiFSPath.collect_files(folder, recurse, match_fn)
+  local results = {}
+
+  local function walk(dir)
+    local ok_files, files = pcall(os.filenames, dir)
+    if ok_files and files then
+      for _, fn in ipairs(files) do
+        if match_fn(fn) then
+          table.insert(results, pakettiFSPath.join(dir, fn))
+        end
+      end
+    end
+
+    if recurse then
+      local ok_dirs, dirs = pcall(os.dirnames, dir)
+      if ok_dirs and dirs then
+        for _, d in ipairs(dirs) do
+          if not d:match("^%.") then walk(pakettiFSPath.join(dir, d)) end
+        end
+      end
+    end
+  end
+
+  walk(folder)
+  table.sort(results, function(a, b) return a:lower() < b:lower() end)
+  return results
 end

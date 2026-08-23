@@ -333,6 +333,11 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMODToWAVRecurse=true,
   pakettiMODToWAVRateMode=1,  -- 1=Amiga 8363Hz (finetuned), 2=8363Hz fixed, 3=16726Hz, 4=22050Hz, 5=44100Hz
   pakettiMODToWAVSkipExisting=false,
+  pakettiXRNIToWAVSourceFolder="",
+  pakettiXRNIToWAVOutputFolder="",
+  pakettiXRNIToWAVSeparateOutput=false,
+  pakettiXRNIToWAVRecurse=true,
+  pakettiXRNIToWAVSkipExisting=false,
   pakettiStemLoaderDestructive=false,  -- When enabled, clears all tracks and patterns before loading stems
   pakettiStemLoaderAutoSliceOnMixedRates=true,  -- Auto-switch to slice mode when mixed sample rates detected
   pakettiLoadToAllTracksPosition=true,  -- false = First (position 2), true = Last (end of chain)
