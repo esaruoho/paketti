@@ -35,6 +35,21 @@ Both run on the same `.MOD` parser as `Load Samples from .MOD`, so they read 15-
 - MIDI Mapping: `Paketti:Load .MOD Samples to Amigo`
 - MIDI Mapping: `Paketti:Load .MOD as Wavetable to Amigo`
 
+### 2026-08-23 - Feature: .MOD samples straight into Amigo
+
+Takes an Amiga ProTracker/Soundtracker module and puts its samples into the Amigo Sampler, in two shapes.
+
+**Load .MOD Samples to Amigo** gives you one Amigo per sample — a 31-sample module becomes 31 Amigo instruments, each named after the sample in the module and carrying the module's loop points. Each sample's `.wav` is written into the **Paketti Amigo Samples** folder in your home directory, which is what Amigo plays from.
+
+**Load .MOD as Wavetable to Amigo** gives you one Amigo holding the whole module: every sample welded head to tail into a single sample with a slice marker at each join, so 31 samples become 31 slices playable chromatically from Amigo's root note. Everything is resampled to one common rate before joining, so nothing is pitched wrong by the merge.
+
+Both reuse the existing Amigo chain builder rather than duplicating it, and both run on the same `.MOD` parser as `Load Samples from .MOD`, so they inherit its format coverage — 15-sample Soundtracker modules as well as 31-sample ones, and channel counts read from every common format tag. Amigo holds 64 slices and a `.MOD` carries at most 31 samples, so neither command can hit the ceiling; the cap is passed through rather than assumed.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Load .MOD Samples to Amigo` and `...:Load .MOD as Wavetable to Amigo`
+- Menu: the same two entries under `Main Menu:File:Paketti Import`, `Main Menu:Tools:Paketti:Instruments:File Formats`, `Instrument Box:Paketti:Load`, `Sample Editor:Paketti:Load`, `Sample Navigator:Paketti` and `Disk Browser Files:Paketti:Import/Export`
+- Keybinding: `Global:Paketti:Load .MOD Samples to Amigo`, `Global:Paketti:Load .MOD as Wavetable to Amigo`
+- MIDI Mapping: `Paketti:Load .MOD Samples to Amigo`, `Paketti:Load .MOD as Wavetable to Amigo`
+
 ### 2026-08-23 - Feature: Batch Convert .MOD to .XRNI
 
 Point Paketti at a folder of ProTracker/Soundtracker modules and it turns them into Renoise instruments. Unlike the .WAV converter the output is real instruments, so the Paketti default instrument (Pitchbend modulation set, macros visible), your sample loader preferences and the module's own loop points all come along.

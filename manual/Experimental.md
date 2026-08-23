@@ -19666,6 +19666,39 @@ Exported wavs never overwrite each other. If two samples share a name the second
 - MIDI Mapping: `Paketti:Batch Every Amigo in Song to Renoise Instruments`
 - MIDI Mapping: `Paketti:Batch Every Sampled Instrument in Song to Amigo`
 
+## .MOD Samples to Amigo
+
+Takes an Amiga ProTracker/Soundtracker module and puts its samples into Amigo, in two shapes.
+
+**Load .MOD Samples to Amigo** gives you one Amigo per sample. A 31-sample module becomes 31 Amigo instruments, each named after the sample in the module and carrying the module's loop points. Each sample's `.wav` is written into the **Paketti Amigo Samples** folder in your home directory, which is what Amigo actually plays from.
+
+**Load .MOD as Wavetable to Amigo** gives you one Amigo holding the whole module. Every sample is welded head to tail into a single sample with a slice marker at each join, so the 31 samples become 31 slices you can play chromatically up the keyboard from Amigo's root note. All the samples are resampled to one common rate before joining, so nothing is pitched wrong by the merge.
+
+Both run on the same `.MOD` parser as `Load Samples from .MOD`, so they inherit its format coverage — 15-sample Soundtracker modules as well as 31-sample ones, and channel counts read from every common format tag.
+
+Amigo holds 64 slices, and a `.MOD` carries at most 31 samples, so neither command can hit the ceiling. The cap is passed through rather than assumed, and if it ever did bite, the status line would say how many were left out.
+
+Both run on a ProcessSlicer with a progress dialog, so Renoise stays usable while 31 plugin instances load.
+
+- Menu: `Main Menu:File:Paketti Import:Load .MOD Samples to Amigo`
+- Menu: `Main Menu:File:Paketti Import:Load .MOD as Wavetable to Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Load .MOD Samples to Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Amigo:Load .MOD as Wavetable to Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD Samples to Amigo`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD as Wavetable to Amigo`
+- Menu: `Instrument Box:Paketti:Load:Load .MOD Samples to Amigo`
+- Menu: `Instrument Box:Paketti:Load:Load .MOD as Wavetable to Amigo`
+- Menu: `Sample Editor:Paketti:Load:Load .MOD Samples to Amigo`
+- Menu: `Sample Editor:Paketti:Load:Load .MOD as Wavetable to Amigo`
+- Menu: `Sample Navigator:Paketti:Load .MOD Samples to Amigo`
+- Menu: `Sample Navigator:Paketti:Load .MOD as Wavetable to Amigo`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Load .MOD Samples to Amigo`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Load .MOD as Wavetable to Amigo`
+- Keybinding: `Global:Paketti:Load .MOD Samples to Amigo`
+- Keybinding: `Global:Paketti:Load .MOD as Wavetable to Amigo`
+- MIDI Mapping: `Paketti:Load .MOD Samples to Amigo`
+- MIDI Mapping: `Paketti:Load .MOD as Wavetable to Amigo`
+
 ## Sliced Imports Also Go Into Amigo
 
 An Options toggle. When it is on, importing any of these does everything it normally does, and then builds a **second** instrument right after it holding Amigo with the same audio and the same slice points, switched into SLICE mode:

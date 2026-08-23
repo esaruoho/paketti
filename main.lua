@@ -1297,6 +1297,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiMODLoader")
   timed_require("PakettiXRNIToWAV")
   timed_require("PakettiMODToXRNI")
+  timed_require("PakettiMODAmigo")
   timed_require("PakettiOTExport")
   timed_require("PakettiXIExport")
   timed_require("PakettiWTImport")
