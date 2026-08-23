@@ -143,7 +143,8 @@ local function extract_preset_from_blob(b64)
     f:write(plist)
     f:close()
   end
-  os.execute(("/usr/bin/plutil -convert xml1 -o %q %q"):format(xml,bin))
+  os.execute(("/usr/bin/plutil -convert xml1 -o %s %s"):format(
+    pakettiFSPath.shell_quote(xml), pakettiFSPath.shell_quote(bin)))
   os.remove(bin)
 
   -- 5) Read XML

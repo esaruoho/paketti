@@ -95,10 +95,10 @@ end
 -- whole thing so the worst case is a clear error instead of a frozen Renoise.
 --------------------------------------------------------------------------------
 
--- Quote a path for /bin/sh. Lua's %q escapes for LUA source, not for the shell,
--- so a path containing a quote or a backslash could produce a broken command.
+-- Quoting a path for /bin/sh lives in PakettiFSPath so every shell-out in
+-- Paketti uses the same one.
 local function rx2_shell_quote(str)
-  return "'" .. tostring(str):gsub("'", "'\\''") .. "'"
+  return pakettiFSPath.shell_quote(str)
 end
 
 -- true when `name` is runnable from the shell
@@ -169,7 +169,18 @@ end
 --------------------------------------------------------------------------------
 -- OS-specific configuration and setup
 --------------------------------------------------------------------------------
-local function setup_os_specific_paths()
+--- Where the decoder writes its intermediate .wav / slice .txt.
+function PakettiRX2TempFolder()
+  local os_name = os.platform()
+  if os_name == "MACINTOSH" then return os.getenv("TMPDIR") or "/tmp" end
+  if os_name == "WINDOWS" then return os.getenv("TEMP") or "C:\\Temp" end
+  return "/tmp"
+end
+
+--- The single source of truth for where the .rx2 decoder lives and whether it
+--- can run. PakettiPolyendSuite calls this too, so the macOS quarantine/chmod
+--- handling and the Linux Wine pre-flight exist in exactly one place.
+function PakettiRX2SetupDecoderPaths()
   local os_name = os.platform()
   local rex_decoder_path
   local sdk_path
@@ -243,7 +254,7 @@ function rx2_loadsample(filename)
   end
 
   -- Set up OS-specific paths and requirements
-  local setup_success, rex_decoder_path, sdk_path = setup_os_specific_paths()
+  local setup_success, rex_decoder_path, sdk_path = PakettiRX2SetupDecoderPaths()
   if not setup_success then
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -351,13 +362,8 @@ function rx2_loadsample(filename)
   renoise.song().selected_sample.name = rx2_basename
  
   -- Define paths for the output WAV file and the slice marker text file
-  local TEMP_FOLDER = "/tmp"
   local os_name = os.platform()
-  if os_name == "MACINTOSH" then
-    TEMP_FOLDER = os.getenv("TMPDIR")
-  elseif os_name == "WINDOWS" then
-    TEMP_FOLDER = os.getenv("TEMP")
-  end
+  local TEMP_FOLDER = PakettiRX2TempFolder()
 
 
 -- Create unique temp file names to avoid conflicts between multiple imports
@@ -926,20 +932,15 @@ function PakettiBatchRX2ToOT()
   local bpm = renoise.song().transport.bpm
   
   -- Set up OS-specific paths and requirements
-  local setup_success, rex_decoder_path, sdk_path = setup_os_specific_paths()
+  local setup_success, rex_decoder_path, sdk_path = PakettiRX2SetupDecoderPaths()
   if not setup_success then
     renoise.app():show_error("Failed to set up RX2 decoder. Check console for details.")
     return
   end
   
   -- Get temp folder
-  local TEMP_FOLDER = "/tmp"
   local os_name = os.platform()
-  if os_name == "MACINTOSH" then
-    TEMP_FOLDER = os.getenv("TMPDIR")
-  elseif os_name == "WINDOWS" then
-    TEMP_FOLDER = os.getenv("TEMP")
-  end
+  local TEMP_FOLDER = PakettiRX2TempFolder()
   
   -- Process each RX2 file
   local success_count = 0
@@ -1088,20 +1089,15 @@ function PakettiBatchRX2ToXRNI()
   print("Output folder: " .. output_folder)
 
   -- Set up OS-specific decoder paths
-  local setup_success, rex_decoder_path, sdk_path = setup_os_specific_paths()
+  local setup_success, rex_decoder_path, sdk_path = PakettiRX2SetupDecoderPaths()
   if not setup_success then
     renoise.app():show_error("Failed to set up RX2 decoder. Check console for details.")
     return
   end
 
   -- Determine temp folder
-  local TEMP_FOLDER = "/tmp"
   local os_name = os.platform()
-  if os_name == "MACINTOSH" then
-    TEMP_FOLDER = os.getenv("TMPDIR") or "/tmp"
-  elseif os_name == "WINDOWS" then
-    TEMP_FOLDER = os.getenv("TEMP") or "C:\\Temp"
-  end
+  local TEMP_FOLDER = PakettiRX2TempFolder()
 
   -- Launch via ProcessSlicer so Renoise stays responsive between files
   local dialog, vb

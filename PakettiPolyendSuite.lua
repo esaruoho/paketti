@@ -353,53 +353,10 @@ end
 --------------------------------------------------------------------------------
 -- OS-specific configuration and setup
 --------------------------------------------------------------------------------
-local function setup_os_specific_paths()
-  local os_name = os.platform()
-  local rex_decoder_path
-  local sdk_path
-  local setup_success = true
-  
-  if os_name == "MACINTOSH" then
-    -- macOS specific paths and setup
-    local bundle_path = renoise.tool().bundle_path .. "rx2/REX Shared Library.bundle"
-    rex_decoder_path = renoise.tool().bundle_path .. "rx2/rex2decoder_mac"
-    sdk_path = preferences.pakettiREXBundlePath.value
-    
-    print("Bundle path: " .. bundle_path)
-    
-    -- Remove quarantine attribute from bundle
-    local xattr_cmd = string.format('xattr -dr com.apple.quarantine "%s"', bundle_path)
-    local xattr_result = os.execute(xattr_cmd)
-    if xattr_result ~= 0 then
-      print("Failed to remove quarantine attribute from bundle")
-      setup_success = false
-    end
-    
-    -- Check and set executable permissions
-    local check_cmd = string.format('test -x "%s"', rex_decoder_path)
-    local check_result = os.execute(check_cmd)
-    
-    if check_result ~= 0 then
-      print("rex2decoder_mac is not executable. Setting +x permission.")
-      local chmod_cmd = string.format('chmod +x "%s"', rex_decoder_path)
-      local chmod_result = os.execute(chmod_cmd)
-      if chmod_result ~= 0 then
-        print("Failed to set executable permission on rex2decoder_mac")
-        setup_success = false
-      end
-    end
-  elseif os_name == "WINDOWS" then
-    -- Windows specific paths and setup
-    rex_decoder_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator .. "rex2decoder_win.exe"
-    sdk_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator
-  elseif os_name == "LINUX" then
-    rex_decoder_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator .. "rex2decoder_win.exe"
-    sdk_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator
-    renoise.app():show_status("Hi, Linux user, remember to have WINE installed.")
-  end
-  
-  return setup_success, rex_decoder_path, sdk_path
-end
+-- The decoder paths, the macOS quarantine/chmod handling and the Linux Wine
+-- pre-flight all live in PakettiRX2Loader.lua as PakettiRX2SetupDecoderPaths().
+-- This file used to carry a byte-identical copy; it calls the shared one now so
+-- a Wine fix cannot land in one and miss the other.
 
 --------------------------------------------------------------------------------
 -- PTI Export Helper Functions
@@ -754,7 +711,7 @@ function rx2_to_pti_convert_original(rx2_filename_override)
   print("-- Source RX2 file: " .. rx2_filename)
 
   -- Set up OS-specific paths and requirements
-  local setup_success, rex_decoder_path, sdk_path = setup_os_specific_paths()
+  local setup_success, rex_decoder_path, sdk_path = PakettiRX2SetupDecoderPaths()
   if not setup_success then
     renoise.app():show_status("Failed to setup RX2 decoder paths")
     return
@@ -785,13 +742,8 @@ function rx2_to_pti_convert_original(rx2_filename_override)
   renoise.song().selected_sample.name = rx2_basename
  
   -- Define paths for the output WAV file and the slice marker text file
-  local TEMP_FOLDER = "/tmp"
   local os_name = os.platform()
-  if os_name == "MACINTOSH" then
-    TEMP_FOLDER = os.getenv("TMPDIR")
-  elseif os_name == "WINDOWS" then
-    TEMP_FOLDER = os.getenv("TEMP")
-  end
+  local TEMP_FOLDER = PakettiRX2TempFolder()
 
   local wav_output = TEMP_FOLDER .. separator .. instrument_name .. "_output.wav"
   local txt_output = TEMP_FOLDER .. separator .. instrument_name .. "_slices.txt"
@@ -799,25 +751,11 @@ function rx2_to_pti_convert_original(rx2_filename_override)
   print("-- WAV output: " .. wav_output)
   print("-- TXT output: " .. txt_output)
 
-  -- Build and run the command to execute the external decoder
-  local cmd
-  if os_name == "LINUX" then
-    cmd = string.format("wine %q %q %q %q %q 2>&1", 
-      rex_decoder_path,  -- decoder executable
-      rx2_filename,      -- input file
-      wav_output,        -- output WAV file
-      txt_output,        -- output TXT file
-      sdk_path           -- SDK directory
-    )
-  else
-    cmd = string.format("%s %q %q %q %q 2>&1", 
-      rex_decoder_path,  -- decoder executable
-      rx2_filename,      -- input file
-      wav_output,        -- output WAV file
-      txt_output,        -- output TXT file
-      sdk_path           -- SDK directory
-    )
-  end
+  -- Build and run the command to execute the external decoder. Shared with
+  -- PakettiRX2Loader so the Linux/Wine handling (installer-dialog suppression,
+  -- timeout, shell quoting) cannot be fixed there and left broken here.
+  local cmd = PakettiRX2BuildDecoderCommand(
+    os_name, rex_decoder_path, rx2_filename, wav_output, txt_output, sdk_path)
 
   print("-- Running External Decoder Command:")
   print("-- " .. cmd)

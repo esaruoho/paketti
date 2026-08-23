@@ -72,8 +72,9 @@ function pakettiBeatSyncHackRoundtrip(instr_idx, sample_lines_map)
 
   renoise.app():save_instrument(tmp_xrni)
 
+  local shq = pakettiFSPath.shell_quote
   local ok, err = paketti_hack_run_shell(string.format(
-    'unzip -o -j %q Instrument.xml -d %q', tmp_xrni, tmp_dir))
+    'unzip -o -j %s Instrument.xml -d %s', shq(tmp_xrni), shq(tmp_dir)))
   if not ok then
     os.remove(tmp_xrni)
     return false, "unzip failed - " .. tostring(err), 0
@@ -106,7 +107,7 @@ function pakettiBeatSyncHackRoundtrip(instr_idx, sample_lines_map)
   fo:write(xml); fo:close()
 
   ok, err = paketti_hack_run_shell(string.format(
-    'cd %q && zip -q %q Instrument.xml', tmp_dir, tmp_xrni))
+    'cd %s && zip -q %s Instrument.xml', shq(tmp_dir), shq(tmp_xrni)))
   if not ok then
     os.remove(xml_path); os.remove(tmp_xrni)
     return false, "zip update failed - " .. tostring(err), 0

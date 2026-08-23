@@ -232,6 +232,18 @@ function pakettiFSPath.sanitize_filename(name, fallback)
   return s
 end
 
+---Quote a string so /bin/sh passes it through as one literal argument.
+---Lua's `%q` escapes for LUA SOURCE, not for the shell: a path containing `$`,
+---a backtick or a quote survives %q but is then expanded by the shell, so
+---`/tmp/$HOME x.wav` became the home directory and backticks ran as a command.
+---Single-quoting with the '\'' escape is the only form the shell never
+---reinterprets.
+---@param str string
+---@return string
+function pakettiFSPath.shell_quote(str)
+  return "'" .. tostring(str):gsub("'", "'\\''") .. "'"
+end
+
 ---Strip a trailing audio-file extension from a name. Renoise sample names very
 ---often carry the source filename including its extension, which would otherwise
 ---produce "kick.wav.wav" when exporting. Only the extensions Renoise itself can
