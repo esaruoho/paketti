@@ -281,6 +281,40 @@ end
 
 --- Builds a canonical 8-bit mono RIFF/WAVE file from UNSIGNED PCM.
 --- Run raw .MOD PCM through PakettiMODParser.sign_flip() first.
+--------------------------------------------------------------------------------
+-- whole-module helpers
+--------------------------------------------------------------------------------
+
+--- True when `data` looks like a ProTracker/Soundtracker module.
+--- `filename` is optional and is checked for a ".mod" extension or the Amiga
+--- "mod.SongName" prefix, which carries no extension at all.
+function PakettiMODParser.looks_like_mod(data, filename)
+  if type(filename) == "string" then
+    local base = filename:match("[^/\\]+$") or filename
+    base = base:lower()
+    if base:match("%.mod$") or base:match("^mod%.") then return true end
+  end
+  if type(data) ~= "string" or #data < 1084 then return false end
+  return PakettiMODParser.channels_for_tag(data:sub(1081, 1084)) ~= nil
+end
+
+--- Returns just the sample PCM of a module, every sample concatenated in header
+--- order, with the file header and all pattern data removed. This is what
+--- "load the module as one raw sample" wants.
+---
+--- Use this rather than computing an offset by hand: parse() works the pattern
+--- count out from the whole 128-entry order table and cross-checks it against
+--- the real file size, so nothing bleeds in.
+--- Returns the PCM string plus the parsed module, or nil plus an error.
+function PakettiMODParser.sample_pcm_only(data)
+  local mod, err = PakettiMODParser.parse(data)
+  if not mod then return nil, err end
+  if #mod.samples == 0 then return nil, "this module holds no sample data" end
+  local chunks = {}
+  for _, info in ipairs(mod.samples) do chunks[#chunks + 1] = info.data end
+  return table.concat(chunks), mod
+end
+
 function PakettiMODParser.build_wav(pcm_unsigned, sample_rate)
   local le_u16, le_u32 = PakettiMODParser.le_u16, PakettiMODParser.le_u32
   local sr   = math.floor(sample_rate or 8363)

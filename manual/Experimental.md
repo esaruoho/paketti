@@ -4787,7 +4787,11 @@ Both the Multiple Sample Loader and the Drumkit Sample Loader accept far more th
 
 **Converted for you** — `.mod`, `.rex`, `.rx2`, `.iff`, `.8svx`, `.16sv`, `.iti`, `.ot`, `.wt`, `.mti`. A `.mod` is decoded into one entry per module sample, so a 31-sample module gives you 31 samples in the loader. The rest are handled by the Paketti importer that already owns each format, behind the scenes: it builds its instrument, the audio is taken out of it, and the instrument is removed again — your song is left exactly as it was. Converted samples keep their real names, so a module gives you `ST-12_newwhist`, not a temp filename.
 
-**Not accepted here** — `.pti`, `.sf2` and `.exs` load in the background on their own, so they cannot be converted inside the loader. They are named in the status bar and should be loaded from `File > Paketti Import` instead. Anything else that cannot be converted is reported the same way rather than failing quietly.
+**Loaded as their own instruments** — `.pti`, `.sf2` and `.exs`. These importers run in the background and finish after they return, so instead of being turned into samples they simply load the way their own importer produces them, and the status bar names what arrived. (In the Drumkit Loader these three are reported rather than loaded, because that loader has to stay synchronous for the commands that chain work after it.)
+
+**Nothing is ever removed from your song.** The conversion step only ever adds. It removes a scratch instrument only when it created that instrument moments earlier within the same uninterrupted step, where nothing else can get in between, and it refuses outright if the range it was handed would reach anything that existed beforehand. The path that has to wait for a background importer does not remove anything at all.
+
+Anything that cannot be converted is named in the status bar rather than failing quietly.
 
 **On Linux the file dialog opens wide (`*`)** rather than filtering by extension. The GTK file dialog enforces its filter strictly, and an extension list can never be complete — an Amiga module named `mod.SongName` carries no extension at all, and files copied off old media often have the wrong case or none. So on Linux you pick whatever you like and Paketti decides what to do with it. macOS and Windows treat the filter as a hint and keep the readable list.
 

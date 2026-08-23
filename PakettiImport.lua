@@ -1,32 +1,14 @@
--- big-endian 16-bit reader, 1-based
-local function read_be_u16(str, pos)
-  local b1,b2 = str:byte(pos,pos+1)
-  return b1*256 + b2
-end
-
--- determine where in a 4-ch/31-sample .mod the sample data begins
-local function find_mod_sample_data_offset(data)
-  -- song length
-  local song_len = data:byte(951)
-  -- pattern table
-  local patt = { data:byte(953, 953+127) }
-  local maxp = 0
-  for i=1,song_len do
-    if patt[i] and patt[i]>maxp then maxp = patt[i] end
-  end
-  local num_patterns = maxp + 1
-
-  -- channel count from bytes 1081–1084
-  local id = data:sub(1081,1084)
-  local channels = ({
-    ["M.K."]=4, ["4CHN"]=4, ["6CHN"]=6,
-    ["8CHN"]=8, ["FLT4"]=4, ["FLT8"]=8
-  })[id] or 4
-
-  -- offset = 1084 (end of header) + pattern_data_size
-  local pattern_data_size = num_patterns * 64 * channels * 4
-  return 1084 + pattern_data_size
-end
+--------------------------------------------------------------------------------
+-- .MOD handling lives in PakettiMODParser.lua and NOWHERE ELSE.
+--
+-- There used to be a second, older offset calculation right here. It took the
+-- highest pattern number over only the USED order slots and knew six format
+-- tags, so it read sample data from the wrong place in any module storing
+-- patterns past its song length, and did not recognise M!K!, M&K!, N.T., 8CHN
+-- or any extended tag at all. Both raw loaders below now call
+-- PakettiMODParser.looks_like_mod / .sample_pcm_only instead, so there is one
+-- implementation to be right.
+--------------------------------------------------------------------------------
 
 function pakettiLoadExeAsSample(file_path)
   local f = io.open(file_path,"rb")
@@ -41,22 +23,22 @@ function pakettiLoadExeAsSample(file_path)
     return 
   end
 
-  -- detect .mod by extension or signature
-  local is_mod = file_path:lower():match("%.mod$")
-  if not is_mod then
-    -- maybe detect signature too?
-    local sig = data:sub(1081,1084)
-    if sig:match("^[46]CHN$") or sig=="M.K." or sig=="FLT4" or sig=="FLT8" then
-      is_mod = true
-    end
-  end
+  -- .mod detection and header stripping both come from PakettiMODParser, which
+  -- knows every format tag and cross-checks the pattern count against the real
+  -- file size. Getting this wrong means the 1084-byte header and the pattern
+  -- data get loaded as audio, heard as garbage in front of the sound.
+  local is_mod = rawget(_G, "PakettiMODParser")
+    and PakettiMODParser.looks_like_mod(data, file_path)
 
   local raw
   if is_mod then
-    -- strip header & patterns
-    local off = find_mod_sample_data_offset(data)
-    -- Lua strings are 1-based, so data:sub(off+1) if off bytes are header
-    raw = data:sub(off+1)
+    local pcm, mod_err = PakettiMODParser.sample_pcm_only(data)
+    if pcm then
+      raw = pcm
+    else
+      renoise.app():show_status("Could not read the .MOD: " .. tostring(mod_err))
+      return
+    end
   else
     raw = data
   end
@@ -148,23 +130,14 @@ function pakettiMultiFileRawLoader()
         table.insert(failed_files, file_path:match("([^\\/]+)$") or file_path)
         print("-- Paketti Multi-File Raw Loader: File is empty: " .. file_path)
       else
-        -- Use the same logic as pakettiLoadExeAsSample for .mod detection
-        local is_mod = file_path:lower():match("%.mod$")
-        if not is_mod then
-          -- maybe detect signature too?
-          local sig = data:sub(1081,1084)
-          if sig:match("^[46]CHN$") or sig=="M.K." or sig=="FLT4" or sig=="FLT8" then
-            is_mod = true
-          end
-        end
+        -- same single implementation as pakettiLoadExeAsSample
+        local is_mod = rawget(_G, "PakettiMODParser")
+          and PakettiMODParser.looks_like_mod(data, file_path)
 
-        local raw
+        local raw = data
         if is_mod then
-          -- strip header & patterns using the same function
-          local off = find_mod_sample_data_offset(data)
-          raw = data:sub(off+1)
-        else
-          raw = data
+          local pcm = PakettiMODParser.sample_pcm_only(data)
+          if pcm then raw = pcm end
         end
 
         -- Create new instrument for this file

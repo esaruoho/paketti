@@ -1313,6 +1313,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiOctaCycle")
   timed_require("PakettiOTSTRDImporter")
   timed_require("PakettiCCizerLoader")
+  timed_require("PakettiSysexizer")
   timed_require("PakettiDigitakt")
   timed_require("PakettiForeignSnippets")
   timed_require("PakettiManualSlicer")

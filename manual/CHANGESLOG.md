@@ -8,6 +8,22 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Fix: .MOD Header Garbage in Raw Loaders, and One Parser Instead of Two
+
+`Load .MOD as Sample` and the Multi-File Raw Loader each carried their own copy of the `.MOD` offset maths, older and wronger than the one in the parser. Both are gone; there is now a single implementation.
+
+Three real bugs came out of that duplicate. It recognised only six format tags — `M.K.`, `FLT4`, `FLT8`, `4CHN`, `6CHN` — and missed `M!K!`, `M&K!`, `N.T.`, `8CHN`, `CD81`, `OKTA`, `TDZ1`-`TDZ3`, StarTrekker `FA0x` and `10CH`-`32CH`. It only checked the filename for a `.mod` extension, so an Amiga module named `mod.SongName`, which has no extension at all, was not recognised as a module and **the entire file — the 1084-byte header and every byte of pattern data — was loaded as audio**, heard as a burst of garbage in front of the actual sound. And any tag it did not know fell back to a 4-channel guess, which sizes the pattern block at half its real length for an 8-channel module and lands the read in the middle of the pattern data.
+
+It also took the highest pattern number over only the *used* order slots, so a module storing patterns past the end of its song list had its sample data read from the wrong offset — the bug already fixed in the parser, still live here.
+
+Both loaders now call `PakettiMODParser`, which knows every tag, checks both the `.mod` extension and the `mod.` prefix, works the pattern count out from the whole 128-entry order table, and cross-checks that against the real file size.
+
+### 2026-08-23 - Improvement: PitchBend Loaders Also Accept .PTI, .SF2 and .EXS
+
+The PitchBend Multiple Sample Loader now accepts `.pti`, `.sf2` and `.exs` alongside the formats added earlier. Those three importers run in the background and finish after they return, so rather than being converted into samples they load as their own instruments, exactly as their own importers produce them, and the status bar names what arrived.
+
+Nothing is ever removed from your song. The conversion step only ever adds: it never deletes an instrument it did not create moments earlier in the same uninterrupted step, and the path that has to wait for a background importer does not delete at all. Verified by marking every instrument in a song before a mixed `.mod` + `.rex` + `.iff` + `.pti` load and confirming all of them survived, with the instrument count only ever going up.
+
 ### 2026-08-23 - Improvement: PitchBend Loaders Accept .MOD, .REX, .RX2, .IFF and More (Linux Fix)
 
 The PitchBend Multiple Sample Loader and the PitchBend Drumkit Sample Loader only ever offered `.wav`, `.aif`, `.flac`, `.mp3` and `.aiff` in their file dialog. On macOS that filter is a hint you can work around; on Linux the file dialog enforces it, so Linux users simply could not select a `.mod`, `.rex` or `.rx2` at all. Even where the file could be picked, the loaders called Renoise's plain audio loader on it, which does not understand those formats.

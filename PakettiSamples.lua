@@ -1197,39 +1197,44 @@ function pitchBendMultipleSampleLoader(normalize, on_finished, files)
     return
   end
 
-  -- .mod, .rex, .rx2, .iff and friends are not things load_from() understands,
-  -- so turn them into plain wavs first. A 31-sample .mod expands into 31
-  -- entries here, which is exactly what a multiple sample loader should do.
+  -- .mod, .rex, .rx2, .iff, .pti and friends are not things load_from()
+  -- understands, so turn them into plain wavs first. A 31-sample .mod expands
+  -- into 31 entries here, which is exactly what a multiple sample loader should
+  -- do with a module. This runs on its own ProcessSlicer (some of those
+  -- importers are asynchronous), so the real loading starts in the callback.
   local picked = #selected_sample_filenames
-  local expanded, temp_files, failures =
-    PakettiExpandLoadableFiles(selected_sample_filenames)
-  PakettiExpandLoadableReport("Multiple Sample Loader", picked, #expanded, failures)
-  selected_sample_filenames = expanded
-  if #selected_sample_filenames == 0 then
-    renoise.app():show_status("Multiple Sample Loader: none of the selected files could be converted to audio.")
-    PakettiExpandLoadableCleanup(temp_files)
-    return
-  end
+  PakettiExpandLoadableFilesAsync(selected_sample_filenames, function(expanded, temp_files, failures)
+    PakettiExpandLoadableReport("Multiple Sample Loader", picked, #expanded, failures)
+    if #expanded == 0 then
+      -- not necessarily a failure: a selection of only .pti/.sf2/.exs files has
+      -- already loaded itself into instruments, and said so
+      if #failures > 0 then
+        renoise.app():show_status("Multiple Sample Loader: none of the selected files could be converted to audio.")
+      end
+      PakettiExpandLoadableCleanup(temp_files)
+      return
+    end
 
-  rprint(selected_sample_filenames)
-  
-  -- Initialize progress tracking
-  pitchbend_loader_progress.current_file_index = 0
-  pitchbend_loader_progress.current_filename = ""
-  pitchbend_loader_progress.total_files = #selected_sample_filenames
-  pitchbend_loader_progress.temp_files = temp_files
+    rprint(expanded)
 
-  -- Create ProcessSlicer for the loading operation
-  pitchbend_loader_progress.slicer = ProcessSlicer(pitchBendMultipleSampleLoader_process, selected_sample_filenames, normalize, on_finished)
-  pitchbend_loader_progress.dialog, pitchbend_loader_progress.vb = pitchbend_loader_progress.slicer:create_dialog("Loading Pitchbend Samples...")
-  
-  -- Start the process
-  pitchbend_loader_progress.slicer:start()
-  
-  -- Update progress text periodically (check if timer already exists to prevent duplicates)
-  if not renoise.tool():has_timer(pitchBendMultipleSampleLoader_update_progress) then
-    renoise.tool():add_timer(pitchBendMultipleSampleLoader_update_progress, 100)
-  end
+    -- Initialize progress tracking
+    pitchbend_loader_progress.current_file_index = 0
+    pitchbend_loader_progress.current_filename = ""
+    pitchbend_loader_progress.total_files = #expanded
+    pitchbend_loader_progress.temp_files = temp_files
+
+    -- Create ProcessSlicer for the loading operation
+    pitchbend_loader_progress.slicer = ProcessSlicer(pitchBendMultipleSampleLoader_process, expanded, normalize, on_finished)
+    pitchbend_loader_progress.dialog, pitchbend_loader_progress.vb = pitchbend_loader_progress.slicer:create_dialog("Loading Pitchbend Samples...")
+
+    -- Start the process
+    pitchbend_loader_progress.slicer:start()
+
+    -- Update progress text periodically (check if timer already exists to prevent duplicates)
+    if not renoise.tool():has_timer(pitchBendMultipleSampleLoader_update_progress) then
+      renoise.tool():add_timer(pitchBendMultipleSampleLoader_update_progress, 100)
+    end
+  end)
 end
 
 function pitchBendMultipleSampleLoader_update_progress()
