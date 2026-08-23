@@ -12,6 +12,8 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 Added a single `.MOD Loader...` dialog for the four module-loading routes: `Load Samples from .MOD`, `Load .MOD as Wavetable`, `Load Samples from .MOD as Amigo`, and `Load .MOD as Wavetable to Amigo`. Pick a module once, then choose the destination path from the dialog, which avoids having to hunt through separate menu entries when Renoise's own `.mod` loading gets in the way.
 
+The dialog now stays open after running a loader, so the same picked file can be sent to another destination without reopening the tool. Added three aggregate buttons: `All Renoise` loads both the per-sample Renoise instruments and the combined wavetable sample; `All Amigo` loads both the per-sample Amigos and the combined wavetable Amigo; `Make Me One With Everything` creates alternating Renoise/Amigo sample pairs first, then appends both wavetable destinations.
+
 - Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:.MOD Loader...`
 - Menu: `Main Menu:File:Paketti Import:.MOD Loader...`
 - Menu: `Instrument Box:Paketti:Load:.MOD Loader...`

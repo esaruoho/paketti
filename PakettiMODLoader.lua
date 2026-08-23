@@ -229,6 +229,57 @@ local function paketti_mod_dialog_path(vb)
   return nil
 end
 
+local function paketti_mod_loader_open(label, mod_file)
+  if not mod_file or mod_file == "" then
+    mod_file = renoise.app():prompt_for_filename_to_read(
+      { "*.mod", "mod.*" }, "Load .MOD file"
+    )
+  end
+  if not mod_file or mod_file == "" then
+    renoise.app():show_status(label .. ": no .MOD selected.")
+    return nil
+  end
+
+  local data, read_err = PakettiMODParser.read_file(mod_file)
+  if not data then
+    renoise.app():show_status(label .. ": cannot open .MOD - " .. tostring(read_err))
+    return nil
+  end
+
+  local mod, parse_err = PakettiMODParser.parse(data)
+  if not mod then
+    renoise.app():show_status(label .. ": not a valid .MOD - " .. tostring(parse_err))
+    return nil
+  end
+  if #mod.samples == 0 then
+    renoise.app():show_status(label .. ": this .MOD holds no sample data.")
+    return nil
+  end
+  return mod
+end
+
+local function paketti_mod_loader_insert_sample_after(song, after_index, info)
+  local index = after_index + 1
+  if not safeInsertInstrumentAt(song, index) then
+    return nil, "could not insert an instrument"
+  end
+  song.selected_instrument_index = index
+  pakettiPreferencesDefaultInstrumentLoader()
+
+  local ins = song.instruments[index]
+  ins.macros_visible = true
+  ins.sample_modulation_sets[1].name = "Pitchbend"
+
+  local ok, name_or_err = PakettiMODApplySampleToSlot(ins, 1, info)
+  if not ok then
+    song:delete_instrument_at(index)
+    return nil, tostring(name_or_err)
+  end
+  ins.name = name_or_err
+  song.selected_sample_index = 1
+  return index, name_or_err
+end
+
 local function paketti_mod_dialog_run(vb, label, invoke)
   local path = paketti_mod_dialog_path(vb)
   if not path then
@@ -239,11 +290,157 @@ local function paketti_mod_dialog_run(vb, label, invoke)
     renoise.app():show_status(label .. ": no .MOD selected.")
     return
   end
-  if mod_loader_dialog and mod_loader_dialog.visible then
-    mod_loader_dialog:close()
-    mod_loader_dialog = nil
-  end
   invoke(path)
+end
+
+function PakettiMODLoadAllRenoise(mod_file)
+  local label = "All Renoise .MOD Load"
+  local mod = paketti_mod_loader_open(label, mod_file)
+  if not mod then return end
+
+  local monitoring = PakettiTemporarilyDisableNewSampleMonitoring()
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    local song = renoise.song()
+    local loaded, failed = 0, 0
+
+    for position, info in ipairs(mod.samples) do
+      if vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = string.format(
+          "Renoise sample %d/%d: %s", position, #mod.samples, info.name)
+      end
+      local index, err = paketti_mod_loader_insert_sample_after(
+        song, song.selected_instrument_index, info)
+      if index then
+        loaded = loaded + 1
+      else
+        failed = failed + 1
+        print(("PakettiMODLoader: sample %d failed - %s"):format(info.index, tostring(err)))
+      end
+      coroutine.yield()
+    end
+
+    PakettiRestoreNewSampleMonitoring(monitoring)
+    if dialog and dialog.visible then dialog:close() end
+
+    local message = string.format("%s: %d of %d samples loaded",
+      label, loaded, #mod.samples)
+    if failed > 0 then message = message .. string.format(", %d failed", failed) end
+    renoise.app():show_status(message .. "; loading wavetable...")
+    if PakettiLoadMODAsWavetable then
+      PakettiLoadMODAsWavetable(mod_file)
+    else
+      pakettiLoadExeAsSample(mod_file)
+    end
+  end)
+
+  dialog, vb = slicer:create_dialog("Loading all .MOD Renoise targets...")
+  slicer:start()
+end
+
+function PakettiMODLoadAllAmigo(mod_file)
+  local label = "All Amigo .MOD Load"
+  local mod = paketti_mod_loader_open(label, mod_file)
+  if not mod then return end
+
+  local monitoring = PakettiTemporarilyDisableNewSampleMonitoring()
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    local song = renoise.song()
+    local made, failed = 0, {}
+
+    for position, info in ipairs(mod.samples) do
+      if vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = string.format(
+          "Amigo sample %d/%d: %s", position, #mod.samples, info.name)
+      end
+
+      local scratch, name_or_err = paketti_mod_loader_insert_sample_after(
+        song, song.selected_instrument_index, info)
+      if not scratch then
+        failed[#failed + 1] = string.format("%02d (%s)", info.index, tostring(name_or_err))
+      else
+        local ok, send_err, count, dropped, amigo_index =
+          PakettiAmigoSendInstrumentToAmigo(scratch)
+        song:delete_instrument_at(scratch)
+        if ok then
+          song.selected_instrument_index = amigo_index - 1
+          made = made + 1
+        else
+          failed[#failed + 1] = string.format("%02d %s (%s)",
+            info.index, tostring(name_or_err), tostring(send_err))
+        end
+      end
+      coroutine.yield()
+    end
+
+    PakettiRestoreNewSampleMonitoring(monitoring)
+    if dialog and dialog.visible then dialog:close() end
+
+    local message = string.format("%s: %d of %d samples loaded to Amigo",
+      label, made, #mod.samples)
+    if #failed > 0 then message = message .. " - skipped " .. table.concat(failed, ", ") end
+    renoise.app():show_status(message .. "; loading wavetable to Amigo...")
+    PakettiMODWavetableToAmigo(mod_file)
+  end)
+
+  dialog, vb = slicer:create_dialog("Loading all .MOD Amigo targets...")
+  slicer:start()
+end
+
+function PakettiMODLoadOneWithEverything(mod_file)
+  local label = "Make Me One With Everything"
+  local mod = paketti_mod_loader_open(label, mod_file)
+  if not mod then return end
+
+  local monitoring = PakettiTemporarilyDisableNewSampleMonitoring()
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    local song = renoise.song()
+    local paired, failed = 0, {}
+
+    for position, info in ipairs(mod.samples) do
+      if vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = string.format(
+          "Renoise + Amigo pair %d/%d: %s", position, #mod.samples, info.name)
+      end
+
+      local renoise_index, name_or_err = paketti_mod_loader_insert_sample_after(
+        song, song.selected_instrument_index, info)
+      if not renoise_index then
+        failed[#failed + 1] = string.format("%02d (%s)", info.index, tostring(name_or_err))
+      else
+        local ok, send_err, count, dropped, amigo_index =
+          PakettiAmigoSendInstrumentToAmigo(renoise_index)
+        if ok then
+          song.selected_instrument_index = amigo_index
+          paired = paired + 1
+        else
+          song.selected_instrument_index = renoise_index
+          failed[#failed + 1] = string.format("%02d %s (%s)",
+            info.index, tostring(name_or_err), tostring(send_err))
+        end
+      end
+      coroutine.yield()
+    end
+
+    PakettiRestoreNewSampleMonitoring(monitoring)
+    if dialog and dialog.visible then dialog:close() end
+
+    local message = string.format("%s: %d Renoise/Amigo sample pairs loaded",
+      label, paired)
+    if #failed > 0 then message = message .. " - skipped " .. table.concat(failed, ", ") end
+    renoise.app():show_status(message .. "; loading both wavetables...")
+    if PakettiLoadMODAsWavetable then
+      PakettiLoadMODAsWavetable(mod_file)
+    else
+      pakettiLoadExeAsSample(mod_file)
+    end
+    PakettiMODWavetableToAmigo(mod_file)
+  end)
+
+  dialog, vb = slicer:create_dialog("Making one .MOD with everything...")
+  slicer:start()
 end
 
 function PakettiMODLoaderDialog()
@@ -310,6 +507,30 @@ function PakettiMODLoaderDialog()
         width = 210,
         notifier = function()
           paketti_mod_dialog_run(vb, "Load .MOD as Wavetable to Amigo", PakettiMODWavetableToAmigo)
+        end
+      }
+    },
+
+    vb:row{
+      vb:button{
+        text = "All Renoise",
+        width = 136,
+        notifier = function()
+          paketti_mod_dialog_run(vb, "All Renoise", PakettiMODLoadAllRenoise)
+        end
+      },
+      vb:button{
+        text = "All Amigo",
+        width = 136,
+        notifier = function()
+          paketti_mod_dialog_run(vb, "All Amigo", PakettiMODLoadAllAmigo)
+        end
+      },
+      vb:button{
+        text = "Make Me One With Everything",
+        width = 280,
+        notifier = function()
+          paketti_mod_dialog_run(vb, "Make Me One With Everything", PakettiMODLoadOneWithEverything)
         end
       }
     },
