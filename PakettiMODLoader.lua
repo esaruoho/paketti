@@ -158,29 +158,53 @@ function load_samples_from_mod(mod_file)
     return
   end
 
-  for _, info in ipairs(mod.samples) do
-    local next_ins = renoise.song().selected_instrument_index + 1
-    if not safeInsertInstrumentAt(renoise.song(), next_ins) then
-      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
-      return
-    end
-    renoise.song().selected_instrument_index = next_ins
-    pakettiPreferencesDefaultInstrumentLoader()
-    local ins = renoise.song().selected_instrument
-    ins.macros_visible = true
-    ins.sample_modulation_sets[1].name = "Pitchbend"
+  -- A 31-sample module means 31 instrument inserts, each one pulling in the
+  -- Paketti default instrument template, so this runs on a ProcessSlicer with a
+  -- progress dialog rather than freezing Renoise for the duration.
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    local loaded, failed = 0, 0
 
-    local ok, name_or_err = PakettiMODApplySampleToSlot(ins, 1, info)
-    if ok then
-      ins.name = name_or_err
-      renoise.app():show_status(("Loaded “%s”"):format(name_or_err))
-    else
-      renoise.app():show_status(("Failed to load sample %d: %s"):format(info.index, tostring(name_or_err)))
-    end
-  end
+    for position, info in ipairs(mod.samples) do
+      if vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = ("Sample %d/%d: %s"):format(
+          position, #mod.samples, info.name)
+      end
 
-  renoise.app():show_status(("All MOD samples loaded (%d from %s)."):format(#mod.samples, mod.format))
-  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+      local next_ins = renoise.song().selected_instrument_index + 1
+      if not safeInsertInstrumentAt(renoise.song(), next_ins) then
+        renoise.app():show_status("Load Samples from .MOD: could not insert an instrument.")
+        break
+      end
+      renoise.song().selected_instrument_index = next_ins
+      pakettiPreferencesDefaultInstrumentLoader()
+      local ins = renoise.song().selected_instrument
+      ins.macros_visible = true
+      ins.sample_modulation_sets[1].name = "Pitchbend"
+
+      local ok, name_or_err = PakettiMODApplySampleToSlot(ins, 1, info)
+      if ok then
+        ins.name = name_or_err
+        loaded = loaded + 1
+      else
+        failed = failed + 1
+        print(("PakettiMODLoader: sample %d failed - %s"):format(info.index, tostring(name_or_err)))
+      end
+      coroutine.yield()
+    end
+
+    local message = ("All MOD samples loaded (%d of %d from %s)."):format(
+      loaded, #mod.samples, mod.format)
+    if failed > 0 then
+      message = message .. (" %d failed - see the console."):format(failed)
+    end
+    renoise.app():show_status(message)
+    PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    if dialog and dialog.visible then dialog:close() end
+  end)
+
+  dialog, vb = slicer:create_dialog("Loading .MOD samples...")
+  slicer:start()
 end
 
 --------------------------------------------------------------------------------

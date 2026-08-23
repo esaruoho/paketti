@@ -67,51 +67,6 @@ local function paketti_mod_amigo_open(label, mod_file)
   return mod
 end
 
--- Writes one .MOD sample out as a temp WAV. Returns path, name or nil, err.
-local function paketti_mod_amigo_temp_wav(info)
-  local name = (#info.name > 0 and info.name) or ("Sample_" .. info.index)
-  local wav = PakettiMODParser.build_wav(PakettiMODParser.sign_flip(info.data), 44100)
-  local tmp = pakettiGetTempFilePath(".wav")
-  local wrote, write_err = PakettiMODParser.write_file(tmp, wav)
-  if not wrote then return nil, nil, tostring(write_err) end
-  return tmp, name
-end
-
--- Applies the Paketti loader preferences and the .MOD loop points.
--- `instrument` is optional: pass it for the one-instrument-per-sample flavour
--- so an invalid loop start renames the instrument too; pass nil for the
--- wavetable flavour, where one instrument holds every sample.
-local function paketti_mod_amigo_apply(samp, info, name, instrument)
-  samp.name = name
-  samp.interpolation_mode = preferences.pakettiLoaderInterpolation.value
-  samp.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-  samp.autofade           = preferences.pakettiLoaderAutofade.value
-  samp.autoseek           = preferences.pakettiLoaderAutoseek.value
-  samp.oneshot            = preferences.pakettiLoaderOneshot.value
-  samp.new_note_action    = preferences.pakettiLoaderNNA.value
-  samp.loop_release       = preferences.pakettiLoaderLoopExit.value
-
-  -- a loop length of one word is ProTracker's "no loop"
-  if info.loop_length and info.loop_length > 5 then
-    local sample_length = samp.sample_buffer.number_of_frames
-    local loop_start = info.loop_start + 1
-    local loop_end   = info.loop_start + info.loop_length
-
-    if loop_start > sample_length then
-      samp.name = name .. " (invalid loopstart)"
-      if instrument then instrument.name = name .. " (invalid loopstart)" end
-      samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
-    else
-      if loop_end > sample_length then loop_end = sample_length end
-      samp.loop_mode  = renoise.Sample.LOOP_MODE_FORWARD
-      samp.loop_start = loop_start
-      samp.loop_end   = loop_end
-    end
-  else
-    samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
-  end
-end
-
 --------------------------------------------------------------------------------
 -- one Amigo per .MOD sample
 --
@@ -135,49 +90,40 @@ function PakettiMODSamplesToAmigo(mod_file)
     local made, failed = 0, {}
 
     for position, info in ipairs(mod.samples) do
-      local tmp, name, temp_err = paketti_mod_amigo_temp_wav(info)
       if vb and vb.views and vb.views.progress_text then
         vb.views.progress_text.text = string.format("Amigo %d/%d: %s",
-          position, #mod.samples, name or "?")
+          position, #mod.samples, info.name)
       end
 
-      if not tmp then
-        failed[#failed + 1] = string.format("%02d (%s)", info.index, tostring(temp_err))
+      local index = song.selected_instrument_index + 1
+      if not safeInsertInstrumentAt(song, index) then
+        failed[#failed + 1] = string.format("%02d (could not insert instrument)", info.index)
       else
-        local index = song.selected_instrument_index + 1
-        if not safeInsertInstrumentAt(song, index) then
-          os.remove(tmp)
-          failed[#failed + 1] = string.format("%02d (could not insert instrument)", info.index)
-        else
-          song.selected_instrument_index = index
-          pakettiPreferencesDefaultInstrumentLoader()
-          local ins = song.instruments[index]
-          ins.name = name
-          ins.macros_visible = true
-          ins.sample_modulation_sets[1].name = "Pitchbend"
-          if #ins.samples == 0 then ins:insert_sample_at(1) end
-          song.selected_sample_index = 1
+        song.selected_instrument_index = index
+        pakettiPreferencesDefaultInstrumentLoader()
+        local ins = song.instruments[index]
+        ins.macros_visible = true
+        ins.sample_modulation_sets[1].name = "Pitchbend"
 
-          local samp = ins.samples[1]
-          if not samp.sample_buffer:load_from(tmp) then
-            song:delete_instrument_at(index)
-            failed[#failed + 1] = string.format("%02d %s (could not load)", info.index, name)
+        local loaded, name_or_err = PakettiMODApplySampleToSlot(ins, 1, info)
+        if not loaded then
+          song:delete_instrument_at(index)
+          failed[#failed + 1] = string.format("%02d (%s)", info.index, tostring(name_or_err))
+        else
+          ins.name = name_or_err
+          song.selected_sample_index = 1
+          local ok, send_err, count, dropped, amigo_index =
+            PakettiAmigoSendInstrumentToAmigo(index)
+          -- the throwaway has done its job either way: Amigo plays the wav that
+          -- PakettiAmigoSendInstrumentToAmigo wrote into ~/Paketti Amigo Samples
+          song:delete_instrument_at(index)
+          if ok then
+            song.selected_instrument_index = amigo_index - 1
+            made = made + 1
           else
-            paketti_mod_amigo_apply(samp, info, name, ins)
-            local ok, send_err, count, dropped, amigo_index =
-              PakettiAmigoSendInstrumentToAmigo(index)
-            if ok then
-              -- drop the throwaway; the Amigo slides down into its place
-              song:delete_instrument_at(index)
-              song.selected_instrument_index = amigo_index - 1
-              made = made + 1
-            else
-              song:delete_instrument_at(index)
-              failed[#failed + 1] = string.format("%02d %s (%s)",
-                info.index, name, tostring(send_err))
-            end
+            failed[#failed + 1] = string.format("%02d %s (%s)",
+              info.index, name_or_err, tostring(send_err))
           end
-          os.remove(tmp)
         end
       end
       coroutine.yield()
@@ -217,18 +163,11 @@ local function paketti_mod_amigo_scratch_kit(mod, name)
 
   local slot = 0
   for _, info in ipairs(mod.samples) do
-    local tmp, sample_name = paketti_mod_amigo_temp_wav(info)
-    if tmp then
-      slot = slot + 1
-      if #ins.samples < slot then ins:insert_sample_at(slot) end
-      local samp = ins.samples[slot]
-      if samp.sample_buffer:load_from(tmp) then
-        paketti_mod_amigo_apply(samp, info, sample_name, nil)
-      else
-        ins:delete_sample_at(slot)
-        slot = slot - 1
-      end
-      os.remove(tmp)
+    slot = slot + 1
+    local loaded = PakettiMODApplySampleToSlot(ins, slot, info)
+    if not loaded then
+      ins:delete_sample_at(slot)
+      slot = slot - 1
     end
   end
 
@@ -247,7 +186,7 @@ function PakettiMODWavetableToAmigo(mod_file)
   if not mod then return end
 
   local monitoring = PakettiTemporarilyDisableNewSampleMonitoring()
-  local kit_name = PakettiMODParser.sanitize_filename(mod.title, "MOD Wavetable")
+  local kit_name = pakettiFSPath.sanitize_filename(mod.title, "MOD Wavetable")
 
   local scratch = paketti_mod_amigo_scratch_kit(mod, kit_name)
   if not scratch then
