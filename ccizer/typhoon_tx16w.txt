@@ -1,0 +1,36 @@
+# Yamaha TX16W running Typhoon / Typhoon 2000
+#
+# Typhoon has NO parameter SysEx (its FAQ: "besides SDS, there is no System
+# Exclusive handling"), so CC is the way in -- and it works well, because
+# Typhoon's modulation matrix takes MIDI controllers as sources.
+#
+# NOTHING HERE NEEDS REVERSE ENGINEERING. Typhoon's external controllers are
+# USER-DEFINABLE: you choose the controller number on the TX16W, so you just
+# make the machine agree with this file. Set a modulator's source to "external
+# controller", give it the CC number from the left column below, and pick the
+# destination. Then load this file in CCizer.
+#
+# Typhoon's modulation destinations include pitch, volume, cutoff, resonance,
+# panning, EG attack, AEG time, glide time, and LFO1/2 depth / rate / EG.
+#
+# IMPORTANT LIMIT: only TWO freely definable external controllers are available
+# per voice, alongside the fixed sources (mod wheel, breath, foot, volume, data
+# entry, sustain, aftertouch, velocity, pitchbend). So you will not get 30 live
+# knobs at once -- you get the fixed sources plus two of your choosing. Assign
+# the two definable ones to whatever you actually want to perform with, and
+# delete the lines below that you have not set up on the machine.
+#
+# The CC numbers below are a SUGGESTED CONVENTION, not a spec. Change them
+# freely; only the machine's own assignment decides what a number does.
+
+PB Pitchbend
+1 Mod Wheel
+2 Breath
+4 Foot
+6 Data Entry
+7 Volume
+10 Pan
+64 Sustain
+# --- the two definable external controllers: set these on the TX16W ---
+16 Ext Ctrl A (assign on TX16W)
+17 Ext Ctrl B (assign on TX16W)

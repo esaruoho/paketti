@@ -32,6 +32,14 @@ Release tags are generated on a GitHub Actions runner, and those run in UTC. A p
 
 The tag is now stamped in `Europe/Helsinki`. Existing tags keep their old UTC names; from the next build onward the timestamp matches the wall clock it was built at, which means the first new tag will appear to jump forward three hours. Daylight saving is handled by the zone itself, and the hour that repeats at the autumn fallback is harmless because "newest release" is resolved by GitHub's creation date, never by sorting the tag text.
 
+### 2026-08-23 - Feature: CCizer Profile for TX16W Running Typhoon
+
+Typhoon has no parameter SysEx, but it does take MIDI controllers as modulation sources, so CC is the way into a Typhoon TX16W. Sound on Sound's June 1994 review describes eight simultaneous modulations with 15 sources and 13 destinations, two definable external controllers that can be assigned controller numbers, and a Remote option that maps controller numbers onto the TX16W's own front panel buttons.
+
+Nothing here needs reverse engineering, because Typhoon's external controllers are user-definable — you pick the controller number on the machine, so you simply make it agree with the file. `ccizer/typhoon_tx16w.txt` covers the fixed sources (mod wheel, breath, foot, data entry, volume, pan, sustain, pitchbend) plus two slots for the definable external controllers, with the honest caveat that only two are freely assignable per voice, so this is not thirty live knobs.
+
+- Menu: `Main Menu:Tools:Paketti:MIDI:CCizer Loader...`
+
 ### 2026-08-23 - Improvement: TX16W Notes — Which OS Decides Whether SysEx Exists At All
 
 The shipped Yamaha TX16W definition file now records what the primary sources actually say, because the answer depends entirely on which operating system the machine is running.
