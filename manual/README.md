@@ -325,6 +325,19 @@ OctaMed / Protracker IFF / 8SVX / 16SV Import support
 
 Both as separate instruments, and as "wavetable instrument" == all samples in one instrument, aka "sample chain".
 
+#### Batch Convert .MOD to .WAV
+
+`Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .MOD to .WAV...` (also under `Main Menu:File:Paketti Import`, `Instrument Box:Paketti:Load`, `Sample Editor:Paketti:Export` and `Disk Browser Files:Paketti:Import/Export`; keybinding `Global:Paketti:Batch Convert .MOD to .WAV`).
+
+Rips every sample out of a whole folder of modules at once. Each sample is written as `modulename-NN-samplename.wav`, so a folder of 500 modules gives you 500 x samples-per-module WAV files in one run.
+
+- **Source Folder** — the folder to scan. `Include subfolders` walks the whole tree.
+- **Write .WAV to** — `Same folder as .MOD` puts each WAV beside the module it came from (keeping your folder structure), `Separate folder` collects everything into one folder.
+- **Skip .wav files that already exist** — resume an interrupted run without redoing work.
+- **Sample Rate** — `Amiga 8363 Hz (apply finetune)` is the default and gives you the pitch the module intended; there are also flat 8363 Hz, 16726 Hz, 22050 Hz and 44100 Hz.
+
+Progress is shown in a dialog with a Cancel button, and Renoise stays usable while it runs. 15-sample Soundtracker modules and the multi-channel tags (`6CHN`, `8CHN`, `10CH`-`32CH`, `OKTA`, `CD81`, StarTrekker `FA0x`, and more) are all handled, not just 4-channel `M.K.`.
+
 ### Export
 
 #### Export PTI

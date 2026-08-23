@@ -8,6 +8,24 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Feature: Batch Convert .MOD to .WAV
+
+Point Paketti at a folder of ProTracker/Soundtracker modules and it writes every sample of every module out as its own `.wav`, named `modulename-NN-samplename.wav` — so 500 modules become 500 x samples-per-module WAV files in one pass. Sample names that are empty or contain characters the filesystem refuses are cleaned up automatically (an unnamed sample becomes `untitled`), and the two-digit number keeps the files in the module's own sample order.
+
+The dialog takes a source folder, optionally recurses into subfolders, and writes either beside each `.mod` (which preserves the folder structure) or into one output folder you choose. "Skip .wav files that already exist" lets an interrupted run be resumed without redoing work. Sample rate can be Amiga 8363 Hz with each sample's finetune applied (the default, so the WAV plays at the pitch the module intended), 8363 Hz flat, 16726 Hz, 22050 Hz, or 44100 Hz. The run happens on a ProcessSlicer with a progress dialog and a Cancel button, so Renoise stays usable and a 500-module job can be stopped. Two modules with the same filename in different subfolders no longer overwrite each other's output, and re-running the converter over the same folder overwrites its own previous output instead of piling up copies.
+
+The `.MOD` parser was pulled out into its own file and made considerably more capable in the process. It now recognises 15-sample Soundtracker modules as well as 31-sample ones, and reads the channel count from every common format tag (`M.K.`, `M!K!`, `M&K!`, `N.T.`, `FLT4`/`FLT8`, `4CHN`-`9CHN`, `10CH`-`32CH`, `CD81`, `OKTA`, `TDZ1`-`TDZ3`, StarTrekker `FA0x`) rather than only six of them. The pattern count is now worked out from the whole 128-entry order table, cross-checked against the file's actual size — the old code only scanned the used entries, so any module with patterns stored past the end of its song list had its sample data read from the wrong offset and came out as noise. Truncated or corrupt files are clamped instead of crashing.
+
+`Load Samples from .MOD` runs on the same parser, so it inherits all of that.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .MOD to .WAV...`
+- Menu: `Main Menu:File:Paketti Import:Batch Convert .MOD to .WAV...`
+- Menu: `Instrument Box:Paketti:Load:Batch Convert .MOD to .WAV...`
+- Menu: `Sample Editor:Paketti:Export:Batch Convert .MOD to .WAV...`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Batch Convert .MOD to .WAV...`
+- Keybinding: `Global:Paketti:Batch Convert .MOD to .WAV`
+- MIDI Mapping: `Paketti:Batch Convert .MOD to .WAV`
+
 ### 2026-08-20 - Fix: one failing background task no longer disables all of them
 
 When a ProcessSlicer worker threw, ProcessSlicer re-raised the error from inside an `app_idle` notifier. Renoise responds to that by disabling the tool's notifiers "to prevent further errors" — which silently kills **every** ProcessSlicer feature in Paketti (PTI loading, the sample loaders, ITI export, the Amigo batches) until Renoise is quit and relaunched. Reloading the tool does not bring them back, so the tool looks loaded and simply does nothing in the background.

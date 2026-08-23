@@ -1293,6 +1293,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiFSPath")
   timed_require("PakettiEXS24Parser")
   timed_require("PakettiEXS24Loader")
+  timed_require("PakettiMODParser")
   timed_require("PakettiMODLoader")
   timed_require("PakettiOTExport")
   timed_require("PakettiXIExport")
