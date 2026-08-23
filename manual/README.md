@@ -595,6 +595,7 @@ Also, every Paketti instrument comes in pre-baked with Pitchbend support - so yo
 
 Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer Control Surface...`
 Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer Dump .syx File...`
+Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer Send Selected Sample as SDS`
 Keybinding: `Global:Paketti:Sysexizer Control Surface`
 
 CCizer gives you a text file of CC numbers and turns it into a MIDI Control device. Sysexizer does the same thing for System Exclusive — the parameters a synth exposes *only* over SysEx, with no CC equivalent. Renoise has no device that sends SysEx, so Sysexizer sends the bytes itself.
@@ -629,6 +630,8 @@ The trailing `: min max default` is optional and defaults to `0 127 0`. Lines st
 Included: `universal.txt` (Device Inquiry, Master Volume/Balance, GM On/Off — straight from the MIDI 1.0 spec, safe to send to anything), `roland_gs.txt` (checksummed GS parameters), `_format.txt` (the format reference), and a Yamaha TX16W template. The TX16W lines are commented out on purpose — the byte addresses need filling in from the machine's implementation chart, which was not available to verify against. Everything around them works.
 
 **Dumping .syx files.** `Load .syx...` reads a SysEx file and splits it into individual `F0`…`F7` messages; `Dump to Port` sends them to the selected output. It paces itself rather than firing everything at once. MIDI is 31250 baud, so a 512-byte block takes about 164 ms to actually leave — push messages faster than that and the driver queue backs up, at which point short messages overtake long ones already waiting. The gap between messages is therefore each message's own transmission time plus the `Msg gap ms` value, which you can raise for older hardware that needs time to write each block to memory. `Stop` aborts a dump in progress.
+
+**Sending the selected sample as SDS.** `Send Selected Sample` in the dialog, or `Main Menu:Tools:Paketti:MIDI:Sysexizer Send Selected Sample as SDS`, transmits the currently selected Renoise sample using MIDI Sample Dump Standard. It sends a dump header followed by 127-byte data packets, with 40 16-bit samples per packet and the standard XOR checksum. The same MIDI output, device/channel value, sample number, and message gap are used. Stereo samples are folded to mono because classic SDS is a single waveform stream. This first sender is open-loop: it paces packets but does not yet wait for ACK/NAK/WAIT responses from the sampler.
 
 
 ### Sysexizer SysEx Monitor — reverse engineering an undocumented synth

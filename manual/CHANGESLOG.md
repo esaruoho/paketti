@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Feature: Sysexizer Sends the Selected Sample as MIDI SDS
+
+Sysexizer can now transmit the selected Renoise sample using MIDI Sample Dump Standard, which is the route for getting samples into a TX16W, including Typhoon machines that have no parameter SysEx beyond SDS.
+
+The control-surface dialog has a new `SDS Sample` row with sample number, `Send Selected Sample`, and `Stop`. The sender builds a standard SDS dump header from the selected sample's frame count, sample rate and loop points, then sends 127-byte data packets with 40 16-bit sample words per packet and the standard XOR checksum. Stereo samples are folded to mono because classic SDS is one waveform stream. This first implementation is open-loop: it uses the existing timed MIDI pacing, but it does not yet wait for ACK/NAK/WAIT handshake replies.
+
+- Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer Send Selected Sample as SDS`
+- Keybinding: `Global:Paketti:Sysexizer Send Selected Sample as SDS`
+- MIDI Mapping: `Paketti:Sysexizer Send Selected Sample as SDS`
+
 ### 2026-08-23 - Feature: .MOD Loader Dialog
 
 Added a single `.MOD Loader...` dialog for the four module-loading routes: `Load Samples from .MOD`, `Load .MOD as Wavetable`, `Load Samples from .MOD as Amigo`, and `Load .MOD as Wavetable to Amigo`. Pick a module once, then choose the destination path from the dialog, which avoids having to hunt through separate menu entries when Renoise's own `.mod` loading gets in the way.

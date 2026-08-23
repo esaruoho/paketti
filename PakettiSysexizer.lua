@@ -28,6 +28,7 @@
 --   Trailing ": min max default" is optional (defaults to 0 127 0).
 
 local separator = package.config:sub(1,1)
+local bit = require("bit")
 local SLOT_COUNT = 32
 
 local dialog = nil
@@ -47,6 +48,10 @@ local sx = {
   value_id = {},
   syx_path = nil,
   syx_msgs = nil,
+  sds_timer = nil,
+  sds_packet = 0,
+  sds_packets = 0,
+  sds_sample_number = 0,
   building = false,
   dump_timer = nil,
   dump_index = 0,
@@ -176,6 +181,23 @@ local function bytes_to_hex(bytes)
   local out = {}
   for _, b in ipairs(bytes) do out[#out + 1] = string.format("%02X", b) end
   return table.concat(out, " ")
+end
+
+local function clamp_byte(value)
+  return math.max(0, math.min(127, math.floor(value or 0)))
+end
+
+local function append_u14_7bit(bytes, value)
+  value = math.max(0, math.min(0x3FFF, math.floor(value or 0)))
+  bytes[#bytes + 1] = value % 128
+  bytes[#bytes + 1] = math.floor(value / 128) % 128
+end
+
+local function append_u21_7bit(bytes, value)
+  value = math.max(0, math.min(0x1FFFFF, math.floor(value or 0)))
+  bytes[#bytes + 1] = value % 128
+  bytes[#bytes + 1] = math.floor(value / 128) % 128
+  bytes[#bytes + 1] = math.floor(value / 16384) % 128
 end
 
 --------------------------------------------------------------------------------
@@ -503,6 +525,171 @@ function PakettiSysexizerBrowseAndDump()
 end
 
 --------------------------------------------------------------------------------
+-- MIDI Sample Dump Standard export (selected Renoise sample -> SDS)
+--------------------------------------------------------------------------------
+
+local function stop_sds_dump()
+  if sx.sds_timer then
+    pcall(function() renoise.tool():remove_timer(sx.sds_timer) end)
+    sx.sds_timer = nil
+  end
+end
+
+local function get_selected_sample_for_sds()
+  local song = renoise.song()
+  if not song or not song.selected_sample then
+    renoise.app():show_status("Sysexizer SDS: no selected sample")
+    return nil
+  end
+  local sample = song.selected_sample
+  local buffer = sample.sample_buffer
+  if not buffer or not buffer.has_sample_data then
+    renoise.app():show_status("Sysexizer SDS: selected sample has no audio")
+    return nil
+  end
+  if buffer.number_of_frames < 1 then
+    renoise.app():show_status("Sysexizer SDS: selected sample is empty")
+    return nil
+  end
+  if buffer.number_of_frames > 0x1FFFFF then
+    renoise.app():show_status("Sysexizer SDS: sample is too long for SDS (max 2097151 frames)")
+    return nil
+  end
+  return sample, buffer
+end
+
+local function sds_device_id()
+  return math.max(0, math.min(127, (sx.channel or 1) - 1))
+end
+
+function PakettiSysexizerEncodeSds16(sample_value)
+  sample_value = math.max(-1, math.min(1, sample_value or 0))
+  local word = math.floor((sample_value + 1) * 32767.5)
+  word = math.max(0, math.min(65535, word))
+  return {
+    math.floor(word / 512) % 128,
+    math.floor(word / 4) % 128,
+    (word % 4) * 32
+  }
+end
+
+function PakettiSysexizerBuildSdsHeader(sample_number, sample_rate, frames, loop_start, loop_end, loop_type, device_id)
+  local bytes = { 0xF0, 0x7E, clamp_byte(device_id or sds_device_id()), 0x01 }
+  append_u14_7bit(bytes, sample_number or sx.sds_sample_number)
+  bytes[#bytes + 1] = 16
+  append_u21_7bit(bytes, math.floor((1000000000 / math.max(1, sample_rate or 44100)) + 0.5))
+  append_u21_7bit(bytes, frames or 1)
+  append_u21_7bit(bytes, loop_start or 0)
+  append_u21_7bit(bytes, loop_end or 0)
+  bytes[#bytes + 1] = clamp_byte(loop_type or 0)
+  bytes[#bytes + 1] = 0xF7
+  return bytes
+end
+
+local function sds_loop_fields(sample, frames)
+  if sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and sample.loop_end > sample.loop_start then
+    local loop_type = (sample.loop_mode == renoise.Sample.LOOP_MODE_PING_PONG) and 1 or 0
+    return sample.loop_start - 1, sample.loop_end - 1, loop_type
+  end
+  return 0, 0, 0
+end
+
+local function sds_frame_value(buffer, frame)
+  if frame > buffer.number_of_frames then return -1 end
+  if buffer.number_of_channels == 1 then
+    return buffer:sample_data(1, frame)
+  end
+  local sum = 0
+  for channel = 1, buffer.number_of_channels do
+    sum = sum + buffer:sample_data(channel, frame)
+  end
+  return sum / buffer.number_of_channels
+end
+
+function PakettiSysexizerBuildSdsPacket(buffer, packet_index, device_id)
+  local data = {}
+  local first_frame = packet_index * 40 + 1
+  for frame = first_frame, first_frame + 39 do
+    local encoded = PakettiSysexizerEncodeSds16(sds_frame_value(buffer, frame))
+    data[#data + 1] = encoded[1]
+    data[#data + 1] = encoded[2]
+    data[#data + 1] = encoded[3]
+  end
+
+  local packet_number = packet_index % 128
+  local msg = { 0xF0, 0x7E, clamp_byte(device_id or sds_device_id()), 0x02, packet_number }
+  local checksum = 0x7E
+  for i = 3, #msg do checksum = bit.bxor(checksum, msg[i]) end
+  for _, b in ipairs(data) do
+    msg[#msg + 1] = b
+    checksum = bit.bxor(checksum, b)
+  end
+  msg[#msg + 1] = checksum % 128
+  msg[#msg + 1] = 0xF7
+  return msg
+end
+
+function PakettiSysexizerDumpSelectedSampleSDS()
+  local sample, buffer = get_selected_sample_for_sds()
+  if not sample then return false end
+  if not sx.out_dev then
+    renoise.app():show_status("Sysexizer SDS: no MIDI output port selected")
+    return false
+  end
+
+  stop_sds_dump()
+  stop_dump()
+
+  local frames = buffer.number_of_frames
+  local loop_start, loop_end, loop_type = sds_loop_fields(sample, frames)
+  local device_id = sds_device_id()
+  local header = PakettiSysexizerBuildSdsHeader(
+    sx.sds_sample_number, buffer.sample_rate, frames, loop_start, loop_end, loop_type, device_id)
+  local total_packets = math.ceil(frames / 40)
+  sx.sds_packet = -1
+  sx.sds_packets = total_packets
+
+  local function wire_time_ms(msg)
+    return math.ceil(#msg * 0.32)
+  end
+
+  local tick
+  tick = function()
+    local ok, err = pcall(function()
+      pcall(function() renoise.tool():remove_timer(tick) end)
+      if sx.sds_packet == -1 then
+        send_bytes(header)
+        sx.sds_packet = 0
+        renoise.app():show_status(string.format("Sysexizer SDS: sent header for %s", sample.name ~= "" and sample.name or "selected sample"))
+        renoise.tool():add_timer(tick, math.max(1, sx.delay_ms + wire_time_ms(header)))
+        return
+      end
+      if sx.sds_packet >= total_packets then
+        sx.sds_timer = nil
+        renoise.app():show_status(string.format("Sysexizer SDS: dump complete -- %d packets", total_packets))
+        sx_log("SDS dump complete: %d frames, %d packets, sample #%d", frames, total_packets, sx.sds_sample_number)
+        return
+      end
+      local msg = PakettiSysexizerBuildSdsPacket(buffer, sx.sds_packet, device_id)
+      send_bytes(msg)
+      sx.sds_packet = sx.sds_packet + 1
+      renoise.app():show_status(string.format("Sysexizer SDS: packet %d/%d", sx.sds_packet, total_packets))
+      renoise.tool():add_timer(tick, math.max(1, sx.delay_ms + wire_time_ms(msg)))
+    end)
+    if not ok then
+      stop_sds_dump()
+      sx_log("SDS dump aborted: %s", tostring(err))
+      renoise.app():show_status("Sysexizer SDS: dump aborted -- see console")
+    end
+  end
+
+  sx.sds_timer = tick
+  renoise.tool():add_timer(tick, 1)
+  sx_log("SDS dumping %d frames to '%s' as %d packets", frames, tostring(sx.out_name), total_packets)
+  return true
+end
+
+--------------------------------------------------------------------------------
 -- dialog
 --------------------------------------------------------------------------------
 
@@ -652,6 +839,7 @@ function PakettiSysexizerDialog()
         width = 50,
         notifier = function()
           stop_dump()
+          stop_sds_dump()
           renoise.app():show_status("Sysexizer: dump stopped")
         end
       },
@@ -659,6 +847,32 @@ function PakettiSysexizerDialog()
         id = "sysexizer_syxinfo",
         text = sx.syx_path and (sx.syx_path:match("[^" .. separator .. "]+$") or sx.syx_path) or "(no file loaded)",
         width = 320
+      }
+    },
+    vb:row{
+      spacing = 6,
+      vb:text{ text = "SDS Sample", width = 70, font = "bold" },
+      vb:text{ text = "#", width = 12 },
+      vb:valuebox{
+        min = 0, max = 16383, value = sx.sds_sample_number, width = 70,
+        notifier = function(value) if not sx.building then sx.sds_sample_number = value end end
+      },
+      vb:button{
+        text = "Send Selected Sample",
+        width = 150,
+        notifier = function() PakettiSysexizerDumpSelectedSampleSDS() end
+      },
+      vb:button{
+        text = "Stop",
+        width = 50,
+        notifier = function()
+          stop_sds_dump()
+          renoise.app():show_status("Sysexizer SDS: dump stopped")
+        end
+      },
+      vb:text{
+        text = "16-bit mono SDS, open-loop",
+        width = 200
       }
     }
   }
@@ -917,6 +1131,7 @@ end
 
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI:Sysexizer Control Surface...", invoke=function() PakettiSysexizerDialog() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI:Sysexizer Dump .syx File...", invoke=function() PakettiSysexizerBrowseAndDump() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI:Sysexizer Send Selected Sample as SDS", invoke=function() PakettiSysexizerDumpSelectedSampleSDS() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MIDI:Sysexizer SysEx Monitor...", invoke=function() PakettiSysexizerMonitorDialog() end}
 
 renoise.tool():add_keybinding{
@@ -932,6 +1147,10 @@ renoise.tool():add_keybinding{
   invoke = function() PakettiSysexizerBrowseAndDump() end
 }
 renoise.tool():add_keybinding{
+  name = "Global:Paketti:Sysexizer Send Selected Sample as SDS",
+  invoke = function() PakettiSysexizerDumpSelectedSampleSDS() end
+}
+renoise.tool():add_keybinding{
   name = "Global:Paketti:Sysexizer SysEx Monitor",
   invoke = function() PakettiSysexizerMonitorDialog() end
 }
@@ -943,6 +1162,10 @@ renoise.tool():add_midi_mapping{
 renoise.tool():add_midi_mapping{
   name = "Paketti:Sysexizer Dump Syx File",
   invoke = function(message) if message:is_trigger() then PakettiSysexizerDumpSyx() end end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Sysexizer Send Selected Sample as SDS",
+  invoke = function(message) if message:is_trigger() then PakettiSysexizerDumpSelectedSampleSDS() end end
 }
 
 for slot = 1, SLOT_COUNT do
