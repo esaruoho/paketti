@@ -906,6 +906,7 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Batch
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
 PakettiAddMenuEntry{name="--Main Menu:File:Paketti Import:Batch Convert .MOD to .WAV...",invoke=function() PakettiMODToWAVBatchDialog() end}
 PakettiAddMenuEntry{name="--Main Menu:File:Paketti Import:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
+PakettiAddMenuEntry{name="--Main Menu:Tools:Paketti Gadgets:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
 PakettiAddMenuEntry{name="Instrument Box:Paketti:Load:Batch Convert .MOD to .WAV...",invoke=function() PakettiMODToWAVBatchDialog() end}
 PakettiAddMenuEntry{name="Instrument Box:Paketti:Load:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Batch Convert .MOD to .WAV...",invoke=function() PakettiMODToWAVBatchDialog() end}
