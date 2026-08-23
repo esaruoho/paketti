@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Fix: release tags and .xrnx filenames now use Finnish time
+
+Release tags are generated on a GitHub Actions runner, and those run in UTC. A push at 21:34 Finnish time produced a release tagged `2026-08-23_18-34-35`, and the `.xrnx` files carried that same three-hours-behind stamp in their filenames — so the build you just made always looked like it came from the afternoon.
+
+The tag is now stamped in `Europe/Helsinki`. Existing tags keep their old UTC names; from the next build onward the timestamp matches the wall clock it was built at, which means the first new tag will appear to jump forward three hours. Daylight saving is handled by the zone itself, and the hour that repeats at the autumn fallback is harmless because "newest release" is resolved by GitHub's creation date, never by sorting the tag text.
+
 ### 2026-08-23 - Feature: Sysexizer — SysEx Control Surface and .syx File Dumper
 
 Renoise has no native device that sends System Exclusive, so where CCizer builds a `*Instr. MIDI Control` device and lets Renoise do the sending, Sysexizer owns its own surface and transmits the bytes itself. It is the same idea though: plain text files describe a synth, and you pick one from a popup.

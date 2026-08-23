@@ -67,7 +67,14 @@ jobs:
       - name: Generate Tag Name
         id: gen
         run: |
-          TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
+          # GitHub Actions runners are UTC, which made every release tag and every
+          # .xrnx filename read 3 hours behind the wall clock they were built at
+          # (a 21:34 Finnish push produced a tag named 18-34). Stamp them in
+          # Helsinki time so the tag matches when it actually happened.
+          # DST is handled by the zone itself; the one hour per year that repeats
+          # at the autumn fallback is harmless, because "newest release" is
+          # resolved by GitHub's creation date, never by sorting the tag string.
+          TIMESTAMP=$(TZ=Europe/Helsinki date +'%Y-%m-%d_%H-%M-%S')
           echo "tag_name=$TIMESTAMP" >> $GITHUB_OUTPUT
 
       - name: Create and Push Tag
