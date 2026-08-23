@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Fix: RX2 Wine Decoder Uses a Private 64-bit Prefix on Linux
+
+Linux RX2 import now runs the bundled Windows decoder with `WINEARCH=win64` and a Paketti-owned Wine prefix at `~/.paketti-rx2-wine64`, instead of inheriting whatever default Wine prefix the user already has. This avoids crashing or mutating a user's existing prefix when the RX2 loader is first used from Renoise.
+
+The shared RX2 decoder command builder also quotes the decoder executable path on every platform again, so paths with spaces are handled consistently by single RX2 import, RX2→PTI, RX2→OT and RX2→XRNI.
+
 ### 2026-08-23 - Feature: Sysexizer Sends the Selected Sample as MIDI SDS
 
 Sysexizer can now transmit the selected Renoise sample using MIDI Sample Dump Standard, which is the route for getting samples into a TX16W, including Typhoon machines that have no parameter SysEx beyond SDS.

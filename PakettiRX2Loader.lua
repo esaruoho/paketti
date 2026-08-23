@@ -106,6 +106,16 @@ local function rx2_have_command(name)
   return os.execute("command -v " .. name .. " >/dev/null 2>&1") == 0
 end
 
+local function rx2_wine_prefix_path()
+  local home = os.getenv("HOME")
+  if home and home ~= "" then
+    return home .. separator .. ".paketti-rx2-wine64"
+  end
+
+  local user = os.getenv("USER") or "user"
+  return PakettiRX2TempFolder() .. separator .. "paketti-rx2-wine64-" .. user
+end
+
 -- Cached so a batch of 200 .rx2 files does not shell out twice per file.
 local rx2_wine_checked, rx2_wine_present = false, false
 local rx2_timeout_checked, rx2_timeout_present = false, false
@@ -139,10 +149,12 @@ function PakettiRX2BuildDecoderCommand(os_name, decoder_path, input_path, wav_ou
     q(input_path), q(wav_output), q(txt_output), q(sdk_path))
 
   if os_name ~= "LINUX" then
-    return string.format("%s %s 2>&1", decoder_path, args)
+    return string.format("%s %s 2>&1", q(decoder_path), args)
   end
 
-  local prefix = "WINEDEBUG=-all WINEDLLOVERRIDES=" .. q("mscoree,mshtml=") .. " "
+  local wine_prefix = rx2_wine_prefix_path()
+  local prefix = "WINEDEBUG=-all WINEARCH=win64 WINEPREFIX=" .. q(wine_prefix)
+    .. " WINEDLLOVERRIDES=" .. q("mscoree,mshtml=") .. " "
   if rx2_timeout_available() then
     prefix = prefix .. "timeout " .. RX2_DECODER_TIMEOUT_SECONDS .. " "
   end
@@ -162,6 +174,14 @@ function PakettiRX2ExplainDecoderFailure(os_name, status)
   end
   if status == 127 or status == 32512 then
     return "Wine could not be started (command not found)."
+  end
+  if status ~= 0 then
+    return "Wine started but the RX2 decoder crashed or exited before it wrote audio. "
+      .. "Paketti runs the decoder in this private Wine prefix: "
+      .. rx2_wine_prefix_path()
+      .. "\n\nTry this once in a terminal, then retry the RX2 import:\n"
+      .. "WINEARCH=win64 WINEPREFIX=" .. rx2_shell_quote(rx2_wine_prefix_path())
+      .. " wine --version"
   end
   return nil
 end
