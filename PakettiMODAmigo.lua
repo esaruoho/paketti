@@ -188,6 +188,17 @@ function PakettiMODWavetableToAmigo(mod_file)
   local monitoring = PakettiTemporarilyDisableNewSampleMonitoring()
   local kit_name = pakettiFSPath.sanitize_filename(mod.title, "MOD Wavetable")
 
+  -- Amigo's loop / loopstart / pingpong / reverse / sampleend are ONE set for
+  -- the whole plugin instance. slice0..slice63 are positions and nothing else -
+  -- there is no per-slice loop to write, and a single global loop across a
+  -- chain would just loop over slice boundaries. So a looped module sample
+  -- loses its loop here. Count them and say so, rather than dropping it
+  -- quietly, so the per-sample command can be used instead.
+  local looping = 0
+  for _, info in ipairs(mod.samples) do
+    if info.loop_length and info.loop_length > 5 then looping = looping + 1 end
+  end
+
   local scratch = paketti_mod_amigo_scratch_kit(mod, kit_name)
   if not scratch then
     renoise.app():show_status(label .. ": nothing loaded.")
@@ -221,6 +232,11 @@ function PakettiMODWavetableToAmigo(mod_file)
     if dropped > 0 then
       message = message .. string.format(" (%d past Amigo's %d were left out)",
         dropped, PakettiAmigoMaxSlices)
+    end
+    if looping > 0 then
+      message = message .. string.format(
+        " - %d had loops, which Amigo cannot hold per slice; use Load .MOD Samples to Amigo for those",
+        looping)
     end
     renoise.app():show_status(message)
     print("PakettiMODAmigo: " .. message)

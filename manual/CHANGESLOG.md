@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Improvement: .MOD to Wavetable Now Says Which Loops It Cannot Keep
+
+Amigo has one set of loop settings for the whole plugin — `loop`, `loopstart`, `pingpong`, `reverse`, `sampleend`. Its `slice0` to `slice63` parameters are positions and nothing else, so there is no such thing as a per-slice loop in Amigo.
+
+That means `Load .MOD as Wavetable to Amigo` cannot keep the loops of a looped module sample: everything is chained into one sample, and a single loop across that chain would just loop over slice boundaries. It has always left the loop settings alone there, which is correct, but it did so silently.
+
+It now counts them and tells you, so a module with looped samples does not lose them without a word: *"6 samples chained, 6 Amigo slices - 2 had loops, which Amigo cannot hold per slice; use Load .MOD Samples to Amigo for those"*. The per-sample command gives each sample its own Amigo, so each one keeps its own loop.
+
 ### 2026-08-23 - Fix: Loop Points Now Reach Amigo
 
 Every sample sent to Amigo arrived unlooped. Amigo has `loop`, `loopstart`, `pingpong`, `reverse` and `sampleend` parameters and Paketti never wrote any of them, so the loop points of a looped `.MOD` sample, a looped IFF, or any loop set by hand in Renoise were simply dropped on the way in.

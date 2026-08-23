@@ -19699,6 +19699,8 @@ Both run on the same `.MOD` parser as `Load Samples from .MOD`, so they inherit 
 
 Amigo holds 64 slices, and a `.MOD` carries at most 31 samples, so neither command can hit the ceiling. The cap is passed through rather than assumed, and if it ever did bite, the status line would say how many were left out.
 
+**Loops.** `Load .MOD Samples to Amigo` keeps every sample's loop, because each sample gets an Amigo of its own and Amigo's loop settings apply to that one sample. `Load .MOD as Wavetable to Amigo` cannot: Amigo has a single set of loop settings for the whole plugin, and `slice0` to `slice63` are positions only, so there is no per-slice loop to write and a global loop would run across slice boundaries. The wavetable command counts any looped samples and names the count in the status bar, pointing you at the per-sample command when the loops matter.
+
 Both run on a ProcessSlicer with a progress dialog, so Renoise stays usable while 31 plugin instances load.
 
 - Menu: `Main Menu:File:Paketti Import:Load .MOD Samples to Amigo`
