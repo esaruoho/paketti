@@ -14,6 +14,16 @@ Release tags are generated on a GitHub Actions runner, and those run in UTC. A p
 
 The tag is now stamped in `Europe/Helsinki`. Existing tags keep their old UTC names; from the next build onward the timestamp matches the wall clock it was built at, which means the first new tag will appear to jump forward three hours. Daylight saving is handled by the zone itself, and the hour that repeats at the autumn fallback is harmless because "newest release" is resolved by GitHub's creation date, never by sorting the tag text.
 
+### 2026-08-23 - Improvement: TX16W Notes — Which OS Decides Whether SysEx Exists At All
+
+The shipped Yamaha TX16W definition file now records what the primary sources actually say, because the answer depends entirely on which operating system the machine is running.
+
+On the **stock Yamaha OS**, parameter-change SysEx exists. The Operating Manual p.25 states the TX16W sends and receives System Exclusive for front panel switches, parameter changes and bulk data — and then tells programmers to contact Yamaha for the format, which was never printed. Since the machine transmits those messages when you move its front panel, the SysEx Monitor can recover the format directly from the hardware. Device Number is set in SYSTEM SETUP job 6 (p.8) and pairs with the `10+CH` token.
+
+On **Typhoon / Typhoon 2000**, there is nothing to send. The Typhoon FAQ is explicit: besides Sample Dump Standard, there is no System Exclusive handling at all. A SysEx control surface cannot work on that OS; CCizer driving Typhoon's modulation matrix is the route instead. Typhoon does implement Sample Dump Standard in both directions.
+
+Recording this in the file itself so the next person to open it does not spend an evening capturing SysEx from a machine that never emits any.
+
 ### 2026-08-23 - Feature: Sysexizer SysEx Monitor — Capture and Diff a Synth's Own SysEx
 
 Plenty of synths never had their System Exclusive format published. The Yamaha TX16W is the case in point: its manual says the machine transmits SysEx for front panel switches and parameter changes, then tells programmers to contact Yamaha for the byte format. That document is not in the manual and not coming.

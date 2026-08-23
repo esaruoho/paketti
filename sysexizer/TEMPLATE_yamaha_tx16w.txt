@@ -1,23 +1,55 @@
-# Yamaha TX16W - TEMPLATE, NOT VERIFIED.
+# Yamaha TX16W - READ THIS BEFORE FILLING IT IN.
 #
-# I do not have the TX16W SysEx implementation chart, and I will not invent
-# byte addresses for it. Every line below is commented out on purpose.
+# Whether this file can ever work depends on which OS the TX16W is running.
 #
-# Yamaha parameter-change messages are shaped like:
-#     F0 43 1n <model id> <param hi> <param lo> <data> F7
-# where n = channel-1, which the 10+CH token produces.
+# ---------------------------------------------------------------------------
+# STOCK YAMAHA OS  ->  parameter-change SysEx EXISTS, but is undocumented
+# ---------------------------------------------------------------------------
+# TX16W Operating Manual, p.25 (MIDI Dump):
 #
-# Fill in the real <model id> and parameter addresses from the TX16W manual
-# (or from the byte stream captured off the machine's own front panel edits),
-# then uncomment. Everything else in Sysexizer already works.
+#   "The TX16W sends and receives System Exclusive messages for front panel
+#    switches, parameter changes, and bulk data of various types. Computer
+#    programmers writing editing software for the TX16W may contact Yamaha
+#    for details."
 #
-@device Yamaha TX16W (template - fill in from manual)
+# So the messages exist, and Yamaha never printed the byte format - it was a
+# separate developer document. The MIDI Implementation Chart (manual p.41)
+# confirms System Exclusive is both transmitted and received, footnote *4:
+# "wave data based on Sample Dump Standard and voice data".
+#
+# The machine TRANSMITS SysEx when you move front panel parameters, so you can
+# recover the format from the machine itself:
+#
+#   Tools > Paketti > MIDI > Sysexizer SysEx Monitor...
+#   1. pick the TX16W's MIDI input
+#   2. move one parameter on the front panel
+#   3. move the SAME parameter to a different value
+#   4. press "Diff Last Two"
+#
+# One changed byte = that offset is the value, the bytes around it are the
+# address, and the Monitor writes the finished definition line with VV placed.
+# Paste the lines under this comment block and delete the "#".
+#
+# Set the TX16W's Device Number (SYSTEM SETUP job 6, manual p.8) to 1..16 and
+# match it with @channel below; "10+CH" produces Yamaha's 1n byte. On "all",
+# the TX16W transmits on channel 1.
+#
+# ---------------------------------------------------------------------------
+# TYPHOON / TYPHOON 2000  ->  NO parameter SysEx AT ALL. This file cannot work.
+# ---------------------------------------------------------------------------
+# Typhoon FAQ, Part 1:
+#
+#   "What is Typhoon's implementation of SysEx?
+#    Besides SDS (Sample Dump Standard), there is no System Exclusive handling."
+#
+# Under Typhoon there is nothing for Sysexizer to send. Use CCizer instead and
+# drive Typhoon's modulation matrix ("eight free modulators per channel with 14
+# sources and 12 destinations") - check the Typhoon manual for which MIDI
+# controllers appear in that source list.
+#
+# Typhoon DOES do Sample Dump Standard in both directions, so samples can be
+# exchanged over MIDI; that is a separate feature from this control surface.
+#
+@device Yamaha TX16W (stock OS only - capture with the SysEx Monitor first)
 @channel 1
 @delay 30
-#
-# Filter Cutoff       : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 64
-# Filter Resonance    : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 0
-# Amp Attack          : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 0
-# Amp Decay           : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 64
-# Amp Sustain         : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 127
-# Amp Release         : F0 43 10+CH ?? ?? ?? VV F7 : 0 127 32
