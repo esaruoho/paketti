@@ -208,6 +208,135 @@ function load_samples_from_mod(mod_file)
 end
 
 --------------------------------------------------------------------------------
+-- .MOD Loader dialog
+--------------------------------------------------------------------------------
+
+local mod_loader_dialog = nil
+
+local function paketti_mod_dialog_choose_file(vb)
+  local path = renoise.app():prompt_for_filename_to_read(
+    { "*.mod", "mod.*" }, "Select .MOD file"
+  )
+  if path and path ~= "" and vb and vb.views and vb.views.mod_loader_file then
+    vb.views.mod_loader_file.text = path
+  end
+end
+
+local function paketti_mod_dialog_path(vb)
+  if not vb or not vb.views or not vb.views.mod_loader_file then return nil end
+  local path = vb.views.mod_loader_file.text
+  if path and path ~= "" then return path end
+  return nil
+end
+
+local function paketti_mod_dialog_run(vb, label, invoke)
+  local path = paketti_mod_dialog_path(vb)
+  if not path then
+    paketti_mod_dialog_choose_file(vb)
+    path = paketti_mod_dialog_path(vb)
+  end
+  if not path then
+    renoise.app():show_status(label .. ": no .MOD selected.")
+    return
+  end
+  if mod_loader_dialog and mod_loader_dialog.visible then
+    mod_loader_dialog:close()
+    mod_loader_dialog = nil
+  end
+  invoke(path)
+end
+
+function PakettiMODLoaderDialog()
+  if mod_loader_dialog and mod_loader_dialog.visible then
+    mod_loader_dialog:close()
+    mod_loader_dialog = nil
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
+
+  local content = vb:column{
+    margin = DEFAULT_MARGIN,
+    spacing = 6,
+
+    vb:row{
+      vb:text{ text = ".MOD File", width = 70 },
+      vb:textfield{
+        id = "mod_loader_file",
+        width = 430,
+        text = ""
+      },
+      vb:button{
+        text = "Browse",
+        width = 70,
+        notifier = function() paketti_mod_dialog_choose_file(vb) end
+      }
+    },
+
+    vb:row{
+      vb:button{
+        text = "Load Samples from .MOD",
+        width = 210,
+        notifier = function()
+          paketti_mod_dialog_run(vb, "Load Samples from .MOD", load_samples_from_mod)
+        end
+      },
+      vb:button{
+        text = "Load .MOD as Wavetable",
+        width = 210,
+        notifier = function()
+          paketti_mod_dialog_run(vb, "Load .MOD as Wavetable", function(path)
+            if PakettiLoadMODAsWavetable then
+              PakettiLoadMODAsWavetable(path)
+            else
+              pakettiLoadExeAsSample(path)
+            end
+          end)
+        end
+      }
+    },
+
+    vb:row{
+      vb:button{
+        text = "Load Samples from .MOD as Amigo",
+        width = 210,
+        notifier = function()
+          paketti_mod_dialog_run(vb, "Load Samples from .MOD as Amigo", PakettiMODSamplesToAmigo)
+        end
+      },
+      vb:button{
+        text = "Load .MOD as Wavetable to Amigo",
+        width = 210,
+        notifier = function()
+          paketti_mod_dialog_run(vb, "Load .MOD as Wavetable to Amigo", PakettiMODWavetableToAmigo)
+        end
+      }
+    },
+
+    vb:row{
+      vb:button{
+        text = "Close",
+        width = 80,
+        notifier = function()
+          if mod_loader_dialog and mod_loader_dialog.visible then
+            mod_loader_dialog:close()
+          end
+          mod_loader_dialog = nil
+        end
+      }
+    }
+  }
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return mod_loader_dialog end,
+    function(value) mod_loader_dialog = value end
+  )
+  mod_loader_dialog = renoise.app():show_custom_dialog(
+    ".MOD Loader", content, keyhandler)
+end
+
+--------------------------------------------------------------------------------
 -- Batch .MOD -> .WAV
 --------------------------------------------------------------------------------
 
@@ -553,10 +682,17 @@ end
 --------------------------------------------------------------------------------
 
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .MOD to .WAV...",invoke=function() PakettiMODToWAVBatchDialog() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
 PakettiAddMenuEntry{name="--Main Menu:File:Paketti Import:Batch Convert .MOD to .WAV...",invoke=function() PakettiMODToWAVBatchDialog() end}
+PakettiAddMenuEntry{name="--Main Menu:File:Paketti Import:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
 PakettiAddMenuEntry{name="Instrument Box:Paketti:Load:Batch Convert .MOD to .WAV...",invoke=function() PakettiMODToWAVBatchDialog() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Load:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Batch Convert .MOD to .WAV...",invoke=function() PakettiMODToWAVBatchDialog() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Load:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
 PakettiAddMenuEntry{name="Disk Browser Files:Paketti:Import/Export:Batch Convert .MOD to .WAV...",invoke=function() PakettiMODToWAVBatchDialog() end}
+PakettiAddMenuEntry{name="Disk Browser Files:Paketti:Import/Export:.MOD Loader...",invoke=function() PakettiMODLoaderDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert .MOD to .WAV",invoke=function() PakettiMODToWAVBatchDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:.MOD Loader",invoke=function() PakettiMODLoaderDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Batch Convert .MOD to .WAV",invoke=function(message) if message:is_trigger() then PakettiMODToWAVBatchDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:.MOD Loader",invoke=function(message) if message:is_trigger() then PakettiMODLoaderDialog() end end}

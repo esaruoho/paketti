@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-23 - Feature: .MOD Loader Dialog
+
+Added a single `.MOD Loader...` dialog for the four module-loading routes: `Load Samples from .MOD`, `Load .MOD as Wavetable`, `Load Samples from .MOD as Amigo`, and `Load .MOD as Wavetable to Amigo`. Pick a module once, then choose the destination path from the dialog, which avoids having to hunt through separate menu entries when Renoise's own `.mod` loading gets in the way.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:.MOD Loader...`
+- Menu: `Main Menu:File:Paketti Import:.MOD Loader...`
+- Menu: `Instrument Box:Paketti:Load:.MOD Loader...`
+- Menu: `Sample Editor:Paketti:Load:.MOD Loader...`
+- Menu: `Disk Browser Files:Paketti:Import/Export:.MOD Loader...`
+- Keybinding: `Global:Paketti:.MOD Loader`
+- MIDI Mapping: `Paketti:.MOD Loader`
+
 ### 2026-08-23 - Improvement: .MOD to Wavetable Now Says Which Loops It Cannot Keep
 
 Amigo has one set of loop settings for the whole plugin — `loop`, `loopstart`, `pingpong`, `reverse`, `sampleend`. Its `slice0` to `slice63` parameters are positions and nothing else, so there is no such thing as a per-slice loop in Amigo.

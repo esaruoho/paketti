@@ -86,6 +86,19 @@ function pakettiLoadExeAsSample(file_path)
   )
 end
 
+function PakettiLoadMODAsWavetable(mod_file)
+  if not mod_file or mod_file == "" then
+    mod_file = renoise.app():prompt_for_filename_to_read(
+      { "*.mod", "mod.*" }, "Load .MOD as Wavetable"
+    )
+  end
+  if not mod_file or mod_file == "" then
+    renoise.app():show_status("Load .MOD as Wavetable: no .MOD selected.")
+    return
+  end
+  pakettiLoadExeAsSample(mod_file)
+end
+
 
 -- NOTE: EXE/DLL/BIN hook registration moved to end of file for centralized management
 

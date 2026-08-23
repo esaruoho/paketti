@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**6 card conversations** plugged in:
+**7 card conversations** plugged in:
 
 ### `6fa0a152-39f6-4315-8628-d54901373c84`  (2026-07-27)
 - Resume: `claude --resume 6fa0a152-39f6-4315-8628-d54901373c84`
@@ -34,6 +34,10 @@
 - Resume: `claude --resume 2468b3ae-f1c4-4b8e-aee2-fea2c03748f4`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/2468b3ae-f1c4-4b8e-aee2-fea2c03748f4.jsonl
 - Tooling touched: INDEX.md
+
+### `01eef212-eac8-4fe5-8038-b5edaf0605cd`  (2026-08-23)
+- Resume: `claude --resume 01eef212-eac8-4fe5-8038-b5edaf0605cd`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/01eef212-eac8-4fe5-8038-b5edaf0605cd.jsonl
 
 ### `91c1b970-5a25-404c-8d0c-b960186c6f2a`  (2026-08-23)
 - Resume: `claude --resume 91c1b970-5a25-404c-8d0c-b960186c6f2a`
