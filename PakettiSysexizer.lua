@@ -913,6 +913,14 @@ function PakettiSysexizerHexString(bytes)
   return bytes_to_hex(bytes)
 end
 
+local function read_u14_7bit(bytes, pos)
+  return (bytes[pos] or 0) + (bytes[pos + 1] or 0) * 128
+end
+
+local function read_u21_7bit(bytes, pos)
+  return (bytes[pos] or 0) + (bytes[pos + 1] or 0) * 128 + (bytes[pos + 2] or 0) * 16384
+end
+
 --------------------------------------------------------------------------------
 -- SysEx Monitor: capture what a synth sends, so its format can be reverse
 -- engineered when the manufacturer never published one.
@@ -1038,6 +1046,113 @@ function PakettiSysexizerMonitorDiff()
   return text
 end
 
+local function sds_packet_checksum(msg)
+  local checksum = msg[2] or 0
+  for i = 3, 125 do checksum = bit.bxor(checksum, msg[i] or 0) end
+  return checksum % 128
+end
+
+local function is_sds_header(msg)
+  return #msg == 21 and msg[1] == 0xF0 and msg[2] == 0x7E and msg[4] == 0x01 and msg[21] == 0xF7
+end
+
+local function is_sds_data_packet(msg)
+  return #msg == 127 and msg[1] == 0xF0 and msg[2] == 0x7E and msg[4] == 0x02 and msg[127] == 0xF7
+end
+
+function PakettiSysexizerAnalyzeSDSMessages(messages)
+  local dumps = {}
+  local current = nil
+
+  for index, msg in ipairs(messages or {}) do
+    if is_sds_header(msg) then
+      current = {
+        header_index = index,
+        device_id = msg[3],
+        sample_number = read_u14_7bit(msg, 5),
+        sample_format = msg[7],
+        sample_period_ns = read_u21_7bit(msg, 8),
+        sample_length = read_u21_7bit(msg, 11),
+        loop_start = read_u21_7bit(msg, 14),
+        loop_end = read_u21_7bit(msg, 17),
+        loop_type = msg[20],
+        packets = 0,
+        bad_packets = {},
+        first_packet_index = nil,
+        last_packet_index = nil
+      }
+      dumps[#dumps + 1] = current
+    elseif current and msg[1] == 0xF0 and msg[2] == 0x7E and msg[4] == 0x02 then
+      current.packets = current.packets + 1
+      current.first_packet_index = current.first_packet_index or index
+      current.last_packet_index = index
+      local expected_packet = (current.packets - 1) % 128
+      if not is_sds_data_packet(msg) then
+        current.bad_packets[#current.bad_packets + 1] =
+          string.format("capture %d: bad data packet length/envelope (%d bytes)", index, #msg)
+      else
+        local actual_checksum = msg[126]
+        local expected_checksum = sds_packet_checksum(msg)
+        if msg[3] ~= current.device_id then
+          current.bad_packets[#current.bad_packets + 1] =
+            string.format("capture %d: device id changed %02X -> %02X", index, current.device_id, msg[3])
+        end
+        if msg[5] ~= expected_packet then
+          current.bad_packets[#current.bad_packets + 1] =
+            string.format("capture %d: packet number %02X, expected %02X", index, msg[5], expected_packet)
+        end
+        if actual_checksum ~= expected_checksum then
+          current.bad_packets[#current.bad_packets + 1] =
+            string.format("capture %d: checksum %02X, expected %02X", index, actual_checksum, expected_checksum)
+        end
+      end
+    end
+  end
+
+  return dumps
+end
+
+function PakettiSysexizerMonitorAnalyzeSDS()
+  if #sx.mon_msgs == 0 then
+    renoise.app():show_status("Sysexizer Monitor: nothing captured")
+    return nil
+  end
+
+  local dumps = PakettiSysexizerAnalyzeSDSMessages(sx.mon_msgs)
+  local out = {}
+  if #dumps == 0 then
+    out[#out + 1] = "No MIDI Sample Dump Standard dumps found."
+    out[#out + 1] = "Expected header: F0 7E <device> 01 ... F7"
+    out[#out + 1] = "Expected data:   F0 7E <device> 02 <packet> <120 data bytes> <checksum> F7"
+  else
+    out[#out + 1] = string.format("Found %d SDS dump(s).", #dumps)
+    for i, dump in ipairs(dumps) do
+      local bytes_per_sample = math.max(1, math.ceil((dump.sample_format or 16) / 7))
+      local expected_packets = math.ceil((dump.sample_length * bytes_per_sample) / 120)
+      local rate = dump.sample_period_ns > 0 and math.floor((1000000000 / dump.sample_period_ns) + 0.5) or 0
+      local status = "OK"
+      if #dump.bad_packets > 0 or dump.packets ~= expected_packets then status = "PROBLEM" end
+      out[#out + 1] = string.format(
+        "Dump %d: %s sample #%d, device %d, %d-bit, %d Hz, %d samples, loop %d-%d type %d",
+        i, status, dump.sample_number, dump.device_id, dump.sample_format, rate,
+        dump.sample_length, dump.loop_start, dump.loop_end, dump.loop_type)
+      out[#out + 1] = string.format(
+        "  captured packets: %d, expected: %d, captures: header %d, packets %s-%s",
+        dump.packets, expected_packets, dump.header_index,
+        tostring(dump.first_packet_index or "-"), tostring(dump.last_packet_index or "-"))
+      if dump.packets ~= expected_packets then
+        out[#out + 1] = "  packet count does not match the SDS header sample length"
+      end
+      for _, err in ipairs(dump.bad_packets) do out[#out + 1] = "  " .. err end
+    end
+  end
+
+  local text = table.concat(out, "\n")
+  print("-- Sysexizer SDS analysis:\n" .. text)
+  renoise.app():show_message(text)
+  return text
+end
+
 function PakettiSysexizerMonitorSave()
   if #sx.mon_msgs == 0 then
     renoise.app():show_status("Sysexizer Monitor: nothing captured")
@@ -1099,10 +1214,11 @@ function PakettiSysexizerMonitorDialog()
       monitor_vb:text{ id = "sysexizer_mon_count", text = string.format("%d captured", #sx.mon_msgs), width = 100 },
       monitor_vb:button{ text = "Clear", width = 60, notifier = function() PakettiSysexizerMonitorClear() end },
       monitor_vb:button{ text = "Diff Last Two", width = 100, notifier = function() PakettiSysexizerMonitorDiff() end },
+      monitor_vb:button{ text = "Analyze SDS", width = 90, notifier = function() PakettiSysexizerMonitorAnalyzeSDS() end },
       monitor_vb:button{ text = "Save .syx...", width = 90, notifier = function() PakettiSysexizerMonitorSave() end }
     },
     monitor_vb:text{
-      text = "Move one control on the synth, move it again, then press Diff Last Two.",
+      text = "Move one control and diff it, or send SDS from ReCycle and press Analyze SDS.",
       width = 700
     },
     monitor_vb:multiline_text{

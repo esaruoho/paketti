@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Feature: Sysexizer Monitor Can Prove ReCycle SDS Captures
+
+The SysEx Monitor now has `Analyze SDS`, a validator for MIDI Sample Dump Standard captures. This gives a concrete proof path for old ReCycle “send via MIDI” / Transmit workflows: route ReCycle's Generic SDS/MIDI sampler output into Renoise, capture it in Paketti, then analyze the captured stream.
+
+The analyzer finds SDS dump headers, decodes sample number, bit depth, sample period/rate, sample length and loop metadata, then verifies every data packet's 127-byte envelope, packet sequence number and XOR checksum. It also compares the number of captured data packets against the count implied by the SDS header. A clean `OK` report means ReCycle sent a complete SDS sample stream and Paketti captured it intact.
+
+- Dialog: `Paketti Sysexizer - SysEx Monitor` button `Analyze SDS`
+- Menu: `Main Menu:Tools:Paketti:MIDI:Sysexizer SysEx Monitor...`
+- Keybinding: `Global:Paketti:Sysexizer SysEx Monitor`
+
 ### 2026-08-24 - Feature: Shift Pattern Note Instrument Numbers from Shortcuts and MIDI
 
 Pattern note instrument numbers can now be shifted directly, in the same spirit as transposing notes. The selection commands edit every playable note in the current pattern selection, or the current note column when there is no selection. Row commands edit all playable note columns on the current row of the selected track. Matching-note commands use the note under the cursor, for example `D-5`, and shift every matching note in the selected track/current pattern or in the whole song.

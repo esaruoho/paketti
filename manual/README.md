@@ -659,6 +659,8 @@ If the diff reports several changed bytes, the message probably carries a checks
 
 **Save .syx...** writes every captured message to a file, so a bulk dump pulled off the synth can be sent back later with `Dump to Port`. Incoming SysEx reaches Renoise in 256-byte chunks rather than whole messages; the Monitor reassembles them, so a long dump shows as one message.
 
+**Analyze SDS** checks captured MIDI Sample Dump Standard traffic, which is the proof path for ReCycle's old “Transmit”/“send via MIDI” sampler link. Start the Monitor on the MIDI input ReCycle is sending to, transmit from ReCycle using a Generic SDS/MIDI sampler target, then press `Analyze SDS`. Paketti reports each SDS dump header, sample number, bit depth, sample rate, sample length, loop points, captured packet count versus expected packet count, packet sequence errors, and checksum failures. A clean `OK` dump means ReCycle sent a complete SDS sample stream and Paketti captured it intact.
+
 
 ## Pattern Editor
 
