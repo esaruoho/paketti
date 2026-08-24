@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: Amigo Editors Now Let The Plugin Finish Closing Before The Next One Opens
+
+Every Amigo feature that pops the plugin editor for you used to hide the previous editor and show the next one within the same tick. Amigo builds a file browser when its editor opens, and that browser keeps scanning folders on a background thread; a Linux crash report showed Renoise dying inside that scanner while it was building the next Amigo window. The close and the open are now separated by a real return to Renoise's idle loop, so the plugin gets to finish tearing the old editor down before the new one is created. Repeated Amigo imports no longer stack a close and an open into one instant. This affects Sliced Import to Amigo, RX2 Import to Amigo, Wipe&Slice&Amigo, Pitchbend Loader to Amigo, Drumkit Loader to Amigo and Chain Instrument to Amigo - none of their menu entries, keybindings or MIDI mappings changed.
+
 ### 2026-08-25 - Feature: Sysexizer Monitor Can Prove ReCycle SDS Captures
 
 The SysEx Monitor now has `Analyze SDS`, a validator for MIDI Sample Dump Standard captures. This gives a concrete proof path for old ReCycle “send via MIDI” / Transmit workflows: route ReCycle's Generic SDS/MIDI sampler output into Renoise, capture it in Paketti, then analyze the captured stream.

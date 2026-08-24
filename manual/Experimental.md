@@ -19739,6 +19739,8 @@ Nothing is destroyed. The Renoise instrument keeps all of its samples and slices
 
 The Amigo editor opens on the instrument that was just made, so you can hear and tweak it straight away. Dropping ten files at once gives ten pairs, in order — each Renoise instrument followed by its Amigo — and one editor window showing the last of them, not ten stacked windows. An Amigo editor you opened yourself is never closed.
 
+The editor appears a fraction of a second after the import finishes rather than instantly, and that delay is deliberate. Amigo builds a file browser whenever its editor opens, and that browser carries on scanning folders on a background thread of its own. Closing one editor and opening the next in the same instant gave Amigo no opportunity to shut the old browser down first, and a Linux crash report showed Renoise dying inside exactly that scanner while the next Amigo window was being built. Paketti now hands control back to Renoise in between, so the plugin finishes closing before anything else is created. The underlying fault is inside Amigo and only PotenzaDSP can fix it; this simply stops Paketti from provoking it.
+
 Amigo plays one sample, so a multi-sample import such as a drumkit `.iti` sends its first sample. Amigo also has only 64 slice slots: a file with more slices keeps the first 63 and the status bar says how many were dropped.
 
 Note that plain WAV files dropped onto Renoise are loaded by Renoise itself and never reach Paketti, so the CUE half only applies to that one menu entry.

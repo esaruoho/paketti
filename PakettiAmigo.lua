@@ -474,16 +474,59 @@ local function pakettiAmigoRunSliced(title, work)
   slicer:start()
 end
 
+-- Opening an Amigo editor builds a JUCE file browser, and that registers a
+-- DirectoryContentsList with a TimeSliceThread which keeps scanning on a
+-- background thread. A Linux SIGSEGV reported 2026-08-24 landed in
+-- juce::DirectoryContentsList::useTimeSlice() while Renoise was midway through
+-- building the next Amigo window - the signature of a scanner still running
+-- after the instance it belonged to was released. That is inside the plugin
+-- and we cannot fix it from Lua, but we can stop handing it the worst case,
+-- which is hiding one editor and showing the next within a single tick.
+--
+-- Note that a busy-wait would achieve nothing: JUCE completes teardown on the
+-- message loop, and Lua running IS the message loop not running. So instead of
+-- waiting, the show is handed to a one-shot timer, which means control really
+-- does return to Renoise's idle loop in between and the plugin gets to finish.
+local pakettiAmigoPendingEditor = nil
+local PAKETTI_AMIGO_EDITOR_SETTLE_MS = 120
+
+local function pakettiAmigoShowPendingEditor()
+  pcall(function()
+    if renoise.tool():has_timer(pakettiAmigoShowPendingEditor) then
+      renoise.tool():remove_timer(pakettiAmigoShowPendingEditor)
+    end
+  end)
+  local device = pakettiAmigoPendingEditor
+  pakettiAmigoPendingEditor = nil
+  if not device then return end
+  -- the instrument can be gone by now, so treat the device as untrusted
+  local shown = pcall(function() device.external_editor_visible = true end)
+  if shown then pakettiAmigoLastOpenedEditor = device end
+end
+
 local function pakettiAmigoShowEditorFor(instrument_index)
   if pakettiAmigoLastOpenedEditor then
     pcall(function() pakettiAmigoLastOpenedEditor.external_editor_visible = false end)
     pakettiAmigoLastOpenedEditor = nil
   end
-  local device = PakettiAmigoFindDevice(renoise.song().instruments[instrument_index])
-  if device then
-    local shown = pcall(function() device.external_editor_visible = true end)
-    if shown then pakettiAmigoLastOpenedEditor = device end
-  end
+
+  local found, device = pcall(function()
+    return PakettiAmigoFindDevice(renoise.song().instruments[instrument_index])
+  end)
+  if not found or not device then return end
+
+  -- a newer request replaces an older one, so a batch opens one editor, not ten
+  pakettiAmigoPendingEditor = device
+  pcall(function()
+    if renoise.tool():has_timer(pakettiAmigoShowPendingEditor) then
+      renoise.tool():remove_timer(pakettiAmigoShowPendingEditor)
+    end
+  end)
+
+  local scheduled = pcall(function()
+    renoise.tool():add_timer(pakettiAmigoShowPendingEditor, PAKETTI_AMIGO_EDITOR_SETTLE_MS)
+  end)
+  if not scheduled then pakettiAmigoShowPendingEditor() end
 end
 
 -- Reads the plugin state and returns a context table:
