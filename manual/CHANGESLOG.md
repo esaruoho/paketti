@@ -8,6 +8,30 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-24 - Feature: Shift Pattern Note Instrument Numbers from Shortcuts and MIDI
+
+Pattern note instrument numbers can now be shifted directly, in the same spirit as transposing notes. The selection commands edit every playable note in the current pattern selection, or the current note column when there is no selection. Row commands edit all playable note columns on the current row of the selected track. Matching-note commands use the note under the cursor, for example `D-5`, and shift every matching note in the selected track/current pattern or in the whole song.
+
+The new knob mapping maps MIDI `0..127` across the actual instruments that exist in the song, so a song with 10 instruments is spread across instruments `00..09` instead of trying to write missing instruments up to `7F`.
+
+- Keybinding: `Pattern Editor:Paketti:Selection Instrument +1`
+- Keybinding: `Pattern Editor:Paketti:Selection Instrument -1`
+- Keybinding: `Pattern Editor:Paketti:Current Row Instruments +1`
+- Keybinding: `Pattern Editor:Paketti:Current Row Instruments -1`
+- Keybinding: `Pattern Editor:Paketti:Current Note in Pattern Instruments +1`
+- Keybinding: `Pattern Editor:Paketti:Current Note in Pattern Instruments -1`
+- Keybinding: `Pattern Editor:Paketti:Current Note in Song Instruments +1`
+- Keybinding: `Pattern Editor:Paketti:Current Note in Song Instruments -1`
+- MIDI Mapping: `Paketti:Selection Instrument +1 [Trigger]`
+- MIDI Mapping: `Paketti:Selection Instrument -1 [Trigger]`
+- MIDI Mapping: `Paketti:Current Row Instruments +1 [Trigger]`
+- MIDI Mapping: `Paketti:Current Row Instruments -1 [Trigger]`
+- MIDI Mapping: `Paketti:Current Note in Pattern Instruments +1 [Trigger]`
+- MIDI Mapping: `Paketti:Current Note in Pattern Instruments -1 [Trigger]`
+- MIDI Mapping: `Paketti:Current Note in Song Instruments +1 [Trigger]`
+- MIDI Mapping: `Paketti:Current Note in Song Instruments -1 [Trigger]`
+- MIDI Mapping: `Paketti:Selection Instrument x[Knob]`
+
 ### 2026-08-23 - Fix: RX2 Wine Decoder Uses a Private 64-bit Prefix on Linux
 
 Linux RX2 import now runs the bundled Windows decoder with `WINEARCH=win64` and a Paketti-owned Wine prefix at `~/.paketti-rx2-wine64`, instead of inheriting whatever default Wine prefix the user already has. This avoids crashing or mutating a user's existing prefix when the RX2 loader is first used from Renoise.

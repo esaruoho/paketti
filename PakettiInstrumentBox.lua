@@ -665,6 +665,238 @@ end
 
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
+local function PakettiInstrumentValueLimit()
+  return math.min(#renoise.song().instruments - 1, 254)
+end
+
+local function PakettiIsPlayableNoteColumn(note_column)
+  return note_column and note_column.note_value >= 0 and note_column.note_value <= 119
+end
+
+local function PakettiShiftNoteColumnInstrument(note_column, delta)
+  if not PakettiIsPlayableNoteColumn(note_column) or note_column.instrument_value == 255 then
+    return false
+  end
+
+  local new_value = math.max(0, math.min(PakettiInstrumentValueLimit(), note_column.instrument_value + delta))
+  if new_value == note_column.instrument_value then
+    return false
+  end
+
+  note_column.instrument_value = new_value
+  return true
+end
+
+local function PakettiSetNoteColumnInstrument(note_column, instrument_index)
+  if not PakettiIsPlayableNoteColumn(note_column) then
+    return false
+  end
+
+  local new_value = math.max(0, math.min(PakettiInstrumentValueLimit(), instrument_index - 1))
+  if note_column.instrument_value == new_value then
+    return false
+  end
+
+  note_column.instrument_value = new_value
+  return true
+end
+
+local function PakettiSelectedPlayableNoteValue()
+  local song = renoise.song()
+  local note_column = song.selected_note_column
+
+  if not PakettiIsPlayableNoteColumn(note_column) then
+    renoise.app():show_status("Select a note column with a note first.")
+    return nil
+  end
+
+  return note_column.note_value
+end
+
+local function PakettiSelectionNoteColumnBounds(song, selection, track_index)
+  local track = song.tracks[track_index]
+  local visible_note_columns = track.visible_note_columns or 0
+
+  if visible_note_columns == 0 then
+    return 1, 0
+  end
+
+  if selection.start_track == selection.end_track then
+    return math.max(1, selection.start_column or 1), math.min(visible_note_columns, selection.end_column or visible_note_columns)
+  elseif track_index == selection.start_track then
+    return math.max(1, selection.start_column or 1), visible_note_columns
+  elseif track_index == selection.end_track then
+    return 1, math.min(visible_note_columns, selection.end_column or visible_note_columns)
+  end
+
+  return 1, visible_note_columns
+end
+
+local function PakettiForEachSelectedOrCurrentNoteColumn(callback)
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local selection = song.selection_in_pattern
+  local edited = 0
+
+  if selection then
+    local pattern = song.patterns[pattern_index]
+    local start_line = selection.start_line or 1
+    local end_line = selection.end_line or pattern.number_of_lines
+    local start_track = selection.start_track or 1
+    local end_track = selection.end_track or #song.tracks
+
+    for track_index = start_track, end_track do
+      local start_column, end_column = PakettiSelectionNoteColumnBounds(song, selection, track_index)
+      if start_column <= end_column then
+        local pattern_track = pattern:track(track_index)
+        for line_index = start_line, end_line do
+          local line = pattern_track:line(line_index)
+          for column_index = start_column, end_column do
+            if callback(line:note_column(column_index), pattern_index, track_index, line_index, column_index) then
+              edited = edited + 1
+            end
+          end
+        end
+      end
+    end
+  else
+    local note_column = song.selected_note_column
+    if note_column and callback(note_column, pattern_index, song.selected_track_index, song.selected_line_index, song.selected_note_column_index) then
+      edited = edited + 1
+    end
+  end
+
+  return edited
+end
+
+local function PakettiForEachCurrentRowNoteColumn(callback)
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local line_index = song.selected_line_index
+  local visible_note_columns = song.selected_track.visible_note_columns or 0
+  local line = song.patterns[pattern_index]:track(track_index):line(line_index)
+  local edited = 0
+
+  for column_index = 1, visible_note_columns do
+    if callback(line:note_column(column_index), pattern_index, track_index, line_index, column_index) then
+      edited = edited + 1
+    end
+  end
+
+  return edited
+end
+
+local function PakettiForEachMatchingNoteInPattern(note_value, callback)
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local edited = 0
+
+  for pos, note_column in song.pattern_iterator:note_columns_in_pattern_track(pattern_index, track_index, true) do
+    if PakettiIsPlayableNoteColumn(note_column) and note_column.note_value == note_value then
+      if callback(note_column, pos.pattern, pos.track, pos.line, pos.column) then
+        edited = edited + 1
+      end
+    end
+  end
+
+  return edited
+end
+
+local function PakettiForEachMatchingNoteInSong(note_value, callback)
+  local song = renoise.song()
+  local edited = 0
+
+  for pos, note_column in song.pattern_iterator:note_columns_in_song(true) do
+    if PakettiIsPlayableNoteColumn(note_column) and note_column.note_value == note_value then
+      if callback(note_column, pos.pattern, pos.track, pos.line, pos.column) then
+        edited = edited + 1
+      end
+    end
+  end
+
+  return edited
+end
+
+local function PakettiShowInstrumentEditStatus(action, edited)
+  if edited > 0 then
+    renoise.app():show_status(action .. " (" .. tostring(edited) .. " note columns).")
+  else
+    renoise.app():show_status(action .. ": no editable note instruments found.")
+  end
+end
+
+function PakettiShiftSelectionInstrument(delta)
+  local edited = PakettiForEachSelectedOrCurrentNoteColumn(function(note_column)
+    return PakettiShiftNoteColumnInstrument(note_column, delta)
+  end)
+  PakettiShowInstrumentEditStatus("Selection instrument " .. (delta > 0 and "+1" or "-1"), edited)
+end
+
+function PakettiShiftCurrentRowInstrument(delta)
+  local edited = PakettiForEachCurrentRowNoteColumn(function(note_column)
+    return PakettiShiftNoteColumnInstrument(note_column, delta)
+  end)
+  PakettiShowInstrumentEditStatus("Current row instruments " .. (delta > 0 and "+1" or "-1"), edited)
+end
+
+function PakettiShiftCurrentNoteInPatternInstrument(delta)
+  local note_value = PakettiSelectedPlayableNoteValue()
+  if not note_value then return end
+
+  local edited = PakettiForEachMatchingNoteInPattern(note_value, function(note_column)
+    return PakettiShiftNoteColumnInstrument(note_column, delta)
+  end)
+  PakettiShowInstrumentEditStatus("Current note in pattern instruments " .. (delta > 0 and "+1" or "-1"), edited)
+end
+
+function PakettiShiftCurrentNoteInSongInstrument(delta)
+  local note_value = PakettiSelectedPlayableNoteValue()
+  if not note_value then return end
+
+  local edited = PakettiForEachMatchingNoteInSong(note_value, function(note_column)
+    return PakettiShiftNoteColumnInstrument(note_column, delta)
+  end)
+  PakettiShowInstrumentEditStatus("Current note in song instruments " .. (delta > 0 and "+1" or "-1"), edited)
+end
+
+function PakettiSetSelectionInstrumentFromMidi(message)
+  if message:is_abs_value() then
+    local instrument_count = #renoise.song().instruments
+    local instrument_index = math.floor((message.int_value / 127) * (instrument_count - 1) + 0.5) + 1
+    local edited = PakettiForEachSelectedOrCurrentNoteColumn(function(note_column)
+      return PakettiSetNoteColumnInstrument(note_column, instrument_index)
+    end)
+    PakettiShowInstrumentEditStatus("Selection instrument set to " .. string.format("%02X", instrument_index - 1), edited)
+  elseif message:is_rel_value() then
+    local delta = message.int_value > 64 and (message.int_value - 128) or message.int_value
+    if delta ~= 0 then
+      PakettiShiftSelectionInstrument(delta > 0 and 1 or -1)
+    end
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Selection Instrument +1", invoke=function() PakettiShiftSelectionInstrument(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Selection Instrument -1", invoke=function() PakettiShiftSelectionInstrument(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Current Row Instruments +1", invoke=function() PakettiShiftCurrentRowInstrument(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Current Row Instruments -1", invoke=function() PakettiShiftCurrentRowInstrument(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Current Note in Pattern Instruments +1", invoke=function() PakettiShiftCurrentNoteInPatternInstrument(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Current Note in Pattern Instruments -1", invoke=function() PakettiShiftCurrentNoteInPatternInstrument(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Current Note in Song Instruments +1", invoke=function() PakettiShiftCurrentNoteInSongInstrument(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Current Note in Song Instruments -1", invoke=function() PakettiShiftCurrentNoteInSongInstrument(-1) end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Selection Instrument +1 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiShiftSelectionInstrument(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Selection Instrument -1 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiShiftSelectionInstrument(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Current Row Instruments +1 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiShiftCurrentRowInstrument(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Current Row Instruments -1 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiShiftCurrentRowInstrument(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Current Note in Pattern Instruments +1 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiShiftCurrentNoteInPatternInstrument(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Current Note in Pattern Instruments -1 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiShiftCurrentNoteInPatternInstrument(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Current Note in Song Instruments +1 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiShiftCurrentNoteInSongInstrument(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Current Note in Song Instruments -1 [Trigger]", invoke=function(message) if message:is_trigger() then PakettiShiftCurrentNoteInSongInstrument(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Selection Instrument x[Knob]", invoke=PakettiSetSelectionInstrumentFromMidi}
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper function to ensure the required number of instruments exist, with a max limit of 255 (FE)
 local function ensure_instruments_count(count)
   local song=renoise.song()
@@ -806,4 +1038,3 @@ function PakettiLoadPlaidZapXRNI()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Plaid Zap .XRNI", invoke=function() PakettiLoadPlaidZapXRNI() end}
-
