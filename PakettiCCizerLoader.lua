@@ -2,9 +2,23 @@
 -- Scans ccizer folder and allows selection/loading of MIDI control configuration files
 
 local dialog = nil
+local ccizer_surface_dialog = nil
+local ccizer_surface_vb = nil
 local separator = package.config:sub(1,1)
 local bottomButtonWidth = 120
 local MAX_CC_LIMIT = 35 -- Maximum CC mappings for MIDI Control device
+local CCIZER_SURFACE_COLUMNS = 3
+
+local ccizer_surface_state = {
+    out_dev = nil,
+    out_name = nil,
+    channel = 1,
+    filepath = nil,
+    filename = nil,
+    mappings = {},
+    values = {},
+    building = false
+}
 
 -- Get path to ccizer folder
 local function get_ccizer_folder()
@@ -39,6 +53,50 @@ local function scan_ccizer_files()
     table.sort(files, function(a, b) return a.display_name:lower() < b.display_name:lower() end)
     
     return files
+end
+
+local function parse_ccizer_line(line)
+    local pb_name = line:match("^PB%s+(.+)$")
+    if pb_name then
+        return { cc = -1, name = pb_name, type = "PB" }
+    end
+
+    local cc_number, parameter_name = line:match("^(%d+)%s+(.+)$")
+    if cc_number and parameter_name then
+        local cc_num = tonumber(cc_number)
+        if cc_num and cc_num >= 0 and cc_num <= 127 then
+            return { cc = cc_num, name = parameter_name, type = "CC" }
+        end
+    end
+
+    return nil
+end
+
+local function load_ccizer_surface_file(filepath)
+    local file = io.open(filepath, "r")
+    if not file then
+        renoise.app():show_error("Cannot open CCizer file: " .. filepath)
+        return nil
+    end
+
+    local mappings = {}
+    local line_count = 0
+    for line in file:lines() do
+        line_count = line_count + 1
+        line = line:match("^%s*(.-)%s*$")
+        if line and line ~= "" and not line:match("^#") then
+            local mapping = parse_ccizer_line(line)
+            if mapping then
+                mappings[#mappings + 1] = mapping
+            else
+                print(string.format("-- CCizer Surface: Warning - could not parse line %d: %s", line_count, line))
+            end
+        end
+    end
+    file:close()
+
+    print(string.format("-- CCizer Surface: Loaded %d mappings from %s", #mappings, filepath))
+    return mappings
 end
 
 -- Load and parse a CCizer file
@@ -278,6 +336,273 @@ local function apply_ccizer_mappings(mappings, filename)
         apply_xml_and_open_editor()
     end
     renoise.tool():add_timer(device_timer_func, 200)
+end
+
+local function ccizer_surface_close_output()
+    if ccizer_surface_state.out_dev then
+        pcall(function() ccizer_surface_state.out_dev:close() end)
+        ccizer_surface_state.out_dev = nil
+        ccizer_surface_state.out_name = nil
+    end
+end
+
+local function ccizer_surface_open_output(name)
+    if ccizer_surface_state.out_dev and ccizer_surface_state.out_name == name then
+        return true
+    end
+    ccizer_surface_close_output()
+    if not name or name == "" then return false end
+    local ok, dev = pcall(function() return renoise.Midi.create_output_device(name) end)
+    if not ok or not dev then
+        renoise.app():show_status("CCizer Surface: could not open MIDI output " .. tostring(name))
+        return false
+    end
+    ccizer_surface_state.out_dev = dev
+    ccizer_surface_state.out_name = name
+    print("-- CCizer Surface: opened MIDI output '" .. tostring(name) .. "'")
+    return true
+end
+
+local function ccizer_surface_send_mapping(index, value)
+    local mapping = ccizer_surface_state.mappings[index]
+    if not mapping then return false end
+    if not ccizer_surface_state.out_dev then
+        renoise.app():show_status("CCizer Surface: no MIDI output selected")
+        return false
+    end
+
+    value = math.max(0, math.min(127, math.floor((value or 0) + 0.5)))
+    ccizer_surface_state.values[index] = value
+
+    local channel = math.max(1, math.min(16, ccizer_surface_state.channel or 1))
+    local status = nil
+    local bytes = nil
+    if mapping.type == "PB" then
+        local bend = math.floor((value / 127) * 16383 + 0.5)
+        bytes = { 0xE0 + channel - 1, bend % 128, math.floor(bend / 128) % 128 }
+    else
+        status = 0xB0 + channel - 1
+        bytes = { status, mapping.cc, value }
+    end
+
+    local ok, err = pcall(function() ccizer_surface_state.out_dev:send(bytes) end)
+    if not ok then
+        renoise.app():show_status("CCizer Surface: MIDI send failed")
+        print("-- CCizer Surface: MIDI send failed: " .. tostring(err))
+        return false
+    end
+
+    if ccizer_surface_vb and ccizer_surface_vb.views and ccizer_surface_vb.views["ccizer_surface_value_" .. index] then
+        ccizer_surface_vb.views["ccizer_surface_value_" .. index].text = tostring(value)
+    end
+    return true
+end
+
+local function ccizer_surface_build_row(index)
+    local mapping = ccizer_surface_state.mappings[index]
+    local label = mapping.type == "PB" and "PB" or ("CC " .. tostring(mapping.cc))
+    local value = ccizer_surface_state.values[index] or (mapping.type == "PB" and 64 or 0)
+
+    return ccizer_surface_vb:row{
+        spacing = 4,
+        ccizer_surface_vb:text{
+            text = label,
+            width = 42,
+            font = "mono",
+            style = "strong"
+        },
+        ccizer_surface_vb:text{
+            text = paketti_clean_cc_parameter_name(mapping.name),
+            width = 150
+        },
+        ccizer_surface_vb:slider{
+            id = "ccizer_surface_slider_" .. index,
+            min = 0,
+            max = 127,
+            value = value,
+            width = 120,
+            notifier = function(v)
+                if ccizer_surface_state.building then return end
+                ccizer_surface_send_mapping(index, v)
+            end
+        },
+        ccizer_surface_vb:text{
+            id = "ccizer_surface_value_" .. index,
+            text = tostring(value),
+            width = 28,
+            align = "right"
+        }
+    }
+end
+
+local function ccizer_surface_reset_values()
+    ccizer_surface_state.building = true
+    for i, mapping in ipairs(ccizer_surface_state.mappings) do
+        local value = mapping.type == "PB" and 64 or 0
+        ccizer_surface_state.values[i] = value
+        if ccizer_surface_vb and ccizer_surface_vb.views and ccizer_surface_vb.views["ccizer_surface_slider_" .. i] then
+            ccizer_surface_vb.views["ccizer_surface_slider_" .. i].value = value
+        end
+        if ccizer_surface_vb and ccizer_surface_vb.views and ccizer_surface_vb.views["ccizer_surface_value_" .. i] then
+            ccizer_surface_vb.views["ccizer_surface_value_" .. i].text = tostring(value)
+        end
+    end
+    ccizer_surface_state.building = false
+    for i, mapping in ipairs(ccizer_surface_state.mappings) do
+        local value = mapping.type == "PB" and 64 or 0
+        ccizer_surface_send_mapping(i, value)
+    end
+end
+
+local function ccizer_surface_default_file()
+    local files = scan_ccizer_files()
+    for _, file in ipairs(files) do
+        if file.name == "sc88st.txt" then return file end
+    end
+    return files[1]
+end
+
+function PakettiCCizerControlSurface(filepath)
+    if ccizer_surface_dialog and ccizer_surface_dialog.visible then
+        ccizer_surface_dialog:close()
+        ccizer_surface_dialog = nil
+        if not filepath then return end
+    end
+
+    local files = scan_ccizer_files()
+    if #files == 0 then
+        renoise.app():show_error("No CCizer files found in: " .. get_ccizer_folder())
+        return
+    end
+
+    local selected_file = nil
+    if filepath then
+        local filename = filepath:match("([^/\\]+)$")
+        selected_file = { name = filename, display_name = filename:gsub("%.txt$", ""), full_path = filepath }
+    else
+        selected_file = ccizer_surface_default_file()
+    end
+
+    local mappings = load_ccizer_surface_file(selected_file.full_path)
+    if not mappings or #mappings == 0 then
+        renoise.app():show_error("CCizer Surface: no valid mappings in " .. selected_file.full_path)
+        return
+    end
+
+    ccizer_surface_state.filepath = selected_file.full_path
+    ccizer_surface_state.filename = selected_file.display_name
+    ccizer_surface_state.mappings = mappings
+    ccizer_surface_state.values = {}
+    for i, mapping in ipairs(mappings) do
+        ccizer_surface_state.values[i] = mapping.type == "PB" and 64 or 0
+    end
+
+    ccizer_surface_vb = renoise.ViewBuilder()
+    ccizer_surface_state.building = true
+
+    local file_items = {}
+    local file_index = 1
+    for i, file in ipairs(files) do
+        file_items[#file_items + 1] = file.display_name
+        if file.full_path == selected_file.full_path then file_index = i end
+    end
+
+    local out_names = renoise.Midi.available_output_devices()
+    local port_items = { "<no port>" }
+    for _, name in ipairs(out_names) do port_items[#port_items + 1] = name end
+    local port_index = 1
+    for i, name in ipairs(port_items) do
+        if name == ccizer_surface_state.out_name then port_index = i break end
+    end
+
+    local columns = ccizer_surface_vb:row{ spacing = 10 }
+    local rows_per_column = math.ceil(#mappings / CCIZER_SURFACE_COLUMNS)
+    for column_index = 1, CCIZER_SURFACE_COLUMNS do
+        local col = ccizer_surface_vb:column{ spacing = 2 }
+        local first = (column_index - 1) * rows_per_column + 1
+        local last = math.min(#mappings, first + rows_per_column - 1)
+        for i = first, last do
+            col:add_child(ccizer_surface_build_row(i))
+        end
+        columns:add_child(col)
+    end
+
+    local content = ccizer_surface_vb:column{
+        margin = 8,
+        spacing = 6,
+        ccizer_surface_vb:row{
+            spacing = 6,
+            ccizer_surface_vb:text{ text = "File", width = 44, font = "bold", style = "strong" },
+            ccizer_surface_vb:popup{
+                id = "ccizer_surface_file_popup",
+                items = file_items,
+                value = file_index,
+                width = 220,
+                notifier = function(index)
+                    if ccizer_surface_state.building then return end
+                    if files[index] then PakettiCCizerControlSurface(files[index].full_path) end
+                end
+            },
+            ccizer_surface_vb:button{
+                text = "Browse",
+                width = 70,
+                notifier = function()
+                    local selected_textfile = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Load CCizer Control Surface Text File")
+                    if selected_textfile and selected_textfile ~= "" then
+                        PakettiCCizerControlSurface(selected_textfile)
+                    end
+                end
+            },
+            ccizer_surface_vb:text{
+                text = string.format("%d controls", #mappings),
+                width = 90
+            }
+        },
+        ccizer_surface_vb:row{
+            spacing = 6,
+            ccizer_surface_vb:text{ text = "MIDI Out", width = 60, font = "bold", style = "strong" },
+            ccizer_surface_vb:popup{
+                id = "ccizer_surface_port_popup",
+                items = port_items,
+                value = port_index,
+                width = 220,
+                notifier = function(index)
+                    if ccizer_surface_state.building then return end
+                    if index == 1 then ccizer_surface_close_output()
+                    else ccizer_surface_open_output(port_items[index]) end
+                end
+            },
+            ccizer_surface_vb:text{ text = "Channel", width = 56 },
+            ccizer_surface_vb:valuebox{
+                min = 1,
+                max = 16,
+                value = ccizer_surface_state.channel,
+                width = 60,
+                notifier = function(value)
+                    if not ccizer_surface_state.building then ccizer_surface_state.channel = value end
+                end
+            },
+            ccizer_surface_vb:button{
+                text = "Reset",
+                width = 60,
+                notifier = function() ccizer_surface_reset_values() end
+            }
+        },
+        columns
+    }
+
+    local keyhandler = function(dlg, key)
+        if key.name == "esc" then
+            dlg:close()
+            ccizer_surface_dialog = nil
+            return nil
+        end
+        return key
+    end
+
+    ccizer_surface_dialog = renoise.app():show_custom_dialog("Paketti CCizer Control Surface - " .. selected_file.display_name, content, keyhandler)
+    ccizer_surface_state.building = false
+    if port_index > 1 then ccizer_surface_open_output(port_items[port_index]) end
 end
 
 -- Create the CCizer loader dialog
@@ -968,6 +1293,10 @@ PakettiAddMenuEntry{name = "DSP Device:Paketti:CCizer:Load from File", invoke = 
 PakettiAddMenuEntry{name = "Sample FX Mixer:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
 PakettiAddMenuEntry{name = "Mixer:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
 
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:MIDI:CCizer Control Surface...", invoke = function() PakettiCCizerControlSurface() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:CCizer Control Surface", invoke = function() PakettiCCizerControlSurface() end}
+renoise.tool():add_midi_mapping{name = "Paketti:CCizer Control Surface", invoke = function(message) if message:is_trigger() then PakettiCCizerControlSurface() end end}
+
 -- COMPREHENSIVE RECURSIVE RENOISE API EXPLORER
 -- This explores EVERY SINGLE subobject, property, method in the entire Renoise API
 function paketti_debug_dump_complete_renoise_api()
@@ -1112,7 +1441,3 @@ end
 
 -- Add debug menu entry
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:!Preferences:Debug:Dump Complete Renoise API", invoke = paketti_debug_dump_complete_renoise_api}
-
-
-
-

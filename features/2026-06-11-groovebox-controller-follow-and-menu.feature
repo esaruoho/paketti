@@ -30,6 +30,7 @@ Feature: AKAI controller debug/demo entries moved out of the Groovebox menu
   # cite: PakettiEightOneTwenty.lua (29 PakettiAddMenuEntry paths) + PakettiTriggerOnInput.lua:~288 | commit 2196666
   # WATCH: paketti_apc_seq_zone paketti_apc_seq_refresh paketti_midimix_redraw_all_leds PakettiAddMenuEntry
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+  #   2026-08-25  direct-commit  touched: PakettiAddMenuEntry
   #   2026-08-23  direct-commit  touched: PakettiAddMenuEntry
   #   2026-08-23  direct-commit  touched: PakettiAddMenuEntry
   #   2026-08-23  direct-commit  touched: PakettiAddMenuEntry

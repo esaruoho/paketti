@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**7 card conversations** plugged in:
+**10 card conversations** plugged in:
 
 ### `6fa0a152-39f6-4315-8628-d54901373c84`  (2026-07-27)
 - Resume: `claude --resume 6fa0a152-39f6-4315-8628-d54901373c84`
@@ -25,7 +25,7 @@
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/5e0f11a1-377b-4772-bfcc-7e24092da0db.jsonl
 - Tooling touched: INDEX.md
 
-### `53b19b22-eb03-4403-baf6-29d78603187b`  (2026-08-18 → 2026-08-23)
+### `53b19b22-eb03-4403-baf6-29d78603187b`  (2026-08-18 → 2026-08-24)
 - Resume: `claude --resume 53b19b22-eb03-4403-baf6-29d78603187b`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/53b19b22-eb03-4403-baf6-29d78603187b.jsonl
 - Cards touched (2): groovebox-8120-record-pakettified-instrument.feature, song-lifecycle-safety.feature
@@ -43,3 +43,16 @@
 - Resume: `claude --resume 91c1b970-5a25-404c-8d0c-b960186c6f2a`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/91c1b970-5a25-404c-8d0c-b960186c6f2a.jsonl
 - Tooling touched: INDEX.md
+
+### `27b3fa3c-3bf7-468c-b8f0-797696bb9b23`  (2026-08-24)
+- Resume: `claude --resume 27b3fa3c-3bf7-468c-b8f0-797696bb9b23`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/27b3fa3c-3bf7-468c-b8f0-797696bb9b23.jsonl
+- Tooling touched: INDEX.md
+
+### `b7a1dcbd-014a-48c1-b308-70d9915781ed`  (2026-08-24)
+- Resume: `claude --resume b7a1dcbd-014a-48c1-b308-70d9915781ed`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/b7a1dcbd-014a-48c1-b308-70d9915781ed.jsonl
+
+### `f6c457ca-064f-4ad0-8760-c14bc72fcf95`  (2026-08-24)
+- Resume: `claude --resume f6c457ca-064f-4ad0-8760-c14bc72fcf95`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/f6c457ca-064f-4ad0-8760-c14bc72fcf95.jsonl

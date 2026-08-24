@@ -590,6 +590,16 @@ This is what Paketti is all about, workflow improvements that "make sense (tm)" 
 
 Also, every Paketti instrument comes in pre-baked with Pitchbend support - so you don't have to set it up yourself. Just load a sample using Paketti (or Clean Render, or Unison Generate, or eSpeak generate, or yt-dlp download, or .RX2 / .REX / .PTI / .IFF / .SF2 import), and you're already ready to control that specific instrument's macro knobs.
 
+### CCizer Control Surface — Live Sliders for CCizer Files
+
+Menu: `Main Menu:Tools:Paketti:MIDI:CCizer Control Surface...`
+Keybinding: `Global:Paketti:CCizer Control Surface`
+MIDI Mapping: `Paketti:CCizer Control Surface`
+
+The CCizer loader still creates Renoise's native `*Instr. MIDI Control` device from a CCizer text file. The Control Surface is the direct hardware-control version: pick a `ccizer/*.txt` file, pick a MIDI output and channel, then drag labeled sliders to send those CCs immediately.
+
+It defaults to `sc88st.txt` when that file is present, so opening it gives a ready SC-88ST panel. The surface is not limited by the native MIDI Control device's 35-controller ceiling; it reads every active line in the text file. Pitchbend lines get a centered slider, while normal `0..127` CC lines send ordinary MIDI CC messages.
+
 
 ### Sysexizer — SysEx Control Surface and .syx Dumper
 

@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Feature: CCizer Control Surface for Live MIDI CC Sliders
+
+CCizer now has a direct control surface for its text files. Instead of only creating Renoise's native `*Instr. MIDI Control` device, `CCizer Control Surface...` opens a live MIDI panel: choose a CCizer file, choose MIDI Out and channel, then drag labeled sliders to send CCs immediately.
+
+The surface defaults to `ccizer/sc88st.txt` when present, which makes the SC-88ST file usable as a ready hardware panel. It uses every active line in the file rather than stopping at the native MIDI Control device's 35-controller limit. Pitchbend entries send MIDI pitchbend; CC entries send standard channel CC messages.
+
+- Menu: `Main Menu:Tools:Paketti:MIDI:CCizer Control Surface...`
+- Keybinding: `Global:Paketti:CCizer Control Surface`
+- MIDI Mapping: `Paketti:CCizer Control Surface`
+
 ### 2026-08-25 - Fix: Amigo Editors Now Let The Plugin Finish Closing Before The Next One Opens
 
 Every Amigo feature that pops the plugin editor for you used to hide the previous editor and show the next one within the same tick. Amigo builds a file browser when its editor opens, and that browser keeps scanning folders on a background thread; a Linux crash report showed Renoise dying inside that scanner while it was building the next Amigo window. The close and the open are now separated by a real return to Renoise's idle loop, so the plugin gets to finish tearing the old editor down before the new one is created. Repeated Amigo imports no longer stack a close and an open into one instant. This affects Sliced Import to Amigo, RX2 Import to Amigo, Wipe&Slice&Amigo, Pitchbend Loader to Amigo, Drumkit Loader to Amigo and Chain Instrument to Amigo - none of their menu entries, keybindings or MIDI mappings changed.
