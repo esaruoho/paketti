@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Improvement: Menu Configuration Shows Unmapped Renoise Contexts
+
+Paketti Menu Configuration now includes a bottom audit line listing official Renoise menu contexts that Paketti does not currently map to a menu toggle. This makes odd one-off contexts visible instead of hiding them behind zero-count or unclear categories.
+
 ### 2026-08-25 - Fix: Paketti Menu Configuration Has a Searchable Keybinding
 
 Added the missing `Global:Paketti:Show Paketti Menu Configuration...` keybinding so Renoise's keyboard preferences can find the Menu Configuration dialog by searching for `paketti menu`. The dialog already had menu entries and a MIDI mapping, but no keyboard shortcut entry.

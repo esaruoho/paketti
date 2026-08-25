@@ -3623,6 +3623,45 @@ PakettiMenuConfigCategoryList = {
   {label = "Track Automation List Menus",         key = "TrackAutomationList"},
 }
 
+PakettiKnownRenoiseMenuContexts = {
+  "Window Menu",
+  "Main Menu:File",
+  "Main Menu:Edit",
+  "Main Menu:View",
+  "Main Menu:Tools",
+  "Main Menu:Help",
+  "Scripting Menu:File",
+  "Scripting Menu:Tools",
+  "Disk Browser Directories",
+  "Disk Browser Files",
+  "Instrument Box",
+  "Pattern Sequencer",
+  "Pattern Editor",
+  "Pattern Matrix",
+  "Pattern Matrix Header",
+  "Phrase Editor",
+  "Phrase Mappings",
+  "Phrase Grid",
+  "Sample Navigator",
+  "Sample Editor",
+  "Sample Editor Ruler",
+  "Sample Editor Slice Markers",
+  "Sample List",
+  "Sample Mappings",
+  "Sample FX Mixer",
+  "Sample Modulation Matrix",
+  "Mixer",
+  "Track Automation",
+  "Track Automation List",
+  "DSP Chain",
+  "DSP Chain List",
+  "DSP Device",
+  "DSP Device Header",
+  "DSP Device Automation",
+  "Modulation Set",
+  "Modulation Set List",
+}
+
 -- Returns a flat array of every menu-context preference key from the canonical list.
 function PakettiMenuConfigCategoryKeys()
   local keys = {}
@@ -3773,6 +3812,19 @@ function pakettiMenuConfigDialog()
     target:add_child(create_menu_checkbox(cat.label, cat.key, 280, cat_counts[cat.key] or 0))
   end
   menu_config_dialog_content:add_child(vb:row{spacing = 20, col1, col2})
+
+  local unmapped_contexts = PakettiMenuConfigUnmappedRenoiseContexts()
+  if #unmapped_contexts > 0 then
+    menu_config_dialog_content:add_child(vb:space{height = 5})
+    menu_config_dialog_content:add_child(vb:text{
+      text = "Renoise menu contexts not mapped by Paketti Menu Configuration:",
+      font = "bold"
+    })
+    menu_config_dialog_content:add_child(vb:text{
+      text = table.concat(unmapped_contexts, ", "),
+      width = 580
+    })
+  end
 
   menu_config_dialog_content:add_child(vb:space{height = 5})
   menu_config_dialog_content:add_child(vb:horizontal_aligner{
@@ -4377,6 +4429,16 @@ function PakettiMenuIsPakettiGadget(name)
   if not name then return false end
   local clean = name:gsub("^%s*%-%-%s*", ""):gsub("^%s+", "")
   return clean:match(":Paketti Gadgets:") ~= nil
+end
+
+function PakettiMenuConfigUnmappedRenoiseContexts()
+  local unmapped = {}
+  for _, context in ipairs(PakettiKnownRenoiseMenuContexts or {}) do
+    if not PakettiMenuContextPrefKey(context .. ":") then
+      unmapped[#unmapped + 1] = context
+    end
+  end
+  return unmapped
 end
 
 -- ============================================================================
