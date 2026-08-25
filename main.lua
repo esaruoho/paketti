@@ -339,7 +339,7 @@ function selection_in_pattern_pro()
 end
 
 function timed_require(module_name)
-    local file_path = renoise.tool().bundle_path .. separator .. module_name .. ".lua"
+    local file_path = renoise.tool().bundle_path .. module_name .. ".lua"
 
     if PakettiTimedRequireDebug then
         local start_time = os.clock()
