@@ -3820,10 +3820,17 @@ function pakettiMenuConfigDialog()
       text = "Renoise menu contexts not mapped by Paketti Menu Configuration:",
       font = "bold"
     })
-    menu_config_dialog_content:add_child(vb:text{
-      text = table.concat(unmapped_contexts, ", "),
-      width = 580
-    })
+
+    local unmapped_grid = vb:column{spacing = 2}
+    for i = 1, #unmapped_contexts, 3 do
+      unmapped_grid:add_child(vb:row{
+        spacing = 12,
+        vb:text{text = unmapped_contexts[i] or "", width = 180},
+        vb:text{text = unmapped_contexts[i + 1] or "", width = 180},
+        vb:text{text = unmapped_contexts[i + 2] or "", width = 180}
+      })
+    end
+    menu_config_dialog_content:add_child(unmapped_grid)
   end
 
   menu_config_dialog_content:add_child(vb:space{height = 5})

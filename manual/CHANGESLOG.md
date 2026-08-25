@@ -10,7 +10,7 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 ### 2026-08-25 - Improvement: Menu Configuration Shows Unmapped Renoise Contexts
 
-Paketti Menu Configuration now includes a bottom audit line listing official Renoise menu contexts that Paketti does not currently map to a menu toggle. This makes odd one-off contexts visible instead of hiding them behind zero-count or unclear categories.
+Paketti Menu Configuration now includes a bottom audit section listing official Renoise menu contexts that Paketti does not currently map to a menu toggle. The unmapped contexts are shown as a compact three-column grid instead of one long dialog-widening line.
 
 ### 2026-08-25 - Fix: Paketti Menu Configuration Has a Searchable Keybinding
 
