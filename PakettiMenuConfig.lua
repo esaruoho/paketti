@@ -4086,9 +4086,9 @@ if PAKETTI_HAS_PHRASES then
 end
 end
 
---- Paketti Gadgets Config
+--- Global Paketti Gadgets Config
 if preferences.pakettiMenuConfig.PakettiGadgets.value then
-  debugPrint("Paketti Gadgets Menus Are Enabled")
+  debugPrint("Global Paketti Gadgets Menus Are Enabled")
 end
 
 --- Track DSP Chain Config

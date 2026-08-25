@@ -3607,7 +3607,7 @@ PakettiMenuConfigCategoryList = {
   {label = "Main Menu: Tools",                    key = "MainMenuTools"},
   {label = "Main Menu: View",                     key = "MainMenuView"},
   {label = "Mixer Menus",                         key = "Mixer",                   apply = "PakettiMenuApplyMixerMenus"},
-  {label = "Paketti Gadgets Menus",               key = "PakettiGadgets"},
+  {label = "Global Paketti Gadgets",              key = "PakettiGadgets"},
   {label = "Pattern Editor Menus",                key = "PatternEditor",           apply = "PakettiMenuApplyPatternEditorMenus"},
   {label = "Pattern Matrix Menus",                key = "PatternMatrix",           apply = "PakettiMenuApplyPatternMatrixMenus"},
   {label = "Pattern Sequencer Menus",             key = "PatternSequencer",        apply = "PakettiMenuApplyPatternSequencerMenus"},
@@ -4373,6 +4373,12 @@ function PakettiMenuContextPrefKey(name)
   end
 end
 
+function PakettiMenuIsPakettiGadget(name)
+  if not name then return false end
+  local clean = name:gsub("^%s*%-%-%s*", ""):gsub("^%s+", "")
+  return clean:match(":Paketti Gadgets:") ~= nil
+end
+
 -- ============================================================================
 -- Deferred Menu Registration System
 -- ============================================================================
@@ -4401,6 +4407,7 @@ PakettiMenuTallyFrozen = false
 -- context is disabled in the Menu Configuration dialog.
 function PakettiShouldRegisterMenuEntry(name)
   local pref_key = name and PakettiMenuContextPrefKey(name) or nil
+  local is_paketti_gadget = PakettiMenuIsPakettiGadget(name)
 
   -- Tally first, before any early return, so the count is the POTENTIAL total per
   -- context — independent of whether master menus or this category are enabled.
@@ -4411,6 +4418,9 @@ function PakettiShouldRegisterMenuEntry(name)
     else
       PakettiMenuEntryContextTally.__uncategorized = PakettiMenuEntryContextTally.__uncategorized + 1
     end
+    if is_paketti_gadget then
+      PakettiMenuEntryContextTally.PakettiGadgets = (PakettiMenuEntryContextTally.PakettiGadgets or 0) + 1
+    end
   end
 
   if not PakettiShouldRegisterMenus() then
@@ -4418,6 +4428,11 @@ function PakettiShouldRegisterMenuEntry(name)
   end
   if pref_key and preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig[pref_key] then
     if not preferences.pakettiMenuConfig[pref_key].value then
+      return false
+    end
+  end
+  if is_paketti_gadget and preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig.PakettiGadgets then
+    if not preferences.pakettiMenuConfig.PakettiGadgets.value then
       return false
     end
   end

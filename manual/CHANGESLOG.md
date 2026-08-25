@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Improvement: Global Paketti Gadgets Menu Toggle Is Real
+
+The old `Paketti Gadgets Menus (0)` checkbox was a placeholder with no mapped menu context, so toggling it could not affect anything. It is now `Global Paketti Gadgets` and gates any menu entry whose path contains `Paketti Gadgets`, in addition to the entry's normal host context toggle. For example, a `Pattern Editor:Paketti Gadgets:...` entry now requires both Pattern Editor Menus and Global Paketti Gadgets to be enabled.
+
 ### 2026-08-25 - Fix: Track DSP Device Menu Toggle Hides Separator-Prefixed Entries
 
 The menu configuration gate now normalizes separator-prefixed menu names before matching their context, so entries such as `-- DSP Device:Paketti:Load Renoise Native:(Hidden) Chorus` correctly obey the DSP Device Menus toggle. Disabling the Track DSP Device menu no longer leaves an orphan `Paketti > Load Renoise Native > (Hidden)` submenu behind in the Track DSP context.
