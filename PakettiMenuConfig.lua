@@ -3504,6 +3504,10 @@ function PakettiShowCurrentSongInfo()
     return string.format("%s (%s)", device.name, device_path)
   end
 
+  local function decimal_and_hex(count)
+    return string.format("%d (0x%02X)", count, count)
+  end
+
   local dialog
   local vb = renoise.ViewBuilder()
   local rows = {}
@@ -3526,8 +3530,9 @@ function PakettiShowCurrentSongInfo()
   add_row("LPB", tostring(song.transport.lpb), true)
   add_row("TPL", tostring(song.transport.tpl))
   add_row("Sequencer tracks", tostring(song.sequencer_track_count))
-  add_row("Instruments", tostring(#song.instruments))
+  add_row("Instruments", decimal_and_hex(#song.instruments))
   add_row("Patterns", tostring(#song.patterns))
+  add_row("Pattern sequence entries", decimal_and_hex(#song.sequencer.pattern_sequence))
   add_row("Samples", tostring(sample_count))
 
   add_header("Plugin Instruments")

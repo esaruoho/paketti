@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Improvement: Song Info Shows Instrument and Sequence Counts in Hex
+
+`Main Menu:Song:Paketti:Show Current Song Info...` now shows the instrument count and pattern-sequence entry count in both decimal and hexadecimal, for example `25 (0x19)`.
+
 ### 2026-08-25 - Fix: Song Info Field Titles Are Strong
 
 Every field title in `Main Menu:Song:Paketti:Show Current Song Info...` now uses Renoise's bold, strong text style. BPM and LPB values remain bold and strong as well.
