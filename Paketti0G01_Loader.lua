@@ -947,6 +947,10 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     Mixer = true,
     PatternEditor = true,
     MainMenuTools = true,
+    MainMenuEdit = true,
+    MainMenuOptions = true,
+    MainMenuSong = true,
+    MainMenuHelp = true,
     MainMenuView = true,
     MainMenuFile = true,
     PatternMatrix = true,
@@ -3605,6 +3609,10 @@ PakettiMenuConfigCategoryList = {
   {label = "DSP Device Automation",               key = "DSPDeviceAutomation"},
   {label = "Instrument Box",                      key = "InstrumentBox",           apply = "PakettiMenuApplyInstrumentBoxMenus"},
   {label = "Main Menu: File",                     key = "MainMenuFile"},
+  {label = "Main Menu: Edit",                     key = "MainMenuEdit"},
+  {label = "Main Menu: Help",                     key = "MainMenuHelp"},
+  {label = "Main Menu: Options",                  key = "MainMenuOptions"},
+  {label = "Main Menu: Song",                     key = "MainMenuSong"},
   {label = "Main Menu: Tools",                    key = "MainMenuTools"},
   {label = "Main Menu: View",                     key = "MainMenuView"},
   {label = "Mixer",                               key = "Mixer",                   apply = "PakettiMenuApplyMixerMenus"},
@@ -3628,7 +3636,9 @@ PakettiKnownRenoiseMenuContexts = {
   "Main Menu:File",
   "Main Menu:Edit",
   "Main Menu:View",
+  "Main Menu:Options",
   "Main Menu:Tools",
+  "Main Menu:Song",
   "Main Menu:Help",
   "Scripting Menu:File",
   "Scripting Menu:Tools",
@@ -4400,8 +4410,12 @@ function PakettiMenuContextPrefKey(name)
   if not name then return nil end
   local clean = name:gsub("^%s*%-%-%s*", ""):gsub("^%s+", "")
   if clean:match("^Main Menu:File:") then return "MainMenuFile"
-  elseif clean:match("^Main Menu:View:") or clean:match("^Main Menu:Options:") then return "MainMenuView"
-  elseif clean:match("^Main Menu:") then return "MainMenuTools"
+  elseif clean:match("^Main Menu:Edit:") then return "MainMenuEdit"
+  elseif clean:match("^Main Menu:View:") then return "MainMenuView"
+  elseif clean:match("^Main Menu:Options:") then return "MainMenuOptions"
+  elseif clean:match("^Main Menu:Tools:") then return "MainMenuTools"
+  elseif clean:match("^Main Menu:Song:") then return "MainMenuSong"
+  elseif clean:match("^Main Menu:Help:") then return "MainMenuHelp"
   elseif clean:match("^Instrument Box:") then return "InstrumentBox"
   -- Sample Editor sub-contexts: match the specific ones BEFORE the generic "Sample Editor"
   elseif clean:match("^Sample Editor Ruler:") then return "SampleEditorRuler"
