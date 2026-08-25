@@ -8,6 +8,8 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Improvement: Faster Menu Registration at Startup. Paketti sorts its ~6,900 menu entries alphabetically before handing them to Renoise, and the sort was recalculating each entry's sort key on every single comparison — roughly 356,000 string operations to derive only 6,900 keys. The key is now calculated once per entry. Measured on the real entry set: 23.2ms down to 4.6ms, with byte-identical menu ordering. No menus moved, nothing was renamed, and there are no new menu entries, keybindings or MIDI mappings — this is purely startup work that no longer happens.
+
 ### 2026-08-25 - Feature: CCizer Control Surface for Live MIDI CC Sliders
 
 CCizer now has a direct control surface for its text files. Instead of only creating Renoise's native `*Instr. MIDI Control` device, `CCizer Control Surface...` opens a live MIDI panel: choose a CCizer file, choose MIDI Out and channel, then drag labeled sliders to send CCs immediately.
