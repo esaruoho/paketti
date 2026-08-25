@@ -180,7 +180,7 @@ local function paketti_mod_amigo_scratch_kit(mod, name)
   return index
 end
 
-function PakettiMODWavetableToAmigo(mod_file)
+function PakettiMODWavetableToAmigo(mod_file, keep_chain)
   local label = "Load .MOD as Wavetable to Amigo"
   local mod = paketti_mod_amigo_open(label, mod_file)
   if not mod then return end
@@ -208,8 +208,9 @@ function PakettiMODWavetableToAmigo(mod_file)
 
   PakettiAmigoBuildChain(scratch, PakettiAmigoMaxSlices, function(chain_index, chained, dropped)
     local song = renoise.song()
-    song.instruments[chain_index].name = kit_name
-    song.instruments[chain_index].samples[1].name = kit_name
+    local chain_name = keep_chain and (kit_name .. " Sliced Wavetable") or kit_name
+    song.instruments[chain_index].name = chain_name
+    song.instruments[chain_index].samples[1].name = chain_name
 
     local ok, send_err, count, past, amigo_index =
       PakettiAmigoSendInstrumentToAmigo(chain_index)
@@ -221,14 +222,17 @@ function PakettiMODWavetableToAmigo(mod_file)
       return
     end
 
-    -- leave one instrument standing: the Amigo. The chain sits directly before
-    -- it and the scratch kit before that, so delete high index first.
-    song:delete_instrument_at(chain_index)
+    -- Normal command leaves one instrument standing: the Amigo. The combined
+    -- .MOD dialog route keeps the sliced Renoise chain too, so the user gets
+    -- the plain sample wavetable, the per-sample instruments, and the sliced
+    -- chain that was sent to Amigo.
+    if not keep_chain then song:delete_instrument_at(chain_index) end
     song:delete_instrument_at(scratch)
-    song.selected_instrument_index = amigo_index - 2
+    song.selected_instrument_index = keep_chain and (amigo_index - 1) or (amigo_index - 2)
 
     local message = string.format("%s: %d samples from %s chained, %d Amigo slices",
       label, chained, mod.format, count)
+    if keep_chain then message = message .. " - sliced Renoise wavetable kept" end
     if dropped > 0 then
       message = message .. string.format(" (%d past Amigo's %d were left out)",
         dropped, PakettiAmigoMaxSlices)

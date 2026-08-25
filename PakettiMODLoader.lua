@@ -436,7 +436,7 @@ function PakettiMODLoadOneWithEverything(mod_file)
     else
       pakettiLoadExeAsSample(mod_file)
     end
-    PakettiMODWavetableToAmigo(mod_file)
+    PakettiMODWavetableToAmigo(mod_file, true)
   end)
 
   dialog, vb = slicer:create_dialog("Making one .MOD with everything...")
