@@ -1804,13 +1804,6 @@ function PakettiCanvasExperimentsCreateDialog()
         font="bold",
         style="strong",
         width=180
-      },
-      vb:text{
-        id="status_text_view",
-        text=PakettiCanvasExperimentsGetStatusText(),
-        font="bold",
-        style="strong",
-        width=150
       }
     },
     vb:row {
@@ -1874,8 +1867,6 @@ function PakettiCanvasExperimentsCreateDialog()
           renoise.app():show_status("Canvas: Automation Playmode updated on " .. tostring(changed) .. " envelopes")
         end
       } or vb:space{width=1},
-    },
-    vb:row {
       vb:button {
         text = "Toggle External Editor",
         width = 120,
@@ -1922,6 +1913,13 @@ function PakettiCanvasExperimentsCreateDialog()
           SetupCanvasUpdateTimer()
           renoise.app():show_status("Canvas refresh rate: " .. canvas_refresh_rate .. "ms")
         end
+      },
+      vb:text{
+        id="status_text_view",
+        text=PakettiCanvasExperimentsGetStatusText(),
+        font="bold",
+        style="strong",
+        width=150
       }
     },
 

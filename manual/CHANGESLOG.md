@@ -10,7 +10,7 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 ### 2026-08-25 - Fix: Selected Device Parameter Editor No Longer Opens Ultra-Wide
 
-The Selected Device Parameter Editor now keeps the live status focused on the touched parameter value, e.g. `Mix = 0.220`, instead of prefixing it with a long plugin name. The device name is shown in a fixed-width header field, the dialog title stays stable so it cannot get stuck on a previous plugin, and the canvas now sizes from the active parameter count with a 960-1120px range so dense plugins remain readable without returning to the old 1280px-wide window.
+The Selected Device Parameter Editor now keeps the live status focused on the touched parameter value, e.g. `Mix = 0.220`, instead of prefixing it with a long plugin name. The device name is shown in a fixed-width header field, the parameter count sits after the Refresh selector on the second toolbar row, the dialog title stays stable so it cannot get stuck on a previous plugin, and the canvas now sizes from the active parameter count with a 960-1120px range so dense plugins remain readable without returning to the old 1280px-wide window.
 
 ### 2026-08-25 - Fix: .MOD Loader Creates Both Wavetable Forms in Make Me One With Everything
 
