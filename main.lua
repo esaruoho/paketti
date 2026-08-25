@@ -436,10 +436,6 @@ function whichSubcolumn()
   return sub_column_type, sub_column_name
 end
 
--- Add menu entry and keybinding for whichSubcolumn function
--- Note: Using add_menu_entry directly because PakettiAddMenuEntry is not yet loaded at this point
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Which Sub-Column?", invoke=whichSubcolumn}
 
 -- Function to toggle timed_require debug output
 function pakettiToggleTimedRequireDebug()
@@ -448,10 +444,6 @@ function pakettiToggleTimedRequireDebug()
     renoise.app():show_status("Timed require debug output is now " .. state .. ". Restart Paketti to see changes.")
 end
 
--- Add menu entry and keybinding for timed_require debug toggle
--- Note: Using add_menu_entry directly because PakettiAddMenuEntry is not yet loaded at this point
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
 
 
 ------------------------------------------------
@@ -953,8 +945,6 @@ function pakettiToggleSelectTrackSelectInstrument()
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Select Track Selects Instrument",invoke=function() pakettiToggleSelectTrackSelectInstrument() end}
-renoise.tool():add_midi_mapping{name="Paketti:Toggle Select Track Selects Instrument",invoke=function(message) if message:is_trigger() then pakettiToggleSelectTrackSelectInstrument() end end}
 
 --------
 -- Global helper function to find Volume AHDSR device in an instrument
@@ -1155,6 +1145,25 @@ end
 local _hint_count = 0
 for _ in pairs(PakettiShortcutHintsTable) do _hint_count = _hint_count + 1 end
 print("PakettiShortcutHints: renoise.tool() proxy installed, hint table has " .. _hint_count .. " entries")
+
+-- ============================================================================
+-- Registrations that must wait for the proxy above.
+-- These three features are declared much earlier in this file (whichSubcolumn,
+-- pakettiToggleTimedRequireDebug, pakettiToggleSelectTrackSelectInstrument),
+-- but registering them up there bypassed the proxy entirely: no master toggle,
+-- no Menu Configuration entry, no shortcut hint, no sorted flush, and missing
+-- from the startup counts. Registered here instead so they behave like every
+-- other Paketti registration.
+-- ============================================================================
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Which Sub-Column?", invoke=whichSubcolumn}
+
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Timed Require Debug", invoke=pakettiToggleTimedRequireDebug}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Select Track Selects Instrument",invoke=function() pakettiToggleSelectTrackSelectInstrument() end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Select Track Selects Instrument",invoke=function(message) if message:is_trigger() then pakettiToggleSelectTrackSelectInstrument() end end}
+
 
 -- ============================================================================
 -- MODULE LOADING: Grouped by minimum API version required
