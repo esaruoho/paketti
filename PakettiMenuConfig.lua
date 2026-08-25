@@ -3485,21 +3485,102 @@ function PakettiShowCurrentSongInfo()
   for instrument_index = 1, #song.instruments do
     sample_count = sample_count + #song.instruments[instrument_index].samples
   end
+
+  local function track_label(track, track_index)
+    if track.type == renoise.Track.TRACK_TYPE_MASTER then
+      return "Master"
+    elseif track.type == renoise.Track.TRACK_TYPE_SEND then
+      return "Send " .. tostring(track_index)
+    elseif track.type == renoise.Track.TRACK_TYPE_GROUP then
+      return "Group " .. tostring(track_index)
+    elseif track.name ~= "" then
+      return "Track " .. tostring(track_index) .. " " .. track.name
+    end
+    return "Track " .. tostring(track_index)
+  end
+
+  local function device_label(device)
+    local device_path = device.device_path or "Unknown device path"
+    return string.format("%s (%s)", device.name, device_path)
+  end
+
   local dialog
   local vb = renoise.ViewBuilder()
-  local content = vb:column{
-    margin = 12,
-    spacing = 6,
-    vb:text{text = song.file_name ~= "" and song.file_name or "Untitled Song", font = "bold"},
-    vb:text{text = string.format("BPM: %.2f", song.transport.bpm)},
-    vb:text{text = string.format("LPB: %d", song.transport.lpb)},
-    vb:text{text = string.format("TPL: %d", song.transport.tpl)},
-    vb:text{text = string.format("Sequencer tracks: %d", song.sequencer_track_count)},
-    vb:text{text = string.format("Instruments: %d", #song.instruments)},
-    vb:text{text = string.format("Patterns: %d", #song.patterns)},
-    vb:text{text = string.format("Samples: %d", sample_count)},
-    vb:button{text = "Close", width = 100, notifier = function() dialog:close() end}
-  }
+  local rows = {}
+
+  local function add_header(text)
+    table.insert(rows, vb:text{text = text, font = "bold", style = "strong", width = 760})
+  end
+
+  local function add_row(label, value, emphasis)
+    table.insert(rows, vb:row{
+      margin = 0,
+      spacing = 0,
+      vb:text{text = label, width = 160, font = emphasis and "bold" or "normal", style = emphasis and "strong" or "normal"},
+      vb:text{text = value, width = 600, font = emphasis and "bold" or "normal", style = emphasis and "strong" or "normal"}
+    })
+  end
+
+  add_header(song.file_name ~= "" and song.file_name or "Untitled Song")
+  add_row("BPM", string.format("%.2f", song.transport.bpm), true)
+  add_row("LPB", tostring(song.transport.lpb), true)
+  add_row("TPL", tostring(song.transport.tpl))
+  add_row("Sequencer tracks", tostring(song.sequencer_track_count))
+  add_row("Instruments", tostring(#song.instruments))
+  add_row("Patterns", tostring(#song.patterns))
+  add_row("Samples", tostring(sample_count))
+
+  add_header("Plugin Instruments")
+  local plugin_count = 0
+  for instrument_index, instrument in ipairs(song.instruments) do
+    local properties = instrument.plugin_properties
+    local plugin_device = properties and properties.plugin_device
+    if properties and properties.plugin_loaded and plugin_device then
+      plugin_count = plugin_count + 1
+      add_row(
+        string.format("%02X %s", instrument_index - 1, instrument.name ~= "" and instrument.name or "Untitled Instrument"),
+        device_label(plugin_device)
+      )
+    end
+  end
+  if plugin_count == 0 then
+    add_row("", "None")
+  end
+
+  add_header("Track DSP Devices")
+  local track_device_count = 0
+  for track_index, track in ipairs(song.tracks) do
+    for device_index = 2, #track.devices do
+      track_device_count = track_device_count + 1
+      add_row(track_label(track, track_index), device_label(track.devices[device_index]))
+    end
+  end
+  if track_device_count == 0 then
+    add_row("", "None")
+  end
+
+  add_header("Instrument DSP Devices")
+  local instrument_device_count = 0
+  for instrument_index, instrument in ipairs(song.instruments) do
+    for chain_index, chain in ipairs(instrument.sample_device_chains) do
+      for device_index = 2, #chain.devices do
+        instrument_device_count = instrument_device_count + 1
+        add_row(
+          string.format("%02X %s / %s", instrument_index - 1, instrument.name ~= "" and instrument.name or "Untitled Instrument", chain.name ~= "" and chain.name or "FX Chain " .. tostring(chain_index)),
+          device_label(chain.devices[device_index])
+        )
+      end
+    end
+  end
+  if instrument_device_count == 0 then
+    add_row("", "None")
+  end
+
+  table.insert(rows, vb:button{text = "Close", width = 100, notifier = function() dialog:close() end})
+  rows.margin = 0
+  rows.spacing = 0
+  rows.width = 760
+  local content = vb:column(rows)
   dialog = renoise.app():show_custom_dialog("Paketti Song Info", content)
 end
 
