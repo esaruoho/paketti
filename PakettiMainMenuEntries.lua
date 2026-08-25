@@ -36,6 +36,10 @@ local donations = {
 {"Bluesky","https://bsky.app/profile/defensemech.com"}},
   {"2026-01-02", "xpinvert", 30.00},
   {"2026-01-29", "Casiino", 127.82, {"Instagram", "https://www.instagram.com/elcasiino/"}},
+  {"2026-03-26", "Anonymous", 28.63},
+  {"2026-06-04", "Casiino", 34.77, {"Instagram", "https://www.instagram.com/elcasiino/"}},
+  {"2026-08-23", "Antti Hyypiö", 9.31},
+  
 
 
 }

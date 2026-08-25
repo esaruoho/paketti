@@ -50,3 +50,4 @@ docs/architecture-*.png
 # Per-user generated shortcut-hint table (rebuilt from KeyBindings.xml +
 # autocomplete_cache.txt whenever either changes; never ships, never diffed)
 shortcut_hints_cache.txt
+.agenttrail/
