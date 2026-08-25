@@ -3481,12 +3481,16 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Audi
 -- Main Menu Song
 if preferences.pakettiMenuConfig.MainMenuSong.value then
   renoise.tool():add_menu_entry{
+    name = "Main Menu:Song:Paketti:Impulse Tracker New Song...",
+    invoke = pakettiImpulseTrackerNewSongDialog
+  }
+  renoise.tool():add_menu_entry{
     name = "Main Menu:Song:Paketti:Show Current Song Info",
     invoke = function()
       local song = renoise.song()
       renoise.app():show_status(string.format("Song: %s | %d tracks | %d instruments",
         song.file_name ~= "" and song.file_name or "Untitled",
-        song.track_count,
+        song.sequencer_track_count,
         #song.instruments))
     end
   }

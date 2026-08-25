@@ -3796,6 +3796,9 @@ function pakettiMenuConfigDialog()
     sorted_categories[#sorted_categories + 1] = cat
   end
   table.sort(sorted_categories, function(a, b)
+    local a_main_menu = a.label:match("^Main Menu:") ~= nil
+    local b_main_menu = b.label:match("^Main Menu:") ~= nil
+    if a_main_menu ~= b_main_menu then return a_main_menu end
     if a.key == "PakettiGadgets" then return true end
     if b.key == "PakettiGadgets" then return false end
     return a.label:lower() < b.label:lower()

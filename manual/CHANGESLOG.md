@@ -16,6 +16,12 @@ Paketti Menu Configuration now labels each category by its actual Renoise contex
 
 Paketti Menu Configuration now exposes separate toggles for `Main Menu:File`, `Edit`, `View`, `Options`, `Tools`, `Song`, and `Help`. Added `Main Menu:Song:Paketti:Show Current Song Info` as a working Song-menu entry.
 
+The Song-menu status readout uses Renoise's supported `sequencer_track_count` property.
+
+Added `Main Menu:Song:Paketti:Impulse Tracker New Song...`, reusing the existing Paketti New Song dialog.
+
+Menu Configuration now places all `Main Menu: ...` categories first, followed by `Global Paketti Gadgets`, then the remaining context categories.
+
 ### 2026-08-25 - Improvement: Menu Configuration Shows Unmapped Renoise Contexts
 
 Paketti Menu Configuration now includes a bottom audit section listing official Renoise menu contexts that Paketti does not currently map to a menu toggle. The unmapped contexts are shown as a compact three-column grid instead of one long dialog-widening line.
