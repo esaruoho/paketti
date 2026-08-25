@@ -7,6 +7,33 @@ local STEPPER_TYPES = {
     DRIVE = "Drive Stepper"
 }
 
+-- STEPPER_TYPES is a hash table, and pairs() over one has NO defined iteration
+-- order -- it varied between launches. That made the "--" separator prefix used
+-- when registering the Instrument Box entries land on a different stepper every
+-- time Renoise started, so the separator line visibly moved around the menu, and
+-- the Clear-Steps keybindings registered in a different order each run.
+-- Iterate this fixed list instead. Anything present in STEPPER_TYPES but missing
+-- from the list is still included, appended alphabetically, so adding a new
+-- stepper type and forgetting to list it here can never make it silently vanish.
+local STEPPER_TYPE_ORDER = { "PITCH", "VOLUME", "PAN", "CUTOFF", "RESONANCE", "DRIVE" }
+
+local function pakettiOrderedStepperTypes()
+    local ordered, seen = {}, {}
+    for _, key in ipairs(STEPPER_TYPE_ORDER) do
+        if STEPPER_TYPES[key] then
+            ordered[#ordered + 1] = STEPPER_TYPES[key]
+            seen[key] = true
+        end
+    end
+    local leftover = {}
+    for key in pairs(STEPPER_TYPES) do
+        if not seen[key] then leftover[#leftover + 1] = key end
+    end
+    table.sort(leftover)
+    for _, key in ipairs(leftover) do ordered[#ordered + 1] = STEPPER_TYPES[key] end
+    return ordered
+end
+
 local vb=renoise.ViewBuilder()
 local dialog=nil
 
@@ -491,7 +518,7 @@ function PakettiClearStepper(deviceName)
 end
 
 -- Create menu entries and keybindings for each stepper type
-for _, stepperType in pairs(STEPPER_TYPES) do
+for _, stepperType in ipairs(pakettiOrderedStepperTypes()) do
     local baseText = stepperType:gsub(" Stepper", "")
     renoise.tool():add_keybinding{name=string.format("Global:Paketti:Clear %s Steps", baseText),
         invoke=function() PakettiClearStepper(stepperType) end
@@ -1002,7 +1029,7 @@ end}
 
 -- Add individual stepper show/hide menu entries for instrument box
 local first_stepper = true
-for _, stepperType in pairs(STEPPER_TYPES) do
+for _, stepperType in ipairs(pakettiOrderedStepperTypes()) do
     local baseText = stepperType:gsub(" Stepper", "")
     local prefix = first_stepper and "--" or ""
     PakettiAddMenuEntry{name = string.format("%sInstrument Box:Paketti:Steppers:Show Selected Instrument %s Stepper", prefix, baseText),
