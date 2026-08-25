@@ -10,7 +10,7 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 ### 2026-08-25 - Improvement: Global Paketti Gadgets Menu Toggle Is Real
 
-The old `Paketti Gadgets Menus (0)` checkbox was a placeholder with no mapped menu context, so toggling it could not affect anything. It is now `Global Paketti Gadgets` and gates any menu entry whose path contains `Paketti Gadgets`, in addition to the entry's normal host context toggle. For example, a `Pattern Editor:Paketti Gadgets:...` entry now requires both Pattern Editor Menus and Global Paketti Gadgets to be enabled.
+The old `Paketti Gadgets Menus (0)` checkbox was a placeholder with no mapped menu context, so toggling it could not affect anything. It is now `Global Paketti Gadgets` and gates any menu entry whose path contains `Paketti Gadgets`, independent of the normal host context toggle. For example, `Sample Editor:Paketti Gadgets:...` entries are controlled by Global Paketti Gadgets, while non-Gadgets `Sample Editor:Paketti:...` entries remain controlled by Sample Editor Menus.
 
 ### 2026-08-25 - Fix: Track DSP Device Menu Toggle Hides Separator-Prefixed Entries
 

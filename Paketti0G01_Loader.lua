@@ -4413,26 +4413,24 @@ function PakettiShouldRegisterMenuEntry(name)
   -- context — independent of whether master menus or this category are enabled.
   if not PakettiMenuTallyFrozen then
     PakettiMenuEntryContextTally.__total = PakettiMenuEntryContextTally.__total + 1
-    if pref_key then
+    if is_paketti_gadget then
+      PakettiMenuEntryContextTally.PakettiGadgets = (PakettiMenuEntryContextTally.PakettiGadgets or 0) + 1
+    elseif pref_key then
       PakettiMenuEntryContextTally[pref_key] = (PakettiMenuEntryContextTally[pref_key] or 0) + 1
     else
       PakettiMenuEntryContextTally.__uncategorized = PakettiMenuEntryContextTally.__uncategorized + 1
-    end
-    if is_paketti_gadget then
-      PakettiMenuEntryContextTally.PakettiGadgets = (PakettiMenuEntryContextTally.PakettiGadgets or 0) + 1
     end
   end
 
   if not PakettiShouldRegisterMenus() then
     return false
   end
-  if pref_key and preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig[pref_key] then
-    if not preferences.pakettiMenuConfig[pref_key].value then
-      return false
-    end
-  end
   if is_paketti_gadget and preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig.PakettiGadgets then
     if not preferences.pakettiMenuConfig.PakettiGadgets.value then
+      return false
+    end
+  elseif pref_key and preferences and preferences.pakettiMenuConfig and preferences.pakettiMenuConfig[pref_key] then
+    if not preferences.pakettiMenuConfig[pref_key].value then
       return false
     end
   end
