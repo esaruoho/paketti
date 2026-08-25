@@ -3516,7 +3516,7 @@ function PakettiShowCurrentSongInfo()
     table.insert(rows, vb:row{
       margin = 0,
       spacing = 0,
-      vb:text{text = label, width = 160, font = emphasis and "bold" or "normal", style = emphasis and "strong" or "normal"},
+      vb:text{text = label, width = 160, font = "bold", style = "strong"},
       vb:text{text = value, width = 600, font = emphasis and "bold" or "normal", style = emphasis and "strong" or "normal"}
     })
   end

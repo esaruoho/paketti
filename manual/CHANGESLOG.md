@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: Song Info Field Titles Are Strong
+
+Every field title in `Main Menu:Song:Paketti:Show Current Song Info...` now uses Renoise's bold, strong text style. BPM and LPB values remain bold and strong as well.
+
 ### 2026-08-25 - Fix: Song Info Shows Aligned Song, Plugin, and DSP Details
 
 `Main Menu:Song:Paketti:Show Current Song Info...` no longer adds outer padding or loose spacing. Its fixed label/value columns keep every value aligned, and BPM and LPB are now bold, strong rows. The dialog now lists every loaded plugin instrument, every track DSP device, and every instrument sample-FX device with its Renoise device path.
