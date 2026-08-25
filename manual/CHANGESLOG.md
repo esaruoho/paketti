@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: Compact Empty Song Info Sections
+
+`Main Menu:Song:Paketti:Show Current Song Info...` now renders an empty Plugin Instruments, Track DSP Devices, or Instrument DSP Devices section as one aligned `Title: None` row. The dialog width is reduced from 760 to 480 units while retaining fixed title/value columns.
+
 ### 2026-08-25 - Fix: Song Info Values Use Normal Text
 
 `Main Menu:Song:Paketti:Show Current Song Info...` keeps every field title bold and strong, while BPM and LPB values now use the same normal text style as every other value.

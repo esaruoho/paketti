@@ -3513,16 +3513,28 @@ function PakettiShowCurrentSongInfo()
   local rows = {}
 
   local function add_header(text)
-    table.insert(rows, vb:text{text = text, font = "bold", style = "strong", width = 760})
+    table.insert(rows, vb:text{text = text, font = "bold", style = "strong", width = 480})
   end
 
   local function add_row(label, value)
     table.insert(rows, vb:row{
       margin = 0,
       spacing = 0,
-      vb:text{text = label, width = 160, font = "bold", style = "strong"},
-      vb:text{text = value, width = 600, font = "normal", style = "normal"}
+      vb:text{text = label, width = 200, font = "bold", style = "strong"},
+      vb:text{text = value, width = 280, font = "normal", style = "normal"}
     })
+  end
+
+  local function add_section(title, entries)
+    if #entries == 0 then
+      add_row(title, "None")
+      return
+    end
+
+    add_header(title)
+    for _, entry in ipairs(entries) do
+      add_row(entry.label, entry.value)
+    end
   end
 
   add_header(song.file_name ~= "" and song.file_name or "Untitled Song")
@@ -3535,56 +3547,47 @@ function PakettiShowCurrentSongInfo()
   add_row("Pattern sequence entries", decimal_and_hex(#song.sequencer.pattern_sequence))
   add_row("Samples", tostring(sample_count))
 
-  add_header("Plugin Instruments")
-  local plugin_count = 0
+  local plugin_entries = {}
   for instrument_index, instrument in ipairs(song.instruments) do
     local properties = instrument.plugin_properties
     local plugin_device = properties and properties.plugin_device
     if properties and properties.plugin_loaded and plugin_device then
-      plugin_count = plugin_count + 1
-      add_row(
-        string.format("%02X %s", instrument_index - 1, instrument.name ~= "" and instrument.name or "Untitled Instrument"),
-        device_label(plugin_device)
-      )
+      table.insert(plugin_entries, {
+        label = string.format("%02X %s", instrument_index - 1, instrument.name ~= "" and instrument.name or "Untitled Instrument"),
+        value = device_label(plugin_device)
+      })
     end
   end
-  if plugin_count == 0 then
-    add_row("", "None")
-  end
+  add_section("Plugin Instruments", plugin_entries)
 
-  add_header("Track DSP Devices")
-  local track_device_count = 0
+  local track_device_entries = {}
   for track_index, track in ipairs(song.tracks) do
     for device_index = 2, #track.devices do
-      track_device_count = track_device_count + 1
-      add_row(track_label(track, track_index), device_label(track.devices[device_index]))
+      table.insert(track_device_entries, {
+        label = track_label(track, track_index),
+        value = device_label(track.devices[device_index])
+      })
     end
   end
-  if track_device_count == 0 then
-    add_row("", "None")
-  end
+  add_section("Track DSP Devices", track_device_entries)
 
-  add_header("Instrument DSP Devices")
-  local instrument_device_count = 0
+  local instrument_device_entries = {}
   for instrument_index, instrument in ipairs(song.instruments) do
     for chain_index, chain in ipairs(instrument.sample_device_chains) do
       for device_index = 2, #chain.devices do
-        instrument_device_count = instrument_device_count + 1
-        add_row(
-          string.format("%02X %s / %s", instrument_index - 1, instrument.name ~= "" and instrument.name or "Untitled Instrument", chain.name ~= "" and chain.name or "FX Chain " .. tostring(chain_index)),
-          device_label(chain.devices[device_index])
-        )
+        table.insert(instrument_device_entries, {
+          label = string.format("%02X %s / %s", instrument_index - 1, instrument.name ~= "" and instrument.name or "Untitled Instrument", chain.name ~= "" and chain.name or "FX Chain " .. tostring(chain_index)),
+          value = device_label(chain.devices[device_index])
+        })
       end
     end
   end
-  if instrument_device_count == 0 then
-    add_row("", "None")
-  end
+  add_section("Instrument DSP Devices", instrument_device_entries)
 
   table.insert(rows, vb:button{text = "Close", width = 100, notifier = function() dialog:close() end})
   rows.margin = 0
   rows.spacing = 0
-  rows.width = 760
+  rows.width = 480
   local content = vb:column(rows)
   dialog = renoise.app():show_custom_dialog("Paketti Song Info", content)
 end
