@@ -5,9 +5,11 @@
 local vb = renoise.ViewBuilder()
 
 -- Base canvas dimensions (actual size calculated at dialog creation time)
-local base_canvas_width = 760
+local min_canvas_width = 960
+local max_canvas_width = 1120
+local target_parameter_width = 22
 local base_canvas_height = 390  -- reduced to take less vertical space (match EQ30)
-local canvas_width = base_canvas_width  -- Will be updated in dialog creation
+local canvas_width = min_canvas_width  -- Will be updated in dialog creation
 local canvas_height = base_canvas_height  -- Will be updated in dialog creation
 
 local content_margin = 3  -- tighter margin around the content area
@@ -778,6 +780,14 @@ function PakettiCanvasExperimentsRefreshDevice()
     PakettiCanvasExperimentsRememberCurrentTrack(song)
     current_device_index = nil
     device_parameters = {}
+  end
+
+  PakettiCanvasExperimentsUpdateDimensions()
+  if canvas_experiments_canvas then
+    pcall(function()
+      canvas_experiments_canvas.width = canvas_width
+      canvas_experiments_canvas.height = canvas_height
+    end)
   end
   
   if #device_parameters == 0 then
@@ -1580,15 +1590,20 @@ end
 
 -- Update canvas dimensions based on current preferences
 function PakettiCanvasExperimentsUpdateDimensions()
-  -- Apply half-size preference to canvas HEIGHT only (75% of original height)
-  canvas_width = base_canvas_width  -- Keep original width
+  local param_count = device_parameters and #device_parameters or 0
+  local target_width = (param_count > 0)
+    and ((param_count * target_parameter_width) + (content_margin * 2))
+    or min_canvas_width
+
+  -- Keep enough width for dense plugin parameter sets without returning to the old 1280px dialog.
+  canvas_width = math.max(min_canvas_width, math.min(max_canvas_width, target_width))
   canvas_height = preferences.pakettiParameterEditor.HalfSize.value and math.floor(base_canvas_height * 0.75) or base_canvas_height
   
   -- Update content dimensions based on new canvas size
   content_width = canvas_width - (content_margin * 2)
   content_height = canvas_height - (content_margin * 2)
   
-  print("DIMENSIONS: Canvas size: " .. canvas_width .. "x" .. canvas_height .. " (75% Height: " .. tostring(preferences.pakettiParameterEditor.HalfSize.value) .. ")")
+  print("DIMENSIONS: Canvas size: " .. canvas_width .. "x" .. canvas_height .. " for " .. tostring(param_count) .. " parameters (75% Height: " .. tostring(preferences.pakettiParameterEditor.HalfSize.value) .. ")")
 end
 
 -- Create the main dialog
