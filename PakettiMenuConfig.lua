@@ -3479,20 +3479,50 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:Pi
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Audio Processing Tools...",invoke=function() pakettiAudioProcessingToolsDialog() end}
 
 -- Main Menu Song
+function PakettiShowCurrentSongInfo()
+  local song = renoise.song()
+  local sample_count = 0
+  for instrument_index = 1, #song.instruments do
+    sample_count = sample_count + #song.instruments[instrument_index].samples
+  end
+  local dialog
+  local vb = renoise.ViewBuilder()
+  local content = vb:column{
+    margin = 12,
+    spacing = 6,
+    vb:text{text = song.file_name ~= "" and song.file_name or "Untitled Song", font = "bold"},
+    vb:text{text = string.format("BPM: %.2f", song.transport.bpm)},
+    vb:text{text = string.format("LPB: %d", song.transport.lpb)},
+    vb:text{text = string.format("TPL: %d", song.transport.tpl)},
+    vb:text{text = string.format("Sequencer tracks: %d", song.sequencer_track_count)},
+    vb:text{text = string.format("Instruments: %d", #song.instruments)},
+    vb:text{text = string.format("Patterns: %d", #song.patterns)},
+    vb:text{text = string.format("Samples: %d", sample_count)},
+    vb:button{text = "Close", width = 100, notifier = function() dialog:close() end}
+  }
+  dialog = renoise.app():show_custom_dialog("Paketti Song Info", content)
+end
+
 if preferences.pakettiMenuConfig.MainMenuSong.value then
   renoise.tool():add_menu_entry{
     name = "Main Menu:Song:Paketti:Impulse Tracker New Song...",
     invoke = pakettiImpulseTrackerNewSongDialog
   }
   renoise.tool():add_menu_entry{
-    name = "Main Menu:Song:Paketti:Show Current Song Info",
-    invoke = function()
-      local song = renoise.song()
-      renoise.app():show_status(string.format("Song: %s | %d tracks | %d instruments",
-        song.file_name ~= "" and song.file_name or "Untitled",
-        song.sequencer_track_count,
-        #song.instruments))
-    end
+    name = "Main Menu:Song:Paketti:Show Current Song Info...",
+    invoke = PakettiShowCurrentSongInfo
+  }
+end
+
+-- Main Menu Help
+if preferences.pakettiMenuConfig.MainMenuHelp.value then
+  renoise.tool():add_menu_entry{
+    name = "Main Menu:Help:Paketti:Formula Device Dialog...",
+    invoke = pakettiFormulaDeviceDialog
+  }
+  renoise.tool():add_menu_entry{
+    name = "Main Menu:Help:Paketti:Pattern Editor Cheatsheet...",
+    invoke = pakettiPatternEditorCheatsheetDialog
   }
 end
 
