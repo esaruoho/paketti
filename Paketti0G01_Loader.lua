@@ -4337,7 +4337,7 @@ end
 -- Global so the proxy in main.lua can use the same mapping.
 function PakettiMenuContextPrefKey(name)
   if not name then return nil end
-  local clean = name:gsub("^%-%-", "")
+  local clean = name:gsub("^%s*%-%-%s*", ""):gsub("^%s+", "")
   if clean:match("^Main Menu:File:") then return "MainMenuFile"
   elseif clean:match("^Main Menu:View:") or clean:match("^Main Menu:Options:") then return "MainMenuView"
   elseif clean:match("^Main Menu:") then return "MainMenuTools"

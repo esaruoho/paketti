@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: Track DSP Device Menu Toggle Hides Separator-Prefixed Entries
+
+The menu configuration gate now normalizes separator-prefixed menu names before matching their context, so entries such as `-- DSP Device:Paketti:Load Renoise Native:(Hidden) Chorus` correctly obey the DSP Device Menus toggle. Disabling the Track DSP Device menu no longer leaves an orphan `Paketti > Load Renoise Native > (Hidden)` submenu behind in the Track DSP context.
+
 ### 2026-08-25 - Fix: Selected Device Parameter Editor No Longer Opens Ultra-Wide
 
 The Selected Device Parameter Editor now keeps the live status focused on the touched parameter value, e.g. `Mix = 0.220`, instead of prefixing it with a long plugin name. The device name is shown in a fixed-width header field with the parameter count there, the idle status after Refresh stays blank until a parameter is touched, Grid stripes and Configure stay together as related display controls, the dialog title stays stable so it cannot get stuck on a previous plugin, and the canvas now sizes from the active parameter count with a 960-1120px range so dense plugins remain readable without returning to the old 1280px-wide window.
