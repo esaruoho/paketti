@@ -8,9 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-08-25 - Fix: .MOD Loader Keeps the Sliced Wavetable in Make Me One With Everything
+### 2026-08-25 - Fix: .MOD Loader Creates Both Wavetable Forms in Make Me One With Everything
 
-`.MOD Loader...` > `Make Me One With Everything` now leaves the Renoise-side sliced `.MOD` wavetable standing after sending it to Amigo, instead of deleting that intermediate chain. The combined import now gives the three useful Renoise results from the dialog: individual `.MOD` samples, the plain `.MOD as Wavetable` sample, and the sliced `.MOD` wavetable that Amigo receives.
+`.MOD Loader...` > `Make Me One With Everything` now explicitly creates both Renoise-side `.MOD` wavetable forms: the plain `.MOD as Wavetable` instrument with all sample memory concatenated into one sample, and a separate pakettified sliced wavetable instrument whose slice markers show exactly where each original `.MOD` sample starts. The sliced instrument is then mirrored into Amigo without deleting the Renoise source, so the dialog leaves the individual sample instruments, the raw wavetable, the sliced wavetable, and the Amigo result available for inspection.
 
 ### 2026-08-25 - Fix: Nudge Slice Shortcuts Register in a Stable Order
 

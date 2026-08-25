@@ -436,7 +436,12 @@ function PakettiMODLoadOneWithEverything(mod_file)
     else
       pakettiLoadExeAsSample(mod_file)
     end
-    PakettiMODWavetableToAmigo(mod_file, true)
+    PakettiMODCreateSlicedWavetable(mod_file, {
+      label = "Make Me One With Everything Sliced .MOD Wavetable",
+      send_to_amigo = true,
+      keep_chain = true,
+      select = "chain"
+    })
   end)
 
   dialog, vb = slicer:create_dialog("Making one .MOD with everything...")

@@ -147,6 +147,37 @@ end
 -- every .MOD sample chained into ONE Amigo, one slice each
 --------------------------------------------------------------------------------
 
+local function paketti_mod_apply_chain_loader_settings(ins, samp)
+  if not ins or not samp then return end
+  ins.macros_visible = true
+  if ins.sample_modulation_sets and ins.sample_modulation_sets[1] then
+    ins.sample_modulation_sets[1].name = "Pitchbend"
+  end
+  if preferences then
+    if preferences.pakettiLoaderInterpolation then
+      samp.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+    end
+    if preferences.pakettiLoaderOverSampling then
+      samp.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+    end
+    if preferences.pakettiLoaderAutofade then
+      samp.autofade = preferences.pakettiLoaderAutofade.value
+    end
+    if preferences.pakettiLoaderAutoseek then
+      samp.autoseek = preferences.pakettiLoaderAutoseek.value
+    end
+    if preferences.pakettiLoaderOneshot then
+      samp.oneshot = preferences.pakettiLoaderOneshot.value
+    end
+    if preferences.pakettiLoaderNNA then
+      samp.new_note_action = preferences.pakettiLoaderNNA.value
+    end
+    if preferences.pakettiLoaderLoopExit then
+      samp.loop_release = preferences.pakettiLoaderLoopExit.value
+    end
+  end
+end
+
 -- Loads every .MOD sample into a single instrument, one sample slot each.
 -- Returns the instrument index, or nil.
 local function paketti_mod_amigo_scratch_kit(mod, name)
@@ -180,13 +211,17 @@ local function paketti_mod_amigo_scratch_kit(mod, name)
   return index
 end
 
-function PakettiMODWavetableToAmigo(mod_file, keep_chain)
-  local label = "Load .MOD as Wavetable to Amigo"
+function PakettiMODCreateSlicedWavetable(mod_file, options)
+  options = options or {}
+  local label = options.label or "Load .MOD as Sliced Wavetable"
   local mod = paketti_mod_amigo_open(label, mod_file)
   if not mod then return end
 
   local monitoring = PakettiTemporarilyDisableNewSampleMonitoring()
   local kit_name = pakettiFSPath.sanitize_filename(mod.title, "MOD Wavetable")
+  local send_to_amigo = options.send_to_amigo or false
+  local keep_chain = options.keep_chain ~= false
+  local song = renoise.song()
 
   -- Amigo's loop / loopstart / pingpong / reverse / sampleend are ONE set for
   -- the whole plugin instance. slice0..slice63 are positions and nothing else -
@@ -199,53 +234,123 @@ function PakettiMODWavetableToAmigo(mod_file, keep_chain)
     if info.loop_length and info.loop_length > 5 then looping = looping + 1 end
   end
 
-  local scratch = paketti_mod_amigo_scratch_kit(mod, kit_name)
-  if not scratch then
+  local pcm_chunks = {}
+  local starts = {}
+  local position = 1
+  for _, info in ipairs(mod.samples) do
+    if info.data and #info.data > 0 then
+      starts[#starts + 1] = position
+      pcm_chunks[#pcm_chunks + 1] = info.data
+      position = position + #info.data
+    end
+  end
+
+  local pcm = table.concat(pcm_chunks)
+  if pcm == "" then
     renoise.app():show_status(label .. ": nothing loaded.")
     PakettiRestoreNewSampleMonitoring(monitoring)
     return
   end
 
-  PakettiAmigoBuildChain(scratch, PakettiAmigoMaxSlices, function(chain_index, chained, dropped)
-    local song = renoise.song()
-    local chain_name = keep_chain and (kit_name .. " Sliced Wavetable") or kit_name
-    song.instruments[chain_index].name = chain_name
-    song.instruments[chain_index].samples[1].name = chain_name
+  local chain_index = song.selected_instrument_index + 1
+  if not safeInsertInstrumentAt(song, chain_index) then
+    renoise.app():show_status(label .. ": could not insert sliced wavetable instrument.")
+    PakettiRestoreNewSampleMonitoring(monitoring)
+    return
+  end
 
-    local ok, send_err, count, past, amigo_index =
+  song.selected_instrument_index = chain_index
+  pakettiPreferencesDefaultInstrumentLoader()
+
+  local chain_name = options.chain_name or (kit_name .. " Sliced Wavetable")
+  local instrument = song.instruments[chain_index]
+  instrument.name = chain_name
+  instrument:insert_sample_at(1)
+  song.selected_sample_index = 1
+
+  local sample = instrument.samples[1]
+  sample.name = chain_name
+  sample.sample_buffer:create_sample_data(44100, 16, 1, #pcm)
+  sample.sample_buffer:prepare_sample_data_changes()
+
+  local flipped = PakettiMODParser.sign_flip(pcm)
+  for frame = 1, #flipped do
+    local value = ((flipped:byte(frame) or 0) / 255) * 2.0 - 1.0
+    sample.sample_buffer:set_sample_data(1, frame, value)
+  end
+  sample.sample_buffer:finalize_sample_data_changes()
+
+  for i = 2, #starts do
+    if starts[i] > 1 and starts[i] < #pcm then
+      sample:insert_slice_marker(starts[i])
+    end
+  end
+
+  paketti_mod_apply_chain_loader_settings(instrument, sample)
+  sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+
+  local count = #starts
+  local dropped = 0
+  local amigo_index
+
+  if send_to_amigo then
+    local ok, err, amigo_count, past, index =
       PakettiAmigoSendInstrumentToAmigo(chain_index)
     if not ok then
-      song:delete_instrument_at(scratch)
-      renoise.app():show_status(label .. ": " .. tostring(send_err) ..
-        " - the sliced instrument was kept.")
+      renoise.app():show_status(label .. ": " .. tostring(err) ..
+        " - the sliced Renoise wavetable was kept.")
       PakettiRestoreNewSampleMonitoring(monitoring)
       return
     end
+    count = amigo_count
+    dropped = past or 0
+    amigo_index = index
+  end
 
-    -- Normal command leaves one instrument standing: the Amigo. The combined
-    -- .MOD dialog route keeps the sliced Renoise chain too, so the user gets
-    -- the plain sample wavetable, the per-sample instruments, and the sliced
-    -- chain that was sent to Amigo.
-    if not keep_chain then song:delete_instrument_at(chain_index) end
-    song:delete_instrument_at(scratch)
-    song.selected_instrument_index = keep_chain and (amigo_index - 1) or (amigo_index - 2)
+  if send_to_amigo and not keep_chain then
+    song:delete_instrument_at(chain_index)
+  end
 
-    local message = string.format("%s: %d samples from %s chained, %d Amigo slices",
-      label, chained, mod.format, count)
+  if send_to_amigo then
+    if keep_chain then
+      song.selected_instrument_index = (options.select == "amigo") and amigo_index or chain_index
+    else
+      song.selected_instrument_index = chain_index
+    end
+  else
+    song.selected_instrument_index = chain_index
+  end
+
+  local message
+  if send_to_amigo then
+    message = string.format("%s: %d samples from %s chained, %d Amigo slices",
+      label, #starts, mod.format, count)
     if keep_chain then message = message .. " - sliced Renoise wavetable kept" end
-    if dropped > 0 then
-      message = message .. string.format(" (%d past Amigo's %d were left out)",
-        dropped, PakettiAmigoMaxSlices)
-    end
-    if looping > 0 then
-      message = message .. string.format(
-        " - %d had loops, which Amigo cannot hold per slice; use Load .MOD Samples to Amigo for those",
-        looping)
-    end
-    renoise.app():show_status(message)
-    print("PakettiMODAmigo: " .. message)
-    PakettiRestoreNewSampleMonitoring(monitoring)
-  end)
+  else
+    message = string.format("%s: %d samples from %s chained into a sliced Renoise wavetable",
+      label, #starts, mod.format)
+  end
+  if dropped > 0 then
+    message = message .. string.format(" (%d past Amigo's %d were left out)",
+      dropped, PakettiAmigoMaxSlices)
+  end
+  if looping > 0 then
+    message = message .. string.format(
+      " - %d had loops, which Amigo cannot hold per slice; use Load .MOD Samples to Amigo for those",
+      looping)
+  end
+  renoise.app():show_status(message)
+  print("PakettiMODAmigo: " .. message)
+  PakettiRestoreNewSampleMonitoring(monitoring)
+end
+
+function PakettiMODWavetableToAmigo(mod_file, keep_chain)
+  PakettiMODCreateSlicedWavetable(mod_file, {
+    label = "Load .MOD as Wavetable to Amigo",
+    send_to_amigo = true,
+    keep_chain = keep_chain,
+    select = keep_chain and "chain" or "amigo"
+  })
 end
 
 --------------------------------------------------------------------------------
