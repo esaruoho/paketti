@@ -3597,6 +3597,7 @@ end
 -- present it lets the checkbox apply live; when absent the toggle takes effect on
 -- the next Renoise restart (which the registration gate honors regardless).
 PakettiMenuConfigCategoryList = {
+  {label = "Global Paketti Gadgets",              key = "PakettiGadgets"},
   {label = "Track Automation",                    key = "Automation",             apply = "PakettiMenuApplyAutomationMenus"},
   {label = "Disk Browser Files",                  key = "DiskBrowserFiles",        apply = "PakettiMenuApplyDiskBrowserFilesMenus"},
   {label = "DSP Chain",                           key = "TrackDSPChain"},
@@ -3607,7 +3608,6 @@ PakettiMenuConfigCategoryList = {
   {label = "Main Menu: Tools",                    key = "MainMenuTools"},
   {label = "Main Menu: View",                     key = "MainMenuView"},
   {label = "Mixer",                               key = "Mixer",                   apply = "PakettiMenuApplyMixerMenus"},
-  {label = "Global Paketti Gadgets",              key = "PakettiGadgets"},
   {label = "Pattern Editor",                      key = "PatternEditor",           apply = "PakettiMenuApplyPatternEditorMenus"},
   {label = "Pattern Matrix",                      key = "PatternMatrix",           apply = "PakettiMenuApplyPatternMatrixMenus"},
   {label = "Pattern Sequencer",                   key = "PatternSequencer",        apply = "PakettiMenuApplyPatternSequencerMenus"},
@@ -3786,6 +3786,8 @@ function pakettiMenuConfigDialog()
     sorted_categories[#sorted_categories + 1] = cat
   end
   table.sort(sorted_categories, function(a, b)
+    if a.key == "PakettiGadgets" then return true end
+    if b.key == "PakettiGadgets" then return false end
     return a.label:lower() < b.label:lower()
   end)
 

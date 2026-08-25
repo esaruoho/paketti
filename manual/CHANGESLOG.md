@@ -12,6 +12,8 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 Paketti Menu Configuration now labels each category by its actual Renoise context, such as `Pattern Editor`, `DSP Device`, and `Track Automation`, instead of repeating the word `Menus` on every checkbox.
 
+`Global Paketti Gadgets` is listed first so the global Paketti gate is immediately visible.
+
 ### 2026-08-25 - Improvement: Menu Configuration Shows Unmapped Renoise Contexts
 
 Paketti Menu Configuration now includes a bottom audit section listing official Renoise menu contexts that Paketti does not currently map to a menu toggle. The unmapped contexts are shown as a compact three-column grid instead of one long dialog-widening line.
