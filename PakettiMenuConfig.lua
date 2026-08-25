@@ -3516,18 +3516,18 @@ function PakettiShowCurrentSongInfo()
     table.insert(rows, vb:text{text = text, font = "bold", style = "strong", width = 760})
   end
 
-  local function add_row(label, value, emphasis)
+  local function add_row(label, value)
     table.insert(rows, vb:row{
       margin = 0,
       spacing = 0,
       vb:text{text = label, width = 160, font = "bold", style = "strong"},
-      vb:text{text = value, width = 600, font = emphasis and "bold" or "normal", style = emphasis and "strong" or "normal"}
+      vb:text{text = value, width = 600, font = "normal", style = "normal"}
     })
   end
 
   add_header(song.file_name ~= "" and song.file_name or "Untitled Song")
-  add_row("BPM", string.format("%.2f", song.transport.bpm), true)
-  add_row("LPB", tostring(song.transport.lpb), true)
+  add_row("BPM", string.format("%.2f", song.transport.bpm))
+  add_row("LPB", tostring(song.transport.lpb))
   add_row("TPL", tostring(song.transport.tpl))
   add_row("Sequencer tracks", tostring(song.sequencer_track_count))
   add_row("Instruments", decimal_and_hex(#song.instruments))
