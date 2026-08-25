@@ -601,7 +601,7 @@ function PakettiCanvasExperimentsGetStatusText()
       return param_text
     end
 
-    return string.format("%d parameters", param_count)
+    return ""
   end)
   
   -- Return result if successful, otherwise fallback
@@ -1798,6 +1798,12 @@ function PakettiCanvasExperimentsCreateDialog()
           tooltip = "Alternate each parameter column's background (light / dark) for grid-style reading"
         }
       },
+      vb:button {
+        text = "Configure...",
+        width = 80,
+        tooltip = "Reorder / hide / rename this device's parameters (per-plugin display config). Needs Customized Ordering Mode ON (Paketti Preferences) to apply.",
+        notifier = function() PakettiCanvasExperimentsOpenConfigDialog() end
+      },
       vb:text{
         id="device_text_view",
         text=PakettiCanvasExperimentsGetDeviceText(),
@@ -1807,12 +1813,6 @@ function PakettiCanvasExperimentsCreateDialog()
       }
     },
     vb:row {
-      vb:button {
-        text = "Configure...",
-        width = 80,
-        tooltip = "Reorder / hide / rename this device's parameters (per-plugin display config). Needs Customized Ordering Mode ON (Paketti Preferences) to apply.",
-        notifier = function() PakettiCanvasExperimentsOpenConfigDialog() end
-      },
       vb:button{
         text="Randomize",
         width=60,
