@@ -8682,9 +8682,12 @@ if PAKETTI_HAS_TRIGGER_LINE then
     end
   end
 
-  -- Function to toggle the audition feature on/off
-  function PakettiToggleAuditionCurrentLineOnRowChange()
-    if PakettiAuditionOnLineChangeEnabled then
+  -- Apply the audition state directly, without flipping it.
+  -- Safe to call repeatedly. Turning ON while already on simply re-captures the
+  -- transport state and re-arms the timer, which is what a freshly loaded song
+  -- needs. Only an explicit OFF writes the preference to false.
+  function PakettiSetAuditionCurrentLineOnRowChange(enabled)
+    if not enabled then
       -- Turn OFF: Restore everything
       PakettiAuditionOnLineChangeEnabled = false
       preferences.pakettiAuditionOnLineChangeEnabled.value = false
@@ -8764,6 +8767,11 @@ if PAKETTI_HAS_TRIGGER_LINE then
       local status_msg = saved_playing and "Audition Mode: ON (Playback Paused)" or "Audition Mode: ON"
       renoise.app():show_status(status_msg)
     end
+  end
+
+  -- Toggle wrapper kept for the keybinding / MIDI mapping / menu entries.
+  function PakettiToggleAuditionCurrentLineOnRowChange()
+    PakettiSetAuditionCurrentLineOnRowChange(not PakettiAuditionOnLineChangeEnabled)
   end
 
   -- Add keybinding for the toggle

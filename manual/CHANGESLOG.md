@@ -8,6 +8,19 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: Startup Preferences That Turned Themselves Off
+
+Several Paketti preferences were being flipped rather than applied every time a song was created or loaded, so they behaved inconsistently or silently switched themselves back off.
+
+- **Always Open Track DSPs** no longer alternates. With the preference enabled it turned auto-open on for one song and off for the next, because the startup code called the on/off toggle instead of setting the state. It now applies the state directly, which also re-attaches the track-change watcher that the previous song took with it. The `Global:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off` keybinding, the `Paketti:Toggle Auto-Open Track Devices` MIDI mapping and the matching `Main Menu:Options:Automatically Open Selected Track Device Editors Toggle` menu entry are unchanged.
+- **Audition Current Line on Pattern Row Change** no longer disables itself. Enabling it and then loading or creating a song switched the feature off and wrote the preference back to false, so it never survived a Renoise restart. It now stays on, and only an explicit toggle writes the preference. Reached via `Global:Paketti:Toggle Audition Current Line on Pattern Row Change`, `Pattern Editor:Paketti:Toggle Audition Current Line on Pattern Row Change`, the `Paketti:Toggle Audition Current Line on Pattern Row Change x[Toggle]` MIDI mapping, and `Main Menu:Options:Audition Current Line on Pattern Row Change Toggle`.
+- **Paketti Automation Hack** no longer breaks later songs. After running `Global:Paketti:Paketti Automation Hack` once, every song created or loaded afterwards hit an error, because the two Paketti Automation Doofers live inside the song and a new song does not have them. Startup now checks that both Doofers are present on the master track before monitoring them.
+- **One failing startup step no longer cancels the rest.** All sixteen startup steps now run independently, so a failure in one (auto-open, theme loading, oblique strategies, and so on) no longer skips everything after it, and can no longer leave Renoise with Paketti's watchers disabled until a full restart. Failures are printed to the terminal naming the step.
+
+### 2026-08-25 - Fix: Loading a Favourite Theme From the Theme Selector
+
+`Global:Paketti Theme Selector:Open Paketti Theme Selector Dialog...` could not load favourites. Choosing a favourite from the dropdown, pressing the next or previous favourite buttons, or pressing Randomize Favourite reported an error instead of loading the theme, because favourites are stored without the `.xrnc` extension and were being looked up against the theme list that includes it. All favourite lookups are fixed. `Global:Paketti Theme Selector:Pick a Random Theme (All)` could also never pick the first theme in the list; it now picks from all of them.
+
 ### 2026-08-25 - Fix: Compact Empty Song Info Sections
 
 `Main Menu:Song:Paketti:Show Current Song Info...` now renders an empty Plugin Instruments, Track DSP Devices, or Instrument DSP Devices section as one aligned `Title: None` row. The dialog width is reduced from 760 to 480 units while retaining fixed title/value columns.

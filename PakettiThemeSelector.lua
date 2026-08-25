@@ -141,7 +141,7 @@ local function pakettiThemeSelectorRemoveFavorite(vb, index)
       local new_index = math.min(index, #favorited_list)
       vb.views["favorites_popup"].value = new_index
       local theme_name = tostring(preferences.pakettiThemeSelector.FavoritedList[new_index])
-      selected_theme_index = table.find(themes, theme_name)
+      selected_theme_index = table.find(themes, theme_name .. ".xrnc")
       pakettiThemeSelectorUpdateLoadTheme(theme_name)
     else
       vb.views["favorites_popup"].value = 1
@@ -235,7 +235,10 @@ function pakettiThemeSelectorUpdateFavoritesDropdown(vb)
   vb.views["favorites_count"].text="Favorites (" .. tostring(#preferences.pakettiThemeSelector.FavoritedList - 1) .. ")"  -- Exclude "<No Theme Selected>"
 end
 
-local function pakettiThemeSelectorPickRandomThemeFromAll()
+-- Global: also called from PakettiOnNewDocument (main.lua) at Renoise launch.
+-- This is the single implementation; it shares selected_theme_index with the
+-- rest of this file so "don't repeat the last theme" sees every theme change.
+function pakettiThemeSelectorPickRandomThemeFromAll()
   -- Initialize random seed for true randomness
   math.randomseed(os.time())
   
@@ -244,16 +247,42 @@ local function pakettiThemeSelectorPickRandomThemeFromAll()
   -- If we have a current theme and more than 1 theme, avoid repeating it
   if selected_theme_index and #themes > 1 then
     repeat
-      new_index = math.random(#themes - 1) + 1
+      new_index = math.random(#themes)
     until new_index ~= selected_theme_index
   else
     -- First time or only one theme - just pick random
-    new_index = math.random(#themes - 1) + 1
+    new_index = math.random(#themes)
   end
   
   selected_theme_index = new_index
   pakettiThemeSelectorUpdateLoadTheme(themes[selected_theme_index])
   renoise.app():show_status("Picked a random theme from all themes: " .. themes[selected_theme_index])
+end
+
+-- Global: called from PakettiOnNewDocument (main.lua) at Renoise launch when
+-- "load a favorite on startup" is enabled. Index 1 of FavoritedList is always
+-- the "<No Theme Selected>" placeholder, so real favorites start at 2.
+-- Favorites are stored WITHOUT the .xrnc extension; themes[] carries it, which
+-- is why the lookup below appends it before searching.
+function pakettiThemeSelectorRenoiseStartFavorites()
+  if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
+    renoise.app():show_status("You currently have no Favorite Themes set.")
+    return
+  end
+  if #preferences.pakettiThemeSelector.FavoritedList == 2 then
+    renoise.app():show_status("You only have 1 favorite, cannot randomize.")
+    return
+  end
+
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+
+  local current_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList)
+  local random_theme = tostring(preferences.pakettiThemeSelector.FavoritedList[current_index])
+
+  selected_theme_index = table.find(themes, random_theme .. ".xrnc")
+  pakettiThemeSelectorUpdateLoadTheme(random_theme)
+  renoise.app():show_status("Randomized a theme out of your favorite list: " .. random_theme)
 end
 
 local function pakettiThemeSelectorPickRandomThemeFromFavorites(vb)
@@ -280,8 +309,8 @@ local function pakettiThemeSelectorPickRandomThemeFromFavorites(vb)
   vb.views["favorites_popup"].value = new_index
   local random_theme = preferences.pakettiThemeSelector.FavoritedList[new_index]
   local theme_name = tostring(random_theme)  -- Convert ObservableString to string
-  selected_theme_index = table.find(themes, theme_name)
-  pakettiThemeSelectorUpdateLoadTheme(themes[selected_theme_index])
+  selected_theme_index = table.find(themes, theme_name .. ".xrnc")
+  pakettiThemeSelectorUpdateLoadTheme(theme_name)
 end
 
 local function pakettiThemeSelectorLoadNextFavoriteTheme(vb)
@@ -293,8 +322,8 @@ local function pakettiThemeSelectorLoadNextFavoriteTheme(vb)
   end
   vb.views["favorites_popup"].value = current_index
   local theme_name = tostring(preferences.pakettiThemeSelector.FavoritedList[current_index])
-  selected_theme_index = table.find(themes, theme_name)
-  pakettiThemeSelectorUpdateLoadTheme(themes[selected_theme_index])
+  selected_theme_index = table.find(themes, theme_name .. ".xrnc")
+  pakettiThemeSelectorUpdateLoadTheme(theme_name)
 end
 
 local function pakettiThemeSelectorLoadPreviousFavoriteTheme(vb)
@@ -306,8 +335,8 @@ local function pakettiThemeSelectorLoadPreviousFavoriteTheme(vb)
   end
   vb.views["favorites_popup"].value = current_index
   local theme_name = tostring(preferences.pakettiThemeSelector.FavoritedList[current_index])
-  selected_theme_index = table.find(themes, theme_name)
-  pakettiThemeSelectorUpdateLoadTheme(themes[selected_theme_index])
+  selected_theme_index = table.find(themes, theme_name .. ".xrnc")
+  pakettiThemeSelectorUpdateLoadTheme(theme_name)
 end
 
 local function pakettiThemeSelectorDialogOpen(vb)
@@ -381,8 +410,8 @@ local function pakettiThemeSelectorDialogOpen(vb)
       vb:row{vb:popup{id="favorites_popup", items={"<No Theme Selected>"},width=300, notifier=function(index)
           if index > 1 then
             local theme_name = tostring(preferences.pakettiThemeSelector.FavoritedList[index])
-            selected_theme_index = table.find(themes, theme_name)
-            pakettiThemeSelectorUpdateLoadTheme(themes[selected_theme_index])
+            selected_theme_index = table.find(themes, theme_name .. ".xrnc")
+            pakettiThemeSelectorUpdateLoadTheme(theme_name)
           end
         end},
         vb:row{
@@ -391,7 +420,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             if current_index > 2 then current_index = current_index - 1 else current_index = #preferences.pakettiThemeSelector.FavoritedList end
             vb.views["favorites_popup"].value = current_index
             local theme_name = tostring(preferences.pakettiThemeSelector.FavoritedList[current_index])
-            selected_theme_index = table.find(themes, theme_name)
+            selected_theme_index = table.find(themes, theme_name .. ".xrnc")
             pakettiThemeSelectorUpdateLoadTheme(theme_name)
           end},
           vb:button{ text="+", notifier=function()
@@ -399,7 +428,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             if current_index < #preferences.pakettiThemeSelector.FavoritedList then current_index = current_index + 1 else current_index = 2 end
             vb.views["favorites_popup"].value = current_index
             local theme_name = tostring(preferences.pakettiThemeSelector.FavoritedList[current_index])
-            selected_theme_index = table.find(themes, theme_name)
+            selected_theme_index = table.find(themes, theme_name .. ".xrnc")
             pakettiThemeSelectorUpdateLoadTheme(theme_name)
           end},
           vb:button{ text="Randomize", notifier=function()
@@ -426,7 +455,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             local random_theme = preferences.pakettiThemeSelector.FavoritedList[new_index]
             local theme_name = tostring(random_theme)
             
-            selected_theme_index = table.find(themes, theme_name)
+            selected_theme_index = table.find(themes, theme_name .. ".xrnc")
             if selected_theme_index then
               local full_path = themes_path .. themes[selected_theme_index]
               renoise.app():load_theme(full_path)
@@ -504,7 +533,7 @@ function pakettiThemeSelectorPickRandomThemeFromFavoritesNoGUI()
 
   local cleaned_theme_name = tostring(random_theme)
 
-  selected_theme_index = table.find(themes, cleaned_theme_name)
+  selected_theme_index = table.find(themes, cleaned_theme_name .. ".xrnc")
 
   if cleaned_theme_name then
     local full_path = themes_path .. cleaned_theme_name .. ".xrnc"

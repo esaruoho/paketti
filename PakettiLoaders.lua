@@ -4005,8 +4005,13 @@ local function PakettiTrackIndexChanged()
 end
 
 -- Toggle the automatic mode
-function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
-  PakettiAutomaticallyOpenTrackDeviceEditorsEnabled = not PakettiAutomaticallyOpenTrackDeviceEditorsEnabled
+-- Apply the auto-open state directly, without flipping it.
+-- Safe to call repeatedly, and REQUIRED on every new document: the track-index
+-- notifier lives on the song's observable, so it dies with the old song even
+-- though PakettiAutomaticallyOpenTrackDeviceEditorsEnabled stays true. Calling
+-- this with true re-attaches it to the new song.
+function PakettiSetAutomaticallyOpenTrackDeviceEditors(enabled)
+  PakettiAutomaticallyOpenTrackDeviceEditorsEnabled = enabled and true or false
 
   if PakettiAutomaticallyOpenTrackDeviceEditorsEnabled then
     renoise.app():show_status("Automatically Open Selected Track Devices Toggled ON")
@@ -4032,6 +4037,11 @@ function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMod
     
     current_track_index = nil
   end
+end
+
+-- Toggle wrapper kept for the keybinding / MIDI mapping / menu entries.
+function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+  PakettiSetAutomaticallyOpenTrackDeviceEditors(not PakettiAutomaticallyOpenTrackDeviceEditorsEnabled)
 end
 
 

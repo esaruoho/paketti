@@ -45,14 +45,21 @@ end
 
 -- Convert decimal to hexadecimal string
 -- Original from http://lua-users.org/lists/lua-l/2004-09/msg00054.html
+-- Kept even though nothing in the repo calls it: PakettiMCP/tools/paketti.lua
+-- dispatches any global by name via _G[fn_name] and enumerates pairs(_G) for
+-- introspection, so this is still a reachable entry point.
 function DEC_HEX(IN)
   local B,K,OUT,I,D=16,"0123456789ABCDEF","",0
+  local sign=""
+  IN=math.floor(tonumber(IN) or 0)
+  if IN<0 then sign="-" IN=-IN end
+  if IN==0 then return "0" end
   while IN>0 do
       I=I+1
       IN,D=math.floor(IN/B),(IN % B)+1
       OUT=string.sub(K,D,D)..OUT
   end
-  return OUT
+  return sign..OUT
 end
 
 -- Debug print
@@ -447,15 +454,6 @@ end
 
 
 ------------------------------------------------
-local themes_path = renoise.tool().bundle_path .. "Themes/"
-local themes = os.filenames(themes_path, "*.xrnc")
-local selected_theme_index = nil
--- Debug print all available themes
---print("Debug: Available themes:")
---for i, theme in ipairs(themes) do
---  print(i .. ": " .. theme)
---end
-
 -- Define valid audio file extensions globally
 PakettiValidAudioExtensions = {".wav",".mp3",".flac",".aif",".aiff",".m4a"}
 
@@ -584,57 +582,12 @@ function PakettiGetFilesInDirectory(dir)
     return files
 end
 ---
-function pakettiThemeSelectorRenoiseStartFavorites()
-  if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
-    renoise.app():show_status("You currently have no Favorite Themes set.")
-    return
-  end
-  if #preferences.pakettiThemeSelector.FavoritedList == 2 then
-    renoise.app():show_status("You only have 1 favorite, cannot randomize.")
-    return
-  end
+-- pakettiThemeSelectorRenoiseStartFavorites() and
+-- pakettiThemeSelectorPickRandomThemeFromAll() used to be duplicated here, with
+-- their own themes list and their own selected_theme_index. PakettiThemeSelector.lua
+-- now owns the single implementation of both; PakettiOnNewDocument calls them
+-- from there. (That module is loaded well before any new-document event fires.)
 
-  -- Initialize random seed for true randomness
-  math.randomseed(os.time())
-  
-  local current_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList)
-  local random_theme = preferences.pakettiThemeSelector.FavoritedList[current_index]
-
-  local cleaned_theme_name = tostring(random_theme):match(".*%. (.+)") or tostring(random_theme)
-  selected_theme_index = table.find(themes, cleaned_theme_name)
-
-  renoise.app():load_theme(themes_path .. tostring(random_theme) .. ".xrnc")
-  renoise.app():show_status("Randomized a theme out of your favorite list: " .. tostring(random_theme))
-end
-
-function pakettiThemeSelectorPickRandomThemeFromAll()
-  local themes_path = renoise.tool().bundle_path .. "Themes/"
-  local themes = os.filenames(themes_path, "*.xrnc")
-  
-  -- Initialize random seed based on current time for true randomness
-  math.randomseed(os.time())
-  
-  if #themes == 0 then
-    renoise.app():show_status("No themes found in Themes folder.")
-    return
-  end
-  
-  local new_index
-  
-  -- If we have a current theme and more than 1 theme, avoid repeating it
-  if selected_theme_index and #themes > 1 then
-    repeat
-      new_index = math.random(#themes)
-    until new_index ~= selected_theme_index
-  else
-    -- First time or only one theme - just pick random
-    new_index = math.random(#themes)
-  end
-  
-  selected_theme_index = new_index
-  renoise.app():load_theme(themes_path .. themes[selected_theme_index])
-  renoise.app():show_status("Picked a random theme from all themes: " .. themes[selected_theme_index])
-end
 
 --local PakettiAutomationDoofer=false
 
@@ -739,116 +692,191 @@ end
 -- PakettiOnNewDocument: SINGLE consolidated handler for app_new_document_observable
 -- Replaces the previous 3 separate handlers: startup_(), startup(), handleNewDocument()
 -- =============================================================================
+-- Runs one startup step in isolation. Without this a single failing step aborts
+-- every step below it, and because this is an app_new_document_observable
+-- notifier, an uncaught error can get Renoise to disable the tool's notifiers
+-- outright (only a full Renoise restart brings them back).
+local function PakettiNewDocumentStep(step_name, fn)
+  local ok, err = pcall(fn)
+  if not ok then
+    print(string.format("Paketti: new-document step '%s' failed: %s", step_name, tostring(err)))
+  end
+  return ok
+end
+
 function PakettiOnNewDocument()
   local song = renoise.song()
   local transport = song.transport
 
   -- 1. BPM randomization for NEW songs only (not loaded songs)
+  PakettiNewDocumentStep("randomize BPM", function()
   if preferences.pakettiRandomizeBPMOnNewSong.value and pakettiIsNewSong() then
     math.randomseed(os.time())
     local random_bpm = pakettiGenerateBellCurveBPM()
     transport.bpm = random_bpm
     renoise.app():show_status(string.format("Paketti: Randomized BPM to %d (new song created)", random_bpm))
   end
+  end)
 
   -- 2. Set instrument active tab to 1 (Samples tab)
   -- TODO: Make this a preference (pakettiSetInstrumentActiveTabOnStartup) to allow user control
   -- song.instruments[song.selected_instrument_index].active_tab = 1
 
-  -- 3. Auto-open DSP external editors if preference enabled
-  if preferences.pakettiAlwaysOpenDSPsOnTrack.value then
-    PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
-  end
+  -- 3. Auto-open DSP external editors if preference enabled.
+  -- Uses the SETTER, not the toggle: the toggle flipped state, so with the
+  -- preference on this turned auto-open ON for one song and OFF for the next.
+  -- The setter is also what re-attaches the track-index notifier, which died
+  -- with the previous song. (PakettiLoaders.lua is API 5+, hence the guard.)
+  PakettiNewDocumentStep("auto-open track DSP editors", function()
+    if preferences.pakettiAlwaysOpenDSPsOnTrack.value
+       and type(PakettiSetAutomaticallyOpenTrackDeviceEditors) == "function" then
+      PakettiSetAutomaticallyOpenTrackDeviceEditors(true)
+    end
+  end)
 
   -- 4. Auto-open Sample FX chain devices if preference enabled
-  if preferences.pakettiAlwaysOpenSampleFXChainDevices.value then
-    PakettiInitializeSampleFXChainAutoOpen()
-  end
+  PakettiNewDocumentStep("auto-open sample FX chain editors", function()
+    if preferences.pakettiAlwaysOpenSampleFXChainDevices.value
+       and type(PakettiInitializeSampleFXChainAutoOpen) == "function" then
+      PakettiInitializeSampleFXChainAutoOpen()
+    end
+  end)
 
   -- 5. Reset track color blends for edit mode preference
-  if preferences.pakettiEditMode.value == 2 and transport.edit_mode then
-    for i = 1, #song.tracks do
-      song.tracks[i].color_blend = 0
+  PakettiNewDocumentStep("edit-mode track color blends", function()
+    if preferences.pakettiEditMode.value == 2 and transport.edit_mode then
+      for i = 1, #song.tracks do
+        song.tracks[i].color_blend = 0
+      end
     end
-  end
+  end)
 
   -- 6. Apply Keep Sequence Sorted preference
-  if preferences.pakettiKeepSequenceSorted.value == 1 then
-    song.sequencer.keep_sequence_sorted = false
-    print("Paketti: Keep Sequence Sorted set to false on startup")
-  elseif preferences.pakettiKeepSequenceSorted.value == 2 then
-    song.sequencer.keep_sequence_sorted = true
-    print("Paketti: Keep Sequence Sorted set to true on startup")
-  end
-  -- Mode 0 (Do Nothing) - don't modify the setting
+  PakettiNewDocumentStep("keep sequence sorted", function()
+    if preferences.pakettiKeepSequenceSorted.value == 1 then
+      song.sequencer.keep_sequence_sorted = false
+      print("Paketti: Keep Sequence Sorted set to false on startup")
+    elseif preferences.pakettiKeepSequenceSorted.value == 2 then
+      song.sequencer.keep_sequence_sorted = true
+      print("Paketti: Keep Sequence Sorted set to true on startup")
+    end
+    -- Mode 0 (Do Nothing) - don't modify the setting
+  end)
 
   -- 7. Enable global groove if preference enabled
-  if preferences.pakettiEnableGlobalGrooveOnStartup.value then
-    transport.groove_enabled = true
-  end
+  PakettiNewDocumentStep("global groove", function()
+    if preferences.pakettiEnableGlobalGrooveOnStartup.value then
+      transport.groove_enabled = true
+    end
+  end)
 
   -- 8. Load marker position from preferences
   -- TODO: Consider making this preference-gated (pakettiLoadMarkerOnStartup)
-  if type(PakettiLoadMarkerFromPreferences) == "function" then
-    PakettiLoadMarkerFromPreferences()
-  end
+  PakettiNewDocumentStep("load marker", function()
+    if type(PakettiLoadMarkerFromPreferences) == "function" then
+      PakettiLoadMarkerFromPreferences()
+    end
+  end)
 
   -- 9. Initialize Pattern Status Monitor from preference
-  PakettiPatternStatusMonitorEnabled = preferences.pakettiPatternStatusMonitor.value
-  if PakettiPatternStatusMonitorEnabled then
-    enable_pattern_status_monitor()
-  end
+  -- (PakettiPatternEditorCheatSheet.lua is API 5+, hence the guard.)
+  PakettiNewDocumentStep("pattern status monitor", function()
+    PakettiPatternStatusMonitorEnabled = preferences.pakettiPatternStatusMonitor.value
+    if PakettiPatternStatusMonitorEnabled and type(enable_pattern_status_monitor) == "function" then
+      enable_pattern_status_monitor()
+    end
+  end)
 
   -- 10. Initialize Follow Page Pattern from preference
-  if type(PakettiFollowPagePatternOnNewDocument) == "function" then
-    PakettiFollowPagePatternOnNewDocument()
-  end
-
-  -- 11. Initialize Audition on Line Change from preference (API 6.2+ only)
-  if PAKETTI_HAS_TRIGGER_LINE and preferences.pakettiAuditionOnLineChangeEnabled then
-    PakettiAuditionOnLineChangeEnabled = preferences.pakettiAuditionOnLineChangeEnabled.value
-    if PakettiAuditionOnLineChangeEnabled then
-      PakettiToggleAuditionCurrentLineOnRowChange()
+  PakettiNewDocumentStep("follow page pattern", function()
+    if type(PakettiFollowPagePatternOnNewDocument) == "function" then
+      PakettiFollowPagePatternOnNewDocument()
     end
-  end
+  end)
+
+  -- 11. Initialize Audition on Line Change from preference (API 6.2+ only).
+  -- Uses the SETTER, not the toggle. This used to assign
+  -- PakettiAuditionOnLineChangeEnabled = true and then call the toggle, which
+  -- read that same variable and therefore took its OFF branch -- switching the
+  -- feature off on the first new document AND writing the preference to false,
+  -- so it could never survive a restart.
+  PakettiNewDocumentStep("audition on line change", function()
+    if PAKETTI_HAS_TRIGGER_LINE and preferences.pakettiAuditionOnLineChangeEnabled
+       and preferences.pakettiAuditionOnLineChangeEnabled.value
+       and type(PakettiSetAuditionCurrentLineOnRowChange) == "function" then
+      PakettiSetAuditionCurrentLineOnRowChange(true)
+    end
+  end)
 
   -- 11b. Initialize Trigger on Input from preference (API 6.2+ only)
-  if PAKETTI_HAS_TRIGGER_LINE and type(PakettiTriggerOnInputOnNewDocument) == "function" then
-    PakettiTriggerOnInputOnNewDocument()
-  end
+  PakettiNewDocumentStep("trigger on input", function()
+    if PAKETTI_HAS_TRIGGER_LINE and type(PakettiTriggerOnInputOnNewDocument) == "function" then
+      PakettiTriggerOnInputOnNewDocument()
+    end
+  end)
 
   -- 12. Initialize PlayerPro Always Open Dialog system (only if preference enabled)
-  if preferences.pakettiPlayerProAlwaysOpen and preferences.pakettiPlayerProAlwaysOpen.value then
-    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
-      pakettiPlayerProInitializeAlwaysOpen()
-    else
-      pakettiPlayerProStartMiddleFrameObserver()
+  PakettiNewDocumentStep("PlayerPro always open", function()
+    if preferences.pakettiPlayerProAlwaysOpen and preferences.pakettiPlayerProAlwaysOpen.value then
+      if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+        pakettiPlayerProInitializeAlwaysOpen()
+      else
+        pakettiPlayerProStartMiddleFrameObserver()
+      end
     end
-  end
+  end)
 
   -- 13. Initialize Automatic Rename Track system
-  if preferences.pakettiAutomaticRenameTrack.value then
-    pakettiStartAutomaticRenameTrack()
-  end
+  PakettiNewDocumentStep("automatic rename track", function()
+    if preferences.pakettiAutomaticRenameTrack.value then
+      pakettiStartAutomaticRenameTrack()
+    end
+  end)
 
-  -- 14. Load random/favorite theme if preference enabled
-  if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then
-    pakettiThemeSelectorPickRandomThemeFromAll()
-  elseif preferences.pakettiThemeSelector.RenoiseLaunchFavoritesLoad.value then
-    pakettiThemeSelectorRenoiseStartFavorites()
-  end
+  -- 14. Load random/favorite theme if preference enabled.
+  -- PakettiThemeSelector.lua bails out early when the Themes folder is empty,
+  -- so these globals are not guaranteed to exist.
+  PakettiNewDocumentStep("startup theme", function()
+    if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then
+      if type(pakettiThemeSelectorPickRandomThemeFromAll) == "function" then
+        pakettiThemeSelectorPickRandomThemeFromAll()
+      end
+    elseif preferences.pakettiThemeSelector.RenoiseLaunchFavoritesLoad.value then
+      if type(pakettiThemeSelectorRenoiseStartFavorites) == "function" then
+        pakettiThemeSelectorRenoiseStartFavorites()
+      end
+    end
+  end)
 
   -- 15. Show oblique strategies if preference enabled
-  if preferences.pakettiObliqueStrategiesOnStartup.value then
-    shuffle_oblique_strategies()
-  end
+  -- (PakettiRequests.lua is API 5+, hence the guard.)
+  PakettiNewDocumentStep("oblique strategies", function()
+    if preferences.pakettiObliqueStrategiesOnStartup.value
+       and type(shuffle_oblique_strategies) == "function" then
+      shuffle_oblique_strategies()
+    end
+  end)
 
-  -- 16. Monitor Doofer macros (if enabled)
-  if PakettiAutomationDoofer == true then
+  -- 16. Monitor Doofer macros (if enabled).
+  -- PakettiAutomationDoofer latches true the first time "Paketti Automation Hack"
+  -- runs and is never reset, so this fires on every later song too. The two
+  -- Doofers live IN the song, so a new or unrelated song does not have them --
+  -- previously that passed nil devices straight into monitor_doofer*_macros and
+  -- errored. Verify they are actually there, exactly as initialize_doofer_monitoring
+  -- does, and quietly stand down if they are not.
+  PakettiNewDocumentStep("doofer macro monitoring", function()
+    if PakettiAutomationDoofer ~= true then return end
     local masterTrack = song.sequencer_track_count + 1
-    monitor_doofer2_macros(song.tracks[masterTrack].devices[3])
-    monitor_doofer1_macros(song.tracks[masterTrack].devices[2])
-  end
+    local master = song.tracks[masterTrack]
+    if not master then return end
+    local doofer1, doofer2 = master.devices[2], master.devices[3]
+    if not (doofer1 and doofer2) then return end
+    if doofer1.display_name ~= "Paketti Automation" or doofer2.display_name ~= "Paketti Automation 2" then
+      return
+    end
+    monitor_doofer2_macros(doofer2)
+    monitor_doofer1_macros(doofer1)
+  end)
 end
 
 -- Register the SINGLE consolidated handler (no else branch that removes!)
