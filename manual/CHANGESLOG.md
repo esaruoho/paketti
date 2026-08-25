@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: Paketti Menu Configuration Has a Searchable Keybinding
+
+Added the missing `Global:Paketti:Show Paketti Menu Configuration...` keybinding so Renoise's keyboard preferences can find the Menu Configuration dialog by searching for `paketti menu`. The dialog already had menu entries and a MIDI mapping, but no keyboard shortcut entry.
+
 ### 2026-08-25 - Improvement: Global Paketti Gadgets Menu Toggle Is Real
 
 The old `Paketti Gadgets Menus (0)` checkbox was a placeholder with no mapped menu context, so toggling it could not affect anything. It is now `Global Paketti Gadgets` and gates any menu entry whose path contains `Paketti Gadgets`, independent of the normal host context toggle. For example, `Sample Editor:Paketti Gadgets:...` entries are controlled by Global Paketti Gadgets, while non-Gadgets `Sample Editor:Paketti:...` entries remain controlled by Sample Editor Menus.

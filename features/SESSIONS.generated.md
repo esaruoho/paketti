@@ -25,7 +25,7 @@
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/5e0f11a1-377b-4772-bfcc-7e24092da0db.jsonl
 - Tooling touched: INDEX.md
 
-### `53b19b22-eb03-4403-baf6-29d78603187b`  (2026-08-18 → 2026-08-24)
+### `53b19b22-eb03-4403-baf6-29d78603187b`  (2026-08-18 → 2026-08-25)
 - Resume: `claude --resume 53b19b22-eb03-4403-baf6-29d78603187b`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/53b19b22-eb03-4403-baf6-29d78603187b.jsonl
 - Cards touched (2): groovebox-8120-record-pakettified-instrument.feature, song-lifecycle-safety.feature
@@ -53,6 +53,6 @@
 - Resume: `claude --resume b7a1dcbd-014a-48c1-b308-70d9915781ed`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/b7a1dcbd-014a-48c1-b308-70d9915781ed.jsonl
 
-### `f6c457ca-064f-4ad0-8760-c14bc72fcf95`  (2026-08-24)
+### `f6c457ca-064f-4ad0-8760-c14bc72fcf95`  (2026-08-24 → 2026-08-25)
 - Resume: `claude --resume f6c457ca-064f-4ad0-8760-c14bc72fcf95`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/f6c457ca-064f-4ad0-8760-c14bc72fcf95.jsonl

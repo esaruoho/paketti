@@ -4494,3 +4494,4 @@ safe_initialize()
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=pakettiPreferences}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Menu Configuration...",invoke=pakettiMenuConfigDialog}
