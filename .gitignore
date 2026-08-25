@@ -46,3 +46,7 @@ docs/architecture-*.png
 # .spine/spine-true.json is deliberately TRACKED — it is the complete machine-readable
 # inventory of Paketti's surface, and the whole point is that it is diffable over time
 # and available from any checkout. It never ships in the .xrnx (see .github/workflows).
+
+# Per-user generated shortcut-hint table (rebuilt from KeyBindings.xml +
+# autocomplete_cache.txt whenever either changes; never ships, never diffed)
+shortcut_hints_cache.txt

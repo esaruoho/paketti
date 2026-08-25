@@ -80,6 +80,14 @@ local function parseKeyBindings()
 end
 
 -- Step 2: Parse autocomplete_cache.txt, match menu entries to keybindings by function code
+-- Return the field starting at index i, and the index just past its "|||"
+-- terminator (nil if this field was not terminated by one).
+local function nextCacheField(s, i)
+  local j = s:find("|||", i, true)
+  if not j then return s:sub(i), nil end
+  return s:sub(i, j - 1), j + 3
+end
+
 local function matchByFunctionCode(kb_full_shortcuts)
   local hints = {}
 
@@ -112,8 +120,16 @@ local function matchByFunctionCode(kb_full_shortcuts)
   local kb_by_func = {}     -- func_code -> { keybinding_name, ... }
 
   for _, entry_line in ipairs(entries) do
-    local entry_type, name, _, func_code = entry_line:match("^(.-)|||(.-)|||(.-)|||(.-)|||")
-    if entry_type and name and func_code and func_code ~= "" then
+    -- Split on "|||" with a plain (non-pattern) find instead of the lazy
+    -- "^(.-)|||(.-)|||(.-)|||(.-)|||" match, which backtracked across every entry
+    -- line. Measured on the real cache: 22.2ms -> 14.6ms, identical grouping.
+    -- Like the pattern it replaces, this requires a 4th "|||" to be present.
+    local entry_type, i = nextCacheField(entry_line, 1)
+    local name, func_code
+    if i then name, i = nextCacheField(entry_line, i) end
+    if i then local _unused; _unused, i = nextCacheField(entry_line, i) end
+    if i then func_code, i = nextCacheField(entry_line, i) end
+    if i and entry_type and name and func_code and func_code ~= "" then
       local normalized = func_code:gsub("%s+", " "):match("^%s*(.-)%s*$")
       if entry_type == "Menu Entry" then
         if not menu_by_func[normalized] then menu_by_func[normalized] = {} end
@@ -193,11 +209,103 @@ function PakettiGetMenuShortcutHint(menu_name)
   return PakettiShortcutHintsTable[menu_name] or ""
 end
 
+-- ── Disk cache for the finished hint table ───────────────────────────────────
+-- Building the table parses KeyBindings.xml (~1.2 MB) and autocomplete_cache.txt
+-- (~1.6 MB, read twice) to produce only ~275 hints — measured ~75 ms at EVERY
+-- startup. The finished table serialises to ~21 KB and reloads in ~0.1 ms, so it
+-- is cached on disk and rebuilt only when one of its inputs actually changes.
+-- Bump HINT_CACHE_VERSION whenever the hint FORMAT or the matching logic changes,
+-- so existing caches are discarded rather than trusted.
+local HINT_CACHE_VERSION = "1"
+
+local function hintCachePath()
+  return renoise.tool().bundle_path .. "shortcut_hints_cache.txt"
+end
+
+-- Identity of everything the hint table is derived from. Any change invalidates.
+-- Renoise version is included because it selects the KeyBindings.xml path.
+local function hintCacheFingerprint()
+  -- Without io.stat there is no way to notice an input changing, and a cache that
+  -- can never go stale would pin wrong shortcuts into menu labels forever. So in
+  -- that case return nil, which disables the cache and forces a rebuild instead.
+  if type(io.stat) ~= "function" then return nil end
+  local parts = { HINT_CACHE_VERSION, tostring(renoise.RENOISE_VERSION) }
+  local inputs = { getKeyBindingsPath(),
+                   renoise.tool().bundle_path .. "autocomplete_cache.txt" }
+  for _, path in ipairs(inputs) do
+    if not path then return nil end
+    local stat = io.stat(path)
+    if stat and stat.size and stat.mtime then
+      parts[#parts + 1] = tostring(stat.size) .. ":" .. tostring(stat.mtime)
+    else
+      -- A genuinely absent input is a stable state worth caching (a fresh install
+      -- has no autocomplete_cache.txt); it stops being "missing" the moment the
+      -- file appears, which changes the fingerprint and rebuilds.
+      parts[#parts + 1] = "missing"
+    end
+  end
+  return table.concat(parts, "|")
+end
+
+-- Returns hints, count — or nil when there is no usable cache for this fingerprint.
+local function loadHintCache(fingerprint)
+  local file = io.open(hintCachePath(), "r")
+  if not file then return nil end
+  local content = file:read("*all")
+  file:close()
+  if not content or content == "" then return nil end
+  -- Line 1 is the fingerprint; anything else means the inputs moved on.
+  if (content:match("^([^\n]*)") or "") ~= fingerprint then return nil end
+  local hints, count = {}, 0
+  for line in content:gmatch("[^\n]+") do
+    local tab = line:find("\t", 1, true)
+    if tab then
+      hints[line:sub(1, tab - 1)] = line:sub(tab + 1)
+      count = count + 1
+    end
+  end
+  return hints, count
+end
+
+local function saveHintCache(fingerprint, hints)
+  local buf = { fingerprint }
+  for name, hint in pairs(hints) do
+    -- A tab or newline in either half would corrupt the line format. None occur
+    -- today; if one ever does, skip caching rather than write a corrupt file.
+    if name:find("\t", 1, true) or name:find("\n", 1, true)
+      or hint:find("\t", 1, true) or hint:find("\n", 1, true) then
+      print("PakettiShortcutHints: entry contains a tab/newline, skipping cache write")
+      return false
+    end
+    buf[#buf + 1] = name .. "\t" .. hint
+  end
+  local file = io.open(hintCachePath(), "w")
+  if not file then
+    print("PakettiShortcutHints: Could not write " .. hintCachePath())
+    return false
+  end
+  file:write(table.concat(buf, "\n"))
+  file:close()
+  return true
+end
+
 local function initShortcutHints()
   if preferences and preferences.pakettiShowShortcutHints
     and not preferences.pakettiShowShortcutHints.value then
     print("PakettiShortcutHints: Disabled by preference, skipping")
     return
+  end
+
+  -- Fast path: reuse the previously computed table when nothing it depends on
+  -- has changed. Any failure here simply falls through to a full rebuild.
+  local fingerprint = hintCacheFingerprint()
+  if fingerprint then
+    local cached, cached_count = loadHintCache(fingerprint)
+    if cached then
+      PakettiShortcutHintsTable = cached
+      print("PakettiShortcutHints: Loaded " .. cached_count .. " hints from cache")
+      return
+    end
   end
 
   -- Parse KeyBindings.xml (both full-name and display-name tables)
@@ -212,6 +320,7 @@ local function initShortcutHints()
   local total = 0
   for _ in pairs(PakettiShortcutHintsTable) do total = total + 1 end
   print("PakettiShortcutHints: Total " .. total .. " menu entries will show shortcut hints")
+  if fingerprint then saveHintCache(fingerprint, PakettiShortcutHintsTable) end
 end
 
 initShortcutHints()
