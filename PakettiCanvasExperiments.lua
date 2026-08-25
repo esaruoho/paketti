@@ -5,7 +5,7 @@
 local vb = renoise.ViewBuilder()
 
 -- Base canvas dimensions (actual size calculated at dialog creation time)
-local base_canvas_width = 1280  -- keep wide like EQ30
+local base_canvas_width = 760
 local base_canvas_height = 390  -- reduced to take less vertical space (match EQ30)
 local canvas_width = base_canvas_width  -- Will be updated in dialog creation
 local canvas_height = base_canvas_height  -- Will be updated in dialog creation
@@ -30,6 +30,7 @@ local device_selection_notifier = nil
 local song_change_notifier = nil
 -- Dynamic status text view
 local status_text_view = nil
+local device_text_view = nil
 -- Current drawing parameter info
 local current_drawing_parameter = nil
 -- Track information for current device
@@ -503,6 +504,57 @@ local randomize_slider_view = nil
 -- Shared canvas font (moved to PakettiCanvasFont.lua)
 -- Use PakettiCanvasFontLetterFunctions for per-character drawing and PakettiCanvasFontDrawText for strings
 
+local function PakettiCanvasExperimentsGetDeviceSummary()
+  if not current_device then
+    return nil
+  end
+
+  local device_name = "Unknown Device"
+  if current_device and current_device.short_name then
+    device_name = current_device.short_name
+  elseif current_device and current_device.display_name then
+    device_name = current_device.display_name
+  end
+
+  local param_count = device_parameters and #device_parameters or 0
+  return string.format("%s (%d)", device_name, param_count)
+end
+
+local function PakettiCanvasExperimentsEllipsize(text, max_chars)
+  if not text or #text <= max_chars then
+    return text or ""
+  end
+
+  if max_chars <= 3 then
+    return text:sub(1, max_chars)
+  end
+
+  return text:sub(1, max_chars - 3) .. "..."
+end
+
+function PakettiCanvasExperimentsGetDialogTitleText()
+  return "Paketti Selected Device Parameter Editor"
+end
+
+function PakettiCanvasExperimentsGetDeviceText()
+  local device_summary = PakettiCanvasExperimentsGetDeviceSummary()
+  if not device_summary then
+    return "No device"
+  end
+
+  return PakettiCanvasExperimentsEllipsize(device_summary, 28)
+end
+
+local function PakettiCanvasExperimentsUpdateHeaderText()
+  if device_text_view then
+    device_text_view.text = PakettiCanvasExperimentsGetDeviceText()
+  end
+
+  if status_text_view then
+    status_text_view.text = PakettiCanvasExperimentsGetStatusText()
+  end
+end
+
 -- Function to toggle clean parameter names (silent, no UI button)
 function PakettiCanvasExperimentsToggleCleanNames()
   clean_parameter_names = not clean_parameter_names
@@ -511,9 +563,7 @@ function PakettiCanvasExperimentsToggleCleanNames()
     canvas_experiments_canvas:update()
   end
   -- Update status text
-  if status_text_view then
-    status_text_view.text = PakettiCanvasExperimentsGetStatusText()
-  end
+  PakettiCanvasExperimentsUpdateHeaderText()
   local status = clean_parameter_names and "ON" or "OFF"
   renoise.app():show_status("Parameter name cleaning: " .. status)
 end
@@ -531,20 +581,11 @@ function PakettiCanvasExperimentsGetStatusText()
       return "No song available"
     end
     
-    local device_name = "Unknown Device"
-    if current_device and current_device.short_name then
-      device_name = current_device.short_name
-    elseif current_device and current_device.display_name then
-      device_name = current_device.display_name
-    end
-    
     local param_count = 0
     if device_parameters then
       param_count = #device_parameters
     end
-    
-    local base_text = string.format("%s (%d)", device_name, param_count)
-    
+
     -- Safe current parameter access with multiple nil checks
     if current_drawing_parameter and 
        current_drawing_parameter.parameter and 
@@ -553,12 +594,12 @@ function PakettiCanvasExperimentsGetStatusText()
        current_drawing_parameter.index then
       
       local param_info = current_drawing_parameter
-      local param_text = string.format(": %s = %.3f", 
+      local param_text = string.format("%s = %.3f",
         get_clean_parameter_name(param_info.name), param_info.parameter.value)
-      return base_text .. param_text
+      return param_text
     end
-    
-    return base_text
+
+    return string.format("%d parameters", param_count)
   end)
   
   -- Return result if successful, otherwise fallback
@@ -711,9 +752,7 @@ function PakettiCanvasExperimentsRefreshDevice()
       selected_device = nil
       
       -- Update status text
-      if status_text_view then
-        status_text_view.text = PakettiCanvasExperimentsGetStatusText()
-      end
+      PakettiCanvasExperimentsUpdateHeaderText()
       
       if canvas_experiments_canvas then
         canvas_experiments_canvas:update()
@@ -755,9 +794,7 @@ function PakettiCanvasExperimentsRefreshDevice()
   end
   
   -- Update status text
-  if status_text_view then
-    status_text_view.text = PakettiCanvasExperimentsGetStatusText()
-  end
+  PakettiCanvasExperimentsUpdateHeaderText()
   
   -- Update canvas if it exists
   if canvas_experiments_canvas then
@@ -781,6 +818,7 @@ function PakettiCanvasExperimentsRefreshDevice()
   end
   
   -- Show status message
+  PakettiCanvasExperimentsUpdateHeaderText()
   renoise.app():show_status(PakettiCanvasExperimentsGetStatusText())
 end
 
@@ -947,9 +985,7 @@ function PakettiCanvasExperimentsHandleMouse(ev)
       if canvas_experiments_canvas then
         canvas_experiments_canvas:update()
       end
-      if status_text_view then
-        status_text_view.text = PakettiCanvasExperimentsGetStatusText()
-      end
+      PakettiCanvasExperimentsUpdateHeaderText()
     end
     return
   end
@@ -1036,9 +1072,7 @@ function PakettiCanvasExperimentsHandleMouse(ev)
       canvas_experiments_canvas:update()
     end
     -- Update status text
-    if status_text_view then
-      status_text_view.text = PakettiCanvasExperimentsGetStatusText()
-    end
+    PakettiCanvasExperimentsUpdateHeaderText()
   elseif ev.type == "move" then
     if mouse_is_down then
       -- Update immediately on every mouse move for maximum responsiveness
@@ -1118,9 +1152,7 @@ function PakettiCanvasExperimentsHandleMouseInput(x, y)
     local current_time = os.clock() * 1000
     if current_time - last_status_update_time >= status_update_throttle_ms then
       last_status_update_time = current_time
-      if status_text_view then
-        status_text_view.text = PakettiCanvasExperimentsGetStatusText()
-      end
+      PakettiCanvasExperimentsUpdateHeaderText()
     end
     
     -- Update canvas IMMEDIATELY for responsive drawing feedback
@@ -1524,6 +1556,7 @@ function PakettiCanvasExperimentsCleanup()
   canvas_experiments_dialog = nil
   canvas_experiments_canvas = nil
   status_text_view = nil
+  device_text_view = nil
   randomize_slider_view = nil
   current_device = nil
   device_parameters = {}
@@ -1567,7 +1600,7 @@ function PakettiCanvasExperimentsCreateDialog()
   -- Update canvas dimensions based on current preferences
   PakettiCanvasExperimentsUpdateDimensions()
   
-  local title = "Paketti Selected Device Parameter Editor"
+  local title = PakettiCanvasExperimentsGetDialogTitleText()
   
   -- Create fresh ViewBuilder instance
   local vb = renoise.ViewBuilder()
@@ -1750,8 +1783,25 @@ function PakettiCanvasExperimentsCreateDialog()
           tooltip = "Alternate each parameter column's background (light / dark) for grid-style reading"
         }
       },
+      vb:text{
+        id="device_text_view",
+        text=PakettiCanvasExperimentsGetDeviceText(),
+        font="bold",
+        style="strong",
+        width=180
+      },
+      vb:text{
+        id="status_text_view",
+        text=PakettiCanvasExperimentsGetStatusText(),
+        font="bold",
+        style="strong",
+        width=150
+      }
+    },
+    vb:row {
       vb:button {
         text = "Configure...",
+        width = 80,
         tooltip = "Reorder / hide / rename this device's parameters (per-plugin display config). Needs Customized Ordering Mode ON (Paketti Preferences) to apply.",
         notifier = function() PakettiCanvasExperimentsOpenConfigDialog() end
       },
@@ -1809,7 +1859,8 @@ function PakettiCanvasExperimentsCreateDialog()
           renoise.app():show_status("Canvas: Automation Playmode updated on " .. tostring(changed) .. " envelopes")
         end
       } or vb:space{width=1},
-      
+    },
+    vb:row {
       vb:button {
         text = "Toggle External Editor",
         width = 120,
@@ -1821,7 +1872,7 @@ function PakettiCanvasExperimentsCreateDialog()
           end
         end
       },
-      vb:text{text="Next Pattern",width=100,style="strong",font="bold"},
+      vb:text{text="Next Pattern",width=80,style="strong",font="bold"},
       -- Pattern automation buttons
       vb:button {
         text = "Duplicate to",
@@ -1856,15 +1907,7 @@ function PakettiCanvasExperimentsCreateDialog()
           SetupCanvasUpdateTimer()
           renoise.app():show_status("Canvas refresh rate: " .. canvas_refresh_rate .. "ms")
         end
-      },
-      -- Device status text at the end of this row
-      vb:text{
-        id="status_text_view",
-        text=PakettiCanvasExperimentsGetStatusText(),
-        font="bold",style="strong",
-        width=300}
-
-
+      }
     },
 
 
@@ -1915,7 +1958,8 @@ function PakettiCanvasExperimentsCreateDialog()
           PakettiCanvasExperimentsRandomizeCurrentMode()
         end
       } or vb:space{width=1},
-      
+    },
+    vb:row {
       -- Edit A/B controls (conditional visibility)
       preferences.pakettiParameterEditor.AB.value and vb:text {
         text = "Edit A/B",
@@ -2082,8 +2126,10 @@ function PakettiCanvasExperimentsCreateDialog()
   end
   
   canvas_experiments_canvas = vb.views.canvas_experiments_canvas
+  device_text_view = vb.views.device_text_view
   status_text_view = vb.views.status_text_view
   randomize_slider_view = vb.views.randomize_slider_view
+  PakettiCanvasExperimentsUpdateHeaderText()
   
   -- Add dialog close notifier for cleanup
   if canvas_experiments_dialog then

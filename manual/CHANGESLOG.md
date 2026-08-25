@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: Selected Device Parameter Editor No Longer Opens Ultra-Wide
+
+The Selected Device Parameter Editor now keeps the live status focused on the touched parameter value, e.g. `Mix = 0.220`, instead of prefixing it with a long plugin name. The device name is shown in a fixed-width header field, the dialog title stays stable so it cannot get stuck on a previous plugin, and the canvas/toolbar rows have been narrowed so the editor no longer forces a 1280px-wide window.
+
 ### 2026-08-25 - Fix: .MOD Loader Creates Both Wavetable Forms in Make Me One With Everything
 
 `.MOD Loader...` > `Make Me One With Everything` now explicitly creates both Renoise-side `.MOD` wavetable forms: the plain `.MOD as Wavetable` instrument with all sample memory concatenated into one sample, and a separate pakettified sliced wavetable instrument whose slice markers show exactly where each original `.MOD` sample starts. The sliced instrument is then mirrored into Amigo without deleting the Renoise source, so the dialog leaves the individual sample instruments, the raw wavetable, the sliced wavetable, and the Amigo result available for inspection.
