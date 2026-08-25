@@ -8,6 +8,8 @@ and FAILS (exit 1) on anything that would crash or degrade a real Renoise load:
     already added" and aborts the tool load (this shipped once and broke users).
   • duplicate keybindings    — same fatal duplicate guard.
   • brittle files            — a source file that errors during registration.
+  • malformed keybindings    — keybinding names must be exactly three
+    colon-separated parts: "Context:Topic:Name". Extra colons crash Renoise.
   • self-referential globals — `PakettiFoo = PakettiFoo or {}` reads the global on
     the RHS before it exists; Renoise strict-globals mode throws "variable X is not
     declared" AT LOAD TIME and aborts the whole tool load. This shipped 2026-07-23
@@ -59,6 +61,18 @@ def _self_ref_violations(root):
     return out
 
 
+def _malformed_keybindings(names):
+    """Renoise keybinding names are `Context:Topic:Name`.
+    Subcategories must be flattened into the final name part instead of adding
+    extra colons."""
+    out = []
+    for name in names:
+        parts = str(name).split(":")
+        if len(parts) != 3 or not all(parts):
+            out.append(str(name))
+    return out
+
+
 def run():
     lj = shutil.which("luajit") or shutil.which("lua")
     if not lj:
@@ -79,6 +93,7 @@ def main():
     brittle = [f for f in d.get("files", []) if not f.get("ok")]
     fs = d["file_stats"]
     selfref = _self_ref_violations(ROOT)
+    malformed_kb = _malformed_keybindings(d.get("names", {}).get("keybinding", []))
 
     print(f"Paketti registration check — {d['unique']['keybinding']:,} keybindings · "
           f"{d['unique']['midi_mapping']:,} MIDI · {d['unique']['menu_entry']:,} menus · "
@@ -103,6 +118,14 @@ def main():
         print(f"\n❌ {len(dup_kb)} DUPLICATE KEYBINDING(S) — Renoise will refuse to load:")
         for n in dup_kb:
             print(f"   • {n}")
+    if malformed_kb:
+        fail = True
+        print(f"\n❌ {len(malformed_kb)} MALFORMED KEYBINDING NAME(S) — Renoise keybindings "
+              "must be exactly `Context:Topic:Name`:")
+        for n in malformed_kb:
+            print(f"   • {n}")
+        print("       fix: remove extra ':' characters from the name part; use spaces, /, or - "
+              "for subcategories.")
     if brittle:
         fail = True
         print(f"\n❌ {len(brittle)} BRITTLE FILE(S) (errored during registration):")
@@ -117,7 +140,8 @@ def main():
     if fail:
         print("\nFAILED — fix the above before this can ship. Each of these aborts the whole "
               "tool load in real Renoise: a duplicate add_midi_mapping/add_keybinding, a file "
-              "that errors at load, or a global read before it is declared (strict-globals).")
+              "that errors at load, a malformed keybinding name, or a global read before it is "
+              "declared (strict-globals).")
         return 1
     print("\n✅ clean — no duplicate registrations, no brittle files.")
     return 0

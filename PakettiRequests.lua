@@ -2014,8 +2014,17 @@ function adjustSliceKeyshortcut(slice_index, delta)
     sample:move_slice_marker(slice_markers[slice_index], new_pos)
 end
 
--- List of deltas with their corresponding keybinding names
-local deltas = {["+1"] = 1, ["-1"] = -1, ["+10"] = 10, ["-10"] = -10, ["+16"] = 16, ["-16"] = -16, ["+32"] = 32, ["-32"] = -32}
+-- List of deltas with their corresponding keybinding names.
+local deltas = {
+  { name = "+1", delta = 1 },
+  { name = "-1", delta = -1 },
+  { name = "+10", delta = 10 },
+  { name = "-10", delta = -10 },
+  { name = "+16", delta = 16 },
+  { name = "-16", delta = -16 },
+  { name = "+32", delta = 32 },
+  { name = "-32", delta = -32 }
+}
 
 -----------
 -- Function to set the interpolation mode for all samples within the selected instrument
@@ -12616,8 +12625,8 @@ for i=0,34 do
   if i > 0 and i <= 32 then
     -- Operations that need 1-32 only (skip zero and 33-34)
     -- Nudge Slice keybindings (nested loop)
-    for name, delta in pairs(deltas) do
-        renoise.tool():add_keybinding{name="Sample Editor:Paketti:Nudge Slice " .. formatDigits(2,i) .. " by (" .. name .. ")",invoke=function() adjustSliceKeyshortcut(i, delta) end}
+    for _, nudge in ipairs(deltas) do
+        renoise.tool():add_keybinding{name="Sample Editor:Paketti:Nudge Slice " .. formatDigits(2,i) .. " by (" .. nudge.name .. ")",invoke=function() adjustSliceKeyshortcut(i, nudge.delta) end}
     end
     renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Fx to " .. formatDigits(2,i),invoke=function() selectedInstrumentAllFx(i) end}
     

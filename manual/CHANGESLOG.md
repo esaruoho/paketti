@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: Nudge Slice Shortcuts Register in a Stable Order
+
+The `Sample Editor:Paketti:Nudge Slice 01-32 by (+/-1/+/-10/+/-16/+/-32)` keybindings now register from a fixed ordered list instead of Lua's undefined table iteration order, so Renoise's shortcut list stops reshuffling those entries between launches. The startup checker also now fails any Paketti keybinding name that does not have exactly three colon-separated parts (`Context:Paketti:Name`), catching the class of malformed keybinding that can abort tool loading before it ships.
+
 ### 2026-08-25 - Fix: .MOD Files Loaded as a Raw Sample Came in as Full-Scale Noise
 
 `Load .MOD as Sample`, `Load .MOD as Wavetable`, the Multi-File Raw Loader, and the wavetable half of `Make Me One With Everything` were all loading modules as a wall of noise instead of the module's own waveforms. The header and pattern data were being stripped correctly, but the sample audio itself was then read with the wrong sign convention: a module stores its audio as signed 8-bit, while the raw loader converts bytes the unsigned way that every other file type (`.exe`, `.dll`, `.bin`) needs. The two disagree exactly where the audio is quietest, so anything near silence came out pinned to full volume. Measured on a real 655KB module: 72% of the audio was sitting at full scale before the fix, 0.1% after, and the constant offset that was pulling the whole waveform off-centre is gone.
