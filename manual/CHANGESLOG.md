@@ -10,7 +10,7 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 ### 2026-08-25 - Fix: Nudge Slice Shortcuts Register in a Stable Order
 
-The `Sample Editor:Paketti:Nudge Slice 01-32 by (+/-1/+/-10/+/-16/+/-32)` keybindings now register from a fixed ordered list instead of Lua's undefined table iteration order, so Renoise's shortcut list stops reshuffling those entries between launches. The startup checker also now fails any Paketti keybinding name that does not have exactly three colon-separated parts (`Context:Paketti:Name`), catching the class of malformed keybinding that can abort tool loading before it ships.
+The `Sample Editor:Paketti:Nudge Slice 01-32 by (-32/-16/-10/-1/+1/+10/+16/+32)` keybindings now register from a fixed numeric list instead of Lua's undefined table iteration order, so Renoise's shortcut list stops reshuffling those entries between launches. The startup checker also now fails any Paketti keybinding name that does not have exactly three colon-separated parts (`Context:Paketti:Name`), catching the class of malformed keybinding that can abort tool loading before it ships.
 
 ### 2026-08-25 - Fix: .MOD Files Loaded as a Raw Sample Came in as Full-Scale Noise
 

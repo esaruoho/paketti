@@ -2016,14 +2016,14 @@ end
 
 -- List of deltas with their corresponding keybinding names.
 local deltas = {
-  { name = "+1", delta = 1 },
-  { name = "-1", delta = -1 },
-  { name = "+10", delta = 10 },
-  { name = "-10", delta = -10 },
-  { name = "+16", delta = 16 },
+  { name = "-32", delta = -32 },
   { name = "-16", delta = -16 },
-  { name = "+32", delta = 32 },
-  { name = "-32", delta = -32 }
+  { name = "-10", delta = -10 },
+  { name = "-1", delta = -1 },
+  { name = "+1", delta = 1 },
+  { name = "+10", delta = 10 },
+  { name = "+16", delta = 16 },
+  { name = "+32", delta = 32 }
 }
 
 -----------
