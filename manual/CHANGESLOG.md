@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-25 - Fix: .MOD Files Loaded as a Raw Sample Came in as Full-Scale Noise
+
+`Load .MOD as Sample`, `Load .MOD as Wavetable`, the Multi-File Raw Loader, and the wavetable half of `Make Me One With Everything` were all loading modules as a wall of noise instead of the module's own waveforms. The header and pattern data were being stripped correctly, but the sample audio itself was then read with the wrong sign convention: a module stores its audio as signed 8-bit, while the raw loader converts bytes the unsigned way that every other file type (`.exe`, `.dll`, `.bin`) needs. The two disagree exactly where the audio is quietest, so anything near silence came out pinned to full volume. Measured on a real 655KB module: 72% of the audio was sitting at full scale before the fix, 0.1% after, and the constant offset that was pulling the whole waveform off-centre is gone.
+
+This only ever affected the routes that load a module as one raw sample. `Load Samples from .MOD`, the Amigo routes, and the slices produced by `Make Me One With Everything` were already correct — which is why that command gave you a working Amigo alongside a broken Renoise sample. There are no new menu entries, keybindings or MIDI mappings.
+
 ### 2026-08-25 - Fix: Steppers Menu Separator No Longer Moves Around Between Launches. The separator line in Instrument Box > Paketti > Steppers was attaching itself to a different stepper every time Renoise started — sometimes above Pitch, sometimes above Volume, sometimes above Resonance — because the six stepper types were being read in an undefined order. They now always appear in a fixed order (Pitch, Volume, Panning, Cutoff, Resonance, Drive), so the separator stays put and the Clear Steps shortcuts register in that same consistent order.
 - Menu: `Instrument Box:Paketti:Steppers:Show Selected Instrument [Pitch/Volume/Panning/Cutoff/Resonance/Drive] Stepper`
 - Menu: `Sample Modulation Matrix:Paketti:Clear [Pitch/Volume/Panning/Cutoff/Resonance/Drive] Steps`

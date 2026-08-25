@@ -34,7 +34,11 @@ function pakettiLoadExeAsSample(file_path)
   if is_mod then
     local pcm, mod_err = PakettiMODParser.sample_pcm_only(data)
     if pcm then
-      raw = pcm
+      -- .MOD PCM is SIGNED 8-bit, and the byte->float conversion below is the
+      -- UNSIGNED one every other raw file needs. Without this flip a quiet
+      -- module sample sits around 0x00/0xFF and reads as -1.0/+1.0, so the
+      -- whole module loads as full-scale noise instead of its own waveforms.
+      raw = PakettiMODParser.sign_flip(pcm)
     else
       renoise.app():show_status("Could not read the .MOD: " .. tostring(mod_err))
       return
@@ -150,7 +154,8 @@ function pakettiMultiFileRawLoader()
         local raw = data
         if is_mod then
           local pcm = PakettiMODParser.sample_pcm_only(data)
-          if pcm then raw = pcm end
+          -- signed -> unsigned, same reason as pakettiLoadExeAsSample above
+          if pcm then raw = PakettiMODParser.sign_flip(pcm) end
         end
 
         -- Create new instrument for this file

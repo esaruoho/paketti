@@ -17504,6 +17504,8 @@ Shows unassigned key combinations available for mapping.
 
 Import multiple raw/headerless audio files as 8-bit samples.
 
+**.MOD files get special handling.** When one of the files you pick is a ProTracker module, the raw loaders do not load the file bytes — they strip the 1084-byte header and all the pattern data and load only the module's sample audio, so you hear the instruments rather than the song structure rattling through the speakers first. That audio is stored signed in a module and unsigned in every other raw file type, and the loaders now convert between the two. Before that conversion existed, the quietest parts of a module read as maximum volume, so a module loaded this way arrived as a solid block of noise. This applies to `Load .MOD as Sample`, `Load .MOD as Wavetable`, this Multi-File Raw Loader, and the Renoise-sample half of `Make Me One With Everything`.
+
 ## Multi-File Raw Loader (8-bit)
 
 **Keybinding:** `Global:Paketti:Multi-File Raw Loader (8-bit)` ⌨️
