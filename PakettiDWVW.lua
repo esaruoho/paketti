@@ -16,6 +16,9 @@
 
 local floor = math.floor
 
+-- Outcome of the most recent import / export / batch run, for troubleshooting.
+PakettiDWVWLastStatus = "never run"
+
 --------------------------------------------------------------------------------
 -- Byte helpers (big-endian, 1-based string positions)
 --------------------------------------------------------------------------------
@@ -332,7 +335,8 @@ end
 
 -- Reads a Renoise sample buffer, resamples to target_rate (linear), optionally
 -- mixes to mono, and quantises to signed `wordsize` integers.
-local function buffer_to_dwvw_channels(buffer, target_rate, force_mono, wordsize, yield_every)
+-- Returns: channels (array of integer arrays), frame count, channel count.
+function PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, yield_every)
   local src_frames = buffer.number_of_frames
   local src_rate = buffer.sample_rate
   local src_ch = buffer.number_of_channels
@@ -470,6 +474,7 @@ local function dwvw_import_process(path, into_current_instrument)
   if dialog and dialog.visible then dialog:close() end
   dwvw_import_slicer = nil
 
+  PakettiDWVWLastStatus = ok and "import ok" or ("import failed: " .. tostring(err))
   if not ok then
     renoise.app():show_status("Paketti DWVW import failed: " .. tostring(err))
     print("PakettiDWVW import error: " .. tostring(err))
@@ -519,7 +524,7 @@ local function dwvw_export_process(path, target_rate, force_mono, wordsize)
     coroutine.yield()
 
     local channels, frames, nch =
-      buffer_to_dwvw_channels(buffer, target_rate, force_mono, wordsize, 8192)
+      PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, 8192)
 
     if dvb then dvb.views.progress_text.text = "Encoding DWVW..." end
     coroutine.yield()
@@ -539,6 +544,7 @@ local function dwvw_export_process(path, target_rate, force_mono, wordsize)
   if dialog and dialog.visible then dialog:close() end
   dwvw_export_slicer = nil
 
+  PakettiDWVWLastStatus = ok and "export ok" or ("export failed: " .. tostring(err))
   if not ok then
     renoise.app():show_status("Paketti DWVW export failed: " .. tostring(err))
     print("PakettiDWVW export error: " .. tostring(err))
@@ -664,7 +670,7 @@ local function dwvw_batch_process(folder, outfolder, opts)
       end
 
       local channels, frames, nch =
-        buffer_to_dwvw_channels(buffer, opts.rate, opts.force_mono, opts.wordsize, 8192)
+        PakettiDWVWBufferToChannels(buffer, opts.rate, opts.force_mono, opts.wordsize, 8192)
       local data = PakettiDWVWBuildFile(channels, frames, opts.rate, opts.wordsize, 8192)
 
       local target = outfolder .. (outfolder:match("[/\\]$") and "" or path_sep())
@@ -690,8 +696,35 @@ local function dwvw_batch_process(folder, outfolder, opts)
 
   local msg = string.format("Paketti DWVW batch%s: %d converted, %d failed (%d Hz, %d-bit)",
     cancelled and " (cancelled)" or "", done, failed, opts.rate, opts.wordsize)
+  PakettiDWVWLastStatus = msg
   renoise.app():show_status(msg)
   print(msg)
+end
+
+-- Starts a batch run. opts = {rate, wordsize, force_mono, recursive}; any
+-- missing field falls back to the saved preference.
+function PakettiDWVWBatchConvert(folder, outfolder, opts)
+  if not folder or folder == "" then
+    renoise.app():show_status("Paketti DWVW: no source folder given")
+    return false
+  end
+  if dwvw_batch_slicer and dwvw_batch_slicer:running() then
+    renoise.app():show_status("Paketti DWVW: a batch conversion is already running")
+    return false
+  end
+  opts = opts or {}
+  local resolved = {
+    rate = opts.rate or PakettiDWVWTargetRate(),
+    wordsize = opts.wordsize or PakettiDWVWWordSize(),
+    force_mono = (opts.force_mono ~= nil) and opts.force_mono or PakettiDWVWForceMono(),
+    recursive = opts.recursive or false,
+  }
+  local dst = (outfolder and outfolder ~= "") and outfolder or folder
+  dwvw_batch_slicer = ProcessSlicer(function()
+    dwvw_batch_process(folder, dst, resolved)
+  end)
+  dwvw_batch_slicer:start()
+  return true
 end
 
 local dwvw_batch_dialog = nil
@@ -803,10 +836,7 @@ function PakettiDWVWBatchConvertDialog()
         local src, dst = source_folder, output_folder
         if dwvw_batch_dialog and dwvw_batch_dialog.visible then dwvw_batch_dialog:close() end
         dwvw_batch_dialog = nil
-        dwvw_batch_slicer = ProcessSlicer(function()
-          dwvw_batch_process(src, dst, opts)
-        end)
-        dwvw_batch_slicer:start()
+        PakettiDWVWBatchConvert(src, dst, opts)
       end},
       vb:button{text = "Close", width = 60, notifier = function()
         if dwvw_batch_dialog and dwvw_batch_dialog.visible then dwvw_batch_dialog:close() end
@@ -827,20 +857,7 @@ function PakettiDWVWBatchConvertFolder()
     renoise.app():show_status("Paketti DWVW: no folder selected")
     return
   end
-  if dwvw_batch_slicer and dwvw_batch_slicer:running() then
-    renoise.app():show_status("Paketti DWVW: a batch conversion is already running")
-    return
-  end
-  local opts = {
-    rate = PakettiDWVWTargetRate(),
-    wordsize = PakettiDWVWWordSize(),
-    force_mono = PakettiDWVWForceMono(),
-    recursive = false,
-  }
-  dwvw_batch_slicer = ProcessSlicer(function()
-    dwvw_batch_process(folder, folder, opts)
-  end)
-  dwvw_batch_slicer:start()
+  PakettiDWVWBatchConvert(folder, folder, nil)
 end
 
 --------------------------------------------------------------------------------
