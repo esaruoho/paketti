@@ -30,7 +30,7 @@ This is non-negotiable. The local working tree can be behind `origin/master` —
 
 ## Rule -0.5 — THIS CHECKOUT IS ON iCLOUD: FILES CAN BE EVICTED (0 bytes) AND `git commit` CAN SIGBUS
 
-The working tree lives under iCloud Drive (`~/Library/Mobile Documents/…`; `/Users/esaruoho/work/paketti` is a symlink to it). The `.git` dir is off-iCloud at `/Users/esaruoho/.paketti-git` (safe). **iCloud evicts file *contents* to save space — leaving a "dataless placeholder": `ls` shows the real byte size, but reading the file returns 0 bytes.** This has two nasty consequences:
+**The canonical path for this project is `~/work/paketti`** — use it everywhere: in commands, in docs, when telling another agent where the work lives. It is a symlink onto iCloud Drive (`~/Library/Mobile Documents/…`), which is the *reason* for the eviction hazard below, not an invitation to quote the iCloud path instead. The `.git` dir is off-iCloud at `/Users/esaruoho/.paketti-git` (safe). **iCloud evicts file *contents* to save space — leaving a "dataless placeholder": `ls` shows the real byte size, but reading the file returns 0 bytes.** This has two nasty consequences:
 
 1. **A grep/read of an evicted file returns nothing — and that looks exactly like "the feature isn't there."**
    - **Real incident (2026-07-22):** asked whether Groovebox 8120's MODE2 (per-step sample mode) was implemented, I grepped `PakettiEightOneTwenty.lua`, got **zero hits**, and confidently said "not built — still a proposal." The file was an **evicted placeholder** (468 KB in `ls`, 0 bytes when read). MODE2 was **fully shipped** the whole time. The tell: `wc -l` = 0 and `grep -c "function"` = 0 on a 468 KB Lua file is impossible — it means the content isn't materialized, not that it's empty.
