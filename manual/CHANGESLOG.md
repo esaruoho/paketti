@@ -12,6 +12,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 Creating a Wave A&B instrument no longer clears the editor's two waveform buffers while the new destination instrument is being selected. The resulting Wave A and Wave B samples now contain the selected waveform data rather than silence. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.
 
+### 2026-08-27 - Improvement: Music Mouse Chord/Single-Note Playback Toggle
+
+Shift+Space now toggles Music Mouse playback between the full chord and its root single note. The toggle immediately releases the previous voicing, affects hover playback and recorded notes, and is available from the new Playback control and Music Mouse Keyboard Map. Plain Space is unchanged: it still freezes/unfreezes hover playback without changing the selected playback voicing. Added `Paketti:Music Mouse Key shift-Chord/Single note` MIDI mapping; existing `Main Menu:Tools:Paketti:Music Mouse...`, `Main Menu:Tools:Paketti:Instruments:Music Mouse...`, `Instrument Box:Paketti:Music Mouse...`, `Global:Paketti:Music Mouse Show/Hide`, and `Paketti:Music Mouse Show/Hide` entries are unchanged.
+
 ### 2026-08-27 - Improvement: Canvas-Only Waveform Navigation
 
 In the Single Cycle Waveform Writer's Canvas Only view, Left and Right now operate the visible Waveform dropdown exactly like its on-screen `<` and `>` buttons, selecting the previous and next waveform and wrapping at either end. Up and Down continue to edit the selected frame; Full view retains its existing Left/Right frame-navigation behavior. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.

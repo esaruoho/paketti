@@ -124,6 +124,7 @@ local mm = {
   disp_hi     = 96,           -- grid high note; narrow this to shrink the grid + reduce dead positions
   strum_ms    = 28,           -- ms between successive strummed notes (live audio AND recorded delay spacing)
   strum       = false,        -- Strum chords: Chord treatment rakes the notes (live + recorded) instead of a block
+  single_note = false,        -- shift-space: play the root voice only instead of the full chord
 
   -- runtime
   mouse_active = true,        -- delete key disconnects
@@ -463,6 +464,14 @@ local function mm_compute_voices()
   return notes, apply
 end
 
+-- Single-note playback retains the chord calculation for the display and controls, but emits
+-- only its root voice so switching back to Chord needs no state reconstruction.
+local function mm_playback_notes(notes)
+  if not mm.single_note then return notes end
+  if notes[1] then return { notes[1] } end
+  return {}
+end
+
 --------------------------------------------------------------------------------
 -- Sound engine (4 voice slots on the selected instrument)
 --------------------------------------------------------------------------------
@@ -556,10 +565,11 @@ end
 local function mm_play_chord(notes)
   local song = renoise.song()
   local ii, ti = mm_inst_track()
+  local playback_notes = mm_playback_notes(notes)
   local offs, ons = {}, {}
   for v = 1, MM_MAX_VOICES do
     local cur = mm.voice_note[v]
-    local nw = (v <= #notes and not mm.mute[v]) and notes[v] or nil
+    local nw = (v <= #playback_notes and not mm.mute[v]) and playback_notes[v] or nil
     if not mm.sound_on then nw = nil end
     if mm.grouping then
       if cur ~= nil then offs[#offs + 1] = cur end
@@ -605,7 +615,7 @@ local function mm_play_chord(notes)
   mm.last_notes = notes
   if mm_record_write then
     local rl = {}
-    for v = 1, #notes do if not mm.mute[v] then rl[#rl + 1] = notes[v] end end
+    for v = 1, #playback_notes do if not mm.mute[v] then rl[#rl + 1] = playback_notes[v] end end
     mm_record_write(rl)
   end
   if mm.staccato then
@@ -633,18 +643,14 @@ local function mm_retrigger()
     mm.seq_i = 0   -- restart the arpeggio/line/improvise from the top with the new sound
     return
   end
-  for v = 1, MM_MAX_VOICES do
-    if mm.voice_note[v] then mm_note_off(v) end
-  end
-  for v = 1, #notes do
-    if not mm.mute[v] then mm_note_on(v, notes[v]) end
-  end
-  if mm_record_write then
-    local rl = {}
-    for v = 1, #notes do if not mm.mute[v] then rl[#rl + 1] = notes[v] end end
-    mm_record_write(rl)
-  end
-  if mm.staccato then for v = 1, MM_MAX_VOICES do mm_note_off(v) end end
+  mm_all_notes_off()
+  mm_play_chord(notes)
+end
+
+local function mm_toggle_single_note()
+  mm.single_note = not mm.single_note
+  mm_all_notes_off()
+  if not mm.frozen and not mm.keyjazz then mm_retrigger() end
 end
 
 -- Live strum spacing (ms between successive notes). Also the basis for the delay-column
@@ -1112,7 +1118,9 @@ local function mm_tick()
   local notes, apply = mm_compute_voices()
 
   if mm.treatment == 1 then
-    if mm.pattern_on then
+    if mm.single_note and mm.pattern_on then
+      mm_play_chord(notes)
+    elseif mm.pattern_on then
       if mm.pat_target == "all" then
         mm_play_chord(notes)                          -- All voices: the whole chord contours together
       else
@@ -1787,6 +1795,10 @@ local function mm_controls_column(vbx)
       vbx:popup{ id = "mm_arp_popup", width = 96, items = MM_ARP_ITEMS, value = mm_arp_index(),
         tooltip = "Arpeggiate direction: Up / Down / Scatter (random) / Strum (delay-staggered chord)",
         notifier = function(i) if mm_ui_busy then return end mm.arp_mode = MM_ARP_ITEMS[i]; mm.seq_i = 0 end } },
+    vbx:row{ spacing = 4, lbl("Playback"),
+      vbx:switch{ id = "mm_playback_switch", width = 150, items = { "Chord", "Single note" }, value = mm.single_note and 2 or 1,
+        tooltip = "shift-space toggles chord or root-note playback. Space still freezes hover playback.",
+        notifier = function(i) if mm_ui_busy then return end if mm.single_note ~= (i == 2) then mm_toggle_single_note() end end } },
     vbx:row{ spacing = 4, lbl("Strum spacing", "Milliseconds between successive strummed notes. Drives BOTH the live audio strum AND the delay-column spacing written into the pattern when recording."),
       vbx:valuebox{ id = "mm_strum_box", width = 60, min = 1, max = 250, value = mm.strum_ms,
         notifier = function(v) if mm_ui_busy then return end mm.strum_ms = v; mm_save_prefs() end },
@@ -1900,6 +1912,7 @@ mm_update_panel = function()
   mm_ui_busy = true
   v["mm_harmony_popup"].value = mm_scale_index()
   v["mm_treatment_popup"].value = mm.treatment
+  if v["mm_playback_switch"] then v["mm_playback_switch"].value = mm.single_note and 2 or 1 end
   v["mm_transpose_box"].value = mm.transpose
   v["mm_interval_box"].value = mm.interval
   v["mm_pattern_check"].value = mm.pattern_on
@@ -2083,9 +2096,16 @@ function mm_keyhandler(dlg, key)
   end
 
   -- SPACE is ALWAYS owned by Music Mouse (freeze / unfreeze) — captured before any passthrough
-  -- so it never bleeds into the pattern editor or transport, even while recording, with a
-  -- modifier held, or when the mouse is off the grid. Record-to-Pattern remains armed.
+  -- Shift+Space changes playback voicing; plain Space still freezes/unfreezes hover playback.
+  -- Both are captured before any passthrough, so neither bleeds into Renoise transport controls.
   if name == "space" then
+    if has_shift then
+      if key.repeated then return nil end
+      mm_toggle_single_note()
+      mm_update_panel(); if mm_canvas then mm_canvas:update() end
+      renoise.app():show_status("Music Mouse: playback " .. (mm.single_note and "SINGLE NOTE" or "CHORD"))
+      return nil
+    end
     mm.frozen = not mm.frozen
     if mm.frozen then mm_all_notes_off() end
     mm_update_panel(); if mm_canvas then mm_canvas:update() end
@@ -2415,7 +2435,8 @@ local MM_KEYMAP = {
     { k = "m", label = "Cycle palette" }, { k = "b", label = "Bell/Sustain" },
   }},
   { title = "Performance", keys = {
-    { k = "space", label = "Freeze" }, { k = "return", label = "Lock notes" },
+    { k = "space", label = "Freeze" }, { k = "space", mods = "shift", label = "Chord/Single note" },
+    { k = "return", label = "Lock notes" },
     { k = "return", mods = "shift", label = "Release held" }, { k = "j", label = "Keyjazz punch" },
     { k = ";", label = "Gravity Play" }, { k = "l", label = "Clear seeds" },
     { k = "delete", label = "Disconnect mouse" }, { k = "k", label = "Theme" },
