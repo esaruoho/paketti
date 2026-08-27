@@ -2533,6 +2533,11 @@ function PCMWriterHandleKeyboard(dialog, key)
   elseif pcm_current_scene == 2 and key.name == "right" and PCMWriterSelectAdjacentWaveform(1) then
     return nil
   end
+
+  if key.name == "space" and key.modifiers == "" and not hex_field_has_focus then
+    PCMWriterExportWaveAAndBToSample()
+    return nil
+  end
   
   -- Check if cursor position is valid first
   if selected_sample_index <= 0 then
@@ -9488,8 +9493,8 @@ function PCMWriterShowPcmDialog()
     }, -- CANVAS_PANEL_ROW ENDS
     vb:text{
       text = (pcm_current_scene == 2)
-        and "Click/drag to draw • Arrow keys up/down edit the selected frame; left/right select the previous/next waveform."
-        or "Click/drag to draw • Arrow keys up/down to edit selected frame, shift-up/down for faster, keys left/right to select a different frame, shift-left/right for faster.",
+        and "Click/drag to draw • Arrow keys up/down edit the selected frame; left/right select the previous/next waveform; Space writes A&B."
+        or "Click/drag to draw • Arrow keys up/down to edit selected frame, shift-up/down for faster, keys left/right to select a different frame, shift-left/right for faster; Space writes A&B.",
       font = "italic",
       width = 1024
     },
