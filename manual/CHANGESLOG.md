@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Improvement: Music Mouse Freeze Keeps Its Cursor and Record Arm
+
+Pressing Space now mutes mouse-triggered notes while the Music Mouse crosshair continues to follow the selected grid cell, so the next unfreeze plays from the intended position. Space no longer turns off Right-Shift Record to Pattern, allowing a performer to pause mouse movement, retain the recording arm, and resume it with the next Space press. The existing `Main Menu:Tools:Paketti:Music Mouse...`, `Main Menu:Tools:Paketti:Instruments:Music Mouse...`, `Instrument Box:Paketti:Music Mouse...`, `Global:Paketti:Music Mouse Show/Hide`, and `Paketti:Music Mouse Show/Hide` entries are unchanged.
+
 ### 2026-08-27 - Fix: Music Mouse Auditions While Playback Runs
 
 Music Mouse now triggers every chord voice with Renoise's playback-safe integer note form rather than the unreliable table-form chord trigger. Moving the mouse, playing arpeggios, and strumming are audible while transport playback is running. The existing `Main Menu:Tools:Paketti:Music Mouse...`, `Main Menu:Tools:Paketti:Instruments:Music Mouse...`, `Instrument Box:Paketti:Music Mouse...`, `Global:Paketti:Music Mouse Show/Hide`, and `Paketti:Music Mouse Show/Hide` entries are unchanged.

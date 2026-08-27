@@ -1193,7 +1193,7 @@ local function mm_apply_gravitation()
 end
 
 local function mm_update_from_mouse()
-  if mm.frozen or not mm.mouse_active then return end   -- SPACE pause: mouse no longer follows
+  if not mm.mouse_active then return end
   local fx = (mm.mx)              -- 0..1 left->right (treble up to the right)
   local fy = (1 - mm.my)          -- invert: top of canvas = high pitch
   local ndx = mm_frac_to_degree(fx)
@@ -1205,6 +1205,12 @@ local function mm_update_from_mouse()
   mm.deg_y = ndy
   -- (no auto-snap: the mouse moves freely so you can place/modify seeds anywhere;
   --  the diamonds are reached by Gravity Play, not by magnetism)
+  if mm.frozen then
+    -- SPACE mutes movement but still lets the crosshair follow the selected grid cell.
+    mm.last_notes = mm_compute_voices()
+    if mm_canvas then mm_canvas:update() end
+    return
+  end
   if mm.keyjazz then
     -- punch mode: aim silently — update the cursor only; i/o/p triggers the picked chord
     mm.last_notes = mm_compute_voices()
@@ -2078,16 +2084,13 @@ function mm_keyhandler(dlg, key)
 
   -- SPACE is ALWAYS owned by Music Mouse (freeze / unfreeze) — captured before any passthrough
   -- so it never bleeds into the pattern editor or transport, even while recording, with a
-  -- modifier held, or when the mouse is off the grid.
+  -- modifier held, or when the mouse is off the grid. Record-to-Pattern remains armed.
   if name == "space" then
-    if mm.record then
-      mm_set_record(false); mm.frozen = true; mm_all_notes_off()
-    else
-      mm.frozen = not mm.frozen
-      if mm.frozen then mm_all_notes_off() end
-    end
+    mm.frozen = not mm.frozen
+    if mm.frozen then mm_all_notes_off() end
     mm_update_panel(); if mm_canvas then mm_canvas:update() end
-    renoise.app():show_status("Music Mouse: " .. (mm.frozen and "FROZEN (mouse + playback paused; keys still work)" or "live"))
+    renoise.app():show_status("Music Mouse: " .. (mm.frozen and
+      "FROZEN (mouse muted; crosshair follows; recording stays armed)" or "live"))
     return nil
   end
 
