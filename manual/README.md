@@ -405,6 +405,18 @@ Extrabonus: Also with 64 slice drumkit support - meaning, Renoise can be used to
 
 Export samples to IFF format
 
+#### Export Instrument to Yamaha TX16W (.C01 + .O01 + 720K disk images)
+
+`Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Mappings:Paketti:Save`, `Instrument Box:Paketti:Save` and `Disk Browser:Paketti`; keybinding `Global:Paketti:Export Instrument to Yamaha TX16W`).
+
+Takes the selected instrument and produces everything a TX16W running Typhoon needs to play it: one `.C01` wave per sample, one `.O01` voice file mapping them across the keyboard, and as many 720K floppy images as they take. Pick a folder and you get `KITNAME_DISK1.img`, `KITNAME_DISK2.img` and so on, plus a `files` subfolder with the waves and voice loose if you would rather assemble a disk yourself.
+
+Write the images to real floppies, or put them on a Gotek or HxC floppy emulator. They are ordinary 720K DOS disks - Typhoon reads those, which the stock Yamaha OS cannot.
+
+- Samples are mapped one per key going up from the base key. A duplicate key is nudged up rather than dropped, because Typhoon keys a split by where it starts.
+- Sample names become 8.3 uppercase, and the voice refers to each wave by an identifier stored inside the wave itself, so the pair always matches even after renaming.
+- The number of disks is set by whichever runs out first: the 730112 bytes of space, or the 112 entries a DOS root directory holds. A 120-sample kit runs out of directory entries first, so samples are spread evenly over the disks rather than filling the first one. The voice file always goes on disk 1.
+
 #### Export DWVW (Yamaha TX16W / Typhoon .C01)
 
 `Main Menu:File:Paketti Import:Export DWVW Sample (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Navigator:Paketti:Export` and `Sample Mappings:Paketti:Save`; keybinding `Global:Paketti:Export DWVW Sample (.C01)...`).

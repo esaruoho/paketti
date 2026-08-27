@@ -8,6 +8,27 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Feature: Export a Whole Instrument to the Yamaha TX16W as Disk Images
+
+One command turns the selected instrument into everything a Yamaha TX16W running Typhoon needs: a `.C01` wave per sample, a `.O01` voice file that maps them across the keyboard, and as many 720K floppy images as they take.
+
+- Keybinding: `Global:Paketti:Export Instrument to Yamaha TX16W`
+- MIDI Mapping: `Paketti:Export Instrument to Yamaha TX16W`
+- Menu: `Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+- Menu: `Sample Editor:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+- Menu: `Sample Mappings:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+- Menu: `Instrument Box:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+- Menu: `Disk Browser:Paketti:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+
+You pick a folder and get `KITNAME_DISK1.img`, `KITNAME_DISK2.img` and so on, plus a `files` folder holding the same waves and voice loose, in case you would rather copy them onto a disk yourself. Write the images to real floppies, or drop them straight onto a Gotek or HxC floppy emulator.
+
+The voice file format was worked out from 266 real Typhoon voice files across 65 TX16W library archives. Samples are laid out one per key from the base key upward, or on the keys Renoise already has them mapped to. Each wave carries the identifier its voice refers to it by, which is how the sampler pairs them up.
+
+The disk images are genuine 720K DOS floppies, which is what Typhoon reads. Two limits decide how many disks you get: the 730112 bytes of space, and the 112 entries a DOS root directory holds - a 120-sample kit runs out of directory entries long before it runs out of room, so the samples are spread evenly rather than cramming the first disk full. The voice file always goes on disk 1.
+
+Tested by exporting a 120-sample kit, mounting both images, and checking every wave on them byte for byte, and that the voice resolves all 120 of its references.
+
 ### 2026-08-27 - Improvement: DWVW Reads Every Real TX16W File, and Writes TX16W-Legal Filenames
 
 Tested against 1006 `.C01` files from real Yamaha TX16W libraries. All 1006 now read correctly, and 1002 of them re-encode to a bit-identical compressed stream; the remaining four decode to exactly the same audio, they just made a different legal choice in two spots.

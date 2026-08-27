@@ -262,6 +262,10 @@ function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every, m
   local fver = putint(2726318400, 32)   -- 0xA2805140, AIFC version 1
 
   local body = "AIFC"
+  -- Typhoon's own signature chunk, carrying the wave's id. A .O01 voice file
+  -- references its waves by that id, so it has to come along.
+  if meta and meta.appl then body = body .. meta.appl end
+  body = body
     .. "FVER" .. putint(#fver, 32) .. fver
     .. "COMM" .. putint(#comm, 32) .. comm .. ((#comm % 2 == 1) and "\0" or "")
   if inst ~= "" then
