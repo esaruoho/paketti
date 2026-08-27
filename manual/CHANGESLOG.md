@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Fix: Dragging a .C01 into Renoise Now Works
+
+Renoise matches file import hook extensions case-sensitively, and real Yamaha TX16W files are named `.C01` in uppercase, so dragging one onto Renoise did nothing. Both letter cases are now registered, for `.C01` through `.C99` as well as `.dwvw`.
+
+Files written by Paketti now also carry the AIFF-C `FVER` chunk that real Typhoon files have, and use the same compression-name length byte those files use, so the header Paketti writes is byte-identical to a genuine TX16W header. The batch conversion dialog gained the other two rates real TX16W material uses: 50000 Hz and 20008 Hz.
+
+Verified against 43 genuine TX16W `.C01` files: all 43 decode, and re-encoding each one reproduces its original compressed stream bit for bit.
+
 ### 2026-08-27 - Feature: DWVW Import, Export and Batch Conversion (Yamaha TX16W / Typhoon .C01)
 
 Paketti now reads and writes DWVW, the lossless codec Typhoon OS uses for the Yamaha TX16W sampler and the Cyclone emulator. DWVW files are AIFF-C containers, normally named `.C01` through `.C12`.

@@ -327,7 +327,7 @@ OctaMed / Protracker IFF / 8SVX / 16SV Import support
 
 DWVW is the lossless codec Typhoon OS uses for the Yamaha TX16W sampler, and that the Cyclone emulator reads. The files are AIFF-C containers and are normally named `.C01` through `.C12`.
 
-The sample is loaded into a new instrument with your Paketti default instrument settings applied, at whatever sample rate, bit depth and channel count the file specifies (12-bit TX16W material comes in as 16-bit at 33333 Hz). Dropping a `.C01` or `.dwvw` file straight onto Renoise works too - that goes through an import hook which can be switched off under `Import Hooks Settings` if another tool needs those extensions.
+The sample is loaded into a new instrument with your Paketti default instrument settings applied, at whatever sample rate, bit depth and channel count the file specifies (12-bit TX16W material comes in as 16-bit, usually at 50000 Hz or 33333 Hz). Dropping a `.C01` or `.dwvw` file straight onto Renoise works too - that goes through an import hook covering `.C01` through `.C99` in either letter case, which can be switched off under `Import Hooks Settings` if another tool needs those extensions.
 
 Progress is shown in a dialog with a Cancel button, and Renoise stays usable while it runs.
 
@@ -381,7 +381,7 @@ Turns a whole folder of samples into TX16W-ready `.C01` files in one run. Anythi
 
 - **Source Folder** - the folder to scan. `Include subfolders` walks the whole tree.
 - **Output Folder** - where the `.C01` files go. Defaults to the source folder.
-- **Sample Rate** - `33333 Hz (TX16W standard)` is the default, which is what Typhoon and the TX16W expect. Also available: 16666 Hz (TX16W half rate), 44100 Hz, 22050 Hz and 8000 Hz.
+- **Sample Rate** - `33333 Hz (TX16W standard)` is the default. Also available: 50000 Hz and 20008 Hz (the other two rates real TX16W material uses), 16666 Hz (TX16W half rate), 44100 Hz, 22050 Hz and 8000 Hz.
 - **Bit Depth** - `12-bit` is the TX16W's native resolution and the default. 8-bit and 16-bit are also available.
 - **Mix to mono** - on by default, because the TX16W is a mono sampler. Turn it off to keep stereo files stereo.
 

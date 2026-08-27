@@ -218,7 +218,9 @@ function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every)
 
   local comm = putint(nch, 16) .. putint(nsamples, 32) .. putint(wordsize, 16)
     .. put_extended(rate)
-    .. "DWVW" .. "\031" .. "Delta With Variable Word Width" .. "\0"
+    -- Compression type, then a pascal string. Real Typhoon files use a length
+    -- byte of 30 for "Delta With Variable Word Width" and pad to even length.
+    .. "DWVW" .. "\030" .. "Delta With Variable Word Width" .. "\0"
 
   local ssnd = {putint(0, 32), putint(0, 32)}   -- offset, blockSize
   local n = 16                                   -- chunk header + those 8 bytes
@@ -231,7 +233,12 @@ function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every)
   end
   ssnd = table.concat(ssnd)
 
+  -- AIFF-C format version chunk; real TX16W/Typhoon files carry it and the
+  -- AIFF-C specification requires it.
+  local fver = putint(2726318400, 32)   -- 0xA2805140, AIFC version 1
+
   local body = "AIFC"
+    .. "FVER" .. putint(#fver, 32) .. fver
     .. "COMM" .. putint(#comm, 32) .. comm .. ((#comm % 2 == 1) and "\0" or "")
     .. "SSND" .. putint(#ssnd, 32) .. ssnd .. ((#ssnd % 2 == 1) and "\0" or "")
   return "FORM" .. putint(#body, 32) .. body
@@ -737,9 +744,10 @@ function PakettiDWVWBatchConvertDialog()
   end
 
   local vb = renoise.ViewBuilder()
-  local rates = {"33333 Hz (TX16W standard)", "16666 Hz (TX16W half rate)",
+  local rates = {"33333 Hz (TX16W standard)", "50000 Hz (TX16W high rate)",
+                 "20008 Hz (TX16W low rate)", "16666 Hz (TX16W half rate)",
                  "44100 Hz", "22050 Hz", "8000 Hz"}
-  local rate_values = {33333, 16666, 44100, 22050, 8000}
+  local rate_values = {33333, 50000, 20008, 16666, 44100, 22050, 8000}
   local rate_index = 1
   for i, r in ipairs(rate_values) do
     if r == PakettiDWVWTargetRate() then rate_index = i end
@@ -902,8 +910,15 @@ local function dwvw_import_hook(filename)
   return true
 end
 
-local dwvw_extensions = {"c01", "c02", "c03", "c04", "c05", "c06", "c07", "c08",
-                         "c09", "c10", "c11", "c12", "dwvw"}
+-- Renoise matches import-hook extensions CASE-SENSITIVELY, and real TX16W
+-- files are named .C01 (uppercase), so both cases have to be registered or
+-- drag-and-drop silently does nothing.
+local dwvw_extensions = {"dwvw", "DWVW"}
+for n = 1, 99 do
+  local nn = string.format("%02d", n)
+  dwvw_extensions[#dwvw_extensions + 1] = "c" .. nn
+  dwvw_extensions[#dwvw_extensions + 1] = "C" .. nn
+end
 
 local function dwvw_hooks_enabled()
   if not preferences then return true end
