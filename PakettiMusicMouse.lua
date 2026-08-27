@@ -1393,8 +1393,16 @@ function mm_render(ctx)
   local x_degs, y_degs = mm_axis_degrees()
   local hi_x, hi_y = {}, {}
   local vline_fracs, hline_fracs = {}, {}
-  for _, d in ipairs(x_degs) do hi_x[mm_degree_note(d)] = true; vline_fracs[#vline_fracs + 1] = mm_degree_to_frac(d) end
-  for _, d in ipairs(y_degs) do hi_y[mm_degree_note(d)] = true; hline_fracs[#hline_fracs + 1] = mm_degree_to_frac(d) end
+  if mm.single_note then
+    local note = mm_playback_notes(mm_compute_voices())[1]
+    if note then
+      hi_x[note] = true
+      vline_fracs[1] = mm_note_frac(note)
+    end
+  else
+    for _, d in ipairs(x_degs) do hi_x[mm_degree_note(d)] = true; vline_fracs[#vline_fracs + 1] = mm_degree_to_frac(d) end
+    for _, d in ipairs(y_degs) do hi_y[mm_degree_note(d)] = true; hline_fracs[#hline_fracs + 1] = mm_degree_to_frac(d) end
+  end
 
   -- four-sided piano keyboards with active keys highlighted in-place (white pass, then black on top)
   if not mm.hide_pianos then

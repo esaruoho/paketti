@@ -16,6 +16,10 @@ With the Single Cycle Waveform Writer canvas active, unmodified Space now runs t
 
 Creating a Wave A&B instrument no longer clears the editor's two waveform buffers while the new destination instrument is being selected. The resulting Wave A and Wave B samples now contain the selected waveform data rather than silence. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.
 
+### 2026-08-27 - Fix: Music Mouse Single-Note Display Matches Playback
+
+When Music Mouse is set to Single note via Shift+Space or its Playback control, the grid now highlights and draws only the root note that it plays, rather than the complete underlying chord. The `Paketti:Music Mouse Key shift-Chord/Single note` MIDI mapping and existing Music Mouse menu entries are unchanged.
+
 ### 2026-08-27 - Improvement: Music Mouse Chord/Single-Note Playback Toggle
 
 Shift+Space now toggles Music Mouse playback between the full chord and its root single note. The toggle immediately releases the previous voicing, affects hover playback and recorded notes, and is available from the new Playback control and Music Mouse Keyboard Map. Plain Space is unchanged: it still freezes/unfreezes hover playback without changing the selected playback voicing. Added `Paketti:Music Mouse Key shift-Chord/Single note` MIDI mapping; existing `Main Menu:Tools:Paketti:Music Mouse...`, `Main Menu:Tools:Paketti:Instruments:Music Mouse...`, `Instrument Box:Paketti:Music Mouse...`, `Global:Paketti:Music Mouse Show/Hide`, and `Paketti:Music Mouse Show/Hide` entries are unchanged.
