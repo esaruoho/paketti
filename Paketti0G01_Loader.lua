@@ -419,6 +419,11 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportImage = true,         -- Image (.png, .bmp, .jpg, .jpeg, .gif) import
   pakettiImportCSV = true,           -- CSV (.csv) import - PCMWriter
   pakettiImportEXE = true,           -- Raw binary (.exe, .dll, .bin, .sys, .dylib) import
+  pakettiImportDWVW = true,          -- DWVW (.c01-.c12, .dwvw) import - Yamaha TX16W / Typhoon
+  -- DWVW export defaults (Yamaha TX16W / Typhoon .C01)
+  pakettiDWVWSampleRate = 33333,     -- TX16W standard sample rate
+  pakettiDWVWWordSize = 12,          -- TX16W native bit depth
+  pakettiDWVWForceMono = true,       -- TX16W is a mono sampler
   -- Quick Sample to New Track Settings
   pakettiQuickSampleTrackVolume = true,  -- Set new track volume to -30dB for safe recording levels
   -- (Overdub Pattern Sync is deliberately NOT a preference — every Paketti
@@ -4070,7 +4075,8 @@ function PakettiDeactivatorDialog()
           vb:row{vb:checkbox{value = preferences.pakettiImportTXT.value, notifier = function(v) preferences.pakettiImportTXT.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "TXT (.txt)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportImage.value, notifier = function(v) preferences.pakettiImportImage.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Image (.png, .jpg...)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportCSV.value, notifier = function(v) preferences.pakettiImportCSV.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "CSV (.csv)", width = 140}},
-          vb:row{vb:checkbox{value = preferences.pakettiImportEXE.value, notifier = function(v) preferences.pakettiImportEXE.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Raw (.exe, .dll...)", width = 140}}
+          vb:row{vb:checkbox{value = preferences.pakettiImportEXE.value, notifier = function(v) preferences.pakettiImportEXE.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Raw (.exe, .dll...)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportDWVW.value, notifier = function(v) preferences.pakettiImportDWVW.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "DWVW (.c01, .dwvw)", width = 140}}
         }
       },
       
@@ -4098,6 +4104,7 @@ function PakettiDeactivatorDialog()
             preferences.pakettiImportImage.value = true
             preferences.pakettiImportCSV.value = true
             preferences.pakettiImportEXE.value = true
+            preferences.pakettiImportDWVW.value = true
             preferences:save_as("preferences.xml")
             renoise.app():show_status("All import hooks enabled. Restart Renoise for changes to take effect.")
             -- Refresh dialog
@@ -4129,6 +4136,7 @@ function PakettiDeactivatorDialog()
             preferences.pakettiImportImage.value = false
             preferences.pakettiImportCSV.value = false
             preferences.pakettiImportEXE.value = false
+            preferences.pakettiImportDWVW.value = false
             preferences:save_as("preferences.xml")
             renoise.app():show_status("All import hooks disabled. Restart Renoise for changes to take effect.")
             -- Refresh dialog

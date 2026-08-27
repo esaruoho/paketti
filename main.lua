@@ -1250,6 +1250,7 @@ timed_require("PakettiMPCCycler")
 
 --- File Import / Export (API 4-safe)
 timed_require("PakettiIFFLoader")
+timed_require("PakettiDWVW")
 timed_require("PakettiITIImport")
 timed_require("PakettiITIExport")
 

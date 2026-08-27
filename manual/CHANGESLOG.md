@@ -8,6 +8,40 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Feature: DWVW Import, Export and Batch Conversion (Yamaha TX16W / Typhoon .C01)
+
+Paketti now reads and writes DWVW, the lossless codec Typhoon OS uses for the Yamaha TX16W sampler and the Cyclone emulator. DWVW files are AIFF-C containers, normally named `.C01` through `.C12`.
+
+Import loads a `.C01` into a new instrument with your Paketti default instrument settings applied, at the sample rate and bit depth stored in the file. Dropping a `.C01` or `.dwvw` file onto Renoise also works, via a new import hook you can switch off in `Import Hooks Settings`.
+
+Export writes the selected sample as a `.C01` at 33333 Hz, 12-bit, mixed to mono - the TX16W's native format. Batch Convert takes a whole folder of WAV/AIFF/FLAC/OGG files and writes a `.C01` beside each one (or into a folder you choose), with selectable sample rate (33333 Hz, 16666 Hz, 44100 Hz, 22050 Hz, 8000 Hz), bit depth (12/8/16), mono mixdown and subfolder recursion. Every file is converted in a temporary instrument slot that is removed afterwards, so your instrument list is untouched. Import, export and batch conversion all run through ProcessSlicer, so Renoise stays responsive and every operation has a progress dialog with a Cancel button.
+
+The encoder follows the original DWVW specification rather than the widely-circulated C reference implementation, which mis-encodes a sample-to-sample difference of exactly negative full scale and desynchronises the rest of the stream from that point on. A single such difference corrupted the remainder of the file. Paketti's encoder is lossless on all material, including full-scale square waves and noise.
+
+- Keybinding: `Global:Paketti:Import DWVW Sample (.C01)...`
+- Keybinding: `Global:Paketti:Export DWVW Sample (.C01)...`
+- Keybinding: `Global:Paketti:Batch Convert WAV/AIFF to DWVW (.C01)...`
+- MIDI Mapping: `Paketti:Import DWVW Sample (.C01)`
+- MIDI Mapping: `Paketti:Export DWVW Sample (.C01)`
+- MIDI Mapping: `Paketti:Batch Convert WAV/AIFF to DWVW (.C01)`
+- Menu: `Main Menu:File:Paketti Import:Import DWVW Sample (.C01)...`
+- Menu: `Main Menu:File:Paketti Import:Export DWVW Sample (.C01)...`
+- Menu: `Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to DWVW (.C01)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Import DWVW Sample (.C01)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export DWVW Sample (.C01)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert WAV/AIFF to DWVW (.C01)...`
+- Menu: `Sample Editor:Paketti:Load:Import DWVW Sample (.C01)...`
+- Menu: `Sample Editor:Paketti:Save:Export DWVW Sample (.C01)...`
+- Menu: `Sample Editor:Paketti:Save:Batch Convert WAV/AIFF to DWVW (.C01)...`
+- Menu: `Sample Navigator:Paketti:Load:Import DWVW Sample (.C01)...`
+- Menu: `Sample Navigator:Paketti:Export:Export DWVW Sample (.C01)...`
+- Menu: `Sample Mappings:Paketti:Load:Import DWVW Sample (.C01)...`
+- Menu: `Sample Mappings:Paketti:Save:Export DWVW Sample (.C01)...`
+- Menu: `Instrument Box:Paketti:Load:Import DWVW Sample (.C01)...`
+- Menu: `Instrument Box:Paketti:Load:Batch Convert WAV/AIFF to DWVW (.C01)...`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Import DWVW Sample (.C01)...`
+- Menu: `Disk Browser Files:Paketti:Import/Export:Batch Convert WAV/AIFF to DWVW (.C01)...`
+
 ### 2026-08-27 - Improvement: Canvas-Only Waveform Octave Shifting
 
 In the Single Cycle Waveform Writer's Canvas Only view, Up now duplicates the active Wave A or B waveform into two continuous cycles, raising it one octave. Down stretches the first half of the active waveform across the canvas, lowering it one octave; this turns two cycles back into one. Shift+Up and Shift+Down retain the existing selected-frame editing behavior. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.

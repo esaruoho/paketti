@@ -321,6 +321,16 @@ SoundFont V2.0 Import support
 
 OctaMed / Protracker IFF / 8SVX / 16SV Import support
 
+#### Import DWVW (Yamaha TX16W / Typhoon .C01)
+
+`Main Menu:File:Paketti Import:Import DWVW Sample (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Load`, `Sample Navigator:Paketti:Load`, `Sample Mappings:Paketti:Load`, `Instrument Box:Paketti:Load` and `Disk Browser Files:Paketti:Import/Export`; keybinding `Global:Paketti:Import DWVW Sample (.C01)...`).
+
+DWVW is the lossless codec Typhoon OS uses for the Yamaha TX16W sampler, and that the Cyclone emulator reads. The files are AIFF-C containers and are normally named `.C01` through `.C12`.
+
+The sample is loaded into a new instrument with your Paketti default instrument settings applied, at whatever sample rate, bit depth and channel count the file specifies (12-bit TX16W material comes in as 16-bit at 33333 Hz). Dropping a `.C01` or `.dwvw` file straight onto Renoise works too - that goes through an import hook which can be switched off under `Import Hooks Settings` if another tool needs those extensions.
+
+Progress is shown in a dialog with a Cancel button, and Renoise stays usable while it runs.
+
 #### Import 4channel .MOD samples
 
 Both as separate instruments, and as "wavetable instrument" == all samples in one instrument, aka "sample chain".
@@ -363,6 +373,20 @@ The same converter for Renoise's own instruments. Every sample of every `.xrni` 
 
 Each instrument is loaded into a temporary instrument slot and removed again, so your own instruments and your selected instrument are left as they were. Progress is shown with a Cancel button.
 
+#### Batch Convert WAV/AIFF to DWVW (.C01)
+
+`Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to DWVW (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Instrument Box:Paketti:Load` and `Disk Browser Files:Paketti:Import/Export`; keybinding `Global:Paketti:Batch Convert WAV/AIFF to DWVW (.C01)`).
+
+Turns a whole folder of samples into TX16W-ready `.C01` files in one run. Anything Renoise can read is accepted as source - WAV, AIFF, AIFC, FLAC, OGG - and each one is written out as `samplename.C01`.
+
+- **Source Folder** - the folder to scan. `Include subfolders` walks the whole tree.
+- **Output Folder** - where the `.C01` files go. Defaults to the source folder.
+- **Sample Rate** - `33333 Hz (TX16W standard)` is the default, which is what Typhoon and the TX16W expect. Also available: 16666 Hz (TX16W half rate), 44100 Hz, 22050 Hz and 8000 Hz.
+- **Bit Depth** - `12-bit` is the TX16W's native resolution and the default. 8-bit and 16-bit are also available.
+- **Mix to mono** - on by default, because the TX16W is a mono sampler. Turn it off to keep stereo files stereo.
+
+Your chosen rate, bit depth and mono setting are saved as preferences and become the defaults for single-sample export as well. Each file is converted in a temporary instrument slot which is removed again, so your own instruments and your selected instrument are left as they were. Progress is shown with a Cancel button.
+
 ### Export
 
 #### Export PTI
@@ -378,6 +402,14 @@ Extrabonus: Also with 64 slice drumkit support - meaning, Renoise can be used to
 #### Export IFF
 
 Export samples to IFF format
+
+#### Export DWVW (Yamaha TX16W / Typhoon .C01)
+
+`Main Menu:File:Paketti Import:Export DWVW Sample (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Navigator:Paketti:Export` and `Sample Mappings:Paketti:Save`; keybinding `Global:Paketti:Export DWVW Sample (.C01)...`).
+
+Writes the selected sample as a DWVW `.C01` at 33333 Hz, 12-bit, mixed to mono - the Yamaha TX16W's native format. The rate, bit depth and mono setting come from the Batch Convert dialog's settings, so change them there if you want something else.
+
+DWVW is lossless: what you put in at the chosen rate and bit depth is exactly what comes back out. Typical musical material lands around half the size of the equivalent 16-bit file, and silence compresses to an eighth.
 
 #### Export RX2 to PTI
 
