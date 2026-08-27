@@ -732,12 +732,13 @@ local function collect_audio_files(folder, recursive)
       handle:close()
     end
   else
-    for _, e in ipairs(exts) do
-      local ok, names = pcall(os.filenames, folder, "*." .. e)
-      if ok and names then
-        for _, n in ipairs(names) do
-          add(folder .. (folder:match("[/\\]$") and "" or path_sep()) .. n)
-        end
+    local patterns = {}
+    for _, e in ipairs(exts) do patterns[#patterns + 1] = "*." .. e end
+    -- os.filenames matches case-insensitively, so .WAV and .Aiff are covered.
+    local ok, names = pcall(os.filenames, folder, patterns)
+    if ok and names then
+      for _, n in ipairs(names) do
+        add(folder .. (folder:match("[/\\]$") and "" or path_sep()) .. n)
       end
     end
   end
@@ -992,10 +993,12 @@ end
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Batch Convert Folder to DWVW (.C01) with Saved Settings...", invoke = PakettiDWVWBatchConvertFolder}
 
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Load:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Batch Convert WAV/AIFF to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Batch Convert Folder to DWVW (.C01) with Saved Settings...", invoke = PakettiDWVWBatchConvertFolder}
 
 PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Load:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
 PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Export:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
@@ -1009,17 +1012,23 @@ PakettiAddMenuEntry{name = "Instrument Box:Paketti:Load:Batch Convert WAV/AIFF t
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert WAV/AIFF to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert Folder to DWVW (.C01) with Saved Settings...", invoke = PakettiDWVWBatchConvertFolder}
 
 PakettiAddMenuEntry{name = "Disk Browser Files:Paketti:Import/Export:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
 PakettiAddMenuEntry{name = "Disk Browser Files:Paketti:Import/Export:Batch Convert WAV/AIFF to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
 
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:Batch Convert Folder to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:Batch Convert Folder to DWVW (.C01) with Saved Settings...", invoke = PakettiDWVWBatchConvertFolder}
+
 renoise.tool():add_keybinding{name = "Global:Paketti:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
 renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert WAV/AIFF to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Batch Convert Folder to DWVW with Saved Settings", invoke = PakettiDWVWBatchConvertFolder}
 
 renoise.tool():add_midi_mapping{name = "Paketti:Import DWVW Sample (.C01)", invoke = function(message) if message:is_trigger() then PakettiDWVWImportDialog() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Export DWVW Sample (.C01)", invoke = function(message) if message:is_trigger() then PakettiDWVWExportSelectedSample() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Batch Convert WAV/AIFF to DWVW (.C01)", invoke = function(message) if message:is_trigger() then PakettiDWVWBatchConvertDialog() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Batch Convert Folder to DWVW with Saved Settings", invoke = function(message) if message:is_trigger() then PakettiDWVWBatchConvertFolder() end end}
 
 -- File import hook: dropping a TX16W .C01 (or a .dwvw) into Renoise imports it.
 local function dwvw_import_hook(filename)

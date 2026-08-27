@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Improvement: One-Click Batch Convert Folder to DWVW
+
+There are now two ways to convert a folder. `Batch Convert WAV/AIFF to DWVW (.C01)...` opens the settings dialog. `Batch Convert Folder to DWVW (.C01) with Saved Settings...` just asks for a folder and converts it using whatever rate, bit depth and mono setting you last chose, with no dialog in between. Both are also on the Disk Browser's right-click menu.
+
+- Keybinding: `Global:Paketti:Batch Convert Folder to DWVW with Saved Settings`
+- MIDI Mapping: `Paketti:Batch Convert Folder to DWVW with Saved Settings`
+- Menu: `Main Menu:File:Paketti Import:Batch Convert Folder to DWVW (.C01) with Saved Settings...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert Folder to DWVW (.C01) with Saved Settings...`
+- Menu: `Sample Editor:Paketti:Save:Batch Convert Folder to DWVW (.C01) with Saved Settings...`
+- Menu: `Disk Browser:Paketti:Batch Convert Folder to DWVW (.C01)...`
+- Menu: `Disk Browser:Paketti:Batch Convert Folder to DWVW (.C01) with Saved Settings...`
+
 ### 2026-08-27 - Improvement: DWVW Export Keeps Loops, Root Note and Source Rate
 
 DWVW export now writes the sample's root note, key range and loop points into the file, in the `INST` and `MARK` chunks real Yamaha TX16W files use, so a `.C01` written by Paketti carries everything the sampler needs rather than bare audio. Loop positions are rescaled when the export changes the sample rate. Renoise's ping-pong loop is written as AIFF forward/backward; reverse loops are written as forward, since AIFF has no reverse loop.

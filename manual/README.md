@@ -375,7 +375,9 @@ Each instrument is loaded into a temporary instrument slot and removed again, so
 
 #### Batch Convert WAV/AIFF to DWVW (.C01)
 
-`Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to DWVW (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Instrument Box:Paketti:Load` and `Disk Browser Files:Paketti:Import/Export`; keybinding `Global:Paketti:Batch Convert WAV/AIFF to DWVW (.C01)`).
+`Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to DWVW (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Instrument Box:Paketti:Load`, `Disk Browser:Paketti` and `Disk Browser Files:Paketti:Import/Export`; keybinding `Global:Paketti:Batch Convert WAV/AIFF to DWVW (.C01)`).
+
+There is a no-dialog version alongside it, `Batch Convert Folder to DWVW (.C01) with Saved Settings...`, which asks only for a folder and converts it with whatever rate, bit depth and mono setting you last chose in the dialog below (keybinding `Global:Paketti:Batch Convert Folder to DWVW with Saved Settings`).
 
 Turns a whole folder of samples into TX16W-ready `.C01` files in one run. Anything Renoise can read is accepted as source - WAV, AIFF, AIFC, FLAC, OGG - and each one is written out as `samplename.C01`.
 
