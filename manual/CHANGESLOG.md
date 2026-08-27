@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Fix: Wavetable Controls Follow Their Instrument Across Tracks
+
+The Single Cycle Waveform Writer now remembers the Track DSP `Wavetable Mod *LFO` / `*Instr. Macros` control pair created for each A&B instrument. Its canvas controls continue to show and modify that instrument's bound LFO when notes are entered or selected on another pattern track. Existing A&B instruments are associated when their original control track is selected. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.
+
 ### 2026-08-27 - Improvement: Single Cycle Waveform Writer Space Writes A&B
 
 With the Single Cycle Waveform Writer canvas active, unmodified Space now runs the same `Write A&B` action as its button, creating the two-wave instrument without leaving the canvas. Space remains available while typing in the Hex Editor. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.

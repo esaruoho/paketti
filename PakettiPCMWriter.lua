@@ -355,6 +355,7 @@ local pcm_panel_width = 340
 local pcm_panel_drag_param = nil  -- "amp" / "offset" / "speed" while dragging a bar
 local pcm_panel_harm_dragging = false  -- dragging a harmonic drawbar inside the panel (Scene 2)
 local pcm_context_instrument_index = -1
+local wavetable_control_track_by_instrument = {}
 
 -- Hex editor state
 local hex_editor_page = 0
@@ -6640,6 +6641,7 @@ function PCMWriterLoadABDevices()
       break
     end
   end
+  wavetable_control_track_by_instrument[renoise.song().selected_instrument] = renoise.song().selected_track
 end
 
 -- Wrapper function for Write A&B followed by Unison processing
@@ -8165,22 +8167,33 @@ function PCMWriterDetect12stWTSetup()
   return result
 end
 
--- Function to find the "Wavetable Mod *LFO" track device
-function PCMWriterFindWavetableLFODevice()
-  local song = renoise.song()
-  local track = song.selected_track
-  
-  print("DEBUG: Looking for 'Wavetable Mod *LFO' device on track " .. track.name)
-  for i, device in ipairs(track.devices) do
-    print("DEBUG: Found device " .. i .. ": " .. device.display_name)
+local function PCMWriterFindWavetableLFOOnTrack(track)
+  for _, device in ipairs(track.devices) do
     if device.display_name == "Wavetable Mod *LFO" then
-      print("DEBUG: Found Wavetable Mod *LFO device!")
       return device
     end
   end
-  
-  print("DEBUG: Wavetable Mod *LFO device NOT found")
   return nil
+end
+
+-- Function to find the "Wavetable Mod *LFO" track device
+function PCMWriterFindWavetableLFODevice()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local control_track = wavetable_control_track_by_instrument[instrument]
+  if control_track then
+    local device = PCMWriterFindWavetableLFOOnTrack(control_track)
+    if device then
+      return device
+    end
+    wavetable_control_track_by_instrument[instrument] = nil
+  end
+
+  local device = PCMWriterFindWavetableLFOOnTrack(song.selected_track)
+  if device and PCMWriterDetect12stWTSetup() then
+    wavetable_control_track_by_instrument[instrument] = song.selected_track
+  end
+  return device
 end
 
 -- Function to check if we should show enhanced LFO controls
