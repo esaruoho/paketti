@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Improvement: DWVW Reads Every Real TX16W File, and Writes TX16W-Legal Filenames
+
+Tested against 1006 `.C01` files from real Yamaha TX16W libraries. All 1006 now read correctly, and 1002 of them re-encode to a bit-identical compressed stream; the remaining four decode to exactly the same audio, they just made a different legal choice in two spots.
+
+Two fixes came out of that:
+
+Files that carry stray bytes after the end of the `FORM` chunk no longer fail to load. Paketti now trusts the size the file declares instead of the size on disk, which is what two files in a real library needed.
+
+Exported files are now given TX16W-legal names. Typhoon reads plain 720K DOS floppies, so filenames have to be eight characters plus a three-character extension, in capitals. `Kick 01 (bright)` becomes `KICK_01_.C01`. When two samples shorten to the same name, the extension counts up - `BASS.C01`, `BASS.C02`, `BASS.C03` - which is the same convention the original TX16W libraries use. There is a checkbox in the batch dialog to turn this off if you are converting for something other than the sampler.
+
+Paketti also now warns when an exported sample is longer than 262144 frames, which is more than the TX16W can hold. The longest sample in the 1006-file survey is 262016 frames, just under that ceiling.
+
 ### 2026-08-27 - Improvement: One-Click Batch Convert Folder to DWVW
 
 There are now two ways to convert a folder. `Batch Convert WAV/AIFF to DWVW (.C01)...` opens the settings dialog. `Batch Convert Folder to DWVW (.C01) with Saved Settings...` just asks for a folder and converts it using whatever rate, bit depth and mono setting you last chose, with no dialog in between. Both are also on the Disk Browser's right-click menu.

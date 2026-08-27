@@ -19,6 +19,10 @@ local floor = math.floor
 -- Outcome of the most recent import / export / batch run, for troubleshooting.
 PakettiDWVWLastStatus = "never run"
 
+-- The TX16W cannot hold a wave longer than this. The longest sample in a
+-- 1006-file survey of real TX16W libraries is 262016 frames, just under it.
+PAKETTI_DWVW_MAX_FRAMES = 262144
+
 --------------------------------------------------------------------------------
 -- Byte helpers (big-endian, 1-based string positions)
 --------------------------------------------------------------------------------
@@ -279,11 +283,16 @@ function PakettiDWVWParseFile(data, yield_every)
     error("not an AIFF-C file (found '" .. filetype .. "')")
   end
 
+  -- Trust the FORM size over the file size: real TX16W files can carry junk
+  -- past the end of the FORM chunk, and walking into it looks like a corrupt
+  -- chunk header.
+  local formend = math.min(#data, 8 + getuint(data, 5, 32))
+
   local info, ssndpos, ssndsize, instchunk, markchunk, marksize
   local p = 13
-  while p <= #data - 8 do
+  while p <= formend - 8 do
     local id, size = fourcc(data, p), getint(data, p + 4, 32)
-    if size < 0 or size > #data - p - 7 then
+    if size < 0 or size > formend - p - 7 then
       error(string.format("chunk '%s' has an invalid size (%d)", id, size))
     end
     if id == "COMM" then
@@ -393,6 +402,40 @@ end
 
 local function path_sep()
   return package.config:sub(1, 1)
+end
+
+--------------------------------------------------------------------------------
+-- TX16W-safe file naming
+--------------------------------------------------------------------------------
+
+-- Typhoon reads plain 720K DOS floppies, so every name has to be 8.3 uppercase.
+-- Real TX16W libraries also show what happens on a collision: several different
+-- samples share one 8-character base name and are told apart by the numeric
+-- extension (SAMPLE_R.C01 .. SAMPLE_R.C06 are six notes of one string patch).
+-- `used` is a table carried across one batch run so the same thing happens here.
+local DOS_OK = "[^A-Z0-9_%-#&!%(%)~%$%%@%^{}`']"
+
+function PakettiDWVWDosName(name, used, ext_letter)
+  ext_letter = ext_letter or "C"
+  local n = tostring(name or ""):upper():gsub(DOS_OK, "_")
+  n = n:gsub("^_+", ""):gsub("_+$", "")
+  if n == "" then n = "SAMPLE" end
+  n = n:sub(1, 8)
+  used = used or {}
+  for i = 1, 99 do
+    local full = n .. "." .. string.format("%s%02d", ext_letter, i)
+    if not used[full] then
+      used[full] = true
+      return full
+    end
+  end
+  -- 99 collisions on one base name: fall back to a numbered stem.
+  for i = 1, 9999 do
+    local stem = n:sub(1, 8 - #tostring(i)) .. tostring(i)
+    local full = stem .. "." .. ext_letter .. "01"
+    if not used[full] then used[full] = true return full end
+  end
+  error("cannot find a free 8.3 name for " .. tostring(name))
 end
 
 --------------------------------------------------------------------------------
@@ -650,6 +693,11 @@ local function dwvw_export_process(path, target_rate, force_mono, wordsize)
     local data = PakettiDWVWBuildFile(channels, frames, target_rate, wordsize, 8192,
       PakettiDWVWSampleMeta(sample, buffer, frames))
     write_whole_file(path, data)
+    if frames > PAKETTI_DWVW_MAX_FRAMES then
+      renoise.app():show_status(string.format(
+        "Paketti DWVW: %d frames exceeds the TX16W's %d-frame limit - the sampler will not load this",
+        frames, PAKETTI_DWVW_MAX_FRAMES))
+    end
 
     local src_bytes = buffer.number_of_frames * buffer.number_of_channels * 2
     renoise.app():show_status(string.format(
@@ -682,9 +730,10 @@ function PakettiDWVWExportSelectedSample()
     return
   end
 
-  local suggested = strip_extension(sample.name ~= "" and sample.name or "Sample")
+  local suggested = PakettiDWVWDosName(
+    strip_extension(sample.name ~= "" and sample.name or "Sample"), {})
   local path = renoise.app():prompt_for_filename_to_write(
-    "C01", "Paketti: Export DWVW (" .. suggested .. ".C01)")
+    "C01", "Paketti: Export DWVW (suggested TX16W name: " .. suggested .. ")")
   if not path or path == "" then
     renoise.app():show_status("Paketti DWVW: export cancelled")
     return
@@ -754,7 +803,8 @@ local function dwvw_batch_process(folder, outfolder, opts)
 
   local song = renoise.song()
   local files = collect_audio_files(folder, opts.recursive)
-  local done, failed = 0, 0
+  local done, failed, oversize = 0, 0, 0
+  local used_names = {}
 
   if #files == 0 then
     if dialog and dialog.visible then dialog:close() end
@@ -796,11 +846,19 @@ local function dwvw_batch_process(folder, outfolder, opts)
       local data = PakettiDWVWBuildFile(channels, frames, rate, opts.wordsize, 8192,
         PakettiDWVWSampleMeta(instrument.samples[1], buffer, frames))
 
+      local outname
+      if opts.dos_names == false then
+        outname = strip_extension(basename(file)) .. ".C01"
+      else
+        outname = PakettiDWVWDosName(strip_extension(basename(file)), used_names)
+      end
       local target = outfolder .. (outfolder:match("[/\\]$") and "" or path_sep())
-        .. strip_extension(basename(file)) .. ".C01"
+        .. outname
       write_whole_file(target, data)
-      print(string.format("PakettiDWVW: %s -> %s (%d frames, %d ch, %d bytes)",
-        basename(file), basename(target), frames, nch, #data))
+      if frames > PAKETTI_DWVW_MAX_FRAMES then oversize = oversize + 1 end
+      print(string.format("PakettiDWVW: %s -> %s (%d frames, %d ch, %d bytes)%s",
+        basename(file), basename(target), frames, nch, #data,
+        (frames > PAKETTI_DWVW_MAX_FRAMES) and "  [TOO LONG FOR TX16W]" or ""))
     end)
 
     if ok then done = done + 1 else
@@ -817,9 +875,11 @@ local function dwvw_batch_process(folder, outfolder, opts)
   local cancelled = slicer and slicer:was_cancelled()
   dwvw_batch_slicer = nil
 
-  local msg = string.format("Paketti DWVW batch%s: %d converted, %d failed (%s, %d-bit)",
+  local msg = string.format("Paketti DWVW batch%s: %d converted, %d failed (%s, %d-bit)%s",
     cancelled and " (cancelled)" or "", done, failed,
-    (opts.rate > 0) and (opts.rate .. " Hz") or "each sample's own rate", opts.wordsize)
+    (opts.rate > 0) and (opts.rate .. " Hz") or "each sample's own rate", opts.wordsize,
+    (oversize > 0) and string.format(" - %d too long for the TX16W (over %d frames)",
+      oversize, PAKETTI_DWVW_MAX_FRAMES) or "")
   PakettiDWVWLastStatus = msg
   renoise.app():show_status(msg)
   print(msg)
@@ -842,6 +902,7 @@ function PakettiDWVWBatchConvert(folder, outfolder, opts)
     wordsize = opts.wordsize or PakettiDWVWWordSize(),
     force_mono = (opts.force_mono ~= nil) and opts.force_mono or PakettiDWVWForceMono(),
     recursive = opts.recursive or false,
+    dos_names = (opts.dos_names ~= false),
   }
   local dst = (outfolder and outfolder ~= "") and outfolder or folder
   dwvw_batch_slicer = ProcessSlicer(function()
@@ -940,6 +1001,11 @@ function PakettiDWVWBatchConvertDialog()
       vb:checkbox{id = "recursive", value = false},
       vb:text{text = "Include subfolders", width = 220},
     },
+    vb:row{
+      vb:text{text = "", width = 90},
+      vb:checkbox{id = "dosnames", value = true},
+      vb:text{text = "TX16W-safe 8.3 filenames (KICK_01.C01)", width = 260},
+    },
 
     vb:row{
       vb:text{text = "", width = 90},
@@ -958,6 +1024,7 @@ function PakettiDWVWBatchConvertDialog()
           wordsize = depth_values[vb.views.depth.value],
           force_mono = vb.views.mono.value,
           recursive = vb.views.recursive.value,
+          dos_names = vb.views.dosnames.value,
         }
         local src, dst = source_folder, output_folder
         if dwvw_batch_dialog and dwvw_batch_dialog.visible then dwvw_batch_dialog:close() end
