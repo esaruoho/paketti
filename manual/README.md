@@ -327,7 +327,7 @@ OctaMed / Protracker IFF / 8SVX / 16SV Import support
 
 DWVW is the lossless codec Typhoon OS uses for the Yamaha TX16W sampler, and that the Cyclone emulator reads. The files are AIFF-C containers and are normally named `.C01` through `.C12`.
 
-The sample is loaded into a new instrument with your Paketti default instrument settings applied, at whatever sample rate, bit depth and channel count the file specifies (12-bit TX16W material comes in as 16-bit, usually at 50000 Hz or 33333 Hz). Dropping a `.C01` or `.dwvw` file straight onto Renoise works too - that goes through an import hook covering `.C01` through `.C99` in either letter case, which can be switched off under `Import Hooks Settings` if another tool needs those extensions.
+The sample is loaded into a new instrument with your Paketti default instrument settings applied, at whatever sample rate, bit depth and channel count the file specifies (12-bit TX16W material comes in as 16-bit, usually at 50000 Hz or 33333 Hz). The file's root note is applied, and its loop points and loop mode when it has them. Dropping a `.C01` or `.dwvw` file straight onto Renoise works too - that goes through an import hook covering `.C01` through `.C99` in either letter case, which can be switched off under `Import Hooks Settings` if another tool needs those extensions.
 
 Progress is shown in a dialog with a Cancel button, and Renoise stays usable while it runs.
 
@@ -381,7 +381,7 @@ Turns a whole folder of samples into TX16W-ready `.C01` files in one run. Anythi
 
 - **Source Folder** - the folder to scan. `Include subfolders` walks the whole tree.
 - **Output Folder** - where the `.C01` files go. Defaults to the source folder.
-- **Sample Rate** - `33333 Hz (TX16W standard)` is the default. Also available: 50000 Hz and 20008 Hz (the other two rates real TX16W material uses), 16666 Hz (TX16W half rate), 44100 Hz, 22050 Hz and 8000 Hz.
+- **Sample Rate** - `33333 Hz (TX16W standard)` is the default. Also available: 50000 Hz and 20008 Hz (the other two rates real TX16W material uses), 16666 Hz (TX16W half rate), 44100 Hz, 22050 Hz, 8000 Hz, and `Keep each sample's own rate (no resampling)`.
 - **Bit Depth** - `12-bit` is the TX16W's native resolution and the default. 8-bit and 16-bit are also available.
 - **Mix to mono** - on by default, because the TX16W is a mono sampler. Turn it off to keep stereo files stereo.
 
@@ -407,7 +407,9 @@ Export samples to IFF format
 
 `Main Menu:File:Paketti Import:Export DWVW Sample (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Navigator:Paketti:Export` and `Sample Mappings:Paketti:Save`; keybinding `Global:Paketti:Export DWVW Sample (.C01)...`).
 
-Writes the selected sample as a DWVW `.C01` at 33333 Hz, 12-bit, mixed to mono - the Yamaha TX16W's native format. The rate, bit depth and mono setting come from the Batch Convert dialog's settings, so change them there if you want something else.
+Writes the selected sample as a DWVW `.C01` at 33333 Hz, 12-bit, mixed to mono - the Yamaha TX16W's native format. The rate, bit depth and mono setting come from the Batch Convert dialog's settings, so change them there if you want something else. Pick `Keep each sample's own rate` there to export without resampling, which is what you want when sending a TX16W sample back out the way it came in.
+
+The sample's root note, key range and loop points are written into the file too, so a `.C01` from Paketti carries everything the sampler needs. Loop positions are rescaled if the export changes the sample rate. Renoise's ping-pong loop becomes an AIFF forward/backward loop; a reverse loop is written as forward, because AIFF has no reverse loop.
 
 DWVW is lossless: what you put in at the chosen rate and bit depth is exactly what comes back out. Typical musical material lands around half the size of the equivalent 16-bit file, and silence compresses to an eighth.
 

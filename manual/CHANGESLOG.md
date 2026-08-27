@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Improvement: DWVW Export Keeps Loops, Root Note and Source Rate
+
+DWVW export now writes the sample's root note, key range and loop points into the file, in the `INST` and `MARK` chunks real Yamaha TX16W files use, so a `.C01` written by Paketti carries everything the sampler needs rather than bare audio. Loop positions are rescaled when the export changes the sample rate. Renoise's ping-pong loop is written as AIFF forward/backward; reverse loops are written as forward, since AIFF has no reverse loop.
+
+Import reads the same chunks back, applying the file's root note and, when it has one, its loop points and loop mode. All 43 files in a test set of genuine TX16W material read their root note and markers correctly.
+
+The batch conversion dialog gained a `Keep each sample's own rate (no resampling)` option. Without it, importing a 50000 Hz TX16W sample and exporting it straight back produced a resampled 33333 Hz file; with it, the round trip is exact - the `FVER`, `COMM` and `SSND` chunks Paketti writes come back byte-identical to the original file's.
+
 ### 2026-08-27 - Fix: Dragging a .C01 into Renoise Now Works
 
 Renoise matches file import hook extensions case-sensitively, and real Yamaha TX16W files are named `.C01` in uppercase, so dragging one onto Renoise did nothing. Both letter cases are now registered, for `.C01` through `.C99` as well as `.dwvw`.

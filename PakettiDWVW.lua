@@ -213,7 +213,7 @@ end
 --------------------------------------------------------------------------------
 
 -- channels: array (per channel) of integer arrays at `wordsize` resolution.
-function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every)
+function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every, meta)
   local nch = #channels
 
   local comm = putint(nch, 16) .. putint(nsamples, 32) .. putint(wordsize, 16)
@@ -221,6 +221,26 @@ function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every)
     -- Compression type, then a pascal string. Real Typhoon files use a length
     -- byte of 30 for "Delta With Variable Word Width" and pad to even length.
     .. "DWVW" .. "\030" .. "Delta With Variable Word Width" .. "\0"
+
+  -- Root note and loop points, the way real TX16W files carry them: a MARK
+  -- chunk holding the two loop positions, and an INST chunk whose sustain loop
+  -- points at those markers. meta = {base_note, loop_mode, loop_start, loop_end}
+  -- with loop positions as 1-based frame numbers; loop_mode uses the AIFF
+  -- values 0 = none, 1 = forward, 2 = forward/backward.
+  local inst, mark = "", ""
+  if meta then
+    local ls = math.max(0, math.min(nsamples, (meta.loop_start or 1) - 1))
+    local le = math.max(0, math.min(nsamples, (meta.loop_end or nsamples) - 1))
+    local mode = meta.loop_mode or 0
+    mark = putint(2, 16)
+      .. putint(1, 16) .. putint(ls, 32) .. "\010loop start\0"
+      .. putint(2, 16) .. putint(le, 32) .. "\008loop end\0"
+    inst = putint(meta.base_note or 60, 8) .. putint(0, 8)
+      .. putint(meta.low_note or 0, 8) .. putint(meta.high_note or 127, 8)
+      .. putint(0, 8) .. putint(127, 8) .. putint(0, 16)
+      .. putint(mode, 16) .. putint(1, 16) .. putint(2, 16)   -- sustain loop
+      .. putint(0, 16) .. putint(1, 16) .. putint(2, 16)      -- release loop
+  end
 
   local ssnd = {putint(0, 32), putint(0, 32)}   -- offset, blockSize
   local n = 16                                   -- chunk header + those 8 bytes
@@ -240,6 +260,11 @@ function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every)
   local body = "AIFC"
     .. "FVER" .. putint(#fver, 32) .. fver
     .. "COMM" .. putint(#comm, 32) .. comm .. ((#comm % 2 == 1) and "\0" or "")
+  if inst ~= "" then
+    body = body .. "INST" .. putint(#inst, 32) .. inst
+                .. "MARK" .. putint(#mark, 32) .. mark .. ((#mark % 2 == 1) and "\0" or "")
+  end
+  body = body
     .. "SSND" .. putint(#ssnd, 32) .. ssnd .. ((#ssnd % 2 == 1) and "\0" or "")
   return "FORM" .. putint(#body, 32) .. body
 end
@@ -254,7 +279,7 @@ function PakettiDWVWParseFile(data, yield_every)
     error("not an AIFF-C file (found '" .. filetype .. "')")
   end
 
-  local info, ssndpos, ssndsize
+  local info, ssndpos, ssndsize, instchunk, markchunk, marksize
   local p = 13
   while p <= #data - 8 do
     local id, size = fourcc(data, p), getint(data, p + 4, 32)
@@ -271,6 +296,10 @@ function PakettiDWVWParseFile(data, yield_every)
       }
     elseif id == "SSND" then
       ssndpos, ssndsize = p, size
+    elseif id == "INST" and size >= 20 then
+      instchunk = p + 8
+    elseif id == "MARK" and size >= 2 then
+      markchunk, marksize = p + 8, size
     end
     p = p + nextchunk(size)
   end
@@ -285,6 +314,36 @@ function PakettiDWVWParseFile(data, yield_every)
   end
   if info.wordsize < 1 or info.wordsize > 32 then
     error("unsupported bit depth: " .. info.wordsize)
+  end
+
+  -- Root note and loop points, if the file carries them.
+  if instchunk then
+    info.base_note = getint(data, instchunk, 8)
+    info.low_note = getint(data, instchunk + 2, 8)
+    info.high_note = getint(data, instchunk + 3, 8)
+    info.loop_mode = getint(data, instchunk + 8, 16)
+    info.loop_begin_marker = getuint(data, instchunk + 10, 16)
+    info.loop_end_marker = getuint(data, instchunk + 12, 16)
+  end
+  if markchunk then
+    local markers = {}
+    local n = getuint(data, markchunk, 16)
+    local q = markchunk + 2
+    for _ = 1, n do
+      if q + 6 > markchunk + marksize then break end
+      local mid = getuint(data, q, 16)
+      markers[mid] = getuint(data, q + 2, 32)
+      local len = data:byte(q + 6) or 0
+      q = q + 7 + len
+      if (1 + len) % 2 == 1 then q = q + 1 end
+    end
+    info.markers = markers
+    if info.loop_begin_marker and markers[info.loop_begin_marker] then
+      info.loop_start = markers[info.loop_begin_marker] + 1
+    end
+    if info.loop_end_marker and markers[info.loop_end_marker] then
+      info.loop_end = markers[info.loop_end_marker] + 1
+    end
   end
 
   local pos = ssndpos + 16
@@ -347,6 +406,8 @@ function PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, 
   local src_frames = buffer.number_of_frames
   local src_rate = buffer.sample_rate
   local src_ch = buffer.number_of_channels
+  -- 0 (or nil) means "keep the sample's own rate", so nothing is resampled.
+  if not target_rate or target_rate <= 0 then target_rate = src_rate end
   local out_ch = (force_mono or src_ch == 1) and 1 or src_ch
 
   local ratio = src_rate / target_rate
@@ -387,6 +448,31 @@ function PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, 
   return channels, out_frames, out_ch
 end
 
+-- Collects the root note and loop of a Renoise sample as DWVW/AIFF metadata,
+-- rescaling the loop positions when the export changed the frame count.
+function PakettiDWVWSampleMeta(sample, buffer, out_frames)
+  local src_frames = buffer.number_of_frames
+  if src_frames < 1 or out_frames < 1 then return nil end
+  local scale = out_frames / src_frames
+
+  local modes = {}
+  modes[renoise.Sample.LOOP_MODE_OFF] = 0
+  modes[renoise.Sample.LOOP_MODE_FORWARD] = 1
+  modes[renoise.Sample.LOOP_MODE_REVERSE] = 1     -- AIFF has no reverse loop
+  modes[renoise.Sample.LOOP_MODE_PING_PONG] = 2
+
+  local ls = math.floor((sample.loop_start - 1) * scale) + 1
+  local le = math.floor((sample.loop_end - 1) * scale) + 1
+  return {
+    base_note = sample.sample_mapping.base_note,
+    low_note = sample.sample_mapping.note_range[1],
+    high_note = sample.sample_mapping.note_range[2],
+    loop_mode = modes[sample.loop_mode] or 0,
+    loop_start = math.max(1, math.min(out_frames, ls)),
+    loop_end = math.max(1, math.min(out_frames, le)),
+  }
+end
+
 --------------------------------------------------------------------------------
 -- Preference-backed settings
 --------------------------------------------------------------------------------
@@ -394,7 +480,8 @@ end
 function PakettiDWVWTargetRate()
   if preferences and preferences.pakettiDWVWSampleRate then
     local r = preferences.pakettiDWVWSampleRate.value
-    if r and r > 0 then return r end
+    -- 0 is a real setting: "keep the sample's own rate".
+    if r and r >= 0 then return r end
   end
   return 33333
 end
@@ -471,6 +558,25 @@ local function dwvw_import_process(path, into_current_instrument)
     sample.name = strip_extension(basename(path))
     instrument.name = sample.name
 
+    -- Root note and loop points, when the file carries an INST/MARK pair.
+    if info.base_note and info.base_note >= 0 and info.base_note <= 119 then
+      sample.sample_mapping.base_note = info.base_note
+    end
+    if info.loop_start and info.loop_end and info.loop_end > info.loop_start then
+      local ls = math.max(1, math.min(info.nsamples, info.loop_start))
+      local le = math.max(ls + 1, math.min(info.nsamples, info.loop_end))
+      sample.loop_start = ls
+      sample.loop_end = le
+      local modes = {
+        [0] = renoise.Sample.LOOP_MODE_OFF,
+        [1] = renoise.Sample.LOOP_MODE_FORWARD,
+        [2] = renoise.Sample.LOOP_MODE_PING_PONG,
+      }
+      sample.loop_mode = modes[info.loop_mode or 0] or renoise.Sample.LOOP_MODE_OFF
+      print(string.format("PakettiDWVW: loop %d-%d, mode %d, base note %s",
+        ls, le, info.loop_mode or 0, tostring(info.base_note)))
+    end
+
     renoise.app():show_status(string.format(
       "Paketti DWVW: imported %s (%d frames, %d ch, %d-bit, %d Hz)",
       basename(path), info.nsamples, info.nchannels, info.wordsize, info.rate))
@@ -527,8 +633,13 @@ local function dwvw_export_process(path, target_rate, force_mono, wordsize)
     local sample = renoise.song().selected_sample
     local buffer = sample.sample_buffer
 
-    if dvb then dvb.views.progress_text.text = "Resampling to " .. target_rate .. " Hz..." end
+    if dvb then
+      dvb.views.progress_text.text = (target_rate > 0)
+        and ("Resampling to " .. target_rate .. " Hz...") or "Reading sample..."
+    end
     coroutine.yield()
+
+    if target_rate <= 0 then target_rate = buffer.sample_rate end
 
     local channels, frames, nch =
       PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, 8192)
@@ -536,7 +647,8 @@ local function dwvw_export_process(path, target_rate, force_mono, wordsize)
     if dvb then dvb.views.progress_text.text = "Encoding DWVW..." end
     coroutine.yield()
 
-    local data = PakettiDWVWBuildFile(channels, frames, target_rate, wordsize, 8192)
+    local data = PakettiDWVWBuildFile(channels, frames, target_rate, wordsize, 8192,
+      PakettiDWVWSampleMeta(sample, buffer, frames))
     write_whole_file(path, data)
 
     local src_bytes = buffer.number_of_frames * buffer.number_of_channels * 2
@@ -650,8 +762,9 @@ local function dwvw_batch_process(folder, outfolder, opts)
     return
   end
 
-  print(string.format("PakettiDWVW: batch converting %d file(s) from %s at %d Hz, %d-bit, %s",
-    #files, folder, opts.rate, opts.wordsize, opts.force_mono and "mono" or "source channels"))
+  print(string.format("PakettiDWVW: batch converting %d file(s) from %s at %s, %d-bit, %s",
+    #files, folder, (opts.rate > 0) and (opts.rate .. " Hz") or "each file's own rate",
+    opts.wordsize, opts.force_mono and "mono" or "source channels"))
 
   -- One scratch instrument is created up front and reused for every file, then
   -- removed at the end, so the user's instrument list is left as it was.
@@ -676,9 +789,11 @@ local function dwvw_batch_process(folder, outfolder, opts)
         error("Renoise could not read this file")
       end
 
+      local rate = (opts.rate > 0) and opts.rate or buffer.sample_rate
       local channels, frames, nch =
-        PakettiDWVWBufferToChannels(buffer, opts.rate, opts.force_mono, opts.wordsize, 8192)
-      local data = PakettiDWVWBuildFile(channels, frames, opts.rate, opts.wordsize, 8192)
+        PakettiDWVWBufferToChannels(buffer, rate, opts.force_mono, opts.wordsize, 8192)
+      local data = PakettiDWVWBuildFile(channels, frames, rate, opts.wordsize, 8192,
+        PakettiDWVWSampleMeta(instrument.samples[1], buffer, frames))
 
       local target = outfolder .. (outfolder:match("[/\\]$") and "" or path_sep())
         .. strip_extension(basename(file)) .. ".C01"
@@ -701,8 +816,9 @@ local function dwvw_batch_process(folder, outfolder, opts)
   local cancelled = slicer and slicer:was_cancelled()
   dwvw_batch_slicer = nil
 
-  local msg = string.format("Paketti DWVW batch%s: %d converted, %d failed (%d Hz, %d-bit)",
-    cancelled and " (cancelled)" or "", done, failed, opts.rate, opts.wordsize)
+  local msg = string.format("Paketti DWVW batch%s: %d converted, %d failed (%s, %d-bit)",
+    cancelled and " (cancelled)" or "", done, failed,
+    (opts.rate > 0) and (opts.rate .. " Hz") or "each sample's own rate", opts.wordsize)
   PakettiDWVWLastStatus = msg
   renoise.app():show_status(msg)
   print(msg)
@@ -721,7 +837,7 @@ function PakettiDWVWBatchConvert(folder, outfolder, opts)
   end
   opts = opts or {}
   local resolved = {
-    rate = opts.rate or PakettiDWVWTargetRate(),
+    rate = (opts.rate ~= nil) and opts.rate or PakettiDWVWTargetRate(),
     wordsize = opts.wordsize or PakettiDWVWWordSize(),
     force_mono = (opts.force_mono ~= nil) and opts.force_mono or PakettiDWVWForceMono(),
     recursive = opts.recursive or false,
@@ -746,8 +862,9 @@ function PakettiDWVWBatchConvertDialog()
   local vb = renoise.ViewBuilder()
   local rates = {"33333 Hz (TX16W standard)", "50000 Hz (TX16W high rate)",
                  "20008 Hz (TX16W low rate)", "16666 Hz (TX16W half rate)",
-                 "44100 Hz", "22050 Hz", "8000 Hz"}
-  local rate_values = {33333, 50000, 20008, 16666, 44100, 22050, 8000}
+                 "44100 Hz", "22050 Hz", "8000 Hz",
+                 "Keep each sample's own rate (no resampling)"}
+  local rate_values = {33333, 50000, 20008, 16666, 44100, 22050, 8000, 0}
   local rate_index = 1
   for i, r in ipairs(rate_values) do
     if r == PakettiDWVWTargetRate() then rate_index = i end
