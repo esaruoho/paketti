@@ -2515,6 +2515,36 @@ local function PCMWriterSelectAdjacentWaveform(direction)
   return true
 end
 
+local function PCMWriterShiftCurrentWaveOctave(direction)
+  local target_data = PCMWriterGetCurrentWaveData()
+  local source_data = table.create()
+  for i = 1, wave_size do
+    source_data[i] = target_data[i]
+  end
+
+  for i = 1, wave_size do
+    local source_pos
+    if direction > 0 then
+      source_pos = ((i - 1) * 2) % wave_size + 1
+    else
+      source_pos = (i - 1) * 0.5 + 1
+    end
+
+    local source_index = math.floor(source_pos)
+    local next_index = math.min(wave_size, source_index + 1)
+    local fraction = source_pos - source_index
+    target_data[i] = math.floor(source_data[source_index] +
+      (source_data[next_index] - source_data[source_index]) * fraction)
+  end
+
+  PCMWriterUpdateCrossfadedWave()
+  PCMWriterUpdateHexDisplay()
+  PCMWriterUpdateLiveSample()
+  renoise.app():show_status(
+    string.format("Wave %s shifted %s one octave", current_wave_edit, direction > 0 and "up" or "down")
+  )
+end
+
 function PCMWriterHandleKeyboard(dialog, key)
   -- Debug output for the specific issue
   if key.name == "up" and key.modifiers == "shift" then
@@ -2532,6 +2562,14 @@ function PCMWriterHandleKeyboard(dialog, key)
   if pcm_current_scene == 2 and key.name == "left" and PCMWriterSelectAdjacentWaveform(-1) then
     return nil
   elseif pcm_current_scene == 2 and key.name == "right" and PCMWriterSelectAdjacentWaveform(1) then
+    return nil
+  end
+
+  if pcm_current_scene == 2 and key.modifiers == "" and key.name == "up" then
+    PCMWriterShiftCurrentWaveOctave(1)
+    return nil
+  elseif pcm_current_scene == 2 and key.modifiers == "" and key.name == "down" then
+    PCMWriterShiftCurrentWaveOctave(-1)
     return nil
   end
 
@@ -9506,7 +9544,7 @@ function PCMWriterShowPcmDialog()
     }, -- CANVAS_PANEL_ROW ENDS
     vb:text{
       text = (pcm_current_scene == 2)
-        and "Click/drag to draw • Arrow keys up/down edit the selected frame; left/right select the previous/next waveform; Space writes A&B."
+        and "Click/drag to draw • Up/down shift Wave A/B by an octave; left/right select the previous/next waveform; Space writes A&B."
         or "Click/drag to draw • Arrow keys up/down to edit selected frame, shift-up/down for faster, keys left/right to select a different frame, shift-left/right for faster; Space writes A&B.",
       font = "italic",
       width = 1024

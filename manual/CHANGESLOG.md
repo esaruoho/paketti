@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Improvement: Canvas-Only Waveform Octave Shifting
+
+In the Single Cycle Waveform Writer's Canvas Only view, Up now duplicates the active Wave A or B waveform into two continuous cycles, raising it one octave. Down stretches the first half of the active waveform across the canvas, lowering it one octave; this turns two cycles back into one. Shift+Up and Shift+Down retain the existing selected-frame editing behavior. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.
+
 ### 2026-08-27 - Fix: Wavetable Controls Follow Their Instrument Across Tracks
 
 The Single Cycle Waveform Writer now remembers the Track DSP `Wavetable Mod *LFO` / `*Instr. Macros` control pair created for each A&B instrument. Its canvas controls continue to show and modify that instrument's bound LFO when notes are entered or selected on another pattern track. Existing A&B instruments are associated when their original control track is selected. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.
