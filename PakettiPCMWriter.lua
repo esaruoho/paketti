@@ -7406,7 +7406,7 @@ end
 -- restart did. Previously only selected_sample_observable was watched, so a pure
 -- track switch left the panel + LFO controls stale until the dialog was reopened.
 local function update_dialog_on_track_change()
-  if pcm_context_refreshing then return end
+  if pcm_context_refreshing or pcm_writer_creating_samples then return end
   if not pcm_dialog or not pcm_dialog.visible then return end
   pcm_context_refreshing = true
   local ok, err = pcall(function()

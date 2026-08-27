@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Fix: Single Cycle Waveform Writer Create A&B Preserves Both Waves
+
+Creating a Wave A&B instrument no longer clears the editor's two waveform buffers while the new destination instrument is being selected. The resulting Wave A and Wave B samples now contain the selected waveform data rather than silence. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.
+
 ### 2026-08-27 - Improvement: Canvas-Only Waveform Navigation
 
 In the Single Cycle Waveform Writer's Canvas Only view, Left and Right now operate the visible Waveform dropdown exactly like its on-screen `<` and `>` buttons, selecting the previous and next waveform and wrapping at either end. Up and Down continue to edit the selected frame; Full view retains its existing Left/Right frame-navigation behavior. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.
