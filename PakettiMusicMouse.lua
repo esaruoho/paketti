@@ -477,8 +477,26 @@ local function mm_note_off(voice)
   if n == nil then return end
   local song = renoise.song()
   local ii, ti = mm_inst_track()
-  pcall(function() song:trigger_instrument_note_off(ii, ti, { n }) end)
+  pcall(function() song:trigger_instrument_note_off(ii, ti, n) end)
   mm.voice_note[voice] = nil
+end
+
+-- Renoise's table-form note triggers are unreliable while transport is playing.
+-- Trigger chord voices individually so Music Mouse auditions live during playback.
+local function mm_trigger_notes_on(song, instrument_index, track_index, notes, velocity)
+  for _, note in ipairs(notes) do
+    pcall(function()
+      song:trigger_instrument_note_on(instrument_index, track_index, note, velocity)
+    end)
+  end
+end
+
+local function mm_trigger_notes_off(song, instrument_index, track_index, notes)
+  for _, note in ipairs(notes) do
+    pcall(function()
+      song:trigger_instrument_note_off(instrument_index, track_index, note)
+    end)
+  end
 end
 
 local function mm_note_on(voice, note)
@@ -489,7 +507,7 @@ local function mm_note_on(voice, note)
   local ii, ti = mm_inst_track()
   -- legato: release prior note in this voice only as the new one sounds
   if mm.voice_note[voice] ~= nil and mm.voice_note[voice] ~= note then
-    pcall(function() song:trigger_instrument_note_off(ii, ti, { mm.voice_note[voice] }) end)
+    pcall(function() song:trigger_instrument_note_off(ii, ti, mm.voice_note[voice]) end)
   end
   local vel = mm.loudness
   if vel <= 0 then vel = 0.01 end
@@ -504,7 +522,7 @@ local function mm_release_held()
   local song = renoise.song()
   local ii, ti = mm_inst_track()
   for _, n in ipairs(mm.held) do
-    pcall(function() song:trigger_instrument_note_off(ii, ti, { n }) end)
+    pcall(function() song:trigger_instrument_note_off(ii, ti, n) end)
   end
   mm.held = {}
 end
@@ -532,9 +550,9 @@ end
 
 -- Play the full set of target notes honoring grouping/staccato. Voices beyond the active count
 -- (or muted) are released, so dropping from 6 to 4 voices silences the extras.
--- Note-offs and note-ons are BATCHED into single chord trigger calls so the whole chord
--- changes at once — no per-voice flam / MIDI jitter. Voices whose note is unchanged are left
--- ringing (in non-grouping mode), which is what kills boundary jitter when the mouse hovers.
+-- Renoise receives each chord voice as an integer-form note trigger, which remains audible
+-- during transport playback. Voices whose note is unchanged are left ringing (in non-grouping
+-- mode), which is what kills boundary jitter when the mouse hovers.
 local function mm_play_chord(notes)
   local song = renoise.song()
   local ii, ti = mm_inst_track()
@@ -557,7 +575,7 @@ local function mm_play_chord(notes)
     end
     mm.voice_note[v] = nw
   end
-  if #offs > 0 then pcall(function() song:trigger_instrument_note_off(ii, ti, offs) end) end
+  if #offs > 0 then mm_trigger_notes_off(song, ii, ti, offs) end
   if #ons > 0 then
     local vel = math.max(0.01, math.min(1, mm.loudness))
     if mm.strum and #ons > 1 then
@@ -569,19 +587,19 @@ local function mm_play_chord(notes)
       local sp = mm.strum_ms or MM_STRUM_MS
       for i, nt in ipairs(ords) do
         if i == 1 then
-          pcall(function() song:trigger_instrument_note_on(ii, ti, { nt }, vel) end)
+          pcall(function() song:trigger_instrument_note_on(ii, ti, nt, vel) end)
         else
           local note = nt
           local fn
           fn = function()
             if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
-            if dialog and dialog.visible then pcall(function() renoise.song():trigger_instrument_note_on(ii, ti, { note }, vel) end) end
+            if dialog and dialog.visible then pcall(function() renoise.song():trigger_instrument_note_on(ii, ti, note, vel) end) end
           end
           renoise.tool():add_timer(fn, sp * (i - 1))
         end
       end
     else
-      pcall(function() song:trigger_instrument_note_on(ii, ti, ons, vel) end)
+      mm_trigger_notes_on(song, ii, ti, ons, vel)
     end
   end
   mm.last_notes = notes
@@ -593,7 +611,7 @@ local function mm_play_chord(notes)
   if mm.staccato then
     local all = {}
     for v = 1, MM_MAX_VOICES do if mm.voice_note[v] then all[#all + 1] = mm.voice_note[v]; mm.voice_note[v] = nil end end
-    if #all > 0 then pcall(function() song:trigger_instrument_note_off(ii, ti, all) end) end
+    if #all > 0 then mm_trigger_notes_off(song, ii, ti, all) end
   end
 end
 

@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Fix: Music Mouse Auditions While Playback Runs
+
+Music Mouse now triggers every chord voice with Renoise's playback-safe integer note form rather than the unreliable table-form chord trigger. Moving the mouse, playing arpeggios, and strumming are audible while transport playback is running. The existing `Main Menu:Tools:Paketti:Music Mouse...`, `Main Menu:Tools:Paketti:Instruments:Music Mouse...`, `Instrument Box:Paketti:Music Mouse...`, `Global:Paketti:Music Mouse Show/Hide`, and `Paketti:Music Mouse Show/Hide` entries are unchanged.
+
 ### 2026-08-25 - Fix: Startup Preferences That Turned Themselves Off
 
 Several Paketti preferences were being flipped rather than applied every time a song was created or loaded, so they behaved inconsistently or silently switched themselves back off.
