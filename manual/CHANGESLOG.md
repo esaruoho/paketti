@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-27 - Improvement: Canvas-Only Waveform Navigation
+
+In the Single Cycle Waveform Writer's Canvas Only view, Left and Right now select the previous and next waveform from the Waveform dropdown's ordering, wrapping at either end. Up and Down continue to edit the selected frame; Full view retains its existing Left/Right frame-navigation behavior. The existing `Global:Paketti:Show Paketti Single Cycle Waveform Writer...` keybinding and its menu entries are unchanged.
+
 ### 2026-08-27 - Improvement: Music Mouse Freeze Keeps Its Cursor and Record Arm
 
 Pressing Space now mutes mouse-triggered notes while the Music Mouse crosshair continues to follow the selected grid cell, so the next unfreeze plays from the intended position. Space no longer turns off Right-Shift Record to Pattern, allowing a performer to pause mouse movement, retain the recording arm, and resume it with the next Space press. The existing `Main Menu:Tools:Paketti:Music Mouse...`, `Main Menu:Tools:Paketti:Instruments:Music Mouse...`, `Instrument Box:Paketti:Music Mouse...`, `Global:Paketti:Music Mouse Show/Hide`, and `Paketti:Music Mouse Show/Hide` entries are unchanged.
