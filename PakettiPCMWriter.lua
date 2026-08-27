@@ -248,20 +248,6 @@ local geometric_shapes = {"diamond", "double_diamond", "asym_diamond", "pentagon
 local current_geometric_index = 1
 local shape_asymmetry = 0.5  -- 0.0 to 1.0 (peak position for asymmetric shapes)
 local current_waveform_type = "sine"  -- Track current waveform type for real-time updates
-local waveform_types = {
-  "sine", "cosine", "pulse_var", "square", "square_rounded", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10",
-  "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve",
-  "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd",
-  "organ", "metallic", "vocal", "digital", "wobble",
-  "doubletriangle", "asym_diamond", "exp_diamond", "log_diamond", "fractal_diamond",
-  "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase",
-  "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
-  "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss",
-  "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise",
-  "arccosine", "arcsine", "tangent", "variator",
-  "golden_sine", "golden_additive", "golden_fm", "golden_ring", "solfeggio_chord",
-  "pi_harmonic", "e_harmonic", "silver_ratio", "sqrt2_tritone"
-}
 local shape_segments = 6     -- Number of segments for polygon shapes
 local shape_curve = 1.0      -- Curve amount for exponential/logarithmic shapes
 local shape_recursion = 3    -- Recursion depth for fractal shapes
@@ -2501,36 +2487,31 @@ end
 
 -- Keyboard handler for arrow key controls
 local function PCMWriterSelectAdjacentWaveform(direction)
-  local current_index = 1
-  for i, waveform_type in ipairs(waveform_types) do
-    if waveform_type == current_waveform_type then
-      current_index = i
-      break
-    end
+  local popup = vb.views.waveform_popup
+  if not popup then
+    return false
   end
 
-  local next_index = current_index + direction
+  local next_index = popup.value + direction
   if next_index < 1 then
-    next_index = #waveform_types
-  elseif next_index > #waveform_types then
+    next_index = #popup.items
+  elseif next_index > #popup.items then
     next_index = 1
   end
 
-  current_waveform_type = waveform_types[next_index]
+  popup.value = next_index
+  current_waveform_type = popup.items[next_index]
   PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
   selected_sample_index = -1
   selection_start = -1
   selection_end = -1
 
-  local popup = vb.views.waveform_popup
-  if popup then
-    popup.value = next_index
-  end
   if waveform_canvas then
     waveform_canvas:update()
   end
   PCMWriterUpdateHexDisplay()
   PCMWriterUpdateLiveSample()
+  return true
 end
 
 function PCMWriterHandleKeyboard(dialog, key)
@@ -2547,11 +2528,9 @@ function PCMWriterHandleKeyboard(dialog, key)
     print("DEBUG: Arrow key detected - forcing hex_field_has_focus to false")
   end
 
-  if pcm_current_scene == 2 and key.name == "left" then
-    PCMWriterSelectAdjacentWaveform(-1)
+  if pcm_current_scene == 2 and key.name == "left" and PCMWriterSelectAdjacentWaveform(-1) then
     return nil
-  elseif pcm_current_scene == 2 and key.name == "right" then
-    PCMWriterSelectAdjacentWaveform(1)
+  elseif pcm_current_scene == 2 and key.name == "right" and PCMWriterSelectAdjacentWaveform(1) then
     return nil
   end
   
