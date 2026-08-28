@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**11 card conversations** plugged in:
+**12 card conversations** plugged in:
 
 ### `6fa0a152-39f6-4315-8628-d54901373c84`  (2026-07-27)
 - Resume: `claude --resume 6fa0a152-39f6-4315-8628-d54901373c84`
@@ -60,3 +60,8 @@
 ### `2e11f076-c67a-43b8-ae69-a1cf11938b39`  (2026-08-25)
 - Resume: `claude --resume 2e11f076-c67a-43b8-ae69-a1cf11938b39`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/2e11f076-c67a-43b8-ae69-a1cf11938b39.jsonl
+
+### `4661443d-8d10-41e1-9975-5cbd445bb567`  (2026-08-27)
+- Resume: `claude --resume 4661443d-8d10-41e1-9975-5cbd445bb567`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/4661443d-8d10-41e1-9975-5cbd445bb567.jsonl
+- Cards touched (1): song-lifecycle-safety.feature
