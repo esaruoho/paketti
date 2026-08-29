@@ -106,6 +106,7 @@ local mm = {
   arp_mode    = "Up",         -- Arpeggiate sub-mode: Up / Down / Scatter / Strum (delay-staggered)
   arp_rate_den = 16,          -- Arpeggiate/Line note rate: 16 = 1/16, one row at LPB 4
   phrase_arp_proto = false,   -- prototype: let Renoise phrase playback clock Arpeggiate mode
+  phrase_arp_name = "Paketti Music Mouse Live Arp",
   gravity_div = 1,            -- Gravity Play steps every Nth beat (1/4/8/16)
   gravity_beat = 0,           -- beat counter for the divisor
   num_voices  = 4,            -- 4 = classic Music Mouse; 5..9 = richer chords (extra X-chord tones)
@@ -1101,8 +1102,6 @@ end
 -- Phrase arpeggio prototype
 --------------------------------------------------------------------------------
 
-MM_PHRASE_ARP_NAME = MM_PHRASE_ARP_NAME or "Paketti Music Mouse Live Arp"
-
 function mm_phrase_arp_order(notes)
   local playback_notes = mm_playback_notes(notes)
   local order = mm_arp_order(playback_notes)
@@ -1148,12 +1147,12 @@ function mm_phrase_arp_get_phrase(instrument)
   local idx = mm.phrase_arp_phrase_index
   if idx then
     local ok, phrase = pcall(function() return instrument:phrase(idx) end)
-    if ok and phrase and phrase.name == MM_PHRASE_ARP_NAME then return idx, phrase end
+    if ok and phrase and phrase.name == mm.phrase_arp_name then return idx, phrase end
   end
 
   for i = 1, #instrument.phrases do
     local ok, phrase = pcall(function() return instrument:phrase(i) end)
-    if ok and phrase and phrase.name == MM_PHRASE_ARP_NAME then
+    if ok and phrase and phrase.name == mm.phrase_arp_name then
       mm.phrase_arp_phrase_index = i
       return i, phrase
     end
@@ -1162,7 +1161,7 @@ function mm_phrase_arp_get_phrase(instrument)
   local insert_at = #instrument.phrases + 1
   local ok, phrase = pcall(function() return instrument:insert_phrase_at(insert_at) end)
   if not ok or not phrase then return nil, nil end
-  phrase.name = MM_PHRASE_ARP_NAME
+  phrase.name = mm.phrase_arp_name
   mm.phrase_arp_phrase_index = insert_at
   return insert_at, phrase
 end
@@ -1176,7 +1175,7 @@ function mm_phrase_arp_write_phrase(phrase, notes)
   local vel = math.max(1, math.min(127, math.floor(mm.loudness * 127 + 0.5)))
 
   phrase:clear()
-  phrase.name = MM_PHRASE_ARP_NAME
+  phrase.name = mm.phrase_arp_name
   phrase.number_of_lines = length
   phrase.lpb = phrase_lpb
   phrase.looping = true
