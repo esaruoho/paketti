@@ -458,14 +458,23 @@ local function typhoon_export_process(outdir, opts)
     end
 
     local msg = string.format(
-      "Paketti TX16W: %s - %d samples, voice %s, %d disk image(s)%s%s",
-      kitname, #files, voicename, #disks,
+      "Paketti TX16W: %s - %d samples, voice %s, %d disk image(s) in %s%s%s",
+      kitname, #files, voicename, #disks, outdir,
       (#disks > 1) and " (the voice is on disk 1; the sampler will ask for the others)" or "",
       (oversize > 0) and string.format(", %d too long for the sampler", oversize) or "")
     PakettiTyphoonLastStatus = msg
     renoise.app():show_status(msg)
     print(msg)
-    for _, w in ipairs(written) do print("  wrote " .. w) end
+    for _, w in ipairs(written) do print("  wrote " .. join(outdir, w)) end
+
+    -- Show the results in the file browser. Without this the disk images are
+    -- written and never seen, because nothing in Renoise points at the folder.
+    if opts.reveal ~= false then
+      local reveal_ok, reveal_err = pcall(function() renoise.app():open_path(outdir) end)
+      if not reveal_ok then
+        print("PakettiTyphoon: could not open " .. outdir .. ": " .. tostring(reveal_err))
+      end
+    end
   end)
 
   if dialog and dialog.visible then dialog:close() end
@@ -505,6 +514,7 @@ function PakettiTyphoonExportDrumkit(outdir, opts)
     use_mapping = opts.use_mapping or false,
     write_images = (opts.write_images ~= false),
     write_loose = (opts.write_loose ~= false),
+    reveal = (opts.reveal ~= false),
   }
   typhoon_slicer = ProcessSlicer(function() typhoon_export_process(outdir, resolved) end)
   typhoon_slicer:start()

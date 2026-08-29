@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-29 - Improvement: TX16W and DWVW Exports Open the Folder They Wrote To
+
+Exporting an instrument to the TX16W, and batch converting a folder to DWVW, both now open the destination folder in Finder when they finish. Previously the disk images were written and nothing pointed at them, so the obvious question after running the export was where the files went. The status message and the scripting console also name the full path now.
+
 ### 2026-08-27 - Feature: Export a Whole Instrument to the Yamaha TX16W as Disk Images
 
 One command turns the selected instrument into everything a Yamaha TX16W running Typhoon needs: a `.C01` wave per sample, a `.O01` voice file that maps them across the keyboard, and as many 720K floppy images as they take.

@@ -411,6 +411,8 @@ Export samples to IFF format
 
 Takes the selected instrument and produces everything a TX16W running Typhoon needs to play it: one `.C01` wave per sample, one `.O01` voice file mapping them across the keyboard, and as many 720K floppy images as they take. Pick a folder and you get `KITNAME_DISK1.img`, `KITNAME_DISK2.img` and so on, plus a `files` subfolder with the waves and voice loose if you would rather assemble a disk yourself.
 
+When it finishes, the folder opens in Finder so you can see what was written; the full path is also in the status bar and the scripting console.
+
 Write the images to real floppies, or put them on a Gotek or HxC floppy emulator. They are ordinary 720K DOS disks - Typhoon reads those, which the stock Yamaha OS cannot.
 
 - Samples are mapped one per key going up from the base key. A duplicate key is nudged up rather than dropped, because Typhoon keys a split by where it starts.

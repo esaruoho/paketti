@@ -879,14 +879,22 @@ local function dwvw_batch_process(folder, outfolder, opts)
   local cancelled = slicer and slicer:was_cancelled()
   dwvw_batch_slicer = nil
 
-  local msg = string.format("Paketti DWVW batch%s: %d converted, %d failed (%s, %d-bit)%s",
-    cancelled and " (cancelled)" or "", done, failed,
+  local msg = string.format("Paketti DWVW batch%s: %d converted, %d failed into %s (%s, %d-bit)%s",
+    cancelled and " (cancelled)" or "", done, failed, outfolder,
     (opts.rate > 0) and (opts.rate .. " Hz") or "each sample's own rate", opts.wordsize,
     (oversize > 0) and string.format(" - %d too long for the TX16W (over %d frames)",
       oversize, PAKETTI_DWVW_MAX_FRAMES) or "")
   PakettiDWVWLastStatus = msg
   renoise.app():show_status(msg)
   print(msg)
+
+  -- Open the output folder, so the converted files are actually findable.
+  if done > 0 and opts.reveal ~= false then
+    local ok_reveal, err_reveal = pcall(function() renoise.app():open_path(outfolder) end)
+    if not ok_reveal then
+      print("PakettiDWVW: could not open " .. tostring(outfolder) .. ": " .. tostring(err_reveal))
+    end
+  end
 end
 
 -- Starts a batch run. opts = {rate, wordsize, force_mono, recursive}; any
@@ -907,6 +915,7 @@ function PakettiDWVWBatchConvert(folder, outfolder, opts)
     force_mono = (opts.force_mono ~= nil) and opts.force_mono or PakettiDWVWForceMono(),
     recursive = opts.recursive or false,
     dos_names = (opts.dos_names ~= false),
+    reveal = (opts.reveal ~= false),
   }
   local dst = (outfolder and outfolder ~= "") and outfolder or folder
   dwvw_batch_slicer = ProcessSlicer(function()
