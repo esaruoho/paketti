@@ -103,7 +103,7 @@ local mm = {
   sound_on    = true,         -- spacebar
 
   treatment   = 1,            -- 1 Chord, 2 Arpeggiate, 3 Line, 4 Improvise
-  arp_mode    = "Up",         -- Arpeggiate sub-mode: Up / Down / Scatter / Strum (delay-staggered)
+  arp_mode    = "Up",         -- Arpeggiate sub-mode: Up / Down / Up/Down / Down/Up / Scatter / Strum
   arp_rate_den = 16,          -- Arpeggiate/Line note rate: 16 = 1/16, one row at LPB 4
   phrase_arp_proto = false,   -- prototype: let Renoise phrase playback clock Arpeggiate mode
   phrase_arp_name = "Paketti Music Mouse Live Arp",
@@ -660,7 +660,7 @@ local function mm_retrigger()
   local notes = mm_playback_notes(mm_compute_voices())
   mm.last_notes = notes
   if mm.treatment ~= 1 then
-    if mm_phrase_arp_sync and mm.treatment == 2 and mm.phrase_arp_proto then
+    if mm_phrase_arp_sync and (mm.treatment == 2 or mm.treatment == 3) and mm.phrase_arp_proto then
       mm_phrase_arp_sync(notes, true)
     end
     mm.seq_i = 0   -- restart the arpeggio/line/improvise from the top with the new sound
@@ -723,8 +723,28 @@ local function mm_stamp_arpeggio()
   local ord = {}
   for v = 1, #notes do if not mm.mute[v] and notes[v] then ord[#ord + 1] = notes[v] end end
   table.sort(ord, function(a, b) return a < b end)
-  if mm.arp_mode == "Down" then
+  if mm.arp_mode == "Up/Down" or mm.arp_mode == "Down/Up" then
+    local ping = {}
+    if mm.arp_mode == "Up/Down" then
+      for i = 1, #ord do ping[#ping + 1] = ord[i] end
+      for i = #ord - 1, 2, -1 do ping[#ping + 1] = ord[i] end
+    else
+      for i = #ord, 1, -1 do ping[#ping + 1] = ord[i] end
+      for i = 2, #ord - 1 do ping[#ping + 1] = ord[i] end
+    end
+    ord = ping
+  elseif mm.arp_mode == "Down" then
     local rev = {}; for i = #ord, 1, -1 do rev[#rev + 1] = ord[i] end; ord = rev
+  elseif mm.arp_mode == "Up/Down" or mm.arp_mode == "Down/Up" then
+    local ping = {}
+    if mm.arp_mode == "Up/Down" then
+      for i = 1, #out do ping[#ping + 1] = out[i] end
+      for i = #out - 1, 2, -1 do ping[#ping + 1] = out[i] end
+    else
+      for i = #out, 1, -1 do ping[#ping + 1] = out[i] end
+      for i = 2, #out - 1 do ping[#ping + 1] = out[i] end
+    end
+    out = ping
   elseif mm.arp_mode == "Scatter" then
     for i = #ord, 2, -1 do local j = math.floor(mm_rand() * i) + 1; ord[i], ord[j] = ord[j], ord[i] end
   end
@@ -1061,7 +1081,7 @@ local function mm_effective_tempo_text()
   local is_rate = mm_is_rate_treatment()
 
   if mm.sync_bpm and bpm > 0 and lpb > 0 then
-    local sync_state = (mm.phrase_arp_proto and mm.treatment == 2) and "Phrase" or (song and song.transport.playing and "Locked" or "Stopped/free")
+    local sync_state = (mm.phrase_arp_proto and (mm.treatment == 2 or mm.treatment == 3)) and "Phrase" or (song and song.transport.playing and "Locked" or "Stopped/free")
     if is_rate then
       local lines_per_hit = mm_arp_rate_lines(song)
       local when
@@ -1107,7 +1127,9 @@ function mm_phrase_arp_order(notes)
   local order = mm_arp_order(playback_notes)
   local out = {}
   for _, v in ipairs(order) do out[#out + 1] = playback_notes[v] end
-  if mm.arp_mode == "Down" then
+  if mm.treatment == 3 then
+    return out
+  elseif mm.arp_mode == "Down" then
     local rev = {}
     for i = #out, 1, -1 do rev[#rev + 1] = out[i] end
     out = rev
@@ -1171,7 +1193,8 @@ function mm_phrase_arp_write_phrase(phrase, notes)
   if #ord == 0 then return false, 0, 0, 0 end
 
   local phrase_lpb, spacing = mm_phrase_arp_timing()
-  local length = math.min(512, math.max(1, #ord * spacing))
+  local is_strum = mm.treatment == 2 and mm.arp_mode == "Strum"
+  local length = math.min(512, math.max(1, is_strum and spacing or (#ord * spacing)))
   local vel = math.max(1, math.min(127, math.floor(mm.loudness * 127 + 0.5)))
 
   phrase:clear()
@@ -1179,18 +1202,21 @@ function mm_phrase_arp_write_phrase(phrase, notes)
   phrase.number_of_lines = length
   phrase.lpb = phrase_lpb
   phrase.looping = true
-  phrase.visible_note_columns = 1
+  phrase.visible_note_columns = is_strum and math.min(12, #ord) or 1
   phrase.volume_column_visible = true
   phrase.instrument_column_visible = false
-  phrase.delay_column_visible = false
+  phrase.delay_column_visible = is_strum
   pcall(function() phrase.key_tracking = renoise.InstrumentPhrase.KEY_TRACKING_NONE end)
 
+  local line_ms = 60000 / math.max(1, (renoise.song().transport.bpm or 120) * phrase_lpb)
+  local delay_step = math.max(0, math.min(255, math.floor(((mm.strum_ms or MM_STRUM_MS) / line_ms) * 255 + 0.5)))
   for i, note in ipairs(ord) do
-    local line_index = ((i - 1) * spacing) + 1
+    local line_index = is_strum and 1 or (((i - 1) * spacing) + 1)
     if line_index > length then break end
-    local column = phrase:line(line_index):note_column(1)
+    local column = phrase:line(line_index):note_column(is_strum and i or 1)
     column.note_value = note
     column.volume_value = vel
+    if is_strum then column.delay_value = math.min(255, (i - 1) * delay_step) end
   end
 
   return true, length, phrase_lpb, #ord
@@ -1246,10 +1272,42 @@ mm_phrase_arp_stop = function(restore_mode)
   if restore_mode then mm.phrase_arp_prev_mode = nil end
 end
 
-mm_phrase_arp_sync = function(notes, restrike)
-  if not mm.phrase_arp_proto or mm.treatment ~= 2 or not mm.sound_on then return false end
-  if mm.arp_mode == "Strum" then return false end
+-- Tool reloads discard the in-memory previous phrase mode. If an earlier session left
+-- Paketti's phrase selected in keymap mode, turn that mode off before Chord mode resumes.
+function mm_phrase_arp_clear_stale_mode()
+  local song = renoise.song()
+  local instrument = song and song.selected_instrument
+  if not instrument then return end
+  local owned_phrase
+  for i = 1, #instrument.phrases do
+    local ok, phrase = pcall(function() return instrument:phrase(i) end)
+    if ok and phrase and phrase.name == mm.phrase_arp_name then
+      owned_phrase = phrase
+      break
+    end
+  end
+  if owned_phrase then
+    local instrument_index = song.selected_instrument_index
+    local track_index = song.selected_track_index
+    for mapping_index = #instrument.phrase_mappings, 1, -1 do
+      local mapping = instrument.phrase_mappings[mapping_index]
+      local ok, mapped_phrase = pcall(function() return mapping and mapping.phrase end)
+      if ok and mapped_phrase == owned_phrase then
+        local range = mapping.note_range
+        if range and range[1] and range[2] then
+          for note = range[1], range[2] do
+            pcall(function() song:trigger_instrument_note_off(instrument_index, track_index, note) end)
+          end
+        end
+        pcall(function() instrument:delete_phrase_mapping_at(mapping_index) end)
+      end
+    end
+  end
+  instrument.phrase_playback_mode = renoise.Instrument.PHRASES_OFF
+end
 
+mm_phrase_arp_sync = function(notes, restrike)
+  if not mm.phrase_arp_proto or (mm.treatment ~= 2 and mm.treatment ~= 3) or not mm.sound_on or mm.frozen then return false end
   local song = renoise.song()
   if not song then return false end
   local instrument_index, track_index = mm_inst_track()
@@ -1326,8 +1384,9 @@ end
 -- one arpeggiate/line beat. Up / Down / Scatter step one voice; Strum time-staggers the chord.
 -- (Line = treatment 3 = plain ascending, independent of the Arp sub-mode.)
 local function mm_arp_step(notes)
-  if mm.phrase_arp_proto and mm.treatment == 2 and mm.arp_mode ~= "Strum" then
-    if mm_phrase_arp_sync then mm_phrase_arp_sync(notes, false) end
+  if mm.phrase_arp_proto and (mm.treatment == 2 or mm.treatment == 3) then
+    -- Renoise is already clocking the held phrase. Rewriting here would clear/restart it
+    -- on every timer tick, which makes Scatter sound rhythmically unstable.
     return
   end
   local playback_notes = mm_playback_notes(notes)
@@ -1343,6 +1402,16 @@ local function mm_arp_step(notes)
   local pick
   if mode == "Down" then
     pick = order[n - ((mm.seq_i - 1) % n)]
+  elseif mode == "Up/Down" or mode == "Down/Up" then
+    local cycle = (n > 1) and (2 * n - 2) or 1
+    local step = ((mm.seq_i - 1) % cycle) + 1
+    local pos
+    if mode == "Up/Down" then
+      pos = (step <= n) and step or (cycle - step + 1)
+    else
+      pos = (step <= n) and (n - step + 1) or (step - n + 1)
+    end
+    pick = order[pos]
   elseif mode == "Scatter" then
     pick = order[math.floor(mm_rand() * n) + 1]
   else                                    -- Up / Line
@@ -1603,7 +1672,7 @@ local function mm_update_from_mouse()
     mm_play_chord(notes)          -- chord mode: sounds once when you enter a new cell
   else
     mm.last_notes = notes         -- arp/line/improvise: timer sequences these
-    if mm.treatment == 2 and mm.phrase_arp_proto and mm_phrase_arp_sync then
+    if (mm.treatment == 2 or mm.treatment == 3) and mm.phrase_arp_proto and mm_phrase_arp_sync then
       mm_phrase_arp_sync(notes, false)
     end
   end
@@ -2111,7 +2180,7 @@ local function mm_set_num_voices(n)
   mm_update_panel()
 end
 
-local MM_ARP_ITEMS     = { "Up", "Down", "Scatter", "Strum" }
+local MM_ARP_ITEMS     = { "Up", "Down", "Up/Down", "Down/Up", "Scatter", "Strum" }
 local MM_ARP_RATE_ITEMS = { "1/1", "1/2", "1/4", "1/8", "1/16", "1/32" }
 local MM_ARP_RATE_DEN  = { 1, 2, 4, 8, 16, 32 }
 local MM_GRAVDIV_ITEMS = { "Every beat", "Every 4th", "Every 8th", "Every 16th" }
@@ -2176,23 +2245,23 @@ local function mm_controls_column(vbx)
       vbx:popup{ id = "mm_treatment_popup", width = 150, items = TREATMENT_NAMES, value = mm.treatment,
         notifier = function(i)
           if mm_ui_busy then return end
-          if i ~= 2 then
+          if i ~= 2 and i ~= 3 then
             mm.phrase_arp_proto = false
             if mm_phrase_arp_stop then mm_phrase_arp_stop(true) end
           end
           mm.treatment = i
+          if i == 1 then mm_phrase_arp_clear_stale_mode() end
           mm.seq_i = 0
           mm_restart_timer()
           mm_update_panel()
         end },
       vbx:popup{ id = "mm_arp_popup", width = 96, items = MM_ARP_ITEMS, value = mm_arp_index(),
-        tooltip = "Arpeggiate direction: Up / Down / Scatter (random) / Strum (delay-staggered chord)",
+        tooltip = "Arpeggiate direction: Up / Down / Up/Down / Down/Up / Scatter / Strum",
         notifier = function(i)
           if mm_ui_busy then return end
           mm.arp_mode = MM_ARP_ITEMS[i]
-          if mm.arp_mode == "Strum" then
-            mm.phrase_arp_proto = false
-            if mm_phrase_arp_stop then mm_phrase_arp_stop(true) end
+          if not mm.frozen and mm.phrase_arp_proto and (mm.treatment == 2 or mm.treatment == 3) and mm_phrase_arp_sync then
+            mm_phrase_arp_sync(mm_compute_voices(), true)
           end
           mm.seq_i = 0
           mm_update_panel()
@@ -2210,17 +2279,16 @@ local function mm_controls_column(vbx)
           mm_save_prefs()
         end } },
     vbx:row{ spacing = 4, lbl("Phrase Arp", "Prototype: Arpeggiate is played by a live Renoise phrase that Paketti rewrites as the grid changes."),
-      vbx:checkbox{ id = "mm_phrasearp_check", value = mm.phrase_arp_proto,
+      vbx:checkbox{ id = "mm_phrasearp_check", value = mm.phrase_arp_proto, active = true,
         tooltip = "Prototype: creates/updates a phrase named Paketti Music Mouse Live Arp and triggers it from a reserved low key.",
         notifier = function(b)
           if mm_ui_busy then return end
           mm.phrase_arp_proto = b
           mm.seq_i = 0
           if b then
-            if mm.treatment ~= 2 then
+            if mm.treatment ~= 2 and mm.treatment ~= 3 then
               mm.treatment = 2
             end
-            if mm.arp_mode == "Strum" then mm.arp_mode = "Up" end
             if mm_phrase_arp_sync then mm_phrase_arp_sync(mm_compute_voices(), true) end
           elseif mm_phrase_arp_stop then
             mm_phrase_arp_stop(true)
@@ -2235,7 +2303,14 @@ local function mm_controls_column(vbx)
         notifier = function(i) if mm_ui_busy then return end if mm.single_note ~= (i == 2) then mm_toggle_single_note() end end } },
     vbx:row{ spacing = 4, lbl("Strum spacing", "Milliseconds between successive strummed notes. Drives BOTH the live audio strum AND the delay-column spacing written into the pattern when recording."),
       vbx:valuebox{ id = "mm_strum_box", width = 60, min = 1, max = 250, value = mm.strum_ms,
-        notifier = function(v) if mm_ui_busy then return end mm.strum_ms = v; mm_save_prefs() end },
+        notifier = function(v)
+          if mm_ui_busy then return end
+          mm.strum_ms = v
+          if mm.phrase_arp_proto and mm.treatment == 2 and mm.arp_mode == "Strum" and mm_phrase_arp_sync then
+            mm_phrase_arp_sync(mm_compute_voices(), true)
+          end
+          mm_save_prefs()
+        end },
       hint("ms"),
       vbx:checkbox{ id = "mm_strum_check", value = mm.strum,
         notifier = function(b) if mm_ui_busy then return end mm.strum = b; mm_save_prefs() end },
@@ -2370,7 +2445,7 @@ mm_update_panel = function()
   if v["mm_arprate_popup"] then v["mm_arprate_popup"].value = mm_arp_rate_index() end
   if v["mm_phrasearp_check"] then
     v["mm_phrasearp_check"].value = mm.phrase_arp_proto
-    v["mm_phrasearp_check"].active = (mm.treatment == 2 and mm.arp_mode ~= "Strum") or mm.phrase_arp_proto
+    v["mm_phrasearp_check"].active = true
   end
   if v["mm_gravdiv_popup"] then v["mm_gravdiv_popup"].value = mm_gravdiv_index() end
   if v["mm_fav1_popup"] then v["mm_fav1_popup"].value = mm_wave_idx(mm.fav_waves[1]) end
@@ -2810,9 +2885,11 @@ function mm_reinit()
   mm.format_pairs = false; mm.mouse_contrary = false; mm.pattern_contrary = false; mm.grouping = false
   mm.staccato = false; mm.half_legato = false; mm.loudness = 0.8; mm.sound_on = true
   mm.treatment = 1; mm.arp_mode = "Up"; mm.arp_rate_den = 16; mm.gravity_div = 1
+  mm.phrase_arp_proto = false
   mm.mute = { false, false, false, false, false, false, false, false, false }
   mm.tempo_basic = 100; mm.tempo_alt = 200; mm.tempo_use_alt = false
   mm.frozen = false; mm.rec_row = 0; mm.rec_to_row = false
+  if mm_phrase_arp_stop then mm_phrase_arp_stop(true) end
   mm_all_notes_off()
   mm_rebuild_axis()
   mm.deg_x = mm_frac_to_degree(mm.mx); mm.deg_y = mm_frac_to_degree(1 - mm.my)
@@ -2827,6 +2904,8 @@ function pakettiMusicMouseClose()
   mm_save_prefs()        -- retain tempo + loudness across close/reopen
   mm_stop_timer()
   mm.record = false
+  mm.phrase_arp_proto = false
+  if mm_phrase_arp_stop then mm_phrase_arp_stop(true) end
   mm_all_notes_off()
   if PakettiMusicMouseLaunchpadSetMode then PakettiMusicMouseLaunchpadSetMode("off") end  -- release Launchpad LEDs + MIDI
   if dialog and dialog.visible then dialog:close() end
@@ -3050,6 +3129,7 @@ function pakettiMusicMouseShow()
 
   vb = renoise.ViewBuilder()
   mm_load_prefs()        -- restore retained tempo + loudness
+  if not mm.phrase_arp_proto and mm.treatment == 1 then mm_phrase_arp_clear_stale_mode() end
   mm.mouse_active = true
   mm.sound_on = true
   mm_rebuild_axis()
