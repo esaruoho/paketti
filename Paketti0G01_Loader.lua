@@ -192,6 +192,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMusicMouseDispHi = 96,
   pakettiMusicMouseStrumMs = 28,
   pakettiMusicMouseStrum = false,
+  pakettiMusicMouseArpRateDen = 16,
   pakettiCanvasFontStyle="8bit",  -- "8bit" (Asteroids-style) or "monospace"; mirrors to every canvas dialog
   paketti_auto_disk_browser_mode = 0,  -- 0=Do Nothing, 1=Hide, 2=Show
   pakettiRePitchEnhanced = false,

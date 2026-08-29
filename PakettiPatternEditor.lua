@@ -11914,3 +11914,409 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused N
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Effect Columns", invoke=function() PakettiRemoveUnusedEffectColumns() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Remove Unused Columns (Note + Effect)", invoke=function() PakettiRemoveUnusedColumns() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Clear Unreferenced Patterns", invoke=function() PakettiClearUnreferencedPatterns() end}
+
+--------------------------------------------------------------------------
+-- Paketti Pattern Value Processor
+--------------------------------------------------------------------------
+
+PakettiPatternValueProcessorDialog = nil
+
+local function PakettiPatternValueProcessorClamp(value, min_value, max_value)
+  return math.max(min_value, math.min(max_value, math.floor((tonumber(value) or 0) + 0.5)))
+end
+
+local function PakettiPatternValueProcessorIsRealNote(value)
+  return value ~= nil and value >= 0 and value < renoise.PatternLine.NOTE_OFF
+end
+
+local PakettiPatternValueProcessorFields = {
+  {
+    id = "note",
+    label = "Note",
+    target = "note",
+    min = 0,
+    max = 119,
+    get = function(column) return column.note_value end,
+    set = function(column, value) column.note_value = PakettiPatternValueProcessorClamp(value, 0, 119) end,
+    is_empty = function(column) return not PakettiPatternValueProcessorIsRealNote(column.note_value) end
+  },
+  {
+    id = "instrument",
+    label = "Instrument",
+    target = "note",
+    min = 0,
+    max = 254,
+    get = function(column) return column.instrument_value end,
+    set = function(column, value) column.instrument_value = PakettiPatternValueProcessorClamp(value, 0, 254) end,
+    is_empty = function(column) return column.instrument_value == renoise.PatternLine.EMPTY_INSTRUMENT end
+  },
+  {
+    id = "volume",
+    label = "Volume",
+    target = "note",
+    min = 0,
+    max = 128,
+    get = function(column) return column.volume_value end,
+    set = function(column, value) column.volume_value = PakettiPatternValueProcessorClamp(value, 0, 128) end,
+    is_empty = function(column) return column.volume_value == renoise.PatternLine.EMPTY_VOLUME end
+  },
+  {
+    id = "panning",
+    label = "Panning",
+    target = "note",
+    min = 0,
+    max = 128,
+    get = function(column) return column.panning_value end,
+    set = function(column, value) column.panning_value = PakettiPatternValueProcessorClamp(value, 0, 128) end,
+    is_empty = function(column) return column.panning_value == renoise.PatternLine.EMPTY_PANNING end
+  },
+  {
+    id = "delay",
+    label = "Delay",
+    target = "note",
+    min = 0,
+    max = 255,
+    get = function(column) return column.delay_value end,
+    set = function(column, value) column.delay_value = PakettiPatternValueProcessorClamp(value, 0, 255) end,
+    is_empty = function(column) return column.delay_value == renoise.PatternLine.EMPTY_DELAY end
+  },
+  {
+    id = "sample_fx_number",
+    label = "Sample FX Number",
+    target = "note",
+    min = 0,
+    max = 255,
+    get = function(column) return column.effect_number_value end,
+    set = function(column, value) column.effect_number_value = PakettiPatternValueProcessorClamp(value, 0, 255) end,
+    is_empty = function(column) return column.effect_number_value == renoise.PatternLine.EMPTY_EFFECT_NUMBER and column.effect_amount_value == renoise.PatternLine.EMPTY_EFFECT_AMOUNT end
+  },
+  {
+    id = "sample_fx_amount",
+    label = "Sample FX Amount",
+    target = "note",
+    min = 0,
+    max = 255,
+    get = function(column) return column.effect_amount_value end,
+    set = function(column, value) column.effect_amount_value = PakettiPatternValueProcessorClamp(value, 0, 255) end,
+    is_empty = function(column) return column.effect_number_value == renoise.PatternLine.EMPTY_EFFECT_NUMBER and column.effect_amount_value == renoise.PatternLine.EMPTY_EFFECT_AMOUNT end
+  },
+  {
+    id = "effect_number",
+    label = "Effect Number",
+    target = "effect",
+    min = 0,
+    max = 255,
+    get = function(column) return column.number_value end,
+    set = function(column, value) column.number_value = PakettiPatternValueProcessorClamp(value, 0, 255) end,
+    is_empty = function(column) return column.number_value == renoise.PatternLine.EMPTY_EFFECT_NUMBER and column.amount_value == renoise.PatternLine.EMPTY_EFFECT_AMOUNT end
+  },
+  {
+    id = "effect_amount",
+    label = "Effect Amount",
+    target = "effect",
+    min = 0,
+    max = 255,
+    get = function(column) return column.amount_value end,
+    set = function(column, value) column.amount_value = PakettiPatternValueProcessorClamp(value, 0, 255) end,
+    is_empty = function(column) return column.number_value == renoise.PatternLine.EMPTY_EFFECT_NUMBER and column.amount_value == renoise.PatternLine.EMPTY_EFFECT_AMOUNT end
+  }
+}
+
+local function PakettiPatternValueProcessorGetBounds(song, pattern, track_index, use_selection)
+  local selection = song.selection_in_pattern
+  if use_selection and selection then
+    return selection.start_track, selection.end_track, selection.start_line, selection.end_line, selection.start_column, selection.end_column
+  elseif use_selection then
+    return nil
+  end
+
+  local track = song.tracks[track_index]
+  return track_index, track_index, 1, pattern.number_of_lines, 1, track.visible_note_columns + track.visible_effect_columns
+end
+
+local function PakettiPatternValueProcessorColumnIncluded(column_index, start_column, end_column)
+  return column_index >= start_column and column_index <= end_column
+end
+
+local function PakettiPatternValueProcessorApplyValue(field, column, operation, value)
+  local current = field.get(column)
+
+  if operation == "set" then
+    field.set(column, value)
+    return true
+  elseif not field.is_empty(column) then
+    if operation == "add" then
+      field.set(column, current + value)
+    elseif operation == "sub" then
+      field.set(column, current - value)
+    elseif operation == "mul" then
+      field.set(column, current * value)
+    elseif operation == "div" then
+      field.set(column, current / value)
+    elseif operation == "humanize" then
+      field.set(column, current + math.random(-value, value))
+    elseif operation == "expand" then
+      local center = (field.min + field.max) / 2
+      field.set(column, center + (current - center) * (1 + value / 255))
+    elseif operation == "compress" then
+      local center = (field.min + field.max) / 2
+      field.set(column, center + (current - center) * (1 - value / 255))
+    end
+    return true
+  end
+  return false
+end
+
+local function PakettiPatternValueProcessorCurve(start_value, end_value, factor, mode)
+  if mode == "exponential" and start_value > 0 and end_value > 0 then
+    return start_value * ((end_value / start_value) ^ factor)
+  elseif mode == "logarithmic" then
+    return start_value + (end_value - start_value) * math.sqrt(factor)
+  end
+  return start_value + (end_value - start_value) * factor
+end
+
+function PakettiPatternValueProcessorModify(operation, value, mask, use_selection)
+  local song = renoise.song()
+  if not song then return end
+
+  local pattern = song.selected_pattern
+  local selected_track_index = song.selected_track_index
+  if not pattern or not selected_track_index then return end
+
+  if operation == "div" and value == 0 then
+    renoise.app():show_status("Paketti Pattern Value Processor: Cannot divide by zero")
+    return
+  end
+
+  if operation == "humanize" then trueRandomSeed() end
+
+  local start_track, end_track, start_line, end_line, start_column, end_column =
+    PakettiPatternValueProcessorGetBounds(song, pattern, selected_track_index, use_selection)
+  if not start_track then
+    renoise.app():show_status("Paketti Pattern Value Processor: No pattern selection")
+    return
+  end
+
+  song:describe_undo("Paketti Pattern Value Processor")
+
+  local changed = 0
+
+  for track_index = start_track, end_track do
+    local track = song.tracks[track_index]
+    local pattern_track = pattern:track(track_index)
+
+    for line_index = start_line, end_line do
+      local line = pattern_track:line(line_index)
+
+      for _, field in ipairs(PakettiPatternValueProcessorFields) do
+        if mask[field.id] then
+          if field.target == "note" then
+            for column_index = 1, track.visible_note_columns do
+              if PakettiPatternValueProcessorColumnIncluded(column_index, start_column, end_column) then
+                if PakettiPatternValueProcessorApplyValue(field, line:note_column(column_index), operation, value) then
+                  changed = changed + 1
+                end
+              end
+            end
+          elseif field.target == "effect" then
+            for effect_index = 1, track.visible_effect_columns do
+              local combined_index = track.visible_note_columns + effect_index
+              if PakettiPatternValueProcessorColumnIncluded(combined_index, start_column, end_column) then
+                if PakettiPatternValueProcessorApplyValue(field, line:effect_column(effect_index), operation, value) then
+                  changed = changed + 1
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  renoise.app():show_status(string.format("Paketti Pattern Value Processor: %s applied to %d field(s)", operation, changed))
+end
+
+function PakettiPatternValueProcessorInterpolate(mode, mask, use_selection)
+  local song = renoise.song()
+  if not song then return end
+
+  local pattern = song.selected_pattern
+  local selected_track_index = song.selected_track_index
+  if not pattern or not selected_track_index then return end
+
+  local start_track, end_track, start_line, end_line, start_column, end_column =
+    PakettiPatternValueProcessorGetBounds(song, pattern, selected_track_index, use_selection)
+  if not start_track then
+    renoise.app():show_status("Paketti Pattern Value Processor: No pattern selection")
+    return
+  end
+  if end_line - start_line < 1 then
+    renoise.app():show_status("Paketti Pattern Value Processor: Interpolation needs at least two lines")
+    return
+  end
+
+  song:describe_undo("Paketti Pattern Value Processor Interpolate")
+
+  local changed = 0
+  for track_index = start_track, end_track do
+    local track = song.tracks[track_index]
+    local pattern_track = pattern:track(track_index)
+
+    for _, field in ipairs(PakettiPatternValueProcessorFields) do
+      if mask[field.id] then
+        local max_columns = field.target == "note" and track.visible_note_columns or track.visible_effect_columns
+        for column_index = 1, max_columns do
+          local combined_index = field.target == "note" and column_index or track.visible_note_columns + column_index
+          if PakettiPatternValueProcessorColumnIncluded(combined_index, start_column, end_column) then
+            local first_line, first_value, last_line, last_value = nil, nil, nil, nil
+
+            for line_index = start_line, end_line do
+              local line = pattern_track:line(line_index)
+              local column = field.target == "note" and line:note_column(column_index) or line:effect_column(column_index)
+              if not field.is_empty(column) then
+                if first_line == nil then
+                  first_line = line_index
+                  first_value = field.get(column)
+                end
+                last_line = line_index
+                last_value = field.get(column)
+              end
+            end
+
+            if first_line and last_line and first_line ~= last_line then
+              for line_index = first_line, last_line do
+                local line = pattern_track:line(line_index)
+                local column = field.target == "note" and line:note_column(column_index) or line:effect_column(column_index)
+                local factor = (line_index - first_line) / (last_line - first_line)
+                field.set(column, PakettiPatternValueProcessorCurve(first_value, last_value, factor, mode))
+                changed = changed + 1
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  renoise.app():show_status(string.format("Paketti Pattern Value Processor: %s interpolation wrote %d field(s)", mode, changed))
+end
+
+function PakettiPatternValueProcessorDialogShow()
+  if PakettiPatternValueProcessorDialog and PakettiPatternValueProcessorDialog.visible then
+    PakettiPatternValueProcessorDialog:close()
+    PakettiPatternValueProcessorDialog = nil
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local operations = {"Set", "Add", "Sub", "Mul", "Div", "Humanize", "Expand", "Compress"}
+  local operation_ids = {"set", "add", "sub", "mul", "div", "humanize", "expand", "compress"}
+  local mask_ids = {}
+
+  local function mask_row(field)
+    table.insert(mask_ids, field.id)
+    return vb:row{
+      spacing = 4,
+      vb:checkbox{id = "paketti_pattern_value_" .. field.id, value = field.id == "volume" or field.id == "panning" or field.id == "delay"},
+      vb:text{text = field.label, width = 120},
+      vb:button{
+        text = "<",
+        width = 22,
+        tooltip = "Use only this field",
+        pressed = function()
+          for _, id in ipairs(mask_ids) do
+            vb.views["paketti_pattern_value_" .. id].value = id == field.id
+          end
+        end
+      }
+    }
+  end
+
+  local function current_mask()
+    local mask = {}
+    for _, id in ipairs(mask_ids) do
+      mask[id] = vb.views["paketti_pattern_value_" .. id].value
+    end
+    return mask
+  end
+
+  local function current_value()
+    return tonumber(vb.views.paketti_pattern_value_amount.value) or 0
+  end
+
+  local note_rows = {spacing = 2}
+  local effect_rows = {spacing = 2}
+  for _, field in ipairs(PakettiPatternValueProcessorFields) do
+    if field.target == "note" then
+      table.insert(note_rows, mask_row(field))
+    else
+      table.insert(effect_rows, mask_row(field))
+    end
+  end
+
+  local content = vb:column{
+    margin = 8,
+    spacing = 6,
+    vb:row{
+      spacing = 6,
+      vb:popup{id = "paketti_pattern_value_operation", items = operations, value = 1, width = 92},
+      vb:valuebox{
+        id = "paketti_pattern_value_amount",
+        min = 0,
+        max = 255,
+        value = 1,
+        width = 58,
+        tostring = function(value) return string.format("%02X", value) end,
+        tonumber = function(value) return tonumber(value, 16) or 0 end
+      },
+      vb:button{
+        text = "Apply",
+        width = 70,
+        pressed = function()
+          PakettiPatternValueProcessorModify(
+            operation_ids[vb.views.paketti_pattern_value_operation.value],
+            current_value(),
+            current_mask(),
+            vb.views.paketti_pattern_value_selection.value)
+        end
+      }
+    },
+    vb:row{
+      spacing = 6,
+      vb:button{text = "Nudge +", width = 70, pressed = function() PakettiPatternValueProcessorModify("add", current_value(), current_mask(), vb.views.paketti_pattern_value_selection.value) end},
+      vb:button{text = "Nudge -", width = 70, pressed = function() PakettiPatternValueProcessorModify("sub", current_value(), current_mask(), vb.views.paketti_pattern_value_selection.value) end},
+      vb:button{text = "Lin", width = 48, pressed = function() PakettiPatternValueProcessorInterpolate("linear", current_mask(), vb.views.paketti_pattern_value_selection.value) end},
+      vb:button{text = "Log", width = 48, pressed = function() PakettiPatternValueProcessorInterpolate("logarithmic", current_mask(), vb.views.paketti_pattern_value_selection.value) end},
+      vb:button{text = "Exp", width = 48, pressed = function() PakettiPatternValueProcessorInterpolate("exponential", current_mask(), vb.views.paketti_pattern_value_selection.value) end}
+    },
+    vb:row{
+      spacing = 4,
+      vb:checkbox{id = "paketti_pattern_value_selection", value = true},
+      vb:text{text = "Selection only", width = 120}
+    },
+    vb:row{
+      spacing = 8,
+      vb:column{style = "group", margin = 6, spacing = 3, vb:text{text = "Note Columns", font = "bold"}, vb:column(note_rows)},
+      vb:column{style = "group", margin = 6, spacing = 3, vb:text{text = "Effect Columns", font = "bold"}, vb:column(effect_rows)}
+    }
+  }
+
+  local function keyhandler(dialog, key)
+    if key.name == "esc" then
+      dialog:close()
+      PakettiPatternValueProcessorDialog = nil
+    else
+      return key
+    end
+  end
+
+  PakettiPatternValueProcessorDialog = renoise.app():show_custom_dialog("Paketti Pattern Value Processor", content, keyhandler)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern Value Processor Dialog...", invoke=function() PakettiPatternValueProcessorDialogShow() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Pattern Value Processor Dialog...", invoke=function() PakettiPatternValueProcessorDialogShow() end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Pattern Value Processor Dialog [Trigger]", invoke=function(message) if message:is_trigger() then PakettiPatternValueProcessorDialogShow() end end}
+
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Paketti Pattern Value Processor Dialog...", invoke=function() PakettiPatternValueProcessorDialogShow() end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Paketti Pattern Value Processor Dialog...", invoke=function() PakettiPatternValueProcessorDialogShow() end}
