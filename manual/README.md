@@ -383,7 +383,7 @@ Turns a whole folder of samples into TX16W-ready `.C01` files in one run. Anythi
 
 - **Source Folder** - the folder to scan. `Include subfolders` walks the whole tree.
 - **Output Folder** - where the `.C01` files go. Defaults to the source folder.
-- **Sample Rate** - `33333 Hz (TX16W standard)` is the default. Also available: 50000 Hz and 20008 Hz (the other two rates real TX16W material uses), 16666 Hz (TX16W half rate), 44100 Hz, 22050 Hz, 8000 Hz, and `Keep each sample's own rate (no resampling)`.
+- **Sample Rate** - `33333 Hz (TX16W standard)` is the default. The TX16W samples at four rates only, all divisions of one 50 kHz clock, and all four are offered: 50000 Hz, 33333 Hz, 25000 Hz and 16666 Hz (the Typhoon manual calls them 50k, 33k, 25k and 16k). 44100 Hz, 22050 Hz and 8000 Hz are there as well, along with `Keep each sample's own rate (no resampling)`.
 - **Bit Depth** - `12-bit` is the TX16W's native resolution and the default. 8-bit and 16-bit are also available.
 - **Mix to mono** - on by default, because the TX16W is a mono sampler. Turn it off to keep stereo files stereo.
 
@@ -428,6 +428,10 @@ Writes the selected sample as a DWVW `.C01` at 33333 Hz, 12-bit, mixed to mono -
 The sample's root note, key range and loop points are written into the file too, so a `.C01` from Paketti carries everything the sampler needs. Loop positions are rescaled if the export changes the sample rate. Renoise's ping-pong loop becomes an AIFF forward/backward loop; a reverse loop is written as forward, because AIFF has no reverse loop.
 
 DWVW is lossless: what you put in at the chosen rate and bit depth is exactly what comes back out. Typical musical material lands around half the size of the equivalent 16-bit file, and silence compresses to an eighth.
+
+**Looped samples are trimmed at the loop end.** The TX16W has no loop end - its loop is always the stretch between the loop point and the end of the wave, and the Typhoon manual warns when you set one that "any sound beyond the end of the new loop is lost." So any sample with a loop is exported cut off at its loop end, which makes the sampler play what Renoise plays. Nothing is lost: with a forward or ping-pong loop, Renoise never reaches the audio past the loop end either. Samples with looping off are exported whole.
+
+**Samples longer than 262016 frames will not load.** That is the TX16W's hard ceiling - about 8 seconds at 33333 Hz, or 5 seconds at 50000 Hz - and the exports warn you when a sample goes over it.
 
 #### Export RX2 to PTI
 

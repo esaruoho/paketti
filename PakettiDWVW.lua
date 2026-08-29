@@ -19,9 +19,13 @@ local floor = math.floor
 -- Outcome of the most recent import / export / batch run, for troubleshooting.
 PakettiDWVWLastStatus = "never run"
 
--- The TX16W cannot hold a wave longer than this. The longest sample in a
--- 1006-file survey of real TX16W libraries is 262016 frames, just under it.
-PAKETTI_DWVW_MAX_FRAMES = 262144
+-- The TX16W cannot hold a wave longer than this. The Typhoon 2000 release notes
+-- state the limit outright ("the maximum wave length limit of the TX16W (262016
+-- samples)"), and the longest sample in a 1006-file survey of real TX16W
+-- libraries is exactly 262016 frames. The version 1.0 manual quotes the raw
+-- sample memory as 262144 points; we use the smaller documented figure, because
+-- a wave in between the two loads on paper and has nowhere to live in practice.
+PAKETTI_DWVW_MAX_FRAMES = 262016
 
 --------------------------------------------------------------------------------
 -- Byte helpers (big-endian, 1-based string positions)
@@ -449,8 +453,13 @@ end
 -- Reads a Renoise sample buffer, resamples to target_rate (linear), optionally
 -- mixes to mono, and quantises to signed `wordsize` integers.
 -- Returns: channels (array of integer arrays), frame count, channel count.
-function PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, yield_every)
+-- src_limit, when given, treats the source as ending at that frame. It exists
+-- for looped samples: see PakettiDWVWLoopLimit below.
+function PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, yield_every, src_limit)
   local src_frames = buffer.number_of_frames
+  if src_limit and src_limit >= 1 and src_limit < src_frames then
+    src_frames = src_limit
+  end
   local src_rate = buffer.sample_rate
   local src_ch = buffer.number_of_channels
   -- 0 (or nil) means "keep the sample's own rate", so nothing is resampled.
@@ -497,8 +506,26 @@ end
 
 -- Collects the root note and loop of a Renoise sample as DWVW/AIFF metadata,
 -- rescaling the loop positions when the export changed the frame count.
+-- The TX16W has no loop end. Its loop is always the stretch between the loop
+-- point and the end of the wave -- the Typhoon manual is blunt about it when you
+-- set a loop: "Any sound beyond the end of the new loop is lost!" So a Renoise
+-- sample whose loop ends early would be re-heard on the hardware as a loop
+-- running all the way to the sample end, which is a different sound.
+--
+-- Trimming the export at loop_end makes the sampler play what Renoise plays.
+-- Nothing is lost doing it: with a forward or ping-pong loop, Renoise never
+-- reaches the audio past loop_end either. Returns nil when no trim is needed.
+function PakettiDWVWLoopLimit(sample, buffer)
+  if not sample or sample.loop_mode == renoise.Sample.LOOP_MODE_OFF then return nil end
+  local le = sample.loop_end
+  if le and le >= 1 and le < buffer.number_of_frames then return le end
+  return nil
+end
+
 function PakettiDWVWSampleMeta(sample, buffer, out_frames)
-  local src_frames = buffer.number_of_frames
+  -- Scale against the same source span the audio was resampled from, so a
+  -- trimmed loop keeps its loop point in the right place.
+  local src_frames = PakettiDWVWLoopLimit(sample, buffer) or buffer.number_of_frames
   if src_frames < 1 or out_frames < 1 then return nil end
   local scale = out_frames / src_frames
 
@@ -689,7 +716,8 @@ local function dwvw_export_process(path, target_rate, force_mono, wordsize)
     if target_rate <= 0 then target_rate = buffer.sample_rate end
 
     local channels, frames, nch =
-      PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, 8192)
+      PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, 8192,
+        PakettiDWVWLoopLimit(sample, buffer))
 
     if dvb then dvb.views.progress_text.text = "Encoding DWVW..." end
     coroutine.yield()
@@ -846,7 +874,8 @@ local function dwvw_batch_process(folder, outfolder, opts)
 
       local rate = (opts.rate > 0) and opts.rate or buffer.sample_rate
       local channels, frames, nch =
-        PakettiDWVWBufferToChannels(buffer, rate, opts.force_mono, opts.wordsize, 8192)
+        PakettiDWVWBufferToChannels(buffer, rate, opts.force_mono, opts.wordsize, 8192,
+          PakettiDWVWLoopLimit(instrument.samples[1], buffer))
       local data = PakettiDWVWBuildFile(channels, frames, rate, opts.wordsize, 8192,
         PakettiDWVWSampleMeta(instrument.samples[1], buffer, frames))
 
@@ -935,11 +964,15 @@ function PakettiDWVWBatchConvertDialog()
   end
 
   local vb = renoise.ViewBuilder()
+  -- The TX16W samples at one of four rates only, all divisions of a single
+  -- 50 kHz clock: 50000, 50000/1.5, 50000/2 and 50000/3. The Typhoon manual
+  -- labels them 50k / 33k / 25k / 16k. Anything else has to be resampled by
+  -- Typhoon on the way in, so the four native rates come first.
   local rates = {"33333 Hz (TX16W standard)", "50000 Hz (TX16W high rate)",
-                 "20008 Hz (TX16W low rate)", "16666 Hz (TX16W half rate)",
+                 "25000 Hz (TX16W mid rate)", "16666 Hz (TX16W low rate)",
                  "44100 Hz", "22050 Hz", "8000 Hz",
                  "Keep each sample's own rate (no resampling)"}
-  local rate_values = {33333, 50000, 20008, 16666, 44100, 22050, 8000, 0}
+  local rate_values = {33333, 50000, 25000, 16666, 44100, 22050, 8000, 0}
   local rate_index = 1
   for i, r in ipairs(rate_values) do
     if r == PakettiDWVWTargetRate() then rate_index = i end

@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-29 - Fix: TX16W Exports Now Match What the Hardware Actually Plays. Three corrections from a close read of the Typhoon User's Manual and the Typhoon 2000 release notes.
+
+Looped samples are now trimmed at their loop end on export. The TX16W has no loop end - its loop always runs from the loop point to the end of the wave - so a Renoise sample whose loop ended early used to be re-heard on the sampler as a longer loop, a different sound. Nothing is lost by the trim, because Renoise never plays the audio past a forward or ping-pong loop end either. Samples with looping off are unaffected.
+
+The maximum wave length is now 262016 frames rather than 262144. That is the figure the Typhoon 2000 release notes state outright, and it matches the longest sample found in a 1006-file survey of real TX16W libraries. The old cap would have passed samples the sampler cannot hold.
+
+The Batch Convert sample rate list now offers the TX16W's four real rates - 50000, 33333, 25000 and 16666 Hz, all divisions of one 50 kHz clock. 25000 Hz was missing, and 20008 Hz was listed but is not a rate the machine has.
+
+- Menu: `Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to DWVW (.C01)...`
+- Menu: `Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+- Menu: `Main Menu:File:Paketti Import:Export DWVW Sample (.C01)...`
+
 ### 2026-08-29 - Improvement: TX16W and DWVW Exports Open the Folder They Wrote To
 
 Exporting an instrument to the TX16W, and batch converting a folder to DWVW, both now open the destination folder in Finder when they finish. Previously the disk images were written and nothing pointed at them, so the obvious question after running the export was where the files went. The status message and the scripting console also name the full path now.

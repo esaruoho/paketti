@@ -397,7 +397,8 @@ local function typhoon_export_process(outdir, opts)
       local waveid = PakettiTyphoonNewWaveId(stamp, dosname, n)
 
       local channels, frames = PakettiDWVWBufferToChannels(
-        buffer, rate, opts.force_mono, opts.wordsize, 8192)
+        buffer, rate, opts.force_mono, opts.wordsize, 8192,
+        PakettiDWVWLoopLimit(smp, buffer))
       if frames > PAKETTI_DWVW_MAX_FRAMES then oversize = oversize + 1 end
 
       local meta = PakettiDWVWSampleMeta(smp, buffer, frames)
