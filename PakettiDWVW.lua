@@ -296,7 +296,7 @@ function PakettiDWVWParseFile(data, yield_every)
   -- chunk header.
   local formend = math.min(#data, 8 + getuint(data, 5, 32))
 
-  local info, ssndpos, ssndsize, instchunk, markchunk, marksize
+  local info, ssndpos, ssndsize, instchunk, markchunk, marksize, applchunk, applsize
   local p = 13
   while p <= formend - 8 do
     local id, size = fourcc(data, p), getint(data, p + 4, 32)
@@ -317,6 +317,8 @@ function PakettiDWVWParseFile(data, yield_every)
       instchunk = p + 8
     elseif id == "MARK" and size >= 2 then
       markchunk, marksize = p + 8, size
+    elseif id == "APPL" and size >= 12 then
+      applchunk, applsize = p + 8, size
     end
     p = p + nextchunk(size)
   end
@@ -360,6 +362,19 @@ function PakettiDWVWParseFile(data, yield_every)
     end
     if info.loop_end_marker and markers[info.loop_end_marker] then
       info.loop_end = markers[info.loop_end_marker] + 1
+    end
+  end
+
+  -- Typhoon stamps its own APPL chunk on every wave it writes:
+  --   "stoc" <pascal "Typhoon"> VInf <16> = 12-byte creator stamp + 4-byte id.
+  -- The id is what a voice's Splt/Wave reference points at, so capturing it
+  -- lets an imported voice find its waves by identity rather than by filename.
+  if applchunk then
+    local body = data:sub(applchunk, applchunk + applsize - 1)
+    local v = body:find("VInf", 1, true)
+    if v and #body >= v + 23 then
+      info.typhoon_stamp = body:sub(v + 8, v + 19)
+      info.typhoon_wave_id = body:sub(v + 20, v + 23)
     end
   end
 
@@ -581,6 +596,50 @@ end
 
 local dwvw_import_slicer = nil
 
+-- Fills a Renoise sample from a parsed DWVW file. Shared by the single-file
+-- import and by the disk-image importer in PakettiTyphoon.lua, so both produce
+-- identical samples. progress is an optional function(text).
+function PakettiDWVWApplyToSample(sample, info, name, yield_every, progress)
+  local scale = 2 ^ (info.wordsize - 1)
+  sample.sample_buffer:create_sample_data(
+    info.rate > 0 and info.rate or PakettiDWVWTargetRate(),
+    (info.wordsize <= 16) and 16 or 32,
+    info.nchannels, info.nsamples)
+  sample.sample_buffer:prepare_sample_data_changes()
+  for c = 1, info.nchannels do
+    local ints = info.channels[c]
+    for i = 1, info.nsamples do
+      sample.sample_buffer:set_sample_data(c, i, ints[i] / scale)
+      if yield_every and i % yield_every == 0 then
+        if progress then
+          progress(string.format("%s: channel %d/%d, %d%%", name or "sample",
+            c, info.nchannels, floor(i / info.nsamples * 100)))
+        end
+        coroutine.yield()
+      end
+    end
+  end
+  sample.sample_buffer:finalize_sample_data_changes()
+
+  if name then sample.name = name end
+  if info.base_note and info.base_note >= 0 and info.base_note <= 119 then
+    sample.sample_mapping.base_note = info.base_note
+  end
+  if info.loop_start and info.loop_end and info.loop_end > info.loop_start then
+    local ls = math.max(1, math.min(info.nsamples, info.loop_start))
+    local le = math.max(ls + 1, math.min(info.nsamples, info.loop_end))
+    sample.loop_start = ls
+    sample.loop_end = le
+    local modes = {
+      [0] = renoise.Sample.LOOP_MODE_OFF,
+      [1] = renoise.Sample.LOOP_MODE_FORWARD,
+      [2] = renoise.Sample.LOOP_MODE_PING_PONG,
+    }
+    sample.loop_mode = modes[info.loop_mode or 0] or renoise.Sample.LOOP_MODE_OFF
+  end
+  return sample
+end
+
 local function dwvw_import_process(path, into_current_instrument)
   local dialog, dvb = nil, nil
   local slicer = dwvw_import_slicer
@@ -598,8 +657,9 @@ local function dwvw_import_process(path, into_current_instrument)
 
     local song = renoise.song()
     if not into_current_instrument then
-      song.selected_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(song.selected_instrument_index)
+      local at = song.selected_instrument_index + 1
+      song:insert_instrument_at(at)
+      song.selected_instrument_index = at
       pakettiPreferencesDefaultInstrumentLoader()
     end
 
@@ -607,49 +667,9 @@ local function dwvw_import_process(path, into_current_instrument)
     if #instrument.samples < 1 then instrument:insert_sample_at(1) end
     local sample = instrument.samples[1]
 
-    local scale = 2 ^ (info.wordsize - 1)
-    sample.sample_buffer:create_sample_data(
-      info.rate > 0 and info.rate or PakettiDWVWTargetRate(),
-      (info.wordsize <= 16) and 16 or 32,
-      info.nchannels, info.nsamples)
-    sample.sample_buffer:prepare_sample_data_changes()
-    for c = 1, info.nchannels do
-      local ints = info.channels[c]
-      for i = 1, info.nsamples do
-        sample.sample_buffer:set_sample_data(c, i, ints[i] / scale)
-        if i % 8192 == 0 then
-          if dvb then
-            dvb.views.progress_text.text = string.format(
-              "Writing channel %d/%d: %d%%", c, info.nchannels,
-              floor(i / info.nsamples * 100))
-          end
-          coroutine.yield()
-        end
-      end
-    end
-    sample.sample_buffer:finalize_sample_data_changes()
-
-    sample.name = strip_extension(basename(path))
+    PakettiDWVWApplyToSample(sample, info, strip_extension(basename(path)), 8192,
+      function(text) if dvb then dvb.views.progress_text.text = text end end)
     instrument.name = sample.name
-
-    -- Root note and loop points, when the file carries an INST/MARK pair.
-    if info.base_note and info.base_note >= 0 and info.base_note <= 119 then
-      sample.sample_mapping.base_note = info.base_note
-    end
-    if info.loop_start and info.loop_end and info.loop_end > info.loop_start then
-      local ls = math.max(1, math.min(info.nsamples, info.loop_start))
-      local le = math.max(ls + 1, math.min(info.nsamples, info.loop_end))
-      sample.loop_start = ls
-      sample.loop_end = le
-      local modes = {
-        [0] = renoise.Sample.LOOP_MODE_OFF,
-        [1] = renoise.Sample.LOOP_MODE_FORWARD,
-        [2] = renoise.Sample.LOOP_MODE_PING_PONG,
-      }
-      sample.loop_mode = modes[info.loop_mode or 0] or renoise.Sample.LOOP_MODE_OFF
-      print(string.format("PakettiDWVW: loop %d-%d, mode %d, base note %s",
-        ls, le, info.loop_mode or 0, tostring(info.base_note)))
-    end
 
     renoise.app():show_status(string.format(
       "Paketti DWVW: imported %s (%d frames, %d ch, %d-bit, %d Hz)",

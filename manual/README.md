@@ -405,11 +405,23 @@ Extrabonus: Also with 64 slice drumkit support - meaning, Renoise can be used to
 
 Export samples to IFF format
 
+#### Import TX16W Disk Image / Typhoon Voice / TX16W Folder
+
+`Main Menu:File:Paketti Import:Import TX16W Disk Image (.img)...`, `...Import Typhoon Voice (.O01)...` and `...Import TX16W Folder (.O01 + .C01)...` (all three also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Instrument Box:Paketti:Load` and `Disk Browser Files:Paketti:Import/Export`; keybindings `Global:Paketti:Import TX16W Disk Image`, `Global:Paketti:Import Typhoon Voice`, `Global:Paketti:Import TX16W Folder`).
+
+Reads a TX16W floppy back into Renoise - the mirror of the export. Point it at a 720K disk image and every voice on the disk becomes an instrument with its key mapping rebuilt: each split lands on the key range Typhoon gave it, and single-key splits get their root note centred so drums play at their recorded pitch. Waves that no voice claims still arrive, laid out one per key in an instrument named after the diskette.
+
+`Import Typhoon Voice` takes a loose `.O01` and picks up its `.C01` waves from the same folder. `Import TX16W Folder` does a whole folder at once, falling back to loading every wave when the folder has no voices.
+
+Dragging a `.img`, `.ima` or `.O01` file straight onto Renoise works too, in either letter case.
+
+The voice's references are matched to waves by Typhoon's own wave id first and by filename second, so a disk whose files have been renamed still resolves. Anything unreadable is reported and skipped rather than stopping the import, and uncompressed `.A##` AIFF files on the disk are counted in the summary.
+
 #### Export Instrument to Yamaha TX16W (.C01 + .O01 + 720K disk images)
 
 `Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Mappings:Paketti:Save`, `Instrument Box:Paketti:Save` and `Disk Browser:Paketti`; keybinding `Global:Paketti:Export Instrument to Yamaha TX16W`).
 
-Takes the selected instrument and produces everything a TX16W running Typhoon needs to play it: one `.C01` wave per sample, one `.O01` voice file mapping them across the keyboard, and as many 720K floppy images as they take. Pick a folder and you get `KITNAME_DISK1.img`, `KITNAME_DISK2.img` and so on, plus a `files` subfolder with the waves and voice loose if you would rather assemble a disk yourself.
+Takes the selected instrument and produces everything a TX16W running Typhoon needs to play it: one `.C01` wave per sample, one `.O01` voice file mapping them across the keyboard, and as many 720K floppy images as they take. Each disk gets its own name, and the voice records which diskette every wave landed on, so the sampler asks for the right floppy by name instead of just reporting something missing. The output folder is created if it does not exist yet. Pick a folder and you get `KITNAME_DISK1.img`, `KITNAME_DISK2.img` and so on, plus a `files` subfolder with the waves and voice loose if you would rather assemble a disk yourself.
 
 When it finishes, the folder opens in Finder so you can see what was written; the full path is also in the status bar and the scripting console.
 

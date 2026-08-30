@@ -137,7 +137,11 @@ function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key)
     local body = ""
     -- The first split never carries a Parm: it starts at key 0.
     if i > 1 then body = body .. chunk("Parm", string.char(sp.key % 128) .. "\0") end
-    body = body .. chunk("Wave", PakettiTyphoonWaveName(sp.name) .. sp.id .. string.rep("\255", 8))
+    -- The 8 bytes after the id are the name of the diskette the wave lives on.
+    -- 0xFF means "unknown", which is legal -- real third-party voices use it --
+    -- but a real name lets Typhoon ask for the right floppy by name.
+    local disk = sp.disk and PakettiTyphoonWaveName(sp.disk) or string.rep("\255", 8)
+    body = body .. chunk("Wave", PakettiTyphoonWaveName(sp.name) .. sp.id .. disk)
     parts[#parts + 1] = chunk("Splt", body)
   end
 
@@ -347,8 +351,25 @@ local function join(dir, name)
   return dir .. (dir:match("[/\\]$") and "" or path_sep()) .. name
 end
 
+-- Makes a directory, parents included. Safe to call on one that already exists.
+local function ensure_dir(dir)
+  if not dir or dir == "" then return end
+  if io.exists(dir) then return end
+  if path_sep() == "\\" then
+    os.execute(string.format('mkdir "%s"', dir:gsub("/", "\\")))
+  else
+    os.execute(string.format('mkdir -p "%s"', dir))
+  end
+end
+
 local function write_file(path, data)
   local f, err = io.open(path, "wb")
+  if not f then
+    -- Most likely the folder is not there yet: the export can be pointed at a
+    -- name the user has only just invented. Make it and try once more.
+    ensure_dir(path:match("^(.*)[/\\][^/\\]*$"))
+    f, err = io.open(path, "wb")
+  end
   if not f then error("cannot write " .. tostring(path) .. ": " .. tostring(err)) end
   f:write(data)
   f:close()
@@ -411,7 +432,8 @@ local function typhoon_export_process(outdir, opts)
       local key = opts.base_key + n - 1
       if opts.use_mapping then key = smp.sample_mapping.note_range[1] end
       splits[#splits + 1] = { key = math.max(0, math.min(127, key)),
-                              name = dosname:match("^[^%.]+"), id = waveid }
+                              name = dosname:match("^[^%.]+"), id = waveid,
+                              file = dosname }
     end
 
     table.sort(splits, function(a, b) return a.key < b.key end)
@@ -423,6 +445,23 @@ local function typhoon_export_process(outdir, opts)
       end
     end
 
+    if dvb then dvb.views.progress_text.text = "Packing 720K disks..." end
+    coroutine.yield()
+
+    -- Pack before building the voice, so each split can name the diskette its
+    -- wave actually landed on. Typhoon uses that name to prompt for the right
+    -- floppy when a wave is missing; without it the sampler only knows that
+    -- something is absent, not where to send you.
+    local labelbase = PakettiDWVWDosName(kitname, {}):match("^[^%.]+"):sub(1, 6)
+    local disks = PakettiTyphoonPackDisks(files, 1)
+    local disk_of = {}
+    for i, d in ipairs(disks) do
+      for _, f in ipairs(d.files) do
+        disk_of[f.name] = string.format("%s%d", labelbase, i)
+      end
+    end
+    for _, sp in ipairs(splits) do sp.disk = disk_of[sp.file] end
+
     if dvb then dvb.views.progress_text.text = "Building voice file..." end
     coroutine.yield()
 
@@ -430,10 +469,6 @@ local function typhoon_export_process(outdir, opts)
     local voice = PakettiTyphoonBuildVoice(splits, stamp,
       PakettiTyphoonNewWaveId(stamp, voicename, 0))
 
-    if dvb then dvb.views.progress_text.text = "Packing 720K disks..." end
-    coroutine.yield()
-
-    local disks = PakettiTyphoonPackDisks(files, 1)
     -- The voice goes on disk 1, where the sampler will look for it first.
     table.insert(disks[1].files, 1, { name = voicename, data = voice })
 
@@ -442,10 +477,9 @@ local function typhoon_export_process(outdir, opts)
       for i, d in ipairs(disks) do
         if dvb then dvb.views.progress_text.text = string.format("Writing disk %d/%d...", i, #disks) end
         coroutine.yield()
-        local label = PakettiDWVWDosName(kitname, {}):match("^[^%.]+"):sub(1, 6)
         local img = PakettiTyphoonBuildDiskImage(d.files,
-          string.format("%s%d", label, i), 8)
-        local name = string.format("%s_DISK%d.img", label, i)
+          string.format("%s%d", labelbase, i), 8)
+        local name = string.format("%s_DISK%d.img", labelbase, i)
         write_file(join(outdir, name), img)
         written[#written + 1] = name
       end
@@ -453,7 +487,7 @@ local function typhoon_export_process(outdir, opts)
 
     if opts.write_loose then
       local loose = join(outdir, "files")
-      os.execute(string.format('mkdir -p "%s"', loose))
+      ensure_dir(loose)
       write_file(join(loose, voicename), voice)
       for _, f in ipairs(files) do write_file(join(loose, f.name), f.data) end
     end
@@ -523,6 +557,460 @@ function PakettiTyphoonExportDrumkit(outdir, opts)
 end
 
 --------------------------------------------------------------------------------
+-- Reading TX16W disks back in
+--------------------------------------------------------------------------------
+
+local function getle(s, pos, width)          -- little-endian, FAT structures
+  local v = 0
+  for i = width - 1, 0, -1 do v = v * 256 + (s:byte(pos + i) or 0) end
+  return v
+end
+
+-- Reads a raw 720K FAT12 image. Returns a list of { name, data } plus the
+-- volume label. Deliberately tolerant: TX16W disks are written by a 1993
+-- sampler, so anything unreadable is skipped rather than fatal.
+function PakettiTyphoonReadDiskImage(data, yield_every)
+  if #data < 512 then error("file is too small to be a disk image") end
+
+  local bps   = getle(data, 12, 2)
+  local spc   = data:byte(14)
+  local res   = getle(data, 15, 2)
+  local nfat  = data:byte(17)
+  local nroot = getle(data, 18, 2)
+  local spf   = getle(data, 23, 2)
+
+  -- A blank or non-DOS boot sector still usually sits on standard 720K
+  -- geometry, so fall back to it rather than refusing the disk.
+  if bps ~= 512 or spc < 1 or nfat < 1 or nroot < 1 or spf < 1 then
+    bps, spc, res, nfat, nroot, spf = 512, 2, 1, 2, 112, 3
+  end
+
+  local rootoff = res * bps + nfat * spf * bps
+  local dataoff = rootoff + nroot * 32
+  local cluster = spc * bps
+  if dataoff > #data then error("disk image is truncated") end
+
+  local fatoff = res * bps
+  local function fat_entry(n)
+    local off = fatoff + floor(n * 3 / 2)
+    if off + 1 > #data then return 0xFFF end
+    local v = (data:byte(off + 1) or 0) + (data:byte(off + 2) or 0) * 256
+    if n % 2 == 1 then return floor(v / 16) end
+    return v % 4096
+  end
+
+  local files, label = {}, nil
+  for i = 0, nroot - 1 do
+    local e = rootoff + i * 32
+    local first = data:byte(e + 1)
+    if not first or first == 0 then break end
+    local attr = data:byte(e + 12) or 0
+    if first ~= 0xE5 and attr % 32 < 16 then      -- not deleted, not a subdir
+      local base = data:sub(e + 1, e + 8):gsub("%s+$", "")
+      local ext  = data:sub(e + 9, e + 11):gsub("%s+$", "")
+      if attr % 16 >= 8 then
+        label = (base .. ext):gsub("%s+$", "")    -- volume label
+      else
+        local name = (ext ~= "") and (base .. "." .. ext) or base
+        local size = getle(data, e + 29, 4)
+        local c    = getle(data, e + 27, 2)
+        local parts, got, guard = {}, 0, 0
+        while c >= 2 and c < 0xFF0 and got < size and guard < 4096 do
+          local off = dataoff + (c - 2) * cluster
+          if off + cluster > #data then break end
+          parts[#parts + 1] = data:sub(off + 1, off + cluster)
+          got = got + cluster
+          c = fat_entry(c)
+          guard = guard + 1
+        end
+        local body = table.concat(parts):sub(1, size)
+        if #body > 0 then files[#files + 1] = { name = name, data = body } end
+      end
+    end
+    if yield_every and i % yield_every == 0 then coroutine.yield() end
+  end
+  return files, label
+end
+
+-- Walks an IFF FORM, calling fn(id, body) for each chunk at the top level.
+local function iff_walk(data, expect, fn)
+  if #data < 12 or data:sub(1, 4) ~= "FORM" then return false end
+  local formsize = 0
+  for i = 5, 8 do formsize = formsize * 256 + data:byte(i) end
+  if expect and data:sub(9, 12) ~= expect then return false end
+  local p, stop = 13, math.min(#data, 8 + formsize)
+  while p + 8 <= stop do
+    local id = data:sub(p, p + 3)
+    local size = 0
+    for i = p + 4, p + 7 do size = size * 256 + data:byte(i) end
+    if size < 0 or p + 8 + size - 1 > stop then break end
+    fn(id, data:sub(p + 8, p + 8 + size - 1))
+    p = p + 8 + size + (size % 2)
+  end
+  return true
+end
+
+-- Parses a .O01 voice. Returns { stamp, id, groups = { { parm, mods, splits } } }
+-- where each split is { key = <first key or nil>, name, id, disk }.
+function PakettiTyphoonParseVoice(data)
+  local voice = { groups = {} }
+  local ok = iff_walk(data, "TYPV", function(id, body)
+    if id == "VInf" and #body >= 16 then
+      voice.stamp = body:sub(1, 12)
+      voice.id = body:sub(13, 16)
+    elseif id == "Grop" then
+      -- A Grop body is a bare chunk stream, not a nested FORM, so walk it directly.
+      local group = { mods = {}, splits = {} }
+      local p = 1
+      while p + 8 <= #body do
+        local cid = body:sub(p, p + 3)
+        local csize = 0
+        for i = p + 4, p + 7 do csize = csize * 256 + body:byte(i) end
+        if csize < 0 or p + 8 + csize - 1 > #body then break end
+        local cb = body:sub(p + 8, p + 8 + csize - 1)
+        if cid == "Parm" then
+          if #cb >= 64 then group.parm = cb end
+        elseif cid == "Mod " then
+          group.mods[#group.mods + 1] = cb
+        elseif cid == "Splt" then
+          local q, key, wave = 1, nil, nil
+          while q + 8 <= #cb do
+            local sid = cb:sub(q, q + 3)
+            local ssize = 0
+            for i = q + 4, q + 7 do ssize = ssize * 256 + cb:byte(i) end
+            if ssize < 0 or q + 8 + ssize - 1 > #cb then break end
+            local sb = cb:sub(q + 8, q + 8 + ssize - 1)
+            if sid == "Parm" and #sb >= 1 then
+              key = sb:byte(1)
+            elseif sid == "Wave" and #sb >= 12 then
+              wave = {
+                name = sb:sub(1, 8):gsub("[%z%s]+$", ""),
+                id = sb:sub(9, 12),
+                disk = (#sb >= 20) and sb:sub(13, 20):gsub("[%z%s\255]+$", "") or nil,
+              }
+            end
+            q = q + 8 + ssize + (ssize % 2)
+          end
+          -- A Splt carrying only a Parm is the terminator: it has no wave, but
+          -- its key is where the last real split stops. Keep it.
+          group.splits[#group.splits + 1] = wave
+            and { name = wave.name, id = wave.id, disk = wave.disk, key = key }
+            or { key = key, terminator = true }
+        end
+        p = p + 8 + csize + (csize % 2)
+      end
+      voice.groups[#voice.groups + 1] = group
+    end
+  end)
+  if not ok then error("not a Typhoon voice file (no FORM/TYPV header)") end
+  return voice
+end
+
+--------------------------------------------------------------------------------
+-- Importing: disk images and voices become Renoise instruments
+--------------------------------------------------------------------------------
+
+local typhoon_import_slicer = nil
+
+local function read_whole_file(path)
+  local f, err = io.open(path, "rb")
+  if not f then error("cannot open " .. tostring(path) .. ": " .. tostring(err)) end
+  local data = f:read("*a")
+  f:close()
+  if not data or #data == 0 then error("file is empty: " .. tostring(path)) end
+  return data
+end
+
+local function base_of(path)
+  return (path:match("[^/\\]+$") or path)
+end
+
+local function strip_ext(name)
+  return (name:gsub("%.[^%.]*$", ""))
+end
+
+-- A wave file on a Typhoon disk is a .C01-.C99; .A01-.A99 are plain AIFF.
+local function is_wave_name(name)
+  return name:upper():match("%.C%d%d$") ~= nil
+end
+local function is_voice_name(name)
+  return name:upper():match("%.O%d%d$") ~= nil
+end
+local function is_aiff_name(name)
+  return name:upper():match("%.A%d%d$") ~= nil
+end
+
+-- Decodes every wave in the file list once, keyed both by Typhoon wave id and
+-- by uppercased base name, because a voice's Splt reference resolves by id when
+-- the wave carries Typhoon's APPL stamp and by name when it does not.
+local function decode_waves(files, progress)
+  local by_id, by_name, order, failed = {}, {}, {}, {}
+  for _, f in ipairs(files) do
+    if is_wave_name(f.name) then
+      if progress then progress("Decoding " .. f.name .. "...") end
+      coroutine.yield()
+      local ok, info = pcall(PakettiDWVWParseFile, f.data, 4096)
+      if ok then
+        local entry = { name = strip_ext(f.name), info = info, file = f.name }
+        order[#order + 1] = entry
+        by_name[strip_ext(f.name):upper()] = entry
+        if info.typhoon_wave_id then by_id[info.typhoon_wave_id] = entry end
+      else
+        failed[#failed + 1] = f.name .. " (" .. tostring(info) .. ")"
+      end
+    end
+  end
+  return by_id, by_name, order, failed
+end
+
+-- Builds one Renoise instrument from a parsed voice. Splits become key zones:
+-- a split's key is its FIRST key, and it runs up to the key before the next
+-- split, which is exactly how Typhoon reads them.
+local function build_instrument_from_voice(voice, vname, by_id, by_name, progress)
+  local song = renoise.song()
+  -- Insert first, then select. Setting the index past the end throws when the
+  -- selected instrument is the last one in the song.
+  local at = song.selected_instrument_index + 1
+  song:insert_instrument_at(at)
+  song.selected_instrument_index = at
+  pakettiPreferencesDefaultInstrumentLoader()
+  local instrument = song.selected_instrument
+  -- Emptying an instrument clears its name in Renoise, so it gets named at the
+  -- end, once the samples are in.
+  while #instrument.samples > 0 do instrument:delete_sample_at(1) end
+
+  local placed, missing = 0, {}
+  for gi, group in ipairs(voice.groups) do
+    local splits = group.splits
+    for si, sp in ipairs(splits) do
+      local entry = (not sp.terminator)
+        and ((sp.id and by_id[sp.id]) or by_name[(sp.name or ""):upper()])
+        or nil
+      if sp.terminator then
+        -- nothing to place; it only bounds the split before it
+      elseif not entry then
+        missing[#missing + 1] = sp.name or "?"
+      else
+        -- Typhoon stores a split by its FIRST key only. The first split has no
+        -- key of its own and starts at note 0; every split runs up to the key
+        -- below whichever split comes next -- including a Parm-only terminator,
+        -- which exists precisely to close the last one.
+        local lo = sp.key or 0
+        local hi = 119
+        for sj = si + 1, #splits do
+          if splits[sj].key then
+            hi = math.max(lo, splits[sj].key - 1)
+            break
+          end
+        end
+
+        instrument:insert_sample_at(#instrument.samples + 1)
+        local sample = instrument.samples[#instrument.samples]
+        PakettiDWVWApplyToSample(sample, entry.info, entry.name, 8192, progress)
+        sample.sample_mapping.note_range = {
+          math.max(0, math.min(119, lo)), math.max(0, math.min(119, hi))
+        }
+        -- A single-key split is a drum pad; centre the root on it so it plays
+        -- at its recorded pitch rather than transposed.
+        if lo == hi then sample.sample_mapping.base_note = lo end
+        placed = placed + 1
+        coroutine.yield()
+      end
+    end
+    if gi < #voice.groups then coroutine.yield() end
+  end
+  instrument.name = vname
+  return instrument, placed, missing
+end
+
+local function typhoon_import_process(sources, opts)
+  local dialog, dvb = nil, nil
+  local slicer = typhoon_import_slicer
+  if slicer then dialog, dvb = slicer:create_dialog("Paketti TX16W Import") end
+  local function progress(text)
+    if dvb then dvb.views.progress_text.text = text end
+  end
+
+  local ok, err = pcall(function()
+    local files, label = {}, nil
+
+    for _, src in ipairs(sources) do
+      progress("Reading " .. base_of(src) .. "...")
+      coroutine.yield()
+      local data = read_whole_file(src)
+      if src:upper():match("%.IMG$") or src:upper():match("%.IMA$") then
+        local got, lab = PakettiTyphoonReadDiskImage(data, 8)
+        label = label or lab
+        for _, f in ipairs(got) do files[#files + 1] = f end
+        print(string.format("PakettiTyphoon: %s holds %d files, label %s",
+          base_of(src), #got, tostring(lab)))
+      else
+        files[#files + 1] = { name = base_of(src), data = data }
+        -- A loose voice needs its waves; take them from the same folder.
+        local dir = src:match("^(.*)[/\\][^/\\]*$")
+        if dir and is_voice_name(src) then
+          for _, n in ipairs(os.filenames(dir, {"*.C0*", "*.C1*", "*.C2*",
+              "*.C3*", "*.C4*", "*.C5*", "*.C6*", "*.C7*", "*.C8*", "*.C9*"})) do
+            local f = io.open(dir .. package.config:sub(1, 1) .. n, "rb")
+            if f then
+              files[#files + 1] = { name = n, data = f:read("*a") }
+              f:close()
+            end
+          end
+        end
+      end
+    end
+
+    if #files == 0 then error("nothing readable was found") end
+
+    local by_id, by_name, order, failed = decode_waves(files, progress)
+
+    local voices = {}
+    for _, f in ipairs(files) do
+      if is_voice_name(f.name) then
+        local vok, v = pcall(PakettiTyphoonParseVoice, f.data)
+        if vok then
+          voices[#voices + 1] = { name = strip_ext(f.name), voice = v }
+        else
+          failed[#failed + 1] = f.name .. " (" .. tostring(v) .. ")"
+        end
+      end
+    end
+
+    local made, used, total_placed, all_missing = 0, {}, 0, {}
+    for _, v in ipairs(voices) do
+      progress("Building " .. v.name .. "...")
+      coroutine.yield()
+      local _, placed, missing = build_instrument_from_voice(
+        v.voice, v.name, by_id, by_name, progress)
+      made = made + 1
+      total_placed = total_placed + placed
+      for _, m in ipairs(missing) do all_missing[#all_missing + 1] = m end
+      for _, g in ipairs(v.voice.groups) do
+        for _, sp in ipairs(g.splits) do
+          if not sp.terminator then
+            local e = (sp.id and by_id[sp.id]) or by_name[(sp.name or ""):upper()]
+            if e then used[e] = true end
+          end
+        end
+      end
+    end
+
+    -- Waves no voice claimed still deserve to arrive; a disk of raw samples is
+    -- a perfectly normal thing to hand this.
+    local loose = {}
+    for _, e in ipairs(order) do
+      if not used[e] then loose[#loose + 1] = e end
+    end
+    if #loose > 0 and opts.loose_waves ~= false then
+      local song = renoise.song()
+      local at = song.selected_instrument_index + 1
+      song:insert_instrument_at(at)
+      song.selected_instrument_index = at
+      pakettiPreferencesDefaultInstrumentLoader()
+      local instrument = song.selected_instrument
+      while #instrument.samples > 0 do instrument:delete_sample_at(1) end
+      for i, e in ipairs(loose) do
+        progress(string.format("Loading %s (%d/%d)...", e.name, i, #loose))
+        instrument:insert_sample_at(#instrument.samples + 1)
+        local sample = instrument.samples[#instrument.samples]
+        PakettiDWVWApplyToSample(sample, e.info, e.name, 8192, progress)
+        local key = math.min(119, 35 + i)
+        sample.sample_mapping.note_range = {key, key}
+        sample.sample_mapping.base_note = key
+        coroutine.yield()
+      end
+      instrument.name = (label and label ~= "" and label or "TX16W") .. " waves"
+      made = made + 1
+    end
+
+    local aiffs = 0
+    for _, f in ipairs(files) do if is_aiff_name(f.name) then aiffs = aiffs + 1 end end
+
+    local msg = string.format(
+      "Paketti TX16W: %d instrument(s) from %d wave(s)%s%s",
+      made, #order,
+      (#voices > 0) and string.format(", %d voice(s), %d key zone(s)", #voices, total_placed) or "",
+      (label and label ~= "") and (", disk '" .. label .. "'") or "")
+    if #all_missing > 0 then
+      msg = msg .. string.format(" - %d wave(s) referenced but not on the disk", #all_missing)
+      print("PakettiTyphoon: missing waves: " .. table.concat(all_missing, ", "))
+    end
+    if #failed > 0 then
+      msg = msg .. string.format(" - %d file(s) unreadable", #failed)
+      print("PakettiTyphoon: unreadable: " .. table.concat(failed, ", "))
+    end
+    if aiffs > 0 then
+      msg = msg .. string.format(" - %d uncompressed AIFF (.A##) file(s) skipped", aiffs)
+    end
+    renoise.app():show_status(msg)
+    print("PakettiTyphoon: " .. msg)
+    PakettiTyphoonLastStatus = msg
+  end)
+
+  if dialog and dialog.visible then dialog:close() end
+  typhoon_import_slicer = nil
+  if not ok then
+    renoise.app():show_status("Paketti TX16W import failed: " .. tostring(err))
+    print("PakettiTyphoon import error: " .. tostring(err))
+    PakettiTyphoonLastStatus = "import failed: " .. tostring(err)
+  end
+end
+
+function PakettiTyphoonImportFiles(sources, opts)
+  if type(sources) == "string" then sources = {sources} end
+  if not sources or #sources == 0 then return false end
+  if typhoon_import_slicer and typhoon_import_slicer:running() then
+    renoise.app():show_status("Paketti TX16W: an import is already running")
+    return false
+  end
+  opts = opts or {}
+  typhoon_import_slicer = ProcessSlicer(function()
+    typhoon_import_process(sources, opts)
+  end)
+  typhoon_import_slicer:start()
+  return true
+end
+
+function PakettiTyphoonImportDiskImage()
+  local path = renoise.app():prompt_for_filename_to_read(
+    {"*.img", "*.IMG", "*.ima", "*.IMA"}, "Open a TX16W 720K disk image")
+  if not path or path == "" then return end
+  PakettiTyphoonImportFiles({path})
+end
+
+function PakettiTyphoonImportVoiceFile()
+  local path = renoise.app():prompt_for_filename_to_read(
+    {"*.O01", "*.o01", "*.O0*", "*.O1*"}, "Open a Typhoon voice (.O01)")
+  if not path or path == "" then return end
+  PakettiTyphoonImportFiles({path})
+end
+
+-- Folder of loose .C01/.O01 files, which is what you get after unpacking a
+-- disk image somewhere.
+function PakettiTyphoonImportFolder()
+  local dir = renoise.app():prompt_for_path("Choose a folder of TX16W files")
+  if not dir or dir == "" then return end
+  local sep = package.config:sub(1, 1)
+  local names = os.filenames(dir, {"*.O0*", "*.O1*", "*.O2*", "*.O3*", "*.O4*",
+    "*.O5*", "*.O6*", "*.O7*", "*.O8*", "*.O9*"})
+  local sources = {}
+  for _, n in ipairs(names) do sources[#sources + 1] = dir .. sep .. n end
+  if #sources == 0 then
+    -- No voices: fall back to every wave in the folder.
+    for _, n in ipairs(os.filenames(dir, {"*.C0*", "*.C1*", "*.C2*", "*.C3*",
+        "*.C4*", "*.C5*", "*.C6*", "*.C7*", "*.C8*", "*.C9*"})) do
+      sources[#sources + 1] = dir .. sep .. n
+    end
+  end
+  if #sources == 0 then
+    renoise.app():show_status("Paketti TX16W: no .O01 or .C01 files in that folder")
+    return
+  end
+  PakettiTyphoonImportFiles(sources)
+end
+
+--------------------------------------------------------------------------------
 -- Registration
 --------------------------------------------------------------------------------
 
@@ -535,3 +1023,57 @@ PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Instrument to Yamaha TX1
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha TX16W", invoke = function() PakettiTyphoonExportDrumkit() end}
 renoise.tool():add_midi_mapping{name = "Paketti:Export Instrument to Yamaha TX16W", invoke = function(message) if message:is_trigger() then PakettiTyphoonExportDrumkit() end end}
+
+--------------------------------------------------------------------------------
+-- Import registration
+--------------------------------------------------------------------------------
+
+local IMPORT_LABEL = "Import TX16W Disk Image (.img)..."
+local VOICE_LABEL  = "Import Typhoon Voice (.O01)..."
+local FOLDER_LABEL = "Import TX16W Folder (.O01 + .C01)..."
+
+for _, where in ipairs({
+  "Main Menu:File:Paketti Import:",
+  "Main Menu:Tools:Paketti:Instruments:File Formats:",
+  "Instrument Box:Paketti:Load:",
+  "Disk Browser Files:Paketti:Import/Export:",
+}) do
+  PakettiAddMenuEntry{name = where .. IMPORT_LABEL, invoke = function() PakettiTyphoonImportDiskImage() end}
+  PakettiAddMenuEntry{name = where .. VOICE_LABEL, invoke = function() PakettiTyphoonImportVoiceFile() end}
+  PakettiAddMenuEntry{name = where .. FOLDER_LABEL, invoke = function() PakettiTyphoonImportFolder() end}
+end
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:" .. IMPORT_LABEL, invoke = function() PakettiTyphoonImportDiskImage() end}
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:" .. FOLDER_LABEL, invoke = function() PakettiTyphoonImportFolder() end}
+
+renoise.tool():add_keybinding{name = "Global:Paketti:Import TX16W Disk Image", invoke = function() PakettiTyphoonImportDiskImage() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Import Typhoon Voice", invoke = function() PakettiTyphoonImportVoiceFile() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Import TX16W Folder", invoke = function() PakettiTyphoonImportFolder() end}
+renoise.tool():add_midi_mapping{name = "Paketti:Import TX16W Disk Image", invoke = function(message) if message:is_trigger() then PakettiTyphoonImportDiskImage() end end}
+
+-- Drag and drop. Renoise matches import-hook extensions case-sensitively, so
+-- every extension has to be registered in both cases -- real TX16W files come
+-- off the machine uppercase.
+local function typhoon_drop(filename)
+  PakettiTyphoonImportFiles({filename})
+  return true
+end
+
+local typhoon_extensions = {"img", "IMG", "ima", "IMA"}
+for n = 1, 99 do
+  local nn = string.format("%02d", n)
+  typhoon_extensions[#typhoon_extensions + 1] = "o" .. nn
+  typhoon_extensions[#typhoon_extensions + 1] = "O" .. nn
+end
+
+for _, ext in ipairs(typhoon_extensions) do
+  local ok, err = pcall(function()
+    renoise.tool():add_file_import_hook{
+      category = "instrument",
+      extensions = {ext},
+      invoke = typhoon_drop,
+    }
+  end)
+  if not ok then
+    print("PakettiTyphoon: could not register import hook for ." .. ext .. ": " .. tostring(err))
+  end
+end

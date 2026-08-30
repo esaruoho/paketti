@@ -8,6 +8,23 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-30 - Feature: Read TX16W Floppies Back Into Renoise. The mirror of the TX16W export - open a 720K disk image and every voice on it becomes an instrument with its key mapping intact.
+
+Point it at a TX16W disk image and Paketti reads the FAT12 filesystem, decodes every DWVW wave on it, and rebuilds each Typhoon voice as a Renoise instrument. Splits become key ranges exactly as Typhoon defines them - a split is stored by its first key and runs up to the key below the next one - and single-key splits get their root note centred so drums play at their recorded pitch. Waves no voice claims still arrive, one per key, in an instrument named after the diskette.
+
+Voice references resolve by Typhoon's own wave id first and by filename second, so a disk whose files were renamed still loads. Unreadable files are reported and skipped rather than stopping the import.
+
+Exported disks now carry real names, and the voice records which diskette each wave landed on - so on a multi-disk kit the sampler asks for the right floppy by name. The export also creates its output folder if it does not exist yet, instead of failing.
+
+- Menu: `Main Menu:File:Paketti Import:Import TX16W Disk Image (.img)...`
+- Menu: `Main Menu:File:Paketti Import:Import Typhoon Voice (.O01)...`
+- Menu: `Main Menu:File:Paketti Import:Import TX16W Folder (.O01 + .C01)...`
+- Keybinding: `Global:Paketti:Import TX16W Disk Image`
+- Keybinding: `Global:Paketti:Import Typhoon Voice`
+- Keybinding: `Global:Paketti:Import TX16W Folder`
+- MIDI Mapping: `Paketti:Import TX16W Disk Image`
+- Drag and drop: `.img`, `.ima` and `.O01`-`.O99` in either letter case
+
 ### 2026-08-29 - Fix: TX16W Exports Now Match What the Hardware Actually Plays. Three corrections from a close read of the Typhoon User's Manual and the Typhoon 2000 release notes.
 
 Looped samples are now trimmed at their loop end on export. The TX16W has no loop end - its loop always runs from the loop point to the end of the wave - so a Renoise sample whose loop ended early used to be re-heard on the sampler as a longer loop, a different sound. Nothing is lost by the trim, because Renoise never plays the audio past a forward or ping-pong loop end either. Samples with looping off are unaffected.
