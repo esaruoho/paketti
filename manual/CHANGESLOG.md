@@ -8,6 +8,19 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-30 - Feature: Export a Whole Song to the TX16W. Every instrument becomes a voice, plus a performance and a setup file that rebuild the arrangement on the sampler in one load.
+
+Two more of Typhoon's file formats are now written. A **performance** (`.P01`) is the multitimbral layer: it puts each voice on its own MIDI channel with a volume and transposition, and carries a program change table. A **setup** (`.X01`) is the whole machine - load one and the sampler clears itself and rebuilds every performance, voice and wave the song needs.
+
+The new song export produces both. Every instrument with sample data becomes a voice, instruments take MIDI channels 1 to 16 in order, and everything gets a program change number so one channel can step through the voices. The manifest lists the channel and program number for each instrument next to the disk contents.
+
+Verified against the factory files: the chunk sizes match `MULTI.P01` and `DEMO.X01` exactly, and the built disk images mount natively.
+
+- Menu: `Main Menu:File:Paketti Import:Export Song to Yamaha TX16W (setup + performance + voices)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export Song to Yamaha TX16W (setup + performance + voices)...`
+- Keybinding: `Global:Paketti:Export Song to Yamaha TX16W`
+- MIDI Mapping: `Paketti:Export Song to Yamaha TX16W`
+
 ### 2026-08-30 - Feature: Exported TX16W Voices Get Real Settings. Filter, envelope, output and General MIDI drum naming, from a further decode of the voice format.
 
 The group parameter block is decoded far enough to write the settings that matter, instead of inheriting all of them from a factory template. Pitch is carried as semitones, cents and octaves; the filter model, the output routing and the amplitude envelope are now yours to choose per export.

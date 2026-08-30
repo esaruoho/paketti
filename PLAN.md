@@ -110,12 +110,14 @@ tech: FORM TYPP writer, Entr/PChg chunks, FORM TYPS setup writer
 files: [PakettiTyphoon.lua]
 needs: [tx16w-export]
 
-- [ ] Export the song's instruments as one multitimbral performance {#p01-export}
+- [x] Export the song's instruments as one multitimbral performance {#p01-export}
+  by: claude
   from: agent
 - [x] Put the right disk name on every reference so the sampler asks for the correct floppy {#disk-names}
   by: claude
   from: agent
-- [ ] Export a whole song as a single setup file {#x01-export}
+- [x] Export a whole song as a single setup file {#x01-export}
+  by: claude
   from: agent
 
 ## Make exported voices sound like the Renoise instrument {#tx16w-voice-params}

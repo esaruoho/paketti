@@ -11,8 +11,8 @@ Typhoon 2000 is freeware and final; there will be no further versions.
 
 | Type | Extension | Paketti support |
 |------|-----------|-----------------|
-| Setup (whole machine state) | `.X##` | none |
-| Performance (multi-timbral) | `.P##` | none |
+| Setup (whole machine state) | `.X##` | export |
+| Performance (multi-timbral) | `.P##` | export |
 | Voice (instrument) | `.O##` | import + export |
 | Wave (DWVW audio) | `.C##` | import + export |
 | Filter table | `.T##` | decoded, not implemented |

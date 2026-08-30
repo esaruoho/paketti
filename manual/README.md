@@ -405,6 +405,16 @@ Extrabonus: Also with 64 slice drumkit support - meaning, Renoise can be used to
 
 Export samples to IFF format
 
+#### Export Song to Yamaha TX16W (setup + performance + voices)
+
+`Main Menu:File:Paketti Import:Export Song to Yamaha TX16W (setup + performance + voices)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats` and `Disk Browser:Paketti`; keybinding `Global:Paketti:Export Song to Yamaha TX16W`).
+
+Sends the whole song, not one instrument. Every instrument with samples becomes a voice, and on top of those you get a **performance** (`.P01`) putting each voice on its own MIDI channel, and a **setup** (`.X01`) which rebuilds the entire arrangement on the sampler in one load.
+
+Instruments take MIDI channels 1 to 16 in order. The sampler only has sixteen, so anything past the sixteenth still gets a voice and a program change number but no channel of its own. Every voice also gets a program change entry, so a single channel can step through the lot.
+
+The manifest lists the MIDI channel and program change number for each instrument alongside the disk contents, so you can see the whole layout at a glance. Load the `.X01` to get everything, or just the `.P01` for the multitimbral setup without clearing the machine.
+
 #### TX16W Modulation Table
 
 `Main Menu:File:Paketti Import:TX16W Modulation Table...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`; keybinding `Global:Paketti:TX16W Modulation Table`).
