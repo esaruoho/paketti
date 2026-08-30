@@ -421,6 +421,12 @@ The voice's references are matched to waves by Typhoon's own wave id first and b
 
 `Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Mappings:Paketti:Save`, `Instrument Box:Paketti:Save` and `Disk Browser:Paketti`; keybinding `Global:Paketti:Export Instrument to Yamaha TX16W`).
 
+A dialog opens first with the sample rate, how much RAM your TX16W has, and whether to mix to mono and keep the instrument's own key mapping. It tells you live how much of the sampler's memory the kit will need, and warns before you export if it will not fit - a kit can split across floppies perfectly and still be too big to load, because DWVW only shrinks the copy on the disk while the machine holds the decoded audio. There is a no-dialog version alongside it, `Export Instrument to Yamaha TX16W with Saved Settings...` (keybinding `Global:Paketti:Export Instrument to Yamaha TX16W with Saved Settings`).
+
+**Velocity layers are exported.** If your instrument has samples on different velocity ranges, each range becomes its own group in the voice file, which is how the TX16W does velocity switching - the velocity range lives on the group, not on the split. Instruments with one velocity range export as a single group exactly as before.
+
+Every export also writes a `KITNAME_DISKS.txt` manifest listing which sample landed on which disk, with the disk labels, so there is no guessing when the sampler asks for the next floppy. Disks follow the instrument's own order, so disk 1 holds the first samples.
+
 Takes the selected instrument and produces everything a TX16W running Typhoon needs to play it: one `.C01` wave per sample, one `.O01` voice file mapping them across the keyboard, and as many 720K floppy images as they take. Each disk gets its own name, and the voice records which diskette every wave landed on, so the sampler asks for the right floppy by name instead of just reporting something missing. The output folder is created if it does not exist yet. Pick a folder and you get `KITNAME_DISK1.img`, `KITNAME_DISK2.img` and so on, plus a `files` subfolder with the waves and voice loose if you would rather assemble a disk yourself.
 
 When it finishes, the folder opens in Finder so you can see what was written; the full path is also in the status bar and the scripting console.

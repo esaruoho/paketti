@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-30 - Feature: TX16W Export Gains Velocity Layers, a RAM Check, a Disk Manifest and a Dialog. Four things asked for by a TX16W owner using this workflow for real.
+
+Velocity-layered instruments now export properly. The TX16W carries the velocity range on the group rather than the split, so each distinct velocity range in your instrument becomes its own group in the voice file. This is how the factory library does it - the NOISEWAV voice on the Typhoon system disk is a velocity-gated layer at 90-127 - and it means a Renoise instrument with soft and hard layers arrives on the sampler as one. Instruments with a single velocity range export exactly as before.
+
+The export now opens a dialog with the sample rate, your TX16W's installed RAM, mono mixing and key mapping, and shows live how much sample memory the kit needs. It warns before writing if the kit will not fit. This matters because disk space and sample memory are different limits: a kit can split across floppies perfectly and still be too big to load, since DWVW only compresses the copy on the disk while the machine holds the decoded audio.
+
+Every export writes a `KITNAME_DISKS.txt` manifest listing which sample went on which disk, with the disk labels, so the prompt for the next floppy is no longer guesswork. Disks now follow the instrument's own order too, so disk 1 holds the first samples rather than whichever happened to be largest.
+
+- Menu: `Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...` now opens the dialog
+- Menu: `Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W with Saved Settings...`
+- Keybinding: `Global:Paketti:Export Instrument to Yamaha TX16W with Saved Settings`
+
 ### 2026-08-30 - Feature: Read TX16W Floppies Back Into Renoise. The mirror of the TX16W export - open a 720K disk image and every voice on it becomes an instrument with its key mapping intact.
 
 Point it at a TX16W disk image and Paketti reads the FAT12 filesystem, decodes every DWVW wave on it, and rebuilds each Typhoon voice as a Renoise instrument. Splits become key ranges exactly as Typhoon defines them - a split is stored by its first key and runs up to the key below the next one - and single-key splits get their root note centred so drums play at their recorded pitch. Waves no voice claims still arrive, one per key, in an instrument named after the diskette.

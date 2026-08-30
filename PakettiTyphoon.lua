@@ -124,11 +124,27 @@ end
 -- splits: array of { key = <first MIDI key>, name = <8.3 basename>, id = <4 bytes> },
 --         which must be sorted ascending by key.
 -- end_key: the key that closes the mapping (defaults to just past the last split).
-function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key)
-  assert(#splits > 0, "a voice needs at least one split")
+-- Builds one Grop chunk: the group's 64-byte parameter block, its 8 modulation
+-- entries, then its splits.
+--
+-- The first four bytes of the parameter block are the group's bottom key, top
+-- key, minimum velocity and maximum velocity. That holds for all 36 groups in
+-- the factory voices surveyed, and the one voice whose velocity range is not
+-- 0-127 is NOISEWAV, which the Typhoon release notes describe as playing "only
+-- at higher key velocities" -- it reads 90-127. Everything past byte 3 is left
+-- at the known-good defaults, because it has not been decoded.
+local function build_group(splits, range)
+  local parm = PakettiTyphoonDefaultParm
+  if range then
+    parm = string.char(
+      math.max(0, math.min(127, range.low_key or 0)),
+      math.max(0, math.min(127, range.high_key or 96)),
+      math.max(0, math.min(127, range.low_vel or 0)),
+      math.max(0, math.min(127, range.high_vel or 127))
+    ) .. parm:sub(5)
+  end
 
-  local parts = {}
-  parts[#parts + 1] = chunk("Parm", PakettiTyphoonDefaultParm)
+  local parts = { chunk("Parm", parm) }
   for _, m in ipairs(PakettiTyphoonDefaultMods) do
     parts[#parts + 1] = chunk("Mod ", m)
   end
@@ -146,11 +162,29 @@ function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key)
   end
 
   -- Terminator: a Parm with no Wave, closing the mapping.
-  local last = splits[#splits].key
-  local ek = end_key or math.min(127, last + 1)
+  local ek = (range and range.end_key) or math.min(127, splits[#splits].key + 1)
   parts[#parts + 1] = chunk("Splt", chunk("Parm", string.char(ek % 128) .. "\0"))
 
-  local body = "TYPV" .. chunk("VInf", stamp .. voiceid) .. chunk("Grop", table.concat(parts))
+  return chunk("Grop", table.concat(parts))
+end
+
+-- splits: a flat list (one group), or a list of { splits = {...}, range = {...} }
+-- when the voice needs several groups -- which is how velocity layers are done,
+-- since a group carries the velocity range and a split does not.
+function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key)
+  assert(#splits > 0, "a voice needs at least one split")
+
+  local groups = {}
+  if splits[1].splits then
+    for _, g in ipairs(splits) do
+      if #g.splits > 0 then groups[#groups + 1] = build_group(g.splits, g.range) end
+    end
+  else
+    groups[#groups + 1] = build_group(splits, end_key and {end_key = end_key} or nil)
+  end
+  assert(#groups > 0, "a voice needs at least one group")
+
+  local body = "TYPV" .. chunk("VInf", stamp .. voiceid) .. table.concat(groups)
   return "FORM" .. be(#body, 32) .. body
 end
 
@@ -290,7 +324,13 @@ function PakettiTyphoonPackDisks(files, reserve_entries)
     end
     total_clusters = total_clusters + need
   end
-  table.sort(order, function(a, b)
+  -- Largest-first packs tighter, but it scatters the kit: disk 1 ends up with
+  -- whichever samples happen to be biggest. Try the instrument's own order
+  -- first so disk 1 holds the first samples, and only fall back to
+  -- largest-first if that genuinely will not fit.
+  local by_size = {}
+  for i, f in ipairs(order) do by_size[i] = f end
+  table.sort(by_size, function(a, b)
     if #a.data ~= #b.data then return #a.data > #b.data end
     return a.name < b.name
   end)
@@ -303,8 +343,11 @@ function PakettiTyphoonPackDisks(files, reserve_entries)
 
   -- Try to lay the files out over exactly ndisks; if the size distribution
   -- defeats an even split, allow one more disk and try again.
-  for attempt = 0, 8 do
-    local n = ndisks + attempt
+  for attempt = 0, 17 do
+    -- Even attempts keep the kit's order; odd attempts retry the same disk
+    -- count packed largest-first.
+    local n = ndisks + floor(attempt / 2)
+    local source = (attempt % 2 == 0) and order or by_size
     local per_disk = math.ceil((#order + reserve_entries) / n)
     local disks = {}
     for i = 1, n do
@@ -312,7 +355,7 @@ function PakettiTyphoonPackDisks(files, reserve_entries)
                    reserve = (i == 1) and reserve_entries or 0 }
     end
     local ok = true
-    for _, f in ipairs(order) do
+    for _, f in ipairs(source) do
       local need = math.max(1, math.ceil(#f.data / PAKETTI_TYPHOON_CLUSTER))
       local home
       for _, d in ipairs(disks) do
@@ -330,7 +373,6 @@ function PakettiTyphoonPackDisks(files, reserve_entries)
       local out = {}
       for _, d in ipairs(disks) do
         if #d.files > 0 or (d.reserve or 0) > 0 then
-          table.sort(d.files, function(a, b) return a.name < b.name end)
           out[#out + 1] = d
         end
       end
@@ -375,6 +417,47 @@ local function write_file(path, data)
   f:close()
 end
 
+-- The TX16W measures its sample memory in 12-bit sample points: the Typhoon
+-- manual defines "one sample point is a 12-bit value, and the number of bytes
+-- is obtained by multiplying the value with 1.5". A stock machine has 1.5 MB
+-- and it takes up to 6 MB.
+PAKETTI_TX16W_RAM_OPTIONS = {
+  {label = "1.5 MB (stock)", points = 1048576},
+  {label = "3 MB",           points = 2097152},
+  {label = "4.5 MB",         points = 3145728},
+  {label = "6 MB (maximum)", points = 4194304},
+}
+
+function PakettiTyphoonInstalledPoints()
+  local ok, v = pcall(function() return preferences.pakettiTX16WSamplePoints.value end)
+  if ok and type(v) == "number" and v > 0 then return v end
+  return 1048576
+end
+
+function PakettiTyphoonPointsToBytes(points) return points * 1.5 end
+
+local function format_mb(points)
+  return string.format("%.1f MB", PakettiTyphoonPointsToBytes(points) / 1048576)
+end
+
+-- What an instrument will occupy in the sampler's RAM once loaded. DWVW only
+-- shrinks the copy on the floppy; the machine holds the decoded audio, so this
+-- is deliberately counted in uncompressed sample points.
+function PakettiTyphoonEstimatePoints(instrument, rate, force_mono)
+  local total = 0
+  for _, smp in ipairs(instrument.samples) do
+    local buf = smp.sample_buffer
+    if buf and buf.has_sample_data then
+      local frames = PakettiDWVWLoopLimit(smp, buf) or buf.number_of_frames
+      local out_rate = (rate and rate > 0) and rate or buf.sample_rate
+      frames = math.max(1, floor(frames / (buf.sample_rate / out_rate)))
+      local ch = (force_mono or buf.number_of_channels == 1) and 1 or buf.number_of_channels
+      total = total + frames * ch
+    end
+  end
+  return total
+end
+
 local typhoon_slicer = nil
 
 -- Turns the selected instrument into a .O01 voice plus one .C01 per sample,
@@ -401,6 +484,9 @@ local function typhoon_export_process(outdir, opts)
     local stamp = PakettiTyphoonNewStamp()
     local used, files, splits = {}, {}, {}
     local oversize = 0
+    -- Sample points the kit will occupy in the machine's RAM, counted
+    -- uncompressed because that is how the sampler holds it.
+    local total_points = 0
 
     for n, entry in ipairs(samples) do
       if slicer and slicer:was_cancelled() then error("cancelled") end
@@ -417,10 +503,11 @@ local function typhoon_export_process(outdir, opts)
         (smp.name ~= "" and smp.name or ("SAMPLE" .. n)), used)
       local waveid = PakettiTyphoonNewWaveId(stamp, dosname, n)
 
-      local channels, frames = PakettiDWVWBufferToChannels(
+      local channels, frames, nch = PakettiDWVWBufferToChannels(
         buffer, rate, opts.force_mono, opts.wordsize, 8192,
         PakettiDWVWLoopLimit(smp, buffer))
       if frames > PAKETTI_DWVW_MAX_FRAMES then oversize = oversize + 1 end
+      total_points = total_points + frames * nch
 
       local meta = PakettiDWVWSampleMeta(smp, buffer, frames)
       meta.appl = PakettiTyphoonWaveAppl(stamp, waveid)
@@ -431,19 +518,17 @@ local function typhoon_export_process(outdir, opts)
       -- otherwise the samples are laid out in order from the base key.
       local key = opts.base_key + n - 1
       if opts.use_mapping then key = smp.sample_mapping.note_range[1] end
+      local vr = smp.sample_mapping.velocity_range
       splits[#splits + 1] = { key = math.max(0, math.min(127, key)),
                               name = dosname:match("^[^%.]+"), id = waveid,
-                              file = dosname }
+                              file = dosname,
+                              low_vel = vr[1], high_vel = vr[2],
+                              note_range = smp.sample_mapping.note_range }
     end
 
-    table.sort(splits, function(a, b) return a.key < b.key end)
-    -- Typhoon keys a split by where it starts, so two samples cannot share one
-    -- key; nudge duplicates up rather than silently dropping them.
-    for i = 2, #splits do
-      if splits[i].key <= splits[i - 1].key then
-        splits[i].key = math.min(127, splits[i - 1].key + 1)
-      end
-    end
+    -- Sorting and key de-duplication happen per velocity layer further down:
+    -- two samples may legitimately share a key when they are on different
+    -- velocity layers, and nudging them apart here would break that.
 
     if dvb then dvb.views.progress_text.text = "Packing 720K disks..." end
     coroutine.yield()
@@ -465,12 +550,86 @@ local function typhoon_export_process(outdir, opts)
     if dvb then dvb.views.progress_text.text = "Building voice file..." end
     coroutine.yield()
 
+    -- The TX16W carries the velocity range on the GROUP, not the split, so a
+    -- velocity-layered instrument becomes one group per distinct range, each
+    -- holding the splits that live in it. Instruments with a single range
+    -- (the usual case) come out as one group exactly as before.
+    local layers, layer_order = {}, {}
+    for _, sp in ipairs(splits) do
+      local lo = math.max(0, math.min(127, sp.low_vel or 0))
+      local hi = math.max(lo, math.min(127, sp.high_vel or 127))
+      local tag = lo .. ":" .. hi
+      if not layers[tag] then
+        layers[tag] = { splits = {}, range = { low_vel = lo, high_vel = hi } }
+        layer_order[#layer_order + 1] = tag
+      end
+      local L = layers[tag].splits
+      L[#L + 1] = sp
+    end
+
+    local voice_groups = {}
+    for _, tag in ipairs(layer_order) do
+      local L = layers[tag]
+      table.sort(L.splits, function(a, b) return a.key < b.key end)
+      -- Keys must be distinct within a group; nudge collisions up.
+      for i = 2, #L.splits do
+        if L.splits[i].key <= L.splits[i - 1].key then
+          L.splits[i].key = math.min(127, L.splits[i - 1].key + 1)
+        end
+      end
+      -- The group only needs to respond across the keys it actually covers.
+      local lowk, highk = L.splits[1].key, 96
+      for _, sp in ipairs(L.splits) do
+        if sp.note_range and sp.note_range[2] then
+          highk = math.max(highk, math.min(127, sp.note_range[2]))
+        end
+      end
+      L.range.low_key = 0
+      L.range.high_key = math.max(highk, L.splits[#L.splits].key)
+      L.range.end_key = math.min(127, L.splits[#L.splits].key + 1)
+      voice_groups[#voice_groups + 1] = L
+    end
+
     local voicename = PakettiDWVWDosName(kitname, used, "O")
-    local voice = PakettiTyphoonBuildVoice(splits, stamp,
+    local voice = PakettiTyphoonBuildVoice(voice_groups, stamp,
       PakettiTyphoonNewWaveId(stamp, voicename, 0))
+    if #voice_groups > 1 then
+      print(string.format("PakettiTyphoon: %d velocity layer(s) -> %d group(s)",
+        #voice_groups, #voice_groups))
+    end
 
     -- The voice goes on disk 1, where the sampler will look for it first.
     table.insert(disks[1].files, 1, { name = voicename, data = voice })
+
+    -- What actually fits in the machine. DWVW shrinks the floppy copy only, so
+    -- a kit can span disks correctly and still be too big to load.
+    local installed = PakettiTyphoonInstalledPoints()
+    local ram_warning = nil
+    if total_points > installed then
+      ram_warning = string.format(
+        "needs %s of sample memory but the TX16W is set to %s - it will not all load",
+        format_mb(total_points), format_mb(installed))
+    end
+
+    -- A manifest, so there is no guessing when the sampler asks for a disk.
+    local manifest = {
+      string.format("%s - Yamaha TX16W export", kitname),
+      string.format("%d sample(s), %d disk(s)", #files, #disks),
+      string.format("Sample memory needed: %s of the %s installed%s",
+        format_mb(total_points), format_mb(installed),
+        ram_warning and "   *** TOO BIG ***" or ""),
+      "",
+      "Insert the disks in this order. The voice is on disk 1; the sampler",
+      "asks for the others by name as it needs them.",
+      "",
+    }
+    for i, d in ipairs(disks) do
+      manifest[#manifest + 1] = string.format("Disk %d  (label %s%d)", i, labelbase, i)
+      for _, f in ipairs(d.files) do
+        manifest[#manifest + 1] = string.format("    %-14s %8d bytes", f.name, #f.data)
+      end
+      manifest[#manifest + 1] = ""
+    end
 
     local written = {}
     if opts.write_images then
@@ -485,6 +644,10 @@ local function typhoon_export_process(outdir, opts)
       end
     end
 
+    local manifest_name = string.format("%s_DISKS.txt", labelbase)
+    write_file(join(outdir, manifest_name), table.concat(manifest, "\n") .. "\n")
+    written[#written + 1] = manifest_name
+
     if opts.write_loose then
       local loose = join(outdir, "files")
       ensure_dir(loose)
@@ -497,6 +660,9 @@ local function typhoon_export_process(outdir, opts)
       kitname, #files, voicename, #disks, outdir,
       (#disks > 1) and " (the voice is on disk 1; the sampler will ask for the others)" or "",
       (oversize > 0) and string.format(", %d too long for the sampler", oversize) or "")
+    if ram_warning then
+      msg = msg .. " - WARNING: " .. ram_warning
+    end
     PakettiTyphoonLastStatus = msg
     renoise.app():show_status(msg)
     print(msg)
@@ -554,6 +720,135 @@ function PakettiTyphoonExportDrumkit(outdir, opts)
   typhoon_slicer = ProcessSlicer(function() typhoon_export_process(outdir, resolved) end)
   typhoon_slicer:start()
   return true
+end
+
+--------------------------------------------------------------------------------
+-- Export dialog
+--------------------------------------------------------------------------------
+
+local typhoon_export_dialog = nil
+
+function PakettiTyphoonExportDialog()
+  if typhoon_export_dialog and typhoon_export_dialog.visible then
+    typhoon_export_dialog:close()
+    typhoon_export_dialog = nil
+    return
+  end
+
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("Paketti TX16W: the selected instrument has no samples")
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+
+  local rates = {"33333 Hz (TX16W standard)", "50000 Hz (TX16W high rate)",
+                 "25000 Hz (TX16W mid rate)", "16666 Hz (TX16W low rate)",
+                 "Keep each sample's own rate (no resampling)"}
+  local rate_values = {33333, 50000, 25000, 16666, 0}
+  local rate_index = 1
+  for i, r in ipairs(rate_values) do
+    if r == PakettiDWVWTargetRate() then rate_index = i end
+  end
+
+  local ram_labels = {}
+  local ram_index = 1
+  for i, o in ipairs(PAKETTI_TX16W_RAM_OPTIONS) do
+    ram_labels[i] = o.label
+    if o.points == PakettiTyphoonInstalledPoints() then ram_index = i end
+  end
+
+  local force_mono = PakettiDWVWForceMono()
+  local use_mapping = false
+
+  -- Recomputed whenever a setting that changes the size is touched, so the fit
+  -- is visible before anything is written rather than discovered afterwards.
+  local function refresh()
+    local rate = rate_values[vb.views.tx_rate.value]
+    local points = PakettiTyphoonEstimatePoints(
+      song.selected_instrument, rate, vb.views.tx_mono.value)
+    local installed = PAKETTI_TX16W_RAM_OPTIONS[vb.views.tx_ram.value].points
+    local mb = PakettiTyphoonPointsToBytes(points) / 1048576
+    local imb = PakettiTyphoonPointsToBytes(installed) / 1048576
+    vb.views.tx_fit.text = string.format(
+      "%d samples need %.2f MB of the %.1f MB installed  (%d%%)%s",
+      #song.selected_instrument.samples, mb, imb,
+      math.floor(points / installed * 100 + 0.5),
+      (points > installed) and "   -- TOO BIG, it will not all load" or "")
+    vb.views.tx_fit.style = (points > installed) and "strong" or "normal"
+  end
+
+  local content = vb:column{
+    margin = 10, spacing = 6,
+    vb:text{text = "Export \"" .. instrument.name .. "\" to a Yamaha TX16W running Typhoon",
+            font = "bold"},
+
+    vb:row{
+      vb:text{text = "Sample rate", width = 110},
+      vb:popup{id = "tx_rate", items = rates, value = rate_index, width = 260,
+               notifier = function() refresh() end},
+    },
+    vb:row{
+      vb:text{text = "Installed RAM", width = 110},
+      vb:popup{id = "tx_ram", items = ram_labels, value = ram_index, width = 260,
+               notifier = function() refresh() end},
+    },
+    vb:row{
+      vb:text{text = "", width = 110},
+      vb:checkbox{id = "tx_mono", value = force_mono,
+                  notifier = function() refresh() end},
+      vb:text{text = "Mix to mono (the TX16W is a mono sampler)"},
+    },
+    vb:row{
+      vb:text{text = "", width = 110},
+      vb:checkbox{id = "tx_mapping", value = use_mapping},
+      vb:text{text = "Keep the instrument's own key mapping (otherwise one sample per key from C-2)"},
+    },
+
+    vb:space{height = 4},
+    vb:text{id = "tx_fit", text = "", width = 480},
+    vb:space{height = 4},
+
+    vb:row{
+      spacing = 6,
+      vb:button{
+        text = "Export...", width = 100,
+        notifier = function()
+          local rate = rate_values[vb.views.tx_rate.value]
+          local ram = PAKETTI_TX16W_RAM_OPTIONS[vb.views.tx_ram.value].points
+          preferences.pakettiDWVWSampleRate.value = rate
+          preferences.pakettiDWVWForceMono.value = vb.views.tx_mono.value
+          preferences.pakettiTX16WSamplePoints.value = ram
+          preferences:save_as("preferences.xml")
+          local opts = {
+            rate = rate,
+            force_mono = vb.views.tx_mono.value,
+            use_mapping = vb.views.tx_mapping.value,
+          }
+          if typhoon_export_dialog and typhoon_export_dialog.visible then
+            typhoon_export_dialog:close()
+            typhoon_export_dialog = nil
+          end
+          PakettiTyphoonExportDrumkit(nil, opts)
+        end,
+      },
+      vb:button{
+        text = "Cancel", width = 80,
+        notifier = function()
+          if typhoon_export_dialog and typhoon_export_dialog.visible then
+            typhoon_export_dialog:close()
+            typhoon_export_dialog = nil
+          end
+        end,
+      },
+    },
+  }
+
+  typhoon_export_dialog = renoise.app():show_custom_dialog(
+    "Export to Yamaha TX16W", content, my_keyhandler_func)
+  refresh()
 end
 
 --------------------------------------------------------------------------------
@@ -1014,15 +1309,21 @@ end
 -- Registration
 --------------------------------------------------------------------------------
 
-PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDrumkit() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDrumkit() end}
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDrumkit() end}
-PakettiAddMenuEntry{name = "Sample Mappings:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDrumkit() end}
-PakettiAddMenuEntry{name = "Instrument Box:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDrumkit() end}
-PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDrumkit() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
+PakettiAddMenuEntry{name = "Sample Mappings:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 
-renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha TX16W", invoke = function() PakettiTyphoonExportDrumkit() end}
-renoise.tool():add_midi_mapping{name = "Paketti:Export Instrument to Yamaha TX16W", invoke = function(message) if message:is_trigger() then PakettiTyphoonExportDrumkit() end end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha TX16W", invoke = function() PakettiTyphoonExportDialog() end}
+renoise.tool():add_midi_mapping{name = "Paketti:Export Instrument to Yamaha TX16W", invoke = function(message) if message:is_trigger() then PakettiTyphoonExportDialog() end end}
+
+-- The no-dialog variant, for when the settings are already right.
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W with Saved Settings...", invoke = function() PakettiTyphoonExportDrumkit() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W with Saved Settings...", invoke = function() PakettiTyphoonExportDrumkit() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha TX16W with Saved Settings", invoke = function() PakettiTyphoonExportDrumkit() end}
+
 
 --------------------------------------------------------------------------------
 -- Import registration

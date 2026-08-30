@@ -156,7 +156,35 @@ velocity range, and either a single wave or a run of splits. Splits are defined
 by their *first key* only — consecutive, and the first split has no split point.
 The largest split count in the surveyed corpus is 42.
 
-## Group parameters (`Parm`, 64 bytes) — from the manual, byte layout NOT yet mapped
+## Group parameters (`Parm`, 64 bytes) — bytes 0–3 decoded
+
+```
+byte 0   bottom key       0-127
+byte 1   top key          0-127
+byte 2   minimum velocity 0-127
+byte 3   maximum velocity 0-127
+byte 4-63  not yet mapped
+```
+
+Confirmed across all 36 groups in the factory voices (the eight on the Typhoon
+2000 system disk plus `TR_808.O01`): every one satisfies
+`low <= high <= 127` on both pairs. The decisive check is that exactly one voice
+has a velocity range other than 0–127 — `NOISEWAV.O01`, two groups at 90–127 —
+and the Typhoon release notes describe the NEW_AGE performance as one where
+"NOISEWAV only plays at higher key velocities."
+
+**This is why velocity layers are groups.** A split carries only a first key; the
+velocity range lives on the group. A velocity-layered instrument is therefore N
+groups with overlapping key ranges and stacked velocity ranges.
+
+Bytes 4–6 look like pitch (byte 5 varies as a small signed value across the four
+detuned groups of `UNISON.O01`, which is exactly what a unison patch does, and
+byte 4 carries large signed values on the tuned `DRUMKIT` groups), and byte 9 is
+0x60 = 96 on every group surveyed, consistent with a volume default. None of
+that is confirmed, so the exporter leaves bytes 4–63 at the values taken from a
+known-good factory voice.
+
+## Group parameters — what the pages mean (from the manual)
 
 13 parameter pages per group:
 

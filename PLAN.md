@@ -123,8 +123,11 @@ tech: map the 64-byte Grop Parm block; AEG from AHDSR, key scaling, one-shot, pa
 files: [PakettiTyphoon.lua]
 links: [tx16w-modmatrix, tx16w-velocity]
 
-- [ ] Work out the 64-byte group parameter layout {#parm-layout}
+- [~] Work out the 64-byte group parameter layout {#parm-layout}
+  by: claude
   from: agent
+  note: bytes 0-3 confirmed (low key, high key, low velocity, high velocity)
+  across all 36 factory groups; bytes 4-63 still unmapped
 - [ ] Carry Renoise envelopes and volume into the exported voice {#aeg-mapping}
   from: agent
 - [ ] Pick the filter model per export instead of always inheriting one {#filter-choice}
@@ -147,9 +150,11 @@ tech: RAM budget from uncompressed frames, manifest writer, disk labelling
 files: [PakettiTyphoon.lua]
 needs: [tx16w-export]
 
-- [ ] Warn before export when a kit will not fit the sampler's RAM {#ram-check}
+- [x] Warn before export when a kit will not fit the sampler's RAM {#ram-check}
+  by: claude
   from: roadmap
-- [ ] Write a text list of what landed on which disk {#disk-manifest}
+- [x] Write a text list of what landed on which disk {#disk-manifest}
+  by: claude
   from: roadmap
 
 ## Bake the controller setup into exported voices {#tx16w-modmatrix}
@@ -167,7 +172,8 @@ tech: one Grop per velocity layer with stacked Min/Max, splits within each
 files: [PakettiTyphoon.lua]
 needs: [tx16w-voice-params]
 
-- [ ] Turn Renoise velocity layers into TX16W groups {#velocity-groups}
+- [x] Turn Renoise velocity layers into TX16W groups {#velocity-groups}
+  by: claude
   from: roadmap
 
 ## decisions

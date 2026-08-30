@@ -425,6 +425,11 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiDWVWSampleRate = 33333,     -- TX16W standard sample rate
   pakettiDWVWWordSize = 12,          -- TX16W native bit depth
   pakettiDWVWForceMono = true,       -- TX16W is a mono sampler
+  -- Installed TX16W sample memory, in 12-bit sample points. The machine ships
+  -- with 1.5 MB and takes up to 6 MB; the Typhoon manual defines the unit as
+  -- "one sample point is a 12-bit value, bytes = points * 1.5". Stock is the
+  -- safe default, so the export warns rather than surprising anyone.
+  pakettiTX16WSamplePoints = 1048576,
   -- Quick Sample to New Track Settings
   pakettiQuickSampleTrackVolume = true,  -- Set new track volume to -30dB for safe recording levels
   -- (Overdub Pattern Sync is deliberately NOT a preference — every Paketti
