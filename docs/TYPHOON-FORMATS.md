@@ -15,7 +15,7 @@ Typhoon 2000 is freeware and final; there will be no further versions.
 | Performance (multi-timbral) | `.P##` | export |
 | Voice (instrument) | `.O##` | import + export |
 | Wave (DWVW audio) | `.C##` | import + export |
-| Filter table | `.T##` | decoded, not implemented |
+| Filter table | `.T##` | export |
 | AIFF (uncompressed) | `.A##` | none |
 | Yamaha OS waves | `.W##` | none |
 | System files | `.SYS` | n/a |
@@ -113,18 +113,37 @@ Wave  20   × n   /
 4096 bytes exactly:
 
 ```
-   0..15    "LM8953" + 10 NUL       (the TX16W's filter chip)
-  16..3887  121 kernels × 32 bytes  = an 11 × 11 grid
-3888..3903  two 8-char axis names, e.g. "freq    " "  reson "
-3904..4095  192 bytes, zero on LOWPASS.T17
+   0..15    "LM8953" + 10 NUL        (the TX16W's filter chip)
+  16..3887  121 kernels × 32 bytes   = an 11 × 11 grid
+3888..3897  axis 1 name, 10 bytes, space padded  ("freq")
+3898..3907  axis 2 name, 10 bytes, space padded  ("reson" / "level" / "slope")
+3908..4095  188 bytes; zero in LOWPASS.T17, while the sixteen older tables
+            repeat the two axis names again at 4064
 ```
 
-Each kernel is **16 taps of 12-bit signed big-endian** coefficients. The 11 × 11
-grid is the manual's filter matrix: both axes run 0–100 in steps of 10, which is
-why the manual says only multiples of 10 are allowed on the static axis. Row and
-column 10 duplicate row/column 9 (clamped endpoint).
+**Verified**: feeding a factory table's own kernels and axis names back through
+Paketti's writer reproduces `LOWPASS.T17` byte for byte, all 4096 of them.
 
-DC gain across the grid varies smoothly, confirming the row stride of 11.
+Each 16-word kernel is **one gain word followed by 15 FIR taps**, all
+big-endian:
+
+```
+word 0     gain / scale
+word 1-15  filter taps, 12-bit signed two's complement
+```
+
+The split is decisive rather than inferred: across all 17 factory tables,
+**every one of the 30,855 taps in words 1–15 fits in 12-bit signed** (max
+magnitude 1822), while word 0 reaches 14,334 — far outside that range. Word 0
+also clusters into bands at roughly 1025–1041, 6133–6139, 10203–10227 and
+14294–14334, i.e. a small exponent in the high bits over a normalised mantissa,
+which is what a gain field looks like. `LOWPASS.T17`, the table Typhoon 2000
+added, is the exception that stays in 150–2047.
+
+The 11 × 11 grid is the manual's filter matrix: both axes run 0–100 in steps of
+10, which is why the manual says only multiples of 10 are allowed on the static
+axis. Row and column 10 duplicate row/column 9 (clamped endpoint), and DC gain
+varies smoothly across the grid, confirming the row stride of 11.
 
 Axis name pairs seen: `freq`/`level` (Q filters), `freq`/`slope` (slope
 filters), `freq`/`reson` (LOWPASS.T17, new in Typhoon 2000).

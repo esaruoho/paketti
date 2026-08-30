@@ -148,7 +148,8 @@ tech: .T## writer, LM8953 header, 11x11 grid of 16-tap 12-bit signed FIR kernels
 files: [PakettiTyphoon.lua]
 links: [tx16w-voice-params]
 
-- [ ] Write a filter table the sampler accepts {#t-table-writer}
+- [x] Write a filter table the sampler accepts {#t-table-writer}
+  by: claude
   from: agent
 - [ ] Design filter curves on a canvas and export them {#filter-canvas}
   from: roadmap

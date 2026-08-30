@@ -415,6 +415,18 @@ Instruments take MIDI channels 1 to 16 in order. The sampler only has sixteen, s
 
 The manifest lists the MIDI channel and program change number for each instrument alongside the disk contents, so you can see the whole layout at a glance. Load the `.X01` to get everything, or just the `.P01` for the multitimbral setup without clearing the machine.
 
+#### Create TX16W Filter Table (.T18)
+
+`Main Menu:File:Paketti Import:Create TX16W Filter Table (.T18)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`; keybinding `Global:Paketti:Create TX16W Filter Table`).
+
+Writes a new filter for the sampler. The TX16W holds twenty filter tables and ships with seventeen, so slots 18, 19 and 20 are free - nobody has made a new one for it since 2000.
+
+Choose a shape - low pass, high pass, band pass or notch - and a slot, and you get a `.T18` file. Put it on a disk alongside your kit and pick it as the group's filter in the export dialog.
+
+Each table is an 11 by 11 grid of filter responses: one axis is cutoff, the other is resonance (or level for the band pass and notch), which is exactly the matrix the sampler's own filter page shows you.
+
+The file's structure is verified - feeding a factory table's own coefficients back through this writer reproduces it byte for byte, all 4096 of them - but how these filters sound on real hardware has not been tested, because the machine has not been in the loop. Treat the first one you make as an experiment.
+
 #### TX16W Modulation Table
 
 `Main Menu:File:Paketti Import:TX16W Modulation Table...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`; keybinding `Global:Paketti:TX16W Modulation Table`).

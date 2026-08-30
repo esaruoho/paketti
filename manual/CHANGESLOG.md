@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-30 - Feature: Make Your Own TX16W Filters. The sampler holds twenty filter tables and ships with seventeen, so three slots have been empty since 2000.
+
+The `.T##` filter table format is decoded and Paketti can now write one. Choose low pass, high pass, band pass or notch and a free slot, and you get a file to put on a disk alongside your kit and assign as the group's filter.
+
+Each table is an 11 by 11 grid of filter responses - one axis cutoff, the other resonance or level - which is the matrix the sampler's own filter page shows. Behind it, each cell is a gain word and fifteen filter coefficients.
+
+The structure is verified about as hard as it can be without the hardware: feeding a factory table's own coefficients back through this writer reproduces `LOWPASS.T17` byte for byte, all 4096 of them, and every generated table was checked for correct frequency response across the cutoff range. How the results *sound* on a real TX16W is untested, and the dialog says so.
+
+- Menu: `Main Menu:File:Paketti Import:Create TX16W Filter Table (.T18)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Create TX16W Filter Table (.T18)...`
+- Keybinding: `Global:Paketti:Create TX16W Filter Table`
+
 ### 2026-08-30 - Feature: Export a Whole Song to the TX16W. Every instrument becomes a voice, plus a performance and a setup file that rebuild the arrangement on the sampler in one load.
 
 Two more of Typhoon's file formats are now written. A **performance** (`.P01`) is the multitimbral layer: it puts each voice on its own MIDI channel with a volume and transposition, and carries a program change table. A **setup** (`.X01`) is the whole machine - load one and the sampler clears itself and rebuilds every performance, voice and wave the song needs.

@@ -375,6 +375,190 @@ function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key)
 end
 
 --------------------------------------------------------------------------------
+-- Filter tables (.T##)
+--------------------------------------------------------------------------------
+
+-- 4096 bytes exactly:
+--     0..15    "LM8953" + 10 NUL   (the TX16W's filter chip)
+--    16..3887  121 kernels x 32 bytes, an 11 x 11 grid
+--  3888..3903  two 8-character axis names
+--  3904..4095  192 bytes, zero
+--
+-- Each 16-word kernel is one gain word followed by 15 FIR taps, big-endian.
+-- That split is measured, not guessed: across the 17 factory tables every one
+-- of the 30,855 taps in words 1-15 fits in 12-bit signed, while word 0 reaches
+-- 14334.
+--
+-- The grid axes both run 0-100 in steps of 10, which is why the manual allows
+-- only multiples of 10 on the static axis. Row and column 10 repeat row and
+-- column 9.
+PAKETTI_TYPHOON_FILTER_SIZE = 4096
+PAKETTI_TYPHOON_FILTER_GRID = 11
+PAKETTI_TYPHOON_FILTER_TAPS = 15
+
+-- Axis names are 10 bytes each, space padded, back to back at 3888.
+PAKETTI_TYPHOON_FILTER_AXIS_LEN = 10
+
+local function filter_name_field(name)
+  name = tostring(name or ""):sub(1, PAKETTI_TYPHOON_FILTER_AXIS_LEN)
+  return name .. string.rep(" ", PAKETTI_TYPHOON_FILTER_AXIS_LEN - #name)
+end
+
+-- kernels[i] is a list of 15 taps plus a gain, as { gain = n, taps = {...} },
+-- indexed 1..121 in row-major order (row = static axis, column = dynamic axis).
+function PakettiTyphoonBuildFilterTable(kernels, axis1, axis2)
+  local n = PAKETTI_TYPHOON_FILTER_GRID * PAKETTI_TYPHOON_FILTER_GRID
+  assert(#kernels == n, string.format("a filter table needs %d kernels, got %d", n, #kernels))
+
+  local parts = { "LM8953" .. string.rep("\000", 10) }
+  for k = 1, n do
+    local kern = kernels[k]
+    parts[#parts + 1] = be(math.max(0, math.min(65535, floor(kern.gain or 1024))), 16)
+    for t = 1, PAKETTI_TYPHOON_FILTER_TAPS do
+      -- Taps are 12-bit signed two's complement in a 16-bit word.
+      local v = floor((kern.taps[t] or 0) + 0.5)
+      v = math.max(-2048, math.min(2047, v))
+      if v < 0 then v = v + 4096 end
+      parts[#parts + 1] = be(v, 16)
+    end
+  end
+  parts[#parts + 1] = filter_name_field(axis1 or "freq")
+  parts[#parts + 1] = filter_name_field(axis2 or "reson")
+  -- The nine older factory tables repeat the axis names again at 4064. The one
+  -- Typhoon 2000 wrote, LOWPASS.T17, leaves that area zero, so we do too.
+  parts[#parts + 1] = string.rep("\000", 188)
+
+  local data = table.concat(parts)
+  assert(#data == PAKETTI_TYPHOON_FILTER_SIZE,
+    string.format("filter table came out %d bytes, not %d", #data, PAKETTI_TYPHOON_FILTER_SIZE))
+  return data
+end
+
+-- Designs one 15-tap linear-phase FIR. cut and res both run 0..1.
+-- kind is "lowpass", "highpass", "bandpass" or "notch".
+local function design_kernel(kind, cut, res)
+  local N = PAKETTI_TYPHOON_FILTER_TAPS
+  local mid = (N - 1) / 2
+  -- Keep away from 0 and Nyquist, where a 15-tap FIR degenerates.
+  local fc = 0.03 + cut * 0.44
+  local taps = {}
+
+  local function sinc(x)
+    if math.abs(x) < 1e-9 then return 1 end
+    return math.sin(math.pi * x) / (math.pi * x)
+  end
+
+  for i = 0, N - 1 do
+    local d = i - mid
+    -- Hamming window: a 15-tap rectangular design ripples badly.
+    local w = 0.54 - 0.46 * math.cos(2 * math.pi * i / (N - 1))
+    local h
+    if kind == "highpass" then
+      h = (sinc(d) - 2 * fc * sinc(2 * fc * d)) * w
+    elseif kind == "bandpass" then
+      local lo, hi = fc * 0.6, math.min(0.49, fc * 1.6)
+      h = (2 * hi * sinc(2 * hi * d) - 2 * lo * sinc(2 * lo * d)) * w
+    elseif kind == "notch" then
+      local lo, hi = fc * 0.6, math.min(0.49, fc * 1.6)
+      h = (sinc(d) - (2 * hi * sinc(2 * hi * d) - 2 * lo * sinc(2 * lo * d))) * w
+    else
+      h = 2 * fc * sinc(2 * fc * d) * w
+    end
+    -- Resonance: emphasise the cutoff band by adding a windowed cosine at fc.
+    -- A 15-tap FIR cannot really resonate, so this is a peak, not a howl.
+    h = h + res * 0.9 * math.cos(2 * math.pi * fc * d) * w / N
+    taps[i + 1] = h
+  end
+
+  -- Scale into the range the factory tables actually use. LOWPASS.T17, the
+  -- newest and cleanest table, peaks at 1822; staying under 1600 keeps a
+  -- margin and never clips the 12-bit field.
+  local peak = 0
+  for _, v in ipairs(taps) do peak = math.max(peak, math.abs(v)) end
+  if peak < 1e-9 then peak = 1 end
+  local scale = 1500 / peak
+  local out, dc = {}, 0
+  for i, v in ipairs(taps) do
+    out[i] = v * scale
+    dc = dc + out[i]
+  end
+  -- Word 0 tracks the peak tap, as it does in LOWPASS.T17, and stays inside
+  -- the 150..2047 band that table uses.
+  local gain = math.max(150, math.min(2047, floor(math.abs(dc) + 0.5)))
+  return { gain = gain, taps = out }
+end
+
+-- Builds a whole 11 x 11 table. The dynamic axis is cutoff, the static axis is
+-- resonance (or level for the non-resonant shapes), matching how the factory
+-- tables name their axes.
+function PakettiTyphoonDesignFilterTable(kind)
+  local kernels = {}
+  local G = PAKETTI_TYPHOON_FILTER_GRID
+  for row = 0, G - 1 do
+    for col = 0, G - 1 do
+      -- Row and column 10 repeat 9, exactly as the factory tables do.
+      local r = math.min(row, G - 2) / (G - 2)
+      local c = math.min(col, G - 2) / (G - 2)
+      kernels[#kernels + 1] = design_kernel(kind, c, r)
+    end
+  end
+  local axis2 = (kind == "lowpass" or kind == "highpass") and "reson" or "level"
+  return PakettiTyphoonBuildFilterTable(kernels, "freq", axis2)
+end
+
+function PakettiTyphoonExportFilterTable()
+  local kinds = {"lowpass", "highpass", "bandpass", "notch"}
+  local labels = {"Low pass", "High pass", "Band pass", "Notch"}
+  local vb = renoise.ViewBuilder()
+  local dlg
+  local content = vb:column{
+    margin = 10, spacing = 6,
+    vb:text{text = "Create a TX16W filter table (.T18)", font = "bold"},
+    vb:text{text = "The sampler holds twenty filter tables and ships with seventeen, so 18, 19\n"
+                .. "and 20 are free. Put the file on a disk with your kit and assign it as the\n"
+                .. "group's filter."},
+    vb:row{
+      vb:text{text = "Shape", width = 60},
+      vb:popup{id = "ft_kind", items = labels, value = 1, width = 200},
+    },
+    vb:row{
+      vb:text{text = "Slot", width = 60},
+      vb:popup{id = "ft_slot", items = {"18", "19", "20"}, value = 1, width = 200},
+    },
+    vb:text{text = "Untested on real hardware. The file's structure is verified against the\n"
+                .. "seventeen factory tables, but how it sounds on a TX16W is not known."},
+    vb:row{
+      spacing = 6,
+      vb:button{text = "Write...", width = 100, notifier = function()
+        local kind = kinds[vb.views.ft_kind.value]
+        local slot = ({"18", "19", "20"})[vb.views.ft_slot.value]
+        local path = renoise.app():prompt_for_filename_to_write(
+          "T" .. slot, "Save the filter table as")
+        if not path or path == "" then return end
+        if not path:upper():match("%.T%d%d$") then
+          path = path:gsub("%.[^%.]*$", "") .. ".T" .. slot
+        end
+        local ok, err = pcall(function()
+          write_file(path, PakettiTyphoonDesignFilterTable(kind))
+        end)
+        if ok then
+          renoise.app():show_status("Paketti TX16W: wrote " .. path)
+          print("PakettiTyphoon: wrote filter table " .. path)
+          pcall(function() renoise.app():open_path(path:match("^(.*)[/\\][^/\\]*$")) end)
+        else
+          renoise.app():show_status("Paketti TX16W: could not write the filter table: " .. tostring(err))
+        end
+        if dlg and dlg.visible then dlg:close() end
+      end},
+      vb:button{text = "Cancel", width = 80, notifier = function()
+        if dlg and dlg.visible then dlg:close() end
+      end},
+    },
+  }
+  dlg = renoise.app():show_custom_dialog("TX16W Filter Table", content, my_keyhandler_func)
+end
+
+--------------------------------------------------------------------------------
 -- Performances (.P##) and setups (.X##)
 --------------------------------------------------------------------------------
 
@@ -2013,6 +2197,10 @@ PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export Song to Yamaha 
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
 PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Song to Yamaha TX16W", invoke = function() PakettiTyphoonExportSong() end}
+
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Create TX16W Filter Table (.T18)...", invoke = function() PakettiTyphoonExportFilterTable() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Create TX16W Filter Table (.T18)...", invoke = function() PakettiTyphoonExportFilterTable() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Create TX16W Filter Table", invoke = function() PakettiTyphoonExportFilterTable() end}
 renoise.tool():add_midi_mapping{name = "Paketti:Export Song to Yamaha TX16W", invoke = function(message) if message:is_trigger() then PakettiTyphoonExportSong() end end}
 
 
