@@ -405,6 +405,18 @@ Extrabonus: Also with 64 slice drumkit support - meaning, Renoise can be used to
 
 Export samples to IFF format
 
+#### TX16W Modulation Table
+
+`Main Menu:File:Paketti Import:TX16W Modulation Table...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`; keybinding `Global:Paketti:TX16W Modulation Table`).
+
+Sets the eight-entry modulation table that gets written into every voice you export, so the routing is already there when the kit loads instead of being typed in on the sampler's own screen for each voice. Each entry is a source, a destination, an amount and a Hold flag which freezes the source's value at key down. The two amount boxes are semitones and cents when the destination is Pitch.
+
+Sources: Velocity, Velocity in range, Key, Key in range, Mod wheel, Pitch bend, Pitch bend held keys, External controller 1 and 2, Aftertouch, External input, LFO 1 and 2, Envelope 1 and 2. Destinations: Pitch, Volume, Filter, Pan, AEG attack, AEG time, Glide time, LFO 1 and 2 depth, LFO 1 and 2 rate, Envelope 1 and 2 depth.
+
+Two things worth knowing about the hardware. External controller 1 and 2 are the machine's only free MIDI CC slots, and which CC each one listens to is set on the sampler under `System Setup > X-Cntls`, not per voice - so routing a particular CC to the filter means pointing XCtl1 at that CC once on the machine, then routing `External controller 1` to `Filter` here. And a group has only one modulatable filter axis, chosen on the sampler as `D-Axis`, so cutoff and resonance cannot both be modulated on the same group.
+
+`Restore factory routing` puts back the table the Typhoon factory voices use.
+
 #### Import TX16W Disk Image / Typhoon Voice / TX16W Folder
 
 `Main Menu:File:Paketti Import:Import TX16W Disk Image (.img)...`, `...Import Typhoon Voice (.O01)...` and `...Import TX16W Folder (.O01 + .C01)...` (all three also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Instrument Box:Paketti:Load` and `Disk Browser Files:Paketti:Import/Export`; keybindings `Global:Paketti:Import TX16W Disk Image`, `Global:Paketti:Import Typhoon Voice`, `Global:Paketti:Import TX16W Folder`).

@@ -102,6 +102,77 @@ PakettiTyphoonDefaultParm =
   "\003\255\000\127\255\000\000\205\000\127\127\127\000\061\000\000" ..
   "\000\061\127\000\127\000\000\000\000\004\000\000\000\000\127\000"
 
+-- The modulation table, decoded from the factory voices. Each Mod chunk is six
+-- bytes: source, destination, freeze, 0x0F, then the amount.
+--
+--   byte 0  source index, 0-based (0-14, the 15 sources below)
+--   byte 1  destination index, 0-based (0-12, the 13 destinations below)
+--   byte 2  freeze flag: take the source's value at key-down and hold it
+--   byte 3  always 0x0F in all 288 chunks surveyed
+--   byte 4  amount; semitones when the destination is Pitch
+--   byte 5  amount, low part; cents when the destination is Pitch
+--
+-- The 0-based reading is confirmed by the first entry of nearly every factory
+-- voice being source 5 / destination 0 = pitch bend to pitch shifter, which is
+-- also the only modulation the Typhoon import routine converts from the Yamaha
+-- OS. All 288 chunks have byte 0 <= 14 and byte 1 <= 9.
+PakettiTyphoonModSources = {
+  "Velocity", "Velocity in range", "Key", "Key in range", "Mod wheel",
+  "Pitch bend", "Pitch bend, held keys", "External controller 1",
+  "External controller 2", "Aftertouch", "External input (front panel)",
+  "LFO 1", "LFO 2", "Envelope 1", "Envelope 2",
+}
+
+PakettiTyphoonModDestinations = {
+  "Pitch", "Volume", "Filter", "Pan", "AEG attack", "AEG time",
+  "Glide time", "LFO 1 depth", "LFO 2 depth", "LFO 1 rate", "LFO 2 rate",
+  "Envelope 1 depth", "Envelope 2 depth",
+}
+
+PAKETTI_TYPHOON_MOD_ENTRIES = 8
+
+-- "src:dst:frz:a:b,..." -> a list of 6-byte Mod chunk bodies.
+function PakettiTyphoonParseModMatrix(str)
+  local mods = {}
+  for entry in tostring(str or ""):gmatch("[^,]+") do
+    local src, dst, frz, a, b = entry:match(
+      "^%s*(%-?%d+):(%-?%d+):(%-?%d+):(%-?%d+):(%-?%d+)%s*$")
+    if src then
+      local function clamp(v, hi) return math.max(0, math.min(hi, tonumber(v) or 0)) end
+      mods[#mods + 1] = string.char(
+        clamp(src, #PakettiTyphoonModSources - 1),
+        clamp(dst, #PakettiTyphoonModDestinations - 1),
+        clamp(frz, 1), 15, clamp(a, 255), clamp(b, 255))
+    end
+    if #mods >= PAKETTI_TYPHOON_MOD_ENTRIES then break end
+  end
+  return mods
+end
+
+function PakettiTyphoonFormatModMatrix(mods)
+  local out = {}
+  for _, m in ipairs(mods) do
+    out[#out + 1] = string.format("%d:%d:%d:%d:%d",
+      m:byte(1), m:byte(2), m:byte(3), m:byte(5), m:byte(6))
+  end
+  return table.concat(out, ",")
+end
+
+-- The routing written into exported voices. Falls back to the factory table.
+function PakettiTyphoonModMatrix()
+  local ok, v = pcall(function() return preferences.pakettiTX16WModMatrix.value end)
+  if ok and type(v) == "string" and v ~= "" then
+    local mods = PakettiTyphoonParseModMatrix(v)
+    if #mods > 0 then
+      while #mods < PAKETTI_TYPHOON_MOD_ENTRIES do
+        mods[#mods + 1] = string.char(0, 0, 0, 15, 0, 0)
+      end
+      return mods
+    end
+  end
+  return PakettiTyphoonDefaultMods
+end
+
 PakettiTyphoonDefaultMods = {
   "\005\000\000\015\002\000",
   "\004\007\000\015\000\100",
@@ -145,7 +216,7 @@ local function build_group(splits, range)
   end
 
   local parts = { chunk("Parm", parm) }
-  for _, m in ipairs(PakettiTyphoonDefaultMods) do
+  for _, m in ipairs(PakettiTyphoonModMatrix()) do
     parts[#parts + 1] = chunk("Mod ", m)
   end
 
@@ -852,6 +923,101 @@ function PakettiTyphoonExportDialog()
 end
 
 --------------------------------------------------------------------------------
+-- Modulation matrix editor
+--------------------------------------------------------------------------------
+
+local typhoon_mod_dialog = nil
+
+function PakettiTyphoonModMatrixDialog()
+  if typhoon_mod_dialog and typhoon_mod_dialog.visible then
+    typhoon_mod_dialog:close()
+    typhoon_mod_dialog = nil
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local mods = PakettiTyphoonModMatrix()
+  while #mods < PAKETTI_TYPHOON_MOD_ENTRIES do
+    mods[#mods + 1] = string.char(0, 0, 0, 15, 0, 0)
+  end
+
+  local rows = vb:column{spacing = 2}
+  rows:add_child(vb:row{
+    vb:text{text = "#", width = 20, font = "bold"},
+    vb:text{text = "Source", width = 170, font = "bold"},
+    vb:text{text = "Destination", width = 140, font = "bold"},
+    vb:text{text = "Amount", width = 120, font = "bold"},
+    vb:text{text = "Hold", width = 40, font = "bold"},
+  })
+
+  for i = 1, PAKETTI_TYPHOON_MOD_ENTRIES do
+    local m = mods[i]
+    rows:add_child(vb:row{
+      vb:text{text = tostring(i), width = 20},
+      vb:popup{id = "mod_src_" .. i, items = PakettiTyphoonModSources,
+               value = m:byte(1) + 1, width = 170},
+      vb:popup{id = "mod_dst_" .. i, items = PakettiTyphoonModDestinations,
+               value = m:byte(2) + 1, width = 140},
+      vb:valuebox{id = "mod_a_" .. i, min = 0, max = 255, value = m:byte(5), width = 58},
+      vb:valuebox{id = "mod_b_" .. i, min = 0, max = 255, value = m:byte(6), width = 58},
+      vb:checkbox{id = "mod_f_" .. i, value = m:byte(3) == 1},
+    })
+  end
+
+  local content = vb:column{
+    margin = 10, spacing = 6,
+    vb:text{text = "TX16W modulation table - written into every exported voice",
+            font = "bold"},
+    vb:text{text = "The two Amount boxes are semitones and cents when the destination is Pitch, "
+                .. "and a coarse/fine pair otherwise. Hold freezes the source's value at key down."},
+    vb:space{height = 4},
+    rows,
+    vb:space{height = 6},
+    vb:text{text = "External controller 1 and 2 are the machine's only free MIDI CC slots, and "
+                .. "which CC each one listens to is set on the sampler itself, under "
+                .. "System Setup > X-Cntls - not per voice. So \"CC74 to cutoff\" means pointing "
+                .. "XCtl1 at CC 74 there once, then routing External controller 1 to Filter here."},
+    vb:text{text = "A group has only one modulatable filter axis, chosen on the sampler as "
+                .. "D-Axis. Cutoff and resonance cannot both be modulated on the same group."},
+    vb:space{height = 6},
+    vb:row{
+      spacing = 6,
+      vb:button{text = "Save", width = 90, notifier = function()
+        local out = {}
+        for i = 1, PAKETTI_TYPHOON_MOD_ENTRIES do
+          out[#out + 1] = string.format("%d:%d:%d:%d:%d",
+            vb.views["mod_src_" .. i].value - 1,
+            vb.views["mod_dst_" .. i].value - 1,
+            vb.views["mod_f_" .. i].value and 1 or 0,
+            vb.views["mod_a_" .. i].value,
+            vb.views["mod_b_" .. i].value)
+        end
+        preferences.pakettiTX16WModMatrix.value = table.concat(out, ",")
+        preferences:save_as("preferences.xml")
+        renoise.app():show_status("Paketti TX16W: modulation table saved - it goes into every exported voice")
+      end},
+      vb:button{text = "Restore factory routing", width = 170, notifier = function()
+        preferences.pakettiTX16WModMatrix.value =
+          PakettiTyphoonFormatModMatrix(PakettiTyphoonDefaultMods)
+        preferences:save_as("preferences.xml")
+        if typhoon_mod_dialog and typhoon_mod_dialog.visible then
+          typhoon_mod_dialog:close() ; typhoon_mod_dialog = nil
+        end
+        PakettiTyphoonModMatrixDialog()
+      end},
+      vb:button{text = "Close", width = 80, notifier = function()
+        if typhoon_mod_dialog and typhoon_mod_dialog.visible then
+          typhoon_mod_dialog:close() ; typhoon_mod_dialog = nil
+        end
+      end},
+    },
+  }
+
+  typhoon_mod_dialog = renoise.app():show_custom_dialog(
+    "TX16W Modulation Table", content, my_keyhandler_func)
+end
+
+--------------------------------------------------------------------------------
 -- Reading TX16W disks back in
 --------------------------------------------------------------------------------
 
@@ -1323,6 +1489,10 @@ renoise.tool():add_midi_mapping{name = "Paketti:Export Instrument to Yamaha TX16
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W with Saved Settings...", invoke = function() PakettiTyphoonExportDrumkit() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W with Saved Settings...", invoke = function() PakettiTyphoonExportDrumkit() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha TX16W with Saved Settings", invoke = function() PakettiTyphoonExportDrumkit() end}
+
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:TX16W Modulation Table...", invoke = function() PakettiTyphoonModMatrixDialog() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:TX16W Modulation Table...", invoke = function() PakettiTyphoonModMatrixDialog() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:TX16W Modulation Table", invoke = function() PakettiTyphoonModMatrixDialog() end}
 
 
 --------------------------------------------------------------------------------

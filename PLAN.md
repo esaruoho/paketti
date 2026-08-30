@@ -162,9 +162,11 @@ tech: 8 Mod chunks per group, source/destination tables from the manual
 files: [PakettiTyphoon.lua]
 needs: [tx16w-voice-params]
 
-- [ ] Write the modulation routing into the voice instead of typing it on the sampler {#mod-matrix-write}
+- [x] Write the modulation routing into the voice instead of typing it on the sampler {#mod-matrix-write}
+  by: claude
   from: roadmap
-- [ ] Choose which controller drives which destination at export time {#cc-mapping-ui}
+- [x] Choose which controller drives which destination at export time {#cc-mapping-ui}
+  by: claude
   from: roadmap
 
 ## Export velocity-layered kits {#tx16w-velocity}

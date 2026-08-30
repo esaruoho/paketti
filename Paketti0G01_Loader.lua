@@ -430,6 +430,10 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   -- "one sample point is a 12-bit value, bytes = points * 1.5". Stock is the
   -- safe default, so the export warns rather than surprising anyone.
   pakettiTX16WSamplePoints = 1048576,
+  -- The TX16W modulation table: 8 entries of source:destination:freeze:a:b,
+  -- written into every exported voice. The default is the factory routing
+  -- (pitch bend to pitch, wheel to LFO1 depth, and so on).
+  pakettiTX16WModMatrix = "5:0:0:2:0,4:7:0:0:100,13:7:0:0:0,11:0:0:2:0,11:1:0:0:0,2:5:1:0:0,0:4:1:0:0,12:3:0:0:0",
   -- Quick Sample to New Track Settings
   pakettiQuickSampleTrackVolume = true,  -- Set new track volume to -30dB for safe recording levels
   -- (Overdub Pattern Sync is deliberately NOT a preference — every Paketti

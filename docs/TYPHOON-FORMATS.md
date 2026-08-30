@@ -13,9 +13,9 @@ Typhoon 2000 is freeware and final; there will be no further versions.
 |------|-----------|-----------------|
 | Setup (whole machine state) | `.X##` | none |
 | Performance (multi-timbral) | `.P##` | none |
-| Voice (instrument) | `.O##` | export |
+| Voice (instrument) | `.O##` | import + export |
 | Wave (DWVW audio) | `.C##` | import + export |
-| Filter table | `.T##` | none |
+| Filter table | `.T##` | decoded, not implemented |
 | AIFF (uncompressed) | `.A##` | none |
 | Yamaha OS waves | `.W##` | none |
 | System files | `.SYS` | n/a |
@@ -207,9 +207,34 @@ XCtl1, XCtl2, Press, Extern, LFO1, LFO2, ENV1, ENV2.
 **Modulation destinations** (1–13): Pitch, Volume, Filter, Pan, Attack, AEG/T,
 Glide, LFO1/A, LFO2/A, LFO1/R, LFO2/R, ENV1, ENV2.
 
-A `Mod` chunk is 6 bytes; `FAIRLITE.O01` contains e.g. `05 00 00 0f 02 00` and
-`04 07 00 0f 00 00`, consistent with source/dest in the first two bytes, but
-this is not yet confirmed.
+### The `Mod` chunk — decoded
+
+Six bytes, eight per group:
+
+```
+byte 0  source index, 0-based       (0-14, the 15 sources above)
+byte 1  destination index, 0-based  (0-12, the 13 destinations above)
+byte 2  freeze flag (>Frz): hold the source's value from key-down
+byte 3  always 0x0F in all 288 chunks surveyed
+byte 4  amount; SEMITONES when the destination is Pitch
+byte 5  amount, low part; CENTS when the destination is Pitch
+```
+
+The 0-based reading is settled by the first entry of nearly every factory voice
+being source 5 / destination 0 = **pitch bend to pitch shifter** — which is also
+the only modulation the Typhoon import routine converts from the Yamaha OS. All
+288 chunks satisfy byte 0 ≤ 14 and byte 1 ≤ 9. The split amount matches the
+manual's own mod-table illustration, which shows a pitch entry as `>Sm=17,
+>Ct=22`.
+
+**There are no arbitrary per-voice MIDI CC sources.** External controller 1 and 2
+are the only free CC slots, and which CC each listens to is set globally in
+System Setup → X-Cntls (stored in the `.X##` setup, not the voice). So "CC74 to
+cutoff" is: point XCtl1 at CC 74 once on the machine, then route source 7 to
+destination 2 in every voice.
+
+**A group has only one modulatable filter axis**, picked as `>D-Axis`. Cutoff and
+resonance cannot both be modulated on the same group.
 
 ## Current Paketti implementation
 

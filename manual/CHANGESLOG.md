@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-30 - Feature: TX16W Modulation Table Is Written Into Exported Voices. Set the controller routing once and every exported voice carries it, instead of typing it in on the sampler for each one.
+
+The eight-entry modulation table is now decoded and configurable. Each entry is a source, a destination, an amount and a Hold flag, and whatever you set goes into every voice you export - so a kit arrives on the sampler already routed rather than needing the routing entered by hand on its own screen, voice by voice.
+
+All fifteen sources and thirteen destinations the machine has are offered. `Restore factory routing` puts back the table the Typhoon factory voices ship with.
+
+Two hardware facts the dialog states, because they change what is possible: External controller 1 and 2 are the machine's only free MIDI CC slots and which CC each listens to is set on the sampler under `System Setup > X-Cntls` rather than per voice, so routing a given CC to the filter means pointing XCtl1 at it once on the machine and then routing `External controller 1` to `Filter` here. And a group has only one modulatable filter axis, so cutoff and resonance cannot both be modulated on the same group.
+
+- Menu: `Main Menu:File:Paketti Import:TX16W Modulation Table...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:TX16W Modulation Table...`
+- Keybinding: `Global:Paketti:TX16W Modulation Table`
+
 ### 2026-08-30 - Feature: TX16W Export Gains Velocity Layers, a RAM Check, a Disk Manifest and a Dialog. Four things asked for by a TX16W owner using this workflow for real.
 
 Velocity-layered instruments now export properly. The TX16W carries the velocity range on the group rather than the split, so each distinct velocity range in your instrument becomes its own group in the voice file. This is how the factory library does it - the NOISEWAV voice on the Typhoon system disk is a velocity-gated layer at 90-127 - and it means a Renoise instrument with soft and hard layers arrives on the sampler as one. Instruments with a single velocity range export exactly as before.
