@@ -159,12 +159,43 @@ The largest split count in the surveyed corpus is 42.
 ## Group parameters (`Parm`, 64 bytes) — bytes 0–3 decoded
 
 ```
-byte 0   bottom key       0-127
-byte 1   top key          0-127
-byte 2   minimum velocity 0-127
-byte 3   maximum velocity 0-127
-byte 4-63  not yet mapped
+byte  0     bottom key         0-127                        [proven]
+byte  1     top key            0-127                        [proven]
+byte  2     minimum velocity   0-127                        [proven]
+byte  3     maximum velocity   0-127                        [proven]
+byte  4     pitch, semitones (signed)                       [strong]
+byte  5     pitch, cents (signed)                           [strong]
+byte  6     pitch, octaves (signed)                         [strong]
+byte 13     filter table, 0 = none, 1-20 = a .T## table     [strong]
+byte 18     output: 0 none, 1 left, 2 right, 3 mono, 4 stereo  [proven]
+byte 22-27  AEG: attack, decay1, level1, decay2, level2, release [likely]
 ```
+
+Evidence for each, beyond bytes 0–3 below:
+
+- **byte 4** — ESQ1BELL's third group has split points 12 keys lower than the
+  other two and reads 12, compensating exactly.
+- **byte 5** — UNISON's four groups read −1, +4, −4, +2. That symmetric spread
+  is what makes it a unison patch; the release notes describe the fat sound as
+  coming from detuning.
+- **byte 6** — 3 on every voice built from single-cycle waves (ESQ1BELL,
+  UNISON, FAIRLITE), 0 on the sampled ones (DRUMKIT, ICE_RAIN, NOISEWAV).
+- **byte 13** — values seen are 0, 1, 2, 4, 5, 9, all valid table numbers.
+  ANA_STRS reads 0, and the Typhoon 2000 notes tell you to "try assigning the
+  new filter table 17:LOWPASS" to it — i.e. it ships with none.
+- **byte 18** — ANA_STRS and NOISEWAV read 1 then 2 across the group pairs the
+  notes describe as left and right; FAIRLITE, "a single powerful stereophonic
+  wave", reads 4; DRUMKIT and TR_808 read 3.
+- **bytes 22–27** — gives ESQ1BELL a bell curve (0, 63, 98, 127, 32, 36),
+  FAIRLITE a flat sustain (0, 0, 127, 127, 127, 38), and the third-party
+  TR_808 exactly 0, 0, 127, 127, 127, 127: the envelope that lets a drum sample
+  play out untouched. Marked *likely* rather than proven because no single
+  factory value contradicts an alternative offset by one.
+
+**Not found: the Mode page** (Normal / One-shot / Glide / Release, and poly
+on/off). No byte separates DRUMKIT's 20 one-shot groups from the 15 sustained
+groups. In practice the one-shot AEG above achieves the same thing, which is
+what TR_808 does.
 
 Confirmed across all 36 groups in the factory voices (the eight on the Typhoon
 2000 system disk plus `TR_808.O01`): every one satisfies

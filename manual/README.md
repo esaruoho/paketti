@@ -435,6 +435,13 @@ The voice's references are matched to waves by Typhoon's own wave id first and b
 
 A dialog opens first with the sample rate, how much RAM your TX16W has, and whether to mix to mono and keep the instrument's own key mapping. It tells you live how much of the sampler's memory the kit will need, and warns before you export if it will not fit - a kit can split across floppies perfectly and still be too big to load, because DWVW only shrinks the copy on the disk while the machine holds the decoded audio. There is a no-dialog version alongside it, `Export Instrument to Yamaha TX16W with Saved Settings...` (keybinding `Global:Paketti:Export Instrument to Yamaha TX16W with Saved Settings`).
 
+The dialog also carries the voice's own settings, which used to be inherited wholesale from a factory template:
+
+- **Filter** - any of the TX16W's seventeen filter models, or None. `17 LOWPASS` is the one Typhoon 2000 added.
+- **Envelope** - keep the template's, or `One-shot` which lets every sample play out untouched (this is what a real TX16W drum voice uses, and it is what you want for kits), or follow the instrument's own AHDSR.
+- **Output** - None, Left, Right, Mono or Stereo.
+- **Name waves after the General MIDI drum on each key** - if your kit is laid out on GM percussion keys, which is what Renoise's own GM kit template does, the exported waves get named for what they are (`KICK1`, `SNARE1`, `HHCLOSED`) instead of `DRUM_017`. Eight characters is all the sampler's screen shows, so this makes a real difference when browsing on the machine.
+
 **Velocity layers are exported.** If your instrument has samples on different velocity ranges, each range becomes its own group in the voice file, which is how the TX16W does velocity switching - the velocity range lives on the group, not on the split. Instruments with one velocity range export as a single group exactly as before.
 
 Every export also writes a `KITNAME_DISKS.txt` manifest listing which sample landed on which disk, with the disk labels, so there is no guessing when the sampler asks for the next floppy. Disks follow the instrument's own order, so disk 1 holds the first samples.

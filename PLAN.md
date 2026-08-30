@@ -123,17 +123,23 @@ tech: map the 64-byte Grop Parm block; AEG from AHDSR, key scaling, one-shot, pa
 files: [PakettiTyphoon.lua]
 links: [tx16w-modmatrix, tx16w-velocity]
 
-- [~] Work out the 64-byte group parameter layout {#parm-layout}
+- [x] Work out the 64-byte group parameter layout {#parm-layout}
   by: claude
   from: agent
-  note: bytes 0-3 confirmed (low key, high key, low velocity, high velocity)
-  across all 36 factory groups; bytes 4-63 still unmapped
-- [ ] Carry Renoise envelopes and volume into the exported voice {#aeg-mapping}
+  note: decoded 0-3 range, 4-6 pitch, 13 filter, 18 output, 22-27 AEG.
+  Mode/poly not found - the one-shot AEG covers it, as TR_808 does.
+- [x] Carry Renoise envelopes and volume into the exported voice {#aeg-mapping}
+  by: claude
   from: agent
-- [ ] Pick the filter model per export instead of always inheriting one {#filter-choice}
+- [x] Pick the filter model per export instead of always inheriting one {#filter-choice}
+  by: claude
   from: roadmap
-- [ ] Use one-shot and fixed key scaling for unpitched drums {#drum-defaults}
+- [x] Use one-shot and fixed key scaling for unpitched drums {#drum-defaults}
+  by: claude
   from: agent
+- [x] Name exported waves after the General MIDI drum on each key {#gm-drum-names}
+  by: claude
+  from: roadmap
 
 ## Draw your own TX16W filter {#tx16w-filter-tables}
 tech: .T## writer, LM8953 header, 11x11 grid of 16-tap 12-bit signed FIR kernels

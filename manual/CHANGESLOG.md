@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-30 - Feature: Exported TX16W Voices Get Real Settings. Filter, envelope, output and General MIDI drum naming, from a further decode of the voice format.
+
+The group parameter block is decoded far enough to write the settings that matter, instead of inheriting all of them from a factory template. Pitch is carried as semitones, cents and octaves; the filter model, the output routing and the amplitude envelope are now yours to choose per export.
+
+The `Envelope` choice includes `One-shot`, which lets every sample play out untouched. That is the envelope a real TX16W drum voice uses, and it is what a kit wants. There is also `Follow the instrument's own AHDSR`, which carries a Renoise envelope across.
+
+`Filter` offers all seventeen of the sampler's filter models, including `17 LOWPASS` which Typhoon 2000 added, or None.
+
+And if your kit is laid out on General MIDI percussion keys - which is exactly what Renoise's own GM kit template gives you - the new naming option names each exported wave for the drum on its key: `KICK1`, `SNARE1`, `HHCLOSED`, `CRASH1`. Eight characters is all the sampler shows, so this is the difference between browsing a kit and guessing at it.
+
+- Menu: `Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+
 ### 2026-08-30 - Feature: TX16W Modulation Table Is Written Into Exported Voices. Set the controller routing once and every exported voice carries it, instead of typing it in on the sampler for each one.
 
 The eight-entry modulation table is now decoded and configurable. Each entry is a source, a destination, an amount and a Hold flag, and whatever you set goes into every voice you export - so a kit arrives on the sampler already routed rather than needing the routing entered by hand on its own screen, voice by voice.

@@ -102,6 +102,129 @@ PakettiTyphoonDefaultParm =
   "\003\255\000\127\255\000\000\205\000\127\127\127\000\061\000\000" ..
   "\000\061\127\000\127\000\000\000\000\004\000\000\000\000\127\000"
 
+-- General MIDI percussion key map, keyed by MIDI note. Renoise's own GM kit
+-- template lays drums out on these keys, so when an instrument follows it the
+-- exported waves can be named for what they actually are instead of DRUM_017.
+-- Eight characters is all the sampler shows.
+PakettiTyphoonGMDrumNames = {
+  [35] = "KICK2",   [36] = "KICK1",    [37] = "RIMSHOT",  [38] = "SNARE1",
+  [39] = "CLAP",    [40] = "SNARE2",   [41] = "LOWTOM2",  [42] = "HHCLOSED",
+  [43] = "LOWTOM1", [44] = "HHPEDAL",  [45] = "MIDTOM2",  [46] = "HHOPEN",
+  [47] = "MIDTOM1", [48] = "HITOM2",   [49] = "CRASH1",   [50] = "HITOM1",
+  [51] = "RIDE1",   [52] = "CHINESE",  [53] = "RIDEBELL", [54] = "TAMBRIN",
+  [55] = "SPLASH",  [56] = "COWBELL",  [57] = "CRASH2",   [58] = "VIBSLAP",
+  [59] = "RIDE2",   [60] = "HIBONGO",  [61] = "LOBONGO",  [62] = "MTCONGA",
+  [63] = "HICONGA", [64] = "LOCONGA",  [65] = "HITIMBAL", [66] = "LOTIMBAL",
+  [67] = "HIAGOGO", [68] = "LOAGOGO",  [69] = "CABASA",   [70] = "MARACAS",
+  [71] = "SWHISTLE",[72] = "LWHISTLE", [73] = "SGUIRO",   [74] = "LGUIRO",
+  [75] = "CLAVES",  [76] = "HIWOOD",   [77] = "LOWOOD",   [78] = "MUCUICA",
+  [79] = "OPCUICA", [80] = "MUTRIANG", [81] = "OPTRIANG",
+}
+
+-- The group parameter block, decoded from the factory voices. Only the fields
+-- below are written; everything else keeps the value it has in the known-good
+-- template, because it has not been decoded.
+--
+--   byte  0-3   bottom key, top key, min velocity, max velocity   [proven]
+--   byte  4     pitch, semitones (signed)                         [strong]
+--   byte  5     pitch, cents (signed)                             [strong]
+--   byte  6     pitch, octaves (signed)                           [strong]
+--   byte 13     filter table, 0 = none, 1-20 = a .T## table       [strong]
+--   byte 18     output: 0 none 1 left 2 right 3 mono 4 stereo     [proven]
+--   byte 22-27  AEG: attack, decay1, level1, decay2, level2, release  [likely]
+--
+-- Evidence, in short. Bytes 0-3 hold for all 36 factory groups and NOISEWAV,
+-- the one voice the release notes call velocity-gated, reads 90-127. Byte 4:
+-- ESQ1BELL's third group sits 12 keys lower and reads 12. Byte 5: UNISON's four
+-- groups read -1/+4/-4/+2, the detune spread that makes it a unison patch.
+-- Byte 6: 3 on the single-cycle-wave voices, 0 on the sampled ones. Byte 13:
+-- ANA_STRS reads 0 and the release notes tell you to "try assigning the new
+-- filter table 17:LOWPASS" to it. Byte 18: ANA_STRS and NOISEWAV read 1 then 2
+-- for their documented left/right pairs, and FAIRLITE, "a single powerful
+-- stereophonic wave", reads 4. Bytes 22-27 give ESQ1BELL a bell curve, FAIRLITE
+-- a flat sustain, and the third-party TR_808 exactly 0,0,127,127,127,127 -- the
+-- envelope that lets drum samples play out untouched.
+PAKETTI_TYPHOON_OUTPUT_NONE   = 0
+PAKETTI_TYPHOON_OUTPUT_LEFT   = 1
+PAKETTI_TYPHOON_OUTPUT_RIGHT  = 2
+PAKETTI_TYPHOON_OUTPUT_MONO   = 3
+PAKETTI_TYPHOON_OUTPUT_STEREO = 4
+
+-- The stock filter tables, in the order the sampler numbers them. 17 is the one
+-- Typhoon 2000 added; 18-20 are free for tables of your own.
+PakettiTyphoonFilterTables = {
+  "None", "1 Q LPF", "2 Q HPF", "3 WIDE BPF", "4 NRRW BPF", "5 LOW LPF",
+  "6 HIGH LPF", "7 LOW HPF", "8 HIGH HPF", "9 HPF LPF", "10 BPF BEF",
+  "11 DIP", "12 PEAK", "13 LOSL LPF", "14 HISL LPF", "15 LOSL HPF",
+  "16 HISL HPF", "17 LOWPASS", "18", "19", "20",
+}
+
+-- What a drum kit wants: let every sample play out exactly as recorded. Taken
+-- from TR_808.O01, a real third-party drum voice.
+PAKETTI_TYPHOON_AEG_ONESHOT = {0, 0, 127, 127, 127, 127}
+
+local function signed_byte(v)
+  v = math.max(-128, math.min(127, floor(v + 0.5)))
+  if v < 0 then v = v + 256 end
+  return v
+end
+
+local function set_byte(str, index, value)   -- index is 0-based
+  return str:sub(1, index) .. string.char(math.max(0, math.min(255, value)))
+       .. str:sub(index + 2)
+end
+
+-- Applies the decoded fields onto a 64-byte parameter block.
+function PakettiTyphoonApplyParm(parm, f)
+  if not f then return parm end
+  if f.low_key then parm = set_byte(parm, 0, math.max(0, math.min(127, f.low_key))) end
+  if f.high_key then parm = set_byte(parm, 1, math.max(0, math.min(127, f.high_key))) end
+  if f.low_vel then parm = set_byte(parm, 2, math.max(0, math.min(127, f.low_vel))) end
+  if f.high_vel then parm = set_byte(parm, 3, math.max(0, math.min(127, f.high_vel))) end
+  if f.semitones then parm = set_byte(parm, 4, signed_byte(f.semitones)) end
+  if f.cents then parm = set_byte(parm, 5, signed_byte(f.cents)) end
+  if f.octaves then parm = set_byte(parm, 6, signed_byte(f.octaves)) end
+  if f.filter then parm = set_byte(parm, 13, math.max(0, math.min(20, f.filter))) end
+  if f.output then parm = set_byte(parm, 18, math.max(0, math.min(4, f.output))) end
+  if f.aeg then
+    for i = 1, 6 do
+      parm = set_byte(parm, 21 + i, math.max(0, math.min(127, f.aeg[i] or 0)))
+    end
+  end
+  return parm
+end
+
+-- Reads the instrument's own volume AHDSR, if it has one, as a TX16W AEG.
+-- Renoise gives 0..1; the sampler wants 0..127. Renoise has one decay and one
+-- sustain, so decay2 is left wide open and level2 tracks the sustain.
+function PakettiTyphoonAEGFromInstrument(instrument)
+  local ok, aeg = pcall(function()
+    for _, set in ipairs(instrument.sample_modulation_sets) do
+      for _, dev in ipairs(set.devices) do
+        if dev.name and dev.name:find("AHDSR") then
+          local function p(name)
+            local okv, v = pcall(function() return dev:parameter(name).value end)
+            return okv and v or nil
+          end
+          local attack  = p("Attack")  or (dev.parameters[1] and dev.parameters[1].value)
+          local decay   = p("Decay")
+          local sustain = p("Sustain")
+          local release = p("Release")
+          if attack and sustain then
+            local function to127(v) return floor(math.max(0, math.min(1, v)) * 127 + 0.5) end
+            return {
+              to127(attack), to127(decay or 0), to127(sustain),
+              127, to127(sustain), to127(release or 0),
+            }
+          end
+        end
+      end
+    end
+    return nil
+  end)
+  return ok and aeg or nil
+end
+
 -- The modulation table, decoded from the factory voices. Each Mod chunk is six
 -- bytes: source, destination, freeze, 0x0F, then the amount.
 --
@@ -205,15 +328,7 @@ end
 -- at higher key velocities" -- it reads 90-127. Everything past byte 3 is left
 -- at the known-good defaults, because it has not been decoded.
 local function build_group(splits, range)
-  local parm = PakettiTyphoonDefaultParm
-  if range then
-    parm = string.char(
-      math.max(0, math.min(127, range.low_key or 0)),
-      math.max(0, math.min(127, range.high_key or 96)),
-      math.max(0, math.min(127, range.low_vel or 0)),
-      math.max(0, math.min(127, range.high_vel or 127))
-    ) .. parm:sub(5)
-  end
+  local parm = PakettiTyphoonApplyParm(PakettiTyphoonDefaultParm, range)
 
   local parts = { chunk("Parm", parm) }
   for _, m in ipairs(PakettiTyphoonModMatrix()) do
@@ -570,8 +685,15 @@ local function typhoon_export_process(outdir, opts)
       local smp = entry.sample
       local buffer = smp.sample_buffer
       local rate = (opts.rate > 0) and opts.rate or buffer.sample_rate
-      local dosname = PakettiDWVWDosName(
-        (smp.name ~= "" and smp.name or ("SAMPLE" .. n)), used)
+      local basename = (smp.name ~= "" and smp.name or ("SAMPLE" .. n))
+      if opts.gm_names then
+        -- Name it for the drum it sits on, when it sits on a GM percussion key.
+        local key = opts.use_mapping and smp.sample_mapping.note_range[1]
+                    or (opts.base_key + n - 1)
+        local gm = PakettiTyphoonGMDrumNames[key]
+        if gm then basename = gm end
+      end
+      local dosname = PakettiDWVWDosName(basename, used)
       local waveid = PakettiTyphoonNewWaveId(stamp, dosname, n)
 
       local channels, frames, nch = PakettiDWVWBufferToChannels(
@@ -625,6 +747,19 @@ local function typhoon_export_process(outdir, opts)
     -- velocity-layered instrument becomes one group per distinct range, each
     -- holding the splits that live in it. Instruments with a single range
     -- (the usual case) come out as one group exactly as before.
+    -- The amplitude envelope written into every group. "One-shot" is the
+    -- envelope a real drum voice uses: nothing is cut short, every sample plays
+    -- out as recorded.
+    local aeg = nil
+    if opts.envelope == "oneshot" then
+      aeg = PAKETTI_TYPHOON_AEG_ONESHOT
+    elseif opts.envelope == "instrument" then
+      aeg = PakettiTyphoonAEGFromInstrument(instrument)
+      if not aeg then
+        print("PakettiTyphoon: the instrument has no AHDSR envelope, keeping the template's")
+      end
+    end
+
     local layers, layer_order = {}, {}
     for _, sp in ipairs(splits) do
       local lo = math.max(0, math.min(127, sp.low_vel or 0))
@@ -658,6 +793,9 @@ local function typhoon_export_process(outdir, opts)
       L.range.low_key = 0
       L.range.high_key = math.max(highk, L.splits[#L.splits].key)
       L.range.end_key = math.min(127, L.splits[#L.splits].key + 1)
+      L.range.filter = opts.filter_table
+      L.range.output = opts.output
+      L.range.aeg = aeg
       voice_groups[#voice_groups + 1] = L
     end
 
@@ -784,6 +922,10 @@ function PakettiTyphoonExportDrumkit(outdir, opts)
     force_mono = (opts.force_mono ~= nil) and opts.force_mono or PakettiDWVWForceMono(),
     base_key = opts.base_key or 36,
     use_mapping = opts.use_mapping or false,
+    filter_table = opts.filter_table,
+    output = opts.output,
+    envelope = opts.envelope,
+    gm_names = opts.gm_names or false,
     write_images = (opts.write_images ~= false),
     write_loose = (opts.write_loose ~= false),
     reveal = (opts.reveal ~= false),
@@ -873,9 +1015,32 @@ function PakettiTyphoonExportDialog()
       vb:text{text = "Mix to mono (the TX16W is a mono sampler)"},
     },
     vb:row{
+      vb:text{text = "Filter", width = 110},
+      vb:popup{id = "tx_filter", items = PakettiTyphoonFilterTables, value = 1, width = 260},
+    },
+    vb:row{
+      vb:text{text = "Envelope", width = 110},
+      vb:popup{id = "tx_env", width = 260, value = 1, items = {
+        "Keep the template's envelope",
+        "One-shot: let every sample play out (drum kits)",
+        "Follow the instrument's own AHDSR",
+      }},
+    },
+    vb:row{
+      vb:text{text = "Output", width = 110},
+      vb:popup{id = "tx_out", width = 260, value = 1, items = {
+        "Keep the template's output", "None", "Left", "Right", "Mono", "Stereo",
+      }},
+    },
+    vb:row{
       vb:text{text = "", width = 110},
       vb:checkbox{id = "tx_mapping", value = use_mapping},
       vb:text{text = "Keep the instrument's own key mapping (otherwise one sample per key from C-2)"},
+    },
+    vb:row{
+      vb:text{text = "", width = 110},
+      vb:checkbox{id = "tx_gm", value = false},
+      vb:text{text = "Name waves after the General MIDI drum on each key (KICK1, SNARE1, HHCLOSED)"},
     },
 
     vb:space{height = 4},
@@ -893,10 +1058,17 @@ function PakettiTyphoonExportDialog()
           preferences.pakettiDWVWForceMono.value = vb.views.tx_mono.value
           preferences.pakettiTX16WSamplePoints.value = ram
           preferences:save_as("preferences.xml")
+          local envelopes = {nil, "oneshot", "instrument"}
           local opts = {
             rate = rate,
             force_mono = vb.views.tx_mono.value,
             use_mapping = vb.views.tx_mapping.value,
+            gm_names = vb.views.tx_gm.value,
+            filter_table = (vb.views.tx_filter.value > 1)
+              and (vb.views.tx_filter.value - 1) or nil,
+            output = (vb.views.tx_out.value > 1)
+              and (vb.views.tx_out.value - 2) or nil,
+            envelope = envelopes[vb.views.tx_env.value],
           }
           if typhoon_export_dialog and typhoon_export_dialog.visible then
             typhoon_export_dialog:close()
