@@ -38,6 +38,12 @@ The Sample FX Chain counterpart had the same missing save and is fixed the same 
 - Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
 - MIDI Mapping: `Paketti:Toggle Auto-Open Sample FX Chain Devices`
 
+### 2026-08-31 - Improvement: The Build Now Warns Before A File Runs Out Of Local Variables. Lua allows 200 per file and Music Mouse had 20 left, which fails as a dead tool load rather than a warning.
+
+Lua allows 200 local variables live at once inside any one function, and a .lua file is itself a function, so every top-level `local` in a Paketti module spends one of the 200. Crossing the line is not a warning: the file stops compiling entirely, which in Renoise means a brittle file and an aborted tool load. Music Mouse had 20 left. `python3 .spine/check.py` now reports the remaining headroom for every file in the repo and prints a warning under 25, so a module can be tidied on purpose instead of on the day one more helper tips it over. The probe asks the real compiler rather than estimating, works under both lua and luajit, and is advisory only — it never fails the build.
+
+Music Mouse itself was given room: its Launchpad section is now scoped so its sixteen locals are released, taking it from 20 to 36 with no renaming and no behaviour change. The reasoning, the measurements against Groovebox 8120 and the other large modules, and the plan for the next steps are written up in `PakettiMusicMouse-LOCALS.md`.
+
 ### 2026-08-31 - Improvement: Music Mouse Gravity Play Is Now Playable. Gravity Play sequences the seeds, and the Treatment plays them — so arpeggios, strums, lines and phrases finally apply, and the seeds can be triggered from the keyboard.
 
 Gravity Play used to be a closed loop: it stepped through the dropped gravitation seeds and struck a block chord itself, ignoring the Treatment and the Arp/Line Rate entirely. Now it only ever moves the position, and the selected Treatment (Chord / Arpeggiate / Line / Improvise) articulates whatever chord it lands on, at the Arp/Line Rate — so a seed can be strummed, arpeggiated up or down, played as a line, or held as a block chord, and the phrase-arpeggio prototype applies too. The seed clock and the note clock are separate, so a slow chord change can carry a fast arpeggio.

@@ -10,6 +10,12 @@ and FAILS (exit 1) on anything that would crash or degrade a real Renoise load:
   • brittle files            — a source file that errors during registration.
   • malformed keybindings    — keybinding names must be exactly three
     colon-separated parts: "Context:Topic:Name". Extra colons crash Renoise.
+  • local-variable headroom  — WARNING only. Lua allows 200 locals live at once in one
+    function, and a .lua file is a function, so every chunk-level `local` in a module
+    spends one. Cross the line and the file will not compile at all — which arrives as a
+    brittle file and a dead tool load, with no runtime warning first. This reports any
+    file with less than 25 locals of room left, so it can be refactored on purpose
+    instead of on the day an edit tips it over.
   • self-referential globals — `PakettiFoo = PakettiFoo or {}` reads the global on
     the RHS before it exists; Renoise strict-globals mode throws "variable X is not
     declared" AT LOAD TIME and aborts the whole tool load. This shipped 2026-07-23
@@ -25,6 +31,9 @@ import glob, json, os, re, shutil, subprocess, sys
 ROOT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.getcwd()
 HARNESS = os.path.join(ROOT, ".spine", "harness.lua")
 OUT = os.path.join(ROOT, ".spine", "check.json")
+LOCALROOM = os.path.join(ROOT, ".spine", "localroom.lua")
+LOCALROOM_OUT = os.path.join(ROOT, ".spine", "localroom.json")
+LOCALROOM_WARN = 25   # warn when a file has fewer than this many chunk-level locals left
 
 # ── static scan: self-referential read of an undeclared Paketti global ────────
 _IDENT  = r'[A-Za-z_][A-Za-z0-9_]*'
@@ -85,6 +94,24 @@ def run():
         return json.load(f)
 
 
+def _local_headroom():
+    """Files running out of Lua's 200-locals-per-chunk budget. The probe asks the real
+    compiler (append N dummy locals, see if it still builds), so the number is exact.
+    Returns [] if no Lua interpreter is available — this is advisory, never a hard gate."""
+    lj = shutil.which("luajit") or shutil.which("lua")
+    if not lj or not os.path.exists(LOCALROOM):
+        return []
+    subprocess.run([lj, LOCALROOM, ROOT, str(LOCALROOM_WARN), LOCALROOM_OUT],
+                   timeout=300, check=False, stdout=subprocess.DEVNULL)
+    try:
+        with open(LOCALROOM_OUT) as f:
+            rows = json.load(f)
+        os.unlink(LOCALROOM_OUT)
+    except (OSError, ValueError):
+        return []
+    return sorted(rows, key=lambda r: r["headroom"])
+
+
 def main():
     d = run()
     dups = d.get("duplicates", {})
@@ -93,6 +120,7 @@ def main():
     brittle = [f for f in d.get("files", []) if not f.get("ok")]
     fs = d["file_stats"]
     selfref = _self_ref_violations(ROOT)
+    tight = _local_headroom()
     malformed_kb = _malformed_keybindings(d.get("names", {}).get("keybinding", []))
 
     print(f"Paketti registration check — {d['unique']['keybinding']:,} keybindings · "
@@ -131,6 +159,16 @@ def main():
         print(f"\n❌ {len(brittle)} BRITTLE FILE(S) (errored during registration):")
         for f in brittle:
             print(f"   • {f['module']} — {f.get('err','')[:160]}")
+
+    if tight:
+        print(f"\n⚠️  {len(tight)} FILE(S) LOW ON LOCAL-VARIABLE HEADROOM (Lua allows 200 per "
+              "chunk; over the line the file will not compile and the whole tool load dies):")
+        for r in tight:
+            print(f"   • {r['file']} — room for {r['headroom']} more top-level `local`s")
+        print("       fix: fold groups of constants into one table, wrap a self-contained")
+        print("       section in `do ... end` so its locals go out of scope, promote")
+        print("       prefixed helpers to plain globals (the PakettiEightOneTwenty style),")
+        print("       or split the module. Not a build failure — yet.")
 
     try:
         os.unlink(OUT)

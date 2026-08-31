@@ -3290,6 +3290,11 @@ end
 --   play      — press a pad -> punch the chord at that X/Y; LED mirrors the cursor.
 --   raindrops — same triggering PLUS an expanding-ring light show (ambient + per press).
 --------------------------------------------------------------------------------
+-- Scoped in `do ... end` on purpose: everything this section needs is either a global it
+-- defines (PakettiMusicMouseLaunchpad*) or an outer upvalue it reads (mm, vb, dialog). Closing
+-- the scope hands its 16 locals back to Lua's 200-locals-per-chunk budget for the main chunk,
+-- which this file was running out of. `python3 .spine/check.py` reports the remaining headroom.
+do
 
 local mm_lp = { mode = "off", in_dev = nil, out_dev = nil, timer = nil, frame = nil, drops = {}, tickn = 0, flash = {} }
 local MM_LP_RING   = { 45, 41, 37, 33, 25, 21 }                         -- mk3 palette: blue->cyan->green ripple
@@ -3470,6 +3475,8 @@ function PakettiMusicMouseSetArpRate(rate)
   end
   return "1/" .. (mm.arp_rate_den or 16)
 end
+
+end   -- Launchpad scope: its locals are released here (see the note above)
 
 --------------------------------------------------------------------------------
 -- Registration (define-before-register: all functions above; registrations last)
