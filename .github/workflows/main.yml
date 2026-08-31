@@ -131,6 +131,7 @@ jobs:
         run: |
           zip -r "${{ env.FILENAME }}" . \
             -x "*.git*" "*.github*" "docs/*" ".spine" ".spine/*" \
+            "features/*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
             "definitions/*" \
@@ -247,6 +248,7 @@ jobs:
         run: |
           zip -r "${{ env.FILENAME }}" . \
             -x "*.git*" "*.github*" "docs/*" ".spine" ".spine/*" \
+            "features/*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
             "preferences_deviceLoaders.xml" \
