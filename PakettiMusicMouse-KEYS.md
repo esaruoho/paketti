@@ -68,10 +68,33 @@ through to Renoise**, so your own shortcuts stay live.
 | `enter` | Lock current notes (keep ringing) |
 | `shift-enter` | Release all locked notes |
 | `right-shift` | Record to Pattern on / off (play + edit mode + follow + pattern editor) |
+| `;` (or `shift-,`) | Gravity Play on / off — sequence the dropped gravitation seeds in recorded order |
+| `l` | Clear all gravitation seeds |
+| `left` / `right` | Previous / next gravitation seed — trigger the seeds one at a time from the keyboard. Works with Gravity Play running (it re-phases the auto clock) or stopped (fully manual). |
+| `up` / `down` | Octave up / down, re-articulated through the current Treatment (follows the arpeggio / strum / line / phrase instead of forcing a block chord) |
 | `delete` | Disconnect / reconnect mouse |
 | `k` | Light / Dark theme |
 | `home` | Re-Init all values |
 | `esc` | Close Music Mouse |
+
+## Gravity Play
+Left-click the grid to drop a **gravitation seed** (a diamond); right-click removes the nearest one.
+Gravity Play then walks the seeds in the order you dropped them.
+
+- **Gravity Play only moves the position.** The **Treatment** (Chord / Arpeggiate / Line / Improvise)
+  articulates whatever chord it lands on, at the **Arp/Line Rate**. So a seed can be strummed,
+  arpeggiated up/down, played as a line, or held as a block chord — and the phrase prototype applies too.
+- **Gravity Rate** (control panel) sets how often it moves, in **pattern rows**: every 1 / 2 / 4 / 8 / 16 rows.
+  It is a separate clock from the note rate, so a slow chord change can carry a fast arpeggio.
+- The clock is the **row clock** whether or not Renoise is playing — stopping the transport no longer
+  changes the Gravity Play tempo.
+- Changing Treatment, Arp/Line Rate, Tempo or Sync **never** re-phases Gravity Play, so a dropdown
+  change can't retrigger the chord that is already sounding.
+- While Gravity Play runs, the **mouse only aims** (so you can still drop and remove seeds) — the seed
+  sequencer owns the sounding position. This is what makes `right-shift` recording usable: one
+  chord change per gravity beat, landing on the row, instead of several unrelated chords per row.
+- `left` / `right`, the **◀ Prev / Next ▶** buttons, and the MIDI mappings
+  *Music Mouse Gravity Seed Next / Previous* step the seeds by hand.
 
 ## Mouse-/button-only (no key)
 - **Generate New Pakettified Instrument** — button.

@@ -40,6 +40,8 @@ Context: Global
   #
   # WATCH: pakettiMusicMouseShow mm_compute_voices mm_render mm_tick mm_set_record mm_tune_sample mm_toggle_gravity_play
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+  #   2026-08-31  direct-commit  touched: mm_compute_voices mm_toggle_gravity_play
+  #   2026-08-31  direct-commit  touched: mm_compute_voices
   #   2026-08-29  direct-commit  touched: mm_compute_voices
   #   2026-08-29  direct-commit  touched: mm_compute_voices mm_tick
   #   2026-08-27  direct-commit  touched: mm_compute_voices
@@ -94,7 +96,7 @@ Context: Global
     When the user left-clicks the play area
     Then a green diamond seed is dropped at that chord and it plays
     When the user triggers Gravity Play (shift-comma / button / MIDI)
-    Then the timer steps through the seeds in recorded order, one chord per beat at tempo
+    Then the timer steps through the seeds in recorded order, one seed per gravity beat
     And the seeds persist across close/reopen and reloads
     # built user-verified
 
@@ -191,11 +193,57 @@ Context: Global
     # built — space handled at the very top of mm_keyhandler
 
   @built
-  Scenario: Gravity Play beat divisor
+  Scenario: Gravity Play rate is stated in pattern rows
     Given gravitation seeds exist and Gravity Play is on
-    When the divisor is set to Every 4th / 8th / 16th
-    Then a seed is hit only every Nth base beat instead of every beat
-    # built — mm.gravity_div + gravity_beat counter
+    When the Gravity Rate is set to every 1 / 2 / 4 / 8 / 16 rows
+    Then a seed is moved to only every Nth crossed row
+    # built — mm.gravity_div + gravity_beat counter, clocked by mm_gravity_on_line
+
+  @built
+  Scenario: Gravity Play moves the position; the Treatment plays it
+    Given gravitation seeds exist and Gravity Play is on
+    When the Treatment is Chord / Arpeggiate / Line / Improvise
+    Then each seed is articulated by that Treatment at the Arp/Line Rate
+    And Strum, Articulation and the phrase-arpeggio prototype apply to it
+    And the seed clock and the note clock stay independent
+    # built — mm_gravity_goto -> mm_articulate; the bypass branch in
+    # mm_play_synced_beat is gone and mm_is_rate_treatment no longer excludes gravity
+
+  @built
+  Scenario: Changing a dropdown never retriggers Gravity Play
+    Given Gravity Play is running
+    When Treatment / Arp-Line Rate / Tempo / Sync is changed
+    Then the note timer restarts but the gravity phase is untouched
+    And the chord that is already sounding is not struck again
+    # built — mm_restart_timer no longer re-phases gravity; gravity keeps
+    # its own gravity_beat / mm_grav.accum counters
+
+  @built
+  Scenario: Gravity Play keeps one tempo whether or not Renoise is playing
+    Given Gravity Play is running with Sync to BPM on
+    When playback is stopped
+    Then it keeps stepping at the same row length instead of drifting to another tempo
+    # built — mm_gravity_free_tick uses mm_beat_ms (the same row length the
+    # playback_pos path uses), not the free-run 16th-note clock
+
+  @built
+  Scenario: Gravity Play owns the sounding position
+    Given Gravity Play is running
+    When the mouse is moved over the play area
+    Then it only aims (seeds can still be dropped/removed) and does not sound
+    And Record to Pattern stamps one chord change per gravity beat, on the row
+    # built — the gravity guard in mm_update_from_mouse restores deg_x/deg_y to the live seed
+
+  @built
+  Scenario: The gravitation seeds are playable from the PC keyboard
+    Given gravitation seeds exist
+    When the user presses cursor left / right
+    Then the previous / next seed is triggered through the current Treatment
+    And the automatic gravity clock is re-phased so it does not jump on the next row
+    When the user presses cursor up / down
+    Then the whole instrument shifts an octave and re-articulates through the Treatment
+    # built — mm_gravity_step / mm_octave_shift; cmd-up / cmd-down still change instrument.
+    # Also on the ◀ Prev / Next ▶ buttons and the Gravity Seed Next/Previous MIDI mappings
 
   @built
   Scenario: Arpeggiate has Up / Down / Scatter / Strum

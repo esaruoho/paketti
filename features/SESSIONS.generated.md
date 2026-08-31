@@ -10,11 +10,6 @@
 
 **12 card conversations** plugged in:
 
-### `6fa0a152-39f6-4315-8628-d54901373c84`  (2026-07-27)
-- Resume: `claude --resume 6fa0a152-39f6-4315-8628-d54901373c84`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/6fa0a152-39f6-4315-8628-d54901373c84.jsonl
-- Cards touched (1): song-lifecycle-safety.feature
-
 ### `f4a35539-cfbb-4640-96b2-37ef60dffca3`  (2026-07-27 → 2026-08-07)
 - Resume: `claude --resume f4a35539-cfbb-4640-96b2-37ef60dffca3`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/f4a35539-cfbb-4640-96b2-37ef60dffca3.jsonl
@@ -61,7 +56,12 @@
 - Resume: `claude --resume 2e11f076-c67a-43b8-ae69-a1cf11938b39`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/2e11f076-c67a-43b8-ae69-a1cf11938b39.jsonl
 
-### `4661443d-8d10-41e1-9975-5cbd445bb567`  (2026-08-27 → 2026-08-29)
+### `4661443d-8d10-41e1-9975-5cbd445bb567`  (2026-08-27 → 2026-08-31)
 - Resume: `claude --resume 4661443d-8d10-41e1-9975-5cbd445bb567`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/4661443d-8d10-41e1-9975-5cbd445bb567.jsonl
 - Cards touched (1): song-lifecycle-safety.feature
+
+### `0df7d9eb-d103-4714-84a7-bcefa18fa5d8`  (2026-08-31)
+- Resume: `claude --resume 0df7d9eb-d103-4714-84a7-bcefa18fa5d8`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/0df7d9eb-d103-4714-84a7-bcefa18fa5d8.jsonl
+- Cards touched (1): music-mouse.feature

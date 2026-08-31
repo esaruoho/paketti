@@ -1025,7 +1025,9 @@ local MM_TICK_MS = 16       -- fixed clock; beat length is derived live so BPM c
 local mm_beat_accum = 0
 
 local function mm_is_rate_treatment()
-  return (mm.treatment == 2 or mm.treatment == 3 or mm.treatment == 4) and not mm.gravity_play
+  -- Gravity Play used to be excluded here, which is what made the Arp/Line Rate dropdown inert
+  -- while it ran. Gravity now only moves the position, so the rate treatments clock normally.
+  return (mm.treatment == 2 or mm.treatment == 3 or mm.treatment == 4)
 end
 
 local function mm_playback_pos_observable(song)
@@ -1074,6 +1076,12 @@ local function mm_is_subline_rate(song)
   return mm_is_rate_treatment() and mm_arp_rate_lines(song) < 1
 end
 
+local function mm_grav_suffix()
+  if not mm.gravity_play then return "" end
+  local d = math.max(1, mm.gravity_div)
+  return string.format(" | Grav: seed every %d row%s", d, d == 1 and "" or "s")
+end
+
 local function mm_effective_tempo_text()
   local song = renoise.song()
   local bpm = song and song.transport.bpm or 0
@@ -1092,16 +1100,16 @@ local function mm_effective_tempo_text()
       else
         when = string.format("%.2g hits/row", 1 / lines_per_hit)
       end
-      return string.format("%s: 1/%d, %s", sync_state, mm.arp_rate_den or 16, when)
+      return string.format("%s: 1/%d, %s%s", sync_state, mm.arp_rate_den or 16, when, mm_grav_suffix())
     end
-    return string.format("%s: row clock", sync_state)
+    return string.format("%s: row clock%s", sync_state, mm_grav_suffix())
   end
 
   local t = mm.tempo_use_alt and mm.tempo_alt or mm.tempo_basic
   if is_rate then
-    return string.format("Free: 1/%d @ %d BPM", mm.arp_rate_den or 16, t)
+    return string.format("Free: 1/%d @ %d BPM%s", mm.arp_rate_den or 16, t, mm_grav_suffix())
   end
-  return string.format("Free: row clock @ %d BPM", t)
+  return string.format("Free: row clock @ %d BPM%s", t, mm_grav_suffix())
 end
 
 -- deterministic pseudo-random 0..1 (avoid math.random for reproducibility per the workflow rules)
@@ -1420,6 +1428,109 @@ local function mm_arp_step(notes)
   mm_play_one(pick, playback_notes[pick])
 end
 
+-- Articulate a POSITION change (mouse move, gravity seed step, octave shift) through whatever
+-- Treatment is selected. Chord strikes (or strums) the chord; Arpeggiate / Line / Improvise re-seed
+-- their sequence on the new harmony and keep running at the Arp/Line Rate. This is the single place
+-- that turns "the chord under the cursor changed" into sound, so the mouse, Gravity Play and the
+-- cursor keys all behave identically.
+function mm_articulate(restart_sequence)
+  local notes = mm_compute_voices()
+  if mm.treatment == 1 then
+    mm_play_chord(notes)
+    return
+  end
+  mm.last_notes = notes
+  if restart_sequence then mm.seq_i = 0 end
+  if (mm.treatment == 2 or mm.treatment == 3) and mm.phrase_arp_proto and mm_phrase_arp_sync then
+    mm_phrase_arp_sync(notes, restart_sequence and true or false)
+  end
+end
+
+-- Move to the next (delta = 1) or previous (delta = -1) gravitation seed and articulate it.
+-- Gravity Play only ever MOVES the position; the Treatment does the playing. That is why the
+-- Arp/Line Rate, Strum, Articulation and the phrase prototype all apply during Gravity Play.
+function mm_gravity_goto(delta)
+  local n = #mm.seeds
+  if n == 0 then return false end
+  mm.gravity_index = ((mm.gravity_index - 1 + delta) % n) + 1
+  local s = mm.seeds[mm.gravity_index]
+  mm.deg_x = s.dx; mm.deg_y = s.dy
+  mm_articulate(true)
+  if mm_canvas then mm_canvas:update() end
+  return true
+end
+
+-- Shift the whole instrument by an octave and re-articulate through the current Treatment,
+-- so cursor up / down follows the arpeggio / strum / phrase instead of forcing a block chord.
+function mm_octave_shift(delta)
+  mm.transpose = mm.transpose + delta
+  mm_articulate(true)
+  if mm_canvas then mm_canvas:update() end
+  if mm_update_panel then mm_update_panel() end
+  renoise.app():show_status(string.format("Music Mouse: octave %s (transpose %+d semitones)",
+    delta > 0 and "up" or "down", mm.transpose))
+end
+
+-- Gravity Play's clock is the ROW clock, kept deliberately separate from the Treatment's note
+-- clock. One row-boundary = one gravity beat; the Gravity Rate divides it. Changing Treatment,
+-- Arp/Line Rate, Tempo or Sync restarts the note timer but NEVER re-phases this counter, so a
+-- dropdown change can no longer retrigger the chord that is already playing.
+-- free-running (transport stopped, or Sync off) millisecond accumulator. Kept in a table because
+-- this file sits at Lua's 200-locals-per-chunk ceiling; the helpers below are globals for the
+-- same reason, matching the mm_toggle_gravity_play / mm_clear_seeds convention already in use.
+local mm_grav = { accum = 0 }
+
+function mm_gravity_reset_phase()
+  mm_grav.accum = 0
+end
+
+function mm_gravity_due()
+  if not (mm.gravity_play and #mm.seeds > 0) then return false end
+  if mm.frozen or not mm.sound_on then return false end
+  return true
+end
+
+-- called once per crossed pattern line while Sync is on and Renoise is playing
+function mm_gravity_on_line()
+  if not mm_gravity_due() then return end
+  mm.gravity_beat = mm.gravity_beat + 1
+  if (mm.gravity_beat % math.max(1, mm.gravity_div)) ~= 0 then return end
+  mm_grav.accum = 0
+  mm_gravity_goto(1)
+end
+
+-- called every tick when there is no moving playhead to lock to. Uses the SAME row length
+-- (mm_beat_ms) the synced path uses, so stopping playback no longer changes the gravity tempo.
+function mm_gravity_free_tick()
+  if not mm_gravity_due() then mm_grav.accum = 0; return end
+  mm_grav.accum = mm_grav.accum + MM_TICK_MS
+  local step = mm_beat_ms() * math.max(1, mm.gravity_div)
+  if step < 8 then step = 8 end
+  if mm_grav.accum >= step then
+    mm_grav.accum = mm_grav.accum - step
+    if mm_grav.accum > step then mm_grav.accum = 0 end   -- clamp runaway
+    mm.gravity_beat = 0
+    mm_gravity_goto(1)
+  end
+end
+
+-- Globals for keybindings / MIDI mappings: step the seed sequence by hand. Manual stepping
+-- re-phases the auto clock so the next automatic hit is a full gravity beat away.
+function mm_gravity_step(delta)
+  if #mm.seeds == 0 then
+    renoise.app():show_status("Music Mouse: no gravitation seeds yet — left-click the grid to drop one")
+    return
+  end
+  mm_gravity_goto(delta)
+  mm_gravity_reset_phase()
+  mm.gravity_beat = 0
+  renoise.app():show_status(string.format("Music Mouse: gravitation seed %d/%d",
+    mm.gravity_index, #mm.seeds))
+end
+
+function mm_gravity_step_next() mm_gravity_step(1) end
+function mm_gravity_step_prev() mm_gravity_step(-1) end
+
 local mm_timer_fn  -- forward declaration
 
 mm_play_synced_beat = function()
@@ -1428,19 +1539,8 @@ mm_play_synced_beat = function()
   local song = renoise.song()
   if not song then return end
 
-  -- GRAVITY PLAY: step through the dropped seeds in recorded order, one chord per beat
-  if mm.gravity_play and #mm.seeds > 0 then
-    mm.gravity_beat = mm.gravity_beat + 1
-    if (mm.gravity_beat % math.max(1, mm.gravity_div)) ~= 0 then   -- only hit every Nth beat
-      return
-    end
-    mm.gravity_index = (mm.gravity_index % #mm.seeds) + 1
-    local s = mm.seeds[mm.gravity_index]
-    mm.deg_x = s.dx; mm.deg_y = s.dy
-    mm_play_chord(mm_compute_voices())
-    if mm_canvas then mm_canvas:update() end
-    return
-  end
+  -- Gravity Play does NOT play here: it moves the position on the row clock (mm_gravity_on_line /
+  -- mm_gravity_free_tick) and the Treatment below articulates whatever chord it landed on.
 
   if mm.pattern_on then mm.pat_step = mm.pat_step + 1 end
   local notes, apply = mm_compute_voices()
@@ -1501,6 +1601,7 @@ local function mm_on_playback_pos_changed()
   if mm.last_play_line == line_key then return end
   mm.last_play_line = line_key
   mm_beat_accum = 0
+  mm_gravity_on_line()          -- one crossed row = one gravity beat (independent of the note clock)
   if mm_is_rate_treatment() then
     local lines_per_hit = mm_arp_rate_lines(song)
     if lines_per_hit > 1 and not first_synced_line then
@@ -1560,6 +1661,7 @@ local function mm_tick()
     if mm.last_play_line ~= line_key then
       mm.last_play_line = line_key   -- crossed into a new line -> a beat, aligned to the grid
       mm_beat_accum = 0
+      mm_gravity_on_line()           -- gravity steps on the row, whatever the arp rate is doing
       if is_subline_rate or not mm_is_rate_treatment() then
         fire = true
       elseif mm_is_rate_treatment() then
@@ -1582,6 +1684,7 @@ local function mm_tick()
     end
   else
     mm.last_play_line = nil          -- re-arm the phase lock for when playback next starts
+    mm_gravity_free_tick()           -- same row length as the synced path: tempo doesn't jump on stop
     mm_beat_accum = mm_beat_accum + MM_TICK_MS
     local beat = mm_is_rate_treatment() and mm_arp_rate_ms() or mm_beat_ms()
     if beat < 8 then beat = 8 end
@@ -1663,19 +1766,20 @@ local function mm_update_from_mouse()
     if mm_canvas then mm_canvas:update() end
     return
   end
+  if mm.gravity_play and #mm.seeds > 0 then
+    -- Gravity Play owns the position while it runs: the mouse only aims (so you can still drop
+    -- and remove seeds), it does not sound. Without this the pointer and the seed sequencer fight
+    -- each other and the recorder gets several unrelated chords stamped into the same row.
+    local s = mm.seeds[mm.gravity_index]
+    if s then mm.deg_x = s.dx; mm.deg_y = s.dy end   -- keep the sounding position on the live seed
+    if mm_canvas then mm_canvas:update() end
+    return
+  end
   if not changed then
     if mm_canvas then mm_canvas:update() end
     return                        -- same cell -> no re-trigger (one hit per grid entry)
   end
-  local notes = mm_compute_voices()
-  if mm.treatment == 1 then
-    mm_play_chord(notes)          -- chord mode: sounds once when you enter a new cell
-  else
-    mm.last_notes = notes         -- arp/line/improvise: timer sequences these
-    if (mm.treatment == 2 or mm.treatment == 3) and mm.phrase_arp_proto and mm_phrase_arp_sync then
-      mm_phrase_arp_sync(notes, false)
-    end
-  end
+  mm_articulate(false)            -- chord strikes; arp/line/improvise re-seed and keep clocking
   if mm_canvas then mm_canvas:update() end
 end
 
@@ -1713,8 +1817,10 @@ function mm_toggle_gravity_play()
   mm.gravity_play = not mm.gravity_play
   mm.gravity_index = 0
   mm.gravity_beat = 0
+  mm_gravity_reset_phase()
   mm_restart_timer()
   if mm_canvas then mm_canvas:update() end
+  if mm_update_panel then mm_update_panel() end
   renoise.app():show_status("Music Mouse: Gravity Play " ..
     (mm.gravity_play and ("ON — " .. #mm.seeds .. " seeds, in order") or "OFF"))
 end
@@ -2183,8 +2289,8 @@ end
 local MM_ARP_ITEMS     = { "Up", "Down", "Up/Down", "Down/Up", "Scatter", "Strum" }
 local MM_ARP_RATE_ITEMS = { "1/1", "1/2", "1/4", "1/8", "1/16", "1/32" }
 local MM_ARP_RATE_DEN  = { 1, 2, 4, 8, 16, 32 }
-local MM_GRAVDIV_ITEMS = { "Every beat", "Every 4th", "Every 8th", "Every 16th" }
-local MM_GRAVDIV       = { 1, 4, 8, 16 }
+local MM_GRAVDIV_ITEMS = { "Every row", "Every 2 rows", "Every 4 rows", "Every 8 rows", "Every 16 rows" }
+local MM_GRAVDIV       = { 1, 2, 4, 8, 16 }
 local MM_LP_ITEMS      = { "Off", "Play chords", "Raindrops demo" }
 
 local function mm_arp_index() for i, n in ipairs(MM_ARP_ITEMS) do if n == mm.arp_mode then return i end end return 1 end
@@ -2379,8 +2485,19 @@ local function mm_controls_column(vbx)
       vbx:text{ id = "mm_effective_tempo_text", text = mm_effective_tempo_text(), width = 170 } },
     vbx:row{ spacing = 4, lbl("Gravity Play"),
       vbx:popup{ id = "mm_gravdiv_popup", width = 150, items = MM_GRAVDIV_ITEMS, value = mm_gravdiv_index(),
-        tooltip = "How often Gravity Play hits a seed: every beat, or every 4th / 8th / 16th beat.",
-        notifier = function(i) if mm_ui_busy then return end mm.gravity_div = MM_GRAVDIV[i] end } },
+        tooltip = "How often Gravity Play moves to the next seed, in pattern rows. The Treatment " ..
+          "(Chord / Arpeggiate / Line / Improvise) then articulates each seed at the Arp/Line Rate.",
+        notifier = function(i)
+          if mm_ui_busy then return end
+          mm.gravity_div = MM_GRAVDIV[i]
+          mm.gravity_beat = 0
+          mm_gravity_reset_phase()   -- take effect on the next gravity beat; never retrigger now
+        end } },
+    vbx:row{ spacing = 4, lbl("Gravity Step", "Step the seeds by hand — same as cursor left / right."),
+      vbx:button{ text = "◀ Prev", width = 73, tooltip = "Previous gravitation seed (cursor left)",
+        notifier = function() mm_gravity_step_prev() end },
+      vbx:button{ text = "Next ▶", width = 73, tooltip = "Next gravitation seed (cursor right)",
+        notifier = function() mm_gravity_step_next() end } },
     vbx:row{ spacing = 4, lbl("Grouping"),
       vbx:checkbox{ id = "mm_grouping_check", value = mm.grouping, notifier = function(b) if mm_ui_busy then return end mm.grouping = b end },
       hint("Sound"),
@@ -2678,6 +2795,20 @@ function mm_keyhandler(dlg, key)
       " — " .. (song.selected_instrument.name ~= "" and song.selected_instrument.name or "(unnamed)"))
     return nil
   end
+  -- Cursor LEFT / RIGHT: trigger the gravitation seeds one at a time, in recorded order. Works
+  -- whether Gravity Play is running (it re-phases the auto clock) or stopped (fully manual, so
+  -- the seeds are playable from the PC keyboard instead of only by the timer).
+  if (not has_cmd) and (not has_shift) and (name == "left" or name == "right") then
+    mm_gravity_step(name == "right" and 1 or -1)
+    mm_update_panel()
+    return nil
+  end
+  -- Cursor UP / DOWN: octave up / down on the CURRENT grid position, re-articulated through the
+  -- selected Treatment — so it follows the arpeggio, strum, line or phrase rather than forcing a chord.
+  if (not has_cmd) and (not has_shift) and (name == "up" or name == "down") then
+    mm_octave_shift(name == "up" and 12 or -12)
+    return nil
+  end
   -- Harmony q w e r t y : plain = play, cmd = quiet. (shift-qwerty passes through.)
   if (not has_shift) and (name == "q" or name == "w" or name == "e" or name == "r" or name == "t" or name == "y") then
     mm_set_scale(name, has_cmd)
@@ -2966,6 +3097,8 @@ local MM_KEYMAP = {
     { k = "return", label = "Lock notes" },
     { k = "return", mods = "shift", label = "Release held" }, { k = "j", label = "Keyjazz punch" },
     { k = ";", label = "Gravity Play" }, { k = "l", label = "Clear seeds" },
+    { k = "left", label = "Prev seed" }, { k = "right", label = "Next seed" },
+    { k = "up", label = "Octave +" }, { k = "down", label = "Octave -" },
     { k = "delete", label = "Disconnect mouse" }, { k = "k", label = "Theme" },
     { k = "home", label = "Re-Init" },
   }},
@@ -3405,4 +3538,14 @@ end }
 -- MIDI pad/button -> toggle Gravity Play (sequence the gravitation seeds in recorded order)
 renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Gravity Play (Toggle)", invoke = function(message)
   if message:is_trigger() then mm_toggle_gravity_play() end
+end }
+
+-- MIDI pads/buttons -> step the gravitation seeds one at a time (same as cursor left / right).
+-- Manual stepping re-phases the auto clock, so you can play the seeds by hand while Gravity
+-- Play is running without the timer jumping ahead on the very next row.
+renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Gravity Seed Next", invoke = function(message)
+  if message:is_trigger() then mm_gravity_step_next() end
+end }
+renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Gravity Seed Previous", invoke = function(message)
+  if message:is_trigger() then mm_gravity_step_prev() end
 end }

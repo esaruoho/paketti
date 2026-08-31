@@ -2277,9 +2277,9 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Duplicate Se
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Octave Slammer (-2 +2 octaves)",invoke=PakettiOctaveSlammer2}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Sample Loop Halve",invoke=function() adjust_loop_range(0.5) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Loop Double",invoke=function() adjust_loop_range(2) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Loop Length Next Division",invoke=function() cycle_loop_division(true) end}
@@ -2338,9 +2338,9 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Duplicate Selecte
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Octave Slammer (-2 +2 octaves)",invoke=PakettiOctaveSlammer2}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Wipe&Slice (002)",invoke=function() slicerough(2) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Wipe&Slice (004)",invoke=function() slicerough(4) end}
