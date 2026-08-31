@@ -38,6 +38,16 @@ The Sample FX Chain counterpart had the same missing save and is fixed the same 
 - Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
 - MIDI Mapping: `Paketti:Toggle Auto-Open Sample FX Chain Devices`
 
+### 2026-08-31 - Fix: Stepping Music Mouse Gravitation Seeds Now Plays In Every Treatment. Arpeggiate, Line and Improvise did nothing audible when the seeds were stepped from the keyboard.
+
+Stepping a gravitation seed with the cursor keys moved the harmony but, in the Arpeggiate, Line and Improvise treatments, produced no sound at the moment of the press and rewound the sequence to its first voice. The next tick of the clock therefore always played the same lowest note, so holding the cursor key walked through the seeds while repeating one note. Only the Chord treatment sounded.
+
+A deliberate gesture — a seed step with cursor left or right, or an octave shift with cursor up or down — now plays one step of the current treatment immediately, and the sequence carries on from where it was instead of restarting. Four presses now give four notes that walk the chord, in all four treatments. Mouse movement is unchanged: it still re-seeds the sequence without striking, so sweeping the grid does not flood the voices.
+
+### 2026-08-31 - Fix: A Music Mouse Reload No Longer Wipes Your Gravitation Seeds. Saved settings could be overwritten with defaults before they had been read back.
+
+Reloading the tool rebuilds Music Mouse's live state from its defaults — no seeds, Sync on, 28 ms strum spacing — and the saved settings are only read back when the Music Mouse window is next opened. In between, any control that saves a setting (a loudness key, a checkbox, a MIDI-mapped tempo knob) wrote those defaults over the real ones, and the dropped gravitation seeds were gone for good. Settings are now only written back once they have actually been loaded, so a reload with the window closed can no longer destroy them.
+
 ### 2026-08-31 - Fix: Music Mouse Strum Works From The Arp Mode Dropdown Too. Picking Strum next to a Chord treatment used to do nothing at all.
 
 The Music Mouse panel offers Strum in two places. The Arp Mode dropdown sits immediately to the right of the Treatment dropdown, so the pair reads as one setting — Chord, Strum. It was not one setting: the Chord treatment ignored Arp Mode entirely, and the control that actually rakes a chord is an unlabelled checkbox further down the panel, beside the Strum spacing box. Choosing Strum next to Chord therefore did nothing, silently, including when stepping the gravitation seeds with the cursor keys.

@@ -154,6 +154,8 @@ local mm = {
   voice_note = {}, -- currently sounding Renoise note per voice (max MM_MAX_VOICES)
   last_notes = {}, -- last computed target notes
   seq_i = 0,                  -- arp/line/improvise voice index
+  notes_played = 0,           -- lifetime note-on counter (diagnostics; see mm_state_summary)
+  prefs_loaded = false,       -- guard: never SAVE settings we have not LOADED yet (see mm_save_prefs)
   sync_line_accum = 0,        -- line counter for synced arpeggio rates slower than one row
   random_seed = 12345,        -- deterministic pseudo-random for improvise
   timer_running = false,
@@ -219,9 +221,16 @@ local function mm_load_prefs()
     local d = preferences.pakettiMusicMouseBellDecay.value
     if d and d >= 1 then mm.bell_decay = d / 10 end
   end
+  mm.prefs_loaded = true    -- only now is it safe to write settings back (see mm_save_prefs)
 end
 
+-- A tool reload rebuilds `mm` from its defaults — no seeds, Sync on, 28 ms strum — and the saved
+-- settings are only read back when the dialog is next OPENED. Between those two moments any
+-- control that saves (a loudness key, a checkbox, a MIDI-mapped tempo knob) would write those
+-- defaults straight over the real ones, and the gravitation seeds were simply gone. So: never
+-- save what we have not loaded.
 local function mm_save_prefs()
+  if not mm.prefs_loaded then return end
   if not preferences or not preferences.pakettiMusicMouseTempoBasic then return end
   preferences.pakettiMusicMouseTempoBasic.value = mm.tempo_basic
   preferences.pakettiMusicMouseTempoAlt.value   = mm.tempo_alt
@@ -566,6 +575,7 @@ local function mm_trigger_notes_on(song, instrument_index, track_index, notes, v
       song:trigger_instrument_note_on(instrument_index, track_index, note, velocity)
     end)
   end
+  mm.notes_played = mm.notes_played + #notes
 end
 
 local function mm_trigger_notes_off(song, instrument_index, track_index, notes)
@@ -590,7 +600,7 @@ local function mm_note_on(voice, note)
   if vel <= 0 then vel = 0.01 end
   if vel > 1 then vel = 1 end
   local ok = pcall(function() song:trigger_instrument_note_on(ii, ti, note, vel) end)
-  if ok then mm.voice_note[voice] = note end
+  if ok then mm.voice_note[voice] = note; mm.notes_played = mm.notes_played + 1 end
 end
 
 -- release all ENTER-locked (held) notes
@@ -1479,6 +1489,18 @@ end
 
 -- one arpeggiate/line beat. Up / Down / Scatter step one voice; Strum time-staggers the chord.
 -- (Line = treatment 3 = plain ascending, independent of the Arp sub-mode.)
+-- Music Mouse "Improvise" = 4-beat suspension: each voice re-enters on its OWN beat of a
+-- rolling 4-beat cycle and then sustains, so the voices overlap and suspend against one another
+-- (a moving line rather than a block chord). Voice v fires when (v-1) mod 4 == beat.
+local function mm_improvise_step(notes)
+  local playback_notes = mm_playback_notes(notes)
+  mm.seq_i = mm.seq_i + 1
+  local beat = (mm.seq_i - 1) % 4
+  for v = 1, #playback_notes do
+    if ((v - 1) % 4) == beat then mm_play_one(v, playback_notes[v]) end
+  end
+end
+
 local function mm_arp_step(notes)
   if mm.phrase_arp_proto and (mm.treatment == 2 or mm.treatment == 3) then
     -- Renoise is already clocking the held phrase. Rewriting here would clear/restart it
@@ -1521,17 +1543,28 @@ end
 -- their sequence on the new harmony and keep running at the Arp/Line Rate. This is the single place
 -- that turns "the chord under the cursor changed" into sound, so the mouse, Gravity Play and the
 -- cursor keys all behave identically.
-function mm_articulate(restart_sequence)
+-- `strike` = this came from a deliberate gesture (a gravitation-seed step, an octave shift),
+-- as opposed to the mouse sweeping across cells.
+--
+-- Chord strikes either way. The rate treatments used to only re-seed and zero mm.seq_i, which
+-- made a keyboard seed step do nothing you could hear: silent at the moment of the press, and
+-- then the next clock tick, starting from seq_i = 0, always picked the FIRST voice — so holding
+-- right stepped the harmony while repeating the same lowest note. A deliberate gesture now fires
+-- one step of the current treatment immediately and lets the sequence carry on from where it is.
+function mm_articulate(strike)
   local notes = mm_compute_voices()
   if mm.treatment == 1 then
     mm_play_chord(notes)
     return
   end
   mm.last_notes = notes
-  if restart_sequence then mm.seq_i = 0 end
   if (mm.treatment == 2 or mm.treatment == 3) and mm.phrase_arp_proto and mm_phrase_arp_sync then
-    mm_phrase_arp_sync(notes, restart_sequence and true or false)
+    mm_phrase_arp_sync(notes, strike and true or false)
+    return                      -- Renoise is clocking the phrase; don't also strike by hand
   end
+  if not strike then return end
+  if mm.treatment == 4 then mm_improvise_step(notes) else mm_arp_step(notes) end
+  mm_beat_accum = 0             -- re-phase, so the clock's next hit is a full interval away
 end
 
 -- Move to the next (delta = 1) or previous (delta = -1) gravitation seed and articulate it.
@@ -1663,15 +1696,7 @@ mm_play_synced_beat = function()
   elseif mm.treatment == 2 or mm.treatment == 3 then
     mm_arp_step(notes)
   elseif mm.treatment == 4 then
-    -- Music Mouse "Improvise" = 4-beat suspension: each voice re-enters on its OWN beat of a
-    -- rolling 4-beat cycle and then sustains, so the voices overlap and suspend against one
-    -- another (a moving line rather than a block chord). Voice v fires when (v-1) mod 4 == beat.
-    local playback_notes = mm_playback_notes(notes)
-    mm.seq_i = mm.seq_i + 1
-    local beat = (mm.seq_i - 1) % 4
-    for v = 1, #playback_notes do
-      if ((v - 1) % 4) == beat then mm_play_one(v, playback_notes[v]) end
-    end
+    mm_improvise_step(notes)
   end
 
   if mm_canvas then mm_canvas:update() end
@@ -3672,11 +3697,11 @@ end   -- Launchpad scope: its locals are released here (see the note above)
 function mm_state_summary()
   return string.format(
     "Treatment=%s  ArpMode=%s  ArpRate=1/%d  Strum=%s(chk=%s)  StrumMs=%d  Gravity=%s(%d seeds, every %d row)  " ..
-    "Sync=%s  Pattern=%s  Staccato=%s  Grouping=%s  Voices=%d  Frozen=%s  Dialog=%s",
+    "Played=%d  Sync=%s  Pattern=%s  Staccato=%s  Grouping=%s  Voices=%d  Frozen=%s  Dialog=%s",
     TREATMENT_NAMES[mm.treatment] or "?", tostring(mm.arp_mode), mm.arp_rate_den or 16,
     tostring(mm_strum_active()), tostring(mm.strum), mm.strum_ms or MM_STRUM_MS,
     tostring(mm.gravity_play), #mm.seeds, math.max(1, mm.gravity_div),
-    tostring(mm.sync_bpm), tostring(mm.pattern_on), tostring(mm.staccato), tostring(mm.grouping),
+    mm.notes_played, tostring(mm.sync_bpm), tostring(mm.pattern_on), tostring(mm.staccato), tostring(mm.grouping),
     mm.num_voices, tostring(mm.frozen), tostring(dialog ~= nil and dialog.visible))
 end
 
