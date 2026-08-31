@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+    # nothing in features/ (the report-card wiki) affects this job's output
+    paths-ignore:
+      - 'features/**'
 
 permissions:
   contents: read

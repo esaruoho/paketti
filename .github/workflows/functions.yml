@@ -9,6 +9,9 @@ on:
   push:
     branches:
       - master
+    # nothing in features/ (the report-card wiki) affects this job's output
+    paths-ignore:
+      - 'features/**'
 
 # This workflow may regenerate docs in the runner, but it must not push commits
 # back to master. Bot commit-back makes a human checkout fall behind immediately
