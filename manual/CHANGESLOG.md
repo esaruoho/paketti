@@ -8,6 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-31 - Improvement: Shared Master Track, Sample Editor And Pattern Matrix Helpers Have One Owner
+
+`get_master_track_index` had three identical global implementations, and `focus_sample_editor` had two. They now have one canonical definition in `main.lua`, loaded before every feature module. `showhidepatternmatrix` also had two competing global versions; the shared version preserves the behavior users actually received from the later-loaded MIDI module: it toggles only Pattern Matrix visibility without changing the active editor.
+
+- Keyboard shortcut: `Global:Paketti:Show/Hide Pattern Matrix`
+- MIDI Mapping: `Paketti:Show/Hide Pattern Matrix x[Toggle]`
+
 ### 2026-08-31 - Fix: Function Search And Action Selector Can Run Their Replayed Commands
 
 Paketti Function Search and Action Selector rebuild command callbacks from their saved source text. A callback that named a `local function` lost that file-local scope when replayed, so it threw a strict-global error even though the normal Renoise shortcut still worked. All 76 replayed helpers across the 19 affected modules are now callable globals. This restores 62 keybinding actions in both tools and 64 MIDI-mapping actions in Function Search, including LFO shape selection and "Divide LPB by 4, return to Original".
@@ -121,7 +128,11 @@ That format is now decoded, from 220 files across ten Yamaha-format library disk
 
 Verified by decoding all 220. The measure is how smooth the result is - a pure sine scores 125 on it and white noise 1365, and every wrong interpretation scored around 1100. The correct one gives a median of 90, with peaks filling the full 12-bit range. As a cross-check, a guitar sample named `GTB1` has a loop exactly 268 frames long, which at the sampler's standard rate is 124 Hz - the note B, which is what its name says.
 
-Two things are honestly not known: the sample rate field has not been identified, so waves import at 33333 Hz, the TX16W standard, which is what the pitch of every file in the corpus measures at. And a handful of header bytes remain unexplained.
+Sample rates come across correctly too, and finding them took going against the published description of this format. Every reference puts the rate in one particular byte with three possible values; on real factory disks that byte holds 79 different values and only a quarter of files are even in range. The rate is actually packed into the top bits of a different byte, sharing it with part of the length. Establishing that was possible because the same libraries existed in both formats - the originals, and conversions made on real hardware which state their rate outright - so the two could be paired: 219 waves, one-to-one, no exceptions.
+
+Checked against those conversions, this reads 218 of 218 waves with the right length, the right sample rate and the right loop end, and 217 of 218 with the right loop start. The one difference is a loop that looks hand-adjusted.
+
+A handful of header bytes remain unexplained, and they are listed in the format notes.
 
 - Menu: `Main Menu:File:Paketti Import:Import TX16W Disk Image (.img)...` reads both formats
 - Menu: `Main Menu:File:Paketti Import:Import TX16W Folder (.O01 + .C01)...` now also picks up `.W##`

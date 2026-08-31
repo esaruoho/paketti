@@ -2114,9 +2114,12 @@ end
 --    6..15   zero
 --   16..21   not identified
 --   22       0x49 = looped, 0xC9 = not looped
---   23       not identified
+--   23       documented elsewhere as the rate index, but on real factory disks
+--            it holds 79 different values and only 27% are in the documented
+--            1/2/3 range. It is not the rate. See below.
 --   24..26   attack length, 17-bit little endian, bit 16 in byte 26 bit 0
---   27..29   loop length, same encoding
+--   27..29   loop length, same encoding -- but only BIT 0 of byte 29 belongs
+--            to the length. Bits 1-7 are the SAMPLE RATE index.
 --   30..31   not identified
 --   32..     audio: 12-bit signed, two samples per three bytes
 --              sample 1 = (b0 << 4) | (b1 & 0x0F)
@@ -2126,6 +2129,19 @@ end
 -- The format encodes the machine's own rule directly: a loop always runs to
 -- the end of the wave, so a wave is an attack followed by a repeating tail.
 PAKETTI_YAMAHA_WAVE_MAGIC = "LM8953"
+
+-- Sample rate lives in the top 7 bits of byte 29, and these are the values it
+-- actually takes. Established by pairing ten Yamaha-format library disks with
+-- Typhoon conversions of the same libraries, where the rate is stated outright
+-- in the AIFF header: across 219 waves the mapping is one-to-one with no
+-- exceptions. The frame counts agreed 219 out of 219 too, which is what makes
+-- the pairing trustworthy.
+--
+-- 33310 rather than 33333 is not a typo: it is what the machine actually ran
+-- at, and what its own conversions record.
+PAKETTI_YAMAHA_WAVE_RATES = {
+  [40] = 33310, [41] = 33333, [73] = 44175, [127] = 49966,
+}
 
 function PakettiTyphoonParseYamahaWave(data)
   if #data < 48 or data:sub(1, 6) ~= PAKETTI_YAMAHA_WAVE_MAGIC then
@@ -2161,16 +2177,17 @@ function PakettiTyphoonParseYamahaWave(data)
     nsamples = frames,
     nchannels = 1,
     wordsize = 12,
-    -- The rate field has not been identified. 33333 is the TX16W standard and
-    -- is what the corpus measures at: decoded pitches match the note in each
-    -- file's own name at this rate.
-    rate = 33333,
+    rate = PAKETTI_YAMAHA_WAVE_RATES[floor(b(29) / 2)] or 33310,
     channels = { ints },
     attack = attack,
     loop_length = loop,
     looped = (b(22) == 0x49),
-    loop_start = (b(22) == 0x49 and loop > 0) and (attack + 1) or nil,
-    loop_end = (b(22) == 0x49 and loop > 0) and frames or nil,
+    -- The attack/loop split exists whether or not the wave loops, so the points
+    -- are always reported and only the mode follows the flag. That keeps the
+    -- loop switchable in Renoise on a sample the sampler marked non-looping --
+    -- Typhoon's own conversions loop these anyway, at exactly this boundary.
+    loop_start = (loop > 0) and (attack + 1) or nil,
+    loop_end = (loop > 0) and frames or nil,
     loop_mode = (b(22) == 0x49 and loop > 0) and 1 or 0,
   }
 end

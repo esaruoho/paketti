@@ -160,9 +160,12 @@ What a TX16W disk holds before anyone installs Typhoon. Decoded 2026-08-31 from
  6..15   zero
 16..21   not identified
 22       0x49 = looped, 0xC9 = not looped   (only these two values appear)
-23       not identified
+23       NOT the sample rate, despite what the published struct says
 24..26   attack length, 17-bit little endian, bit 16 = byte 26 bit 0
-27..29   loop length, same encoding
+29 bit 0 loop length bit 16
+29 bits 1-7  SAMPLE RATE index:  40 = 33310 Hz   41 = 33333 Hz
+                                 73 = 44175 Hz  127 = 49966 Hz
+27..28   loop length, low 16 bits
 30..31   not identified
 32..     audio, 12-bit signed, two samples per three bytes:
            sample 1 = (b0 << 4) | (b1 & 0x0F)
@@ -190,15 +193,53 @@ the wave, so a wave *is* an attack followed by a repeating tail.
   end on the final frame, for every file. `GTB1.W27` is a guitar B1: its loop is
   268 frames, which at 33333 Hz is 124 Hz — B2, matching both its filename and
   its measured pitch. The loop is one period long.
-- **Rate.** *Not identified.* Byte 29 bit 1 splits the corpus 166/50 and is the
-  best candidate, but pitch measurement settles the practical question:
-  decoding at 33333 Hz makes each file's fundamental match the note in its own
-  name (FLC3 → C, GTB1 → B, CFL-C3 → C) with a consistent octave offset.
-  Paketti imports at 33333 Hz, the TX16W standard.
+- **Rate — settled, and it is not byte 23.** The published struct (the one in
+  SoX and repeated widely) puts the rate at byte 23 with values 1/2/3 for
+  33.3/50/16.7 kHz. On real factory disks byte 23 takes **79 distinct values and
+  only 27% of files are in that range**, so it is something else.
+
+  The archive contained the same ten libraries in *both* formats — Yamaha
+  originals and Typhoon conversions made on real hardware — and a Typhoon wave
+  states its rate outright in its AIFF header. Pairing them gives ground truth
+  for 219 waves, and the rate maps **one-to-one with the top 7 bits of byte 29**,
+  with no exceptions:
+
+  | `byte29 >> 1` | rate | files |
+  |---|---|---|
+  | 40 | 33310 Hz | 166 |
+  | 41 | 33333 Hz | 49 |
+  | 73 | 44175 Hz | 3 |
+  | 127 | 49966 Hz | 1 |
+
+  Byte 29 therefore does double duty: bit 0 is the loop length's bit 16, bits
+  1–7 are the rate. **33310 rather than 33333 is not a typo** — it is what the
+  machine actually ran at and what its own conversions record.
+
+  Only four values are observed, so this is a lookup rather than a formula;
+  unknown values fall back to 33310.
+
+### Validated against the machine's own conversions
+
+Pairing every Yamaha wave with the Typhoon conversion of the same sound:
+
+```
+frames      218/218
+sample rate 218/218
+loop end    218/218
+loop start  217/218
+```
+
+The single loop-start difference is `PIC-E4`, off by 13 frames, which looks
+like a loop someone adjusted by hand during conversion.
+
+Typhoon writes a loop even on waves the Yamaha header marks non-looping, at
+exactly the attack boundary. Paketti reports the loop points either way and
+only follows the flag for whether looping is *on*, so the loop stays available
+without being imposed.
 
 ### Still unidentified
 
-Bytes 16–21, 23, 30–31, and the upper bits of 26 and 29. Byte 26's upper bits
+Bytes 16–21, 23, 30–31, and the upper bits of 26. Byte 26's upper bits
 read 3 on 216 of 220 files, so they are a format marker rather than data. Three
 files decode above the smoothness threshold; they may be genuinely noisy
 content (the corpus includes cymbals and effects) rather than misparsed.
