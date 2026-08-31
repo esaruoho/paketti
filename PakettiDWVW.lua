@@ -468,6 +468,71 @@ end
 -- Reads a Renoise sample buffer, resamples to target_rate (linear), optionally
 -- mixes to mono, and quantises to signed `wordsize` integers.
 -- Returns: channels (array of integer arrays), frame count, channel count.
+-- A windowed-sinc lowpass FIR, for band-limiting before downsampling.
+-- cutoff is in cycles per sample (0..0.5). Blackman window, odd tap count so
+-- the filter is linear phase and the delay is a whole number of samples.
+local function design_lowpass(cutoff, taps)
+  local h, mid, sum = {}, (taps - 1) / 2, 0
+  for i = 0, taps - 1 do
+    local n = i - mid
+    local sinc
+    if n == 0 then
+      sinc = 2 * cutoff
+    else
+      sinc = math.sin(2 * math.pi * cutoff * n) / (math.pi * n)
+    end
+    local w = 0.42
+      - 0.5 * math.cos(2 * math.pi * i / (taps - 1))
+      + 0.08 * math.cos(4 * math.pi * i / (taps - 1))
+    h[i + 1] = sinc * w
+    sum = sum + h[i + 1]
+  end
+  -- Normalise to unity gain at DC so filtering never changes the level.
+  for i = 1, taps do h[i] = h[i] / sum end
+  return h, mid
+end
+
+-- Filters src in place-ish (returns a new table), clamping at the edges so the
+-- start and end of the sample are not dragged toward silence.
+local function apply_lowpass(src, n, h, mid, yield_every)
+  local out, taps = {}, #h
+  -- The middle of the sample needs no edge clamping, so it runs a tight loop
+  -- with no per-tap branch. Only the first and last `mid` samples take the slow
+  -- path. On a long sample that is the difference between seconds and minutes.
+  local lo, hi = mid + 1, n - mid
+
+  for i = 1, math.min(lo - 1, n) do
+    local acc = 0
+    for k = 1, taps do
+      local j = i + k - 1 - mid
+      if j < 1 then j = 1 elseif j > n then j = n end
+      acc = acc + src[j] * h[k]
+    end
+    out[i] = acc
+  end
+
+  for i = math.max(lo, 1), hi do
+    local acc, base = 0, i - mid - 1
+    for k = 1, taps do
+      acc = acc + src[base + k] * h[k]
+    end
+    out[i] = acc
+    if yield_every and i % yield_every == 0 then coroutine.yield() end
+  end
+
+  for i = math.max(hi + 1, 1), n do
+    local acc = 0
+    for k = 1, taps do
+      local j = i + k - 1 - mid
+      if j < 1 then j = 1 elseif j > n then j = n end
+      acc = acc + src[j] * h[k]
+    end
+    out[i] = acc
+  end
+
+  return out
+end
+
 -- src_limit, when given, treats the source as ending at that frame. It exists
 -- for looped samples: see PakettiDWVWLoopLimit below.
 function PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, yield_every, src_limit)
@@ -486,6 +551,37 @@ function PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, 
   local scale = 2 ^ (wordsize - 1)
   local maxv, minv = scale - 1, -scale
 
+  -- Pull the source into plain tables first, mixing to mono here if asked, so
+  -- the band-limiting filter below has something to work on.
+  local src = {}
+  for c = 1, out_ch do src[c] = {} end
+  for i = 1, src_frames do
+    if out_ch == 1 and src_ch > 1 then
+      local acc = 0
+      for c = 1, src_ch do acc = acc + buffer:sample_data(c, i) end
+      src[1][i] = acc / src_ch
+    else
+      for c = 1, out_ch do src[c][i] = buffer:sample_data(c, i) end
+    end
+    if yield_every and i % yield_every == 0 then coroutine.yield() end
+  end
+
+  -- Downsampling without band-limiting folds everything above the new Nyquist
+  -- back into the audible range: going 44100 -> 33333 aliases every partial
+  -- above 16.7 kHz down on top of the music, which on bright material (hats,
+  -- cymbals) is plainly audible and sounds like the sampler's fault. Filter
+  -- first, then resample. Upsampling needs none of this.
+  if ratio > 1.0001 then
+    -- Sit the cutoff just under the new Nyquist. 63 taps rather than 31: a
+    -- short filter has a wide transition band, which drags the top octave down
+    -- with it and dulls hi-hats. This keeps 14 kHz nearly intact while still
+    -- burying anything that would alias.
+    local h, mid = design_lowpass(0.47 / ratio, 63)
+    for c = 1, out_ch do
+      src[c] = apply_lowpass(src[c], src_frames, h, mid, yield_every)
+    end
+  end
+
   local channels = {}
   for c = 1, out_ch do channels[c] = {} end
 
@@ -493,24 +589,14 @@ function PakettiDWVWBufferToChannels(buffer, target_rate, force_mono, wordsize, 
     local pos = (i - 1) * ratio + 1
     local idx = floor(pos)
     local frac = pos - idx
-    local idx2 = math.min(idx + 1, src_frames)
     if idx < 1 then idx = 1 end
     if idx > src_frames then idx = src_frames end
+    local idx2 = math.min(idx + 1, src_frames)
 
-    if out_ch == 1 and src_ch > 1 then
-      local acc = 0
-      for c = 1, src_ch do
-        local a, b = buffer:sample_data(c, idx), buffer:sample_data(c, idx2)
-        acc = acc + (a + frac * (b - a))
-      end
-      local v = floor((acc / src_ch) * scale + 0.5)
-      channels[1][i] = (v > maxv and maxv) or (v < minv and minv) or v
-    else
-      for c = 1, out_ch do
-        local a, b = buffer:sample_data(c, idx), buffer:sample_data(c, idx2)
-        local v = floor((a + frac * (b - a)) * scale + 0.5)
-        channels[c][i] = (v > maxv and maxv) or (v < minv and minv) or v
-      end
+    for c = 1, out_ch do
+      local a, b = src[c][idx], src[c][idx2]
+      local v = floor((a + frac * (b - a)) * scale + 0.5)
+      channels[c][i] = (v > maxv and maxv) or (v < minv and minv) or v
     end
 
     if yield_every and i % yield_every == 0 then coroutine.yield() end

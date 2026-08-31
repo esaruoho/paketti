@@ -85,6 +85,14 @@ The Gravity Rate popup is now stated in pattern rows and offers every 1, 2, 4, 8
 - MIDI Mapping: `Paketti:Music Mouse Key Prev seed`, `Paketti:Music Mouse Key Next seed`, `Paketti:Music Mouse Key Octave +`, `Paketti:Music Mouse Key Octave -` (from the on-screen keymap)
 - Menu: `Main Menu:Tools:Paketti:Instruments:Music Mouse...`
 
+### 2026-08-31 - Fix: TX16W Exports No Longer Alias. Downsampling was folding everything above the new Nyquist back into the audible range.
+
+Every TX16W export resamples, because the sampler runs at 33333 Hz and your samples almost certainly do not. That conversion was plain linear interpolation with no band-limiting, which means going from 44100 Hz to 33333 Hz folded every partial above 16.7 kHz back down on top of the music. On bright material - hi-hats, cymbals, anything with air - that is plainly audible, and it sounds like the sampler's fault when it was ours.
+
+Exports are now band-limited before resampling, with a 63-tap windowed-sinc filter placed just under the new Nyquist. Measured on test tones through the real export path: a 19 kHz tone that used to alias down to 14.3 kHz is now 90 dB down and its alias is at the noise floor, while 14 kHz still passes within 3 dB and 8 kHz within 1 dB. Upsampling is untouched, since it cannot alias.
+
+This costs time - roughly 370 ms per sample, so about a third longer on a big kit - and it runs inside the progress dialog like the rest of the export. Worth it: this affected every single sample anyone has exported.
+
 ### 2026-08-31 - Feature: Music Mouse Strike Shape. Plink, Bell and Gong, plus Length and Decay on the panel.
 
 The struck sound in Bell mode was one fixed shape - 1.3 seconds with a fixed fade - baked into the code with no way to change it. Every bell in Music Mouse was the same bell.
