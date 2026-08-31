@@ -4013,6 +4013,17 @@ end
 function PakettiSetAutomaticallyOpenTrackDeviceEditors(enabled)
   PakettiAutomaticallyOpenTrackDeviceEditorsEnabled = enabled and true or false
 
+  -- Persist the state. The menu/keybinding/MIDI toggle used to flip only the
+  -- runtime global, so main.lua re-read the untouched preference on the next
+  -- tool reload and switched auto-open back ON no matter how often it was
+  -- turned off. The preference IS the state, so write it here and save.
+  if preferences ~= nil and preferences.pakettiAlwaysOpenDSPsOnTrack ~= nil then
+    if preferences.pakettiAlwaysOpenDSPsOnTrack.value ~= PakettiAutomaticallyOpenTrackDeviceEditorsEnabled then
+      preferences.pakettiAlwaysOpenDSPsOnTrack.value = PakettiAutomaticallyOpenTrackDeviceEditorsEnabled
+      preferences:save_as("preferences.xml")
+    end
+  end
+
   if PakettiAutomaticallyOpenTrackDeviceEditorsEnabled then
     renoise.app():show_status("Automatically Open Selected Track Devices Toggled ON")
 
@@ -4141,6 +4152,7 @@ end
 -- Toggle the automatic mode for sample FX chains (for manual toggle via keybinding/menu)
 function PakettiAutomaticallyOpenSelectedSampleDeviceChainExternalEditorsToggleAutoMode()
   preferences.pakettiAlwaysOpenSampleFXChainDevices.value = not preferences.pakettiAlwaysOpenSampleFXChainDevices.value
+  preferences:save_as("preferences.xml")
   
   if preferences.pakettiAlwaysOpenSampleFXChainDevices.value then
     renoise.app():show_status("Automatically Open Selected Sample FX Chain Devices Toggled ON")

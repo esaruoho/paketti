@@ -211,7 +211,25 @@ NOTE: This screenshot, like many others in this manual, are here only for the pu
 So, what even are all of these? 
 
 #### Automatically Open Selected Track Device Editors
+When this is enabled, every Track DSP device on the selected track that has an external editor (VST/AU plugins) has that editor opened automatically as soon as you select the track - and the editors belonging to the track you just left are closed. Handy if you work plugin-first and want the windows to follow the cursor instead of opening them one by one.
 
+The state is remembered across Renoise restarts and Paketti reloads. Turning it off stays off.
+
+- Menu: `Main Menu:Options:Automatically Open Selected Track Device Editors Toggle`
+- Menu: `Main Menu:Tools:Paketti:!Preferences:Toggle Automatically Open Selected Track Device Editors On/Off`
+- Menu: `Mixer:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off`
+- Menu: `Pattern Matrix:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off`
+- Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off`
+- MIDI Mapping: `Paketti:Toggle Auto-Open Track Devices`
+- Preferences checkbox: `Paketti Preferences` -> `Always Open Track DSPs`
+
+There is a Sample FX Chain counterpart that does the same for the devices in the selected sample's FX chain:
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
+- Menu: `Sample FX Mixer:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
+- Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
+- MIDI Mapping: `Paketti:Toggle Auto-Open Sample FX Chain Devices`
+- Preferences checkbox: `Paketti Preferences` -> `Always Open Sample FX Chain Devices`
 
 #### Open Parameter Editor On Device Selection
 When this is enabled, the Paketti specific Parameter Editor is always opened, when you select a new Device on the Mixer or Track DSP view (such as on the Pattern Editor). Here's an example of what the Parameter Editor can look like.

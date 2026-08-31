@@ -8,6 +8,25 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-31 - Fix: "Automatically Open Selected Track Device Editors" Stays Off When You Turn It Off. Toggling it off now writes and saves the preference, so it no longer switches itself back on every time the tool reloads.
+
+Turning the feature off from the Options menu, the Mixer or Pattern Matrix context menus, the keyboard shortcut or the MIDI mapping only flipped an in-memory flag - it never touched `Always Open Track DSPs` in the Paketti Preferences and never saved preferences.xml. On the next tool reload Paketti read the untouched preference, found it still on, and forced the feature back on with the checkmark showing in the Options menu. There was no way to make "off" stick short of hand-editing preferences.xml.
+
+The toggle now writes the preference and saves it immediately, so on/off survives a tool reload and a Renoise restart. The Paketti Preferences checkbox is also guarded so that merely opening the Preferences dialog can no longer flip the setting on its own.
+
+The Sample FX Chain counterpart had the same missing save and is fixed the same way.
+
+- Menu: `Main Menu:Options:Automatically Open Selected Track Device Editors Toggle`
+- Menu: `Main Menu:Tools:Paketti:!Preferences:Toggle Automatically Open Selected Track Device Editors On/Off`
+- Menu: `Mixer:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off`
+- Menu: `Pattern Matrix:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off`
+- Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off`
+- MIDI Mapping: `Paketti:Toggle Auto-Open Track Devices`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
+- Menu: `Sample FX Mixer:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
+- Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
+- MIDI Mapping: `Paketti:Toggle Auto-Open Sample FX Chain Devices`
+
 ### 2026-08-31 - Improvement: Music Mouse Gravity Play Is Now Playable. Gravity Play sequences the seeds, and the Treatment plays them — so arpeggios, strums, lines and phrases finally apply, and the seeds can be triggered from the keyboard.
 
 Gravity Play used to be a closed loop: it stepped through the dropped gravitation seeds and struck a block chord itself, ignoring the Treatment and the Arp/Line Rate entirely. Now it only ever moves the position, and the selected Treatment (Chord / Arpeggiate / Line / Improvise) articulates whatever chord it lands on, at the Arp/Line Rate — so a seed can be strummed, arpeggiated up or down, played as a line, or held as a block chord, and the phrase-arpeggio prototype applies too. The seed clock and the note clock are separate, so a slow chord change can carry a fast arpeggio.

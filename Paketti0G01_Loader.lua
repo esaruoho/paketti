@@ -1603,10 +1603,11 @@ function pakettiPreferences()
                   value=preferences.pakettiAlwaysOpenDSPsOnTrack.value,
                   tooltip="Automatically open external editors for all Track DSP devices when switching tracks",
                   notifier=function(value) 
-                    preferences.pakettiAlwaysOpenDSPsOnTrack.value = value
-                    -- Only toggle if the current state doesn't match the desired state
+                    -- The setter writes and saves the preference itself, so
+                    -- don't pre-write it here (that made the save a no-op).
+                    -- Guarded because ViewBuilder fires notifiers during build.
                     if PakettiAutomaticallyOpenTrackDeviceEditorsEnabled ~= value then
-                      PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+                      PakettiSetAutomaticallyOpenTrackDeviceEditors(value)
                     end
                   end
                 },
@@ -1617,6 +1618,7 @@ function pakettiPreferences()
                   tooltip="Automatically open external editors for all Sample FX Chain devices when switching samples",
                   notifier=function(value) 
                     preferences.pakettiAlwaysOpenSampleFXChainDevices.value = value
+                    preferences:save_as("preferences.xml")
                     -- The preference IS the state here, so apply it directly instead of toggling
                     PakettiInitializeSampleFXChainAutoOpen()
                   end
