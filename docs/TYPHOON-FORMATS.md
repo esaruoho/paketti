@@ -11,13 +11,13 @@ Typhoon 2000 is freeware and final; there will be no further versions.
 
 | Type | Extension | Paketti support |
 |------|-----------|-----------------|
-| Setup (whole machine state) | `.X##` | export |
-| Performance (multi-timbral) | `.P##` | export |
+| Setup (whole machine state) | `.X##` | import + export |
+| Performance (multi-timbral) | `.P##` | import + export |
 | Voice (instrument) | `.O##` | import + export |
 | Wave (DWVW audio) | `.C##` | import + export |
 | Filter table | `.T##` | export |
 | AIFF (uncompressed) | `.A##` | none |
-| Yamaha OS waves | `.W##` | none |
+| Yamaha OS waves | `.W##` | **none — format not decoded, no sample files available** |
 | System files | `.SYS` | n/a |
 
 `##` distinguishes items with equal names, it is not a sequence number.
@@ -188,6 +188,8 @@ byte  6     pitch, octaves (signed)                         [strong]
 byte 13     filter table, 0 = none, 1-20 = a .T## table     [strong]
 byte 18     output: 0 none, 1 left, 2 right, 3 mono, 4 stereo  [proven]
 byte 22-27  AEG: attack, decay1, level1, decay2, level2, release [likely]
+byte 46     polyphony: 0 = poly on, 1 = poly off (mono)          [strong]
+byte 47     glide time; location strong, scale unknown, left 0   [partial]
 ```
 
 Evidence for each, beyond bytes 0–3 below:

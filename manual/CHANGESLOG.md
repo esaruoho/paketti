@@ -113,6 +113,22 @@ The Gravity Rate popup is now stated in pattern rows and offers every 1, 2, 4, 8
 - MIDI Mapping: `Paketti:Music Mouse Key Prev seed`, `Paketti:Music Mouse Key Next seed`, `Paketti:Music Mouse Key Octave +`, `Paketti:Music Mouse Key Octave -` (from the on-screen keymap)
 - Menu: `Main Menu:Tools:Paketti:Instruments:Music Mouse...`
 
+### 2026-08-31 - Feature: Read Performances and Setups, Send Samples over MIDI, Monophonic Voices.
+
+**Performances and setups are now read, not just written.** Importing a disk used to hand back a pile of loose instruments even when the disk knew how they were arranged. Now the performance is read too, and each voice's MIDI channel appears in the instrument name - `DRUMKIT (MIDI 10)`. The full layout, every entry and every program change, is printed to the scripting console. Setups are read as well and report what the machine had loaded. Verified against the factory `MULTI.P01`, which the Typhoon release notes document as ANA_STRS on channel 1, UNISON on 2 and DRUMKIT on 10: all three come back exactly right, as do its four program changes.
+
+Names now match across the space/underscore boundary, because an item can be called `ANA STRS` inside a performance while its file on disk is `ANA_STRS.O01`. That mismatch was quietly losing one of the three channel assignments.
+
+**Send a sample to the sampler over MIDI.** Typhoon can receive waves over MIDI, so a sample can go from Renoise to the machine with no floppy at all. Pick a MIDI port, a device channel and a sample slot, and Paketti sends it using the MIDI Sample Dump Standard. Sending is paced properly - MIDI is slow enough that firing messages back to back makes short ones overtake long ones - and a long sample takes minutes, which is the nature of MIDI rather than a fault. Verified byte for byte against the published standard: 21-byte header, 127-byte packets, checksums independently recalculated.
+
+**Monophonic voices.** The polyphony flag in the voice format is now understood, so a lead or bass can be exported to play one note at a time instead of stacking. There is a checkbox in the export dialog.
+
+- Menu: `Main Menu:File:Paketti Import:Send Sample to Sampler over MIDI (SDS)...`
+- Menu: `Sample Editor:Paketti:Save:Send Sample to Sampler over MIDI (SDS)...`
+- Keybinding: `Global:Paketti:Send Sample over MIDI SDS`
+- MIDI Mapping: `Paketti:Send Sample over MIDI SDS`
+- Drag and drop now also accepts `.P01`-`.P99` and `.X01`-`.X99`
+
 ### 2026-08-31 - Fix: TX16W Exports No Longer Alias. Downsampling was folding everything above the new Nyquist back into the audible range.
 
 Every TX16W export resamples, because the sampler runs at 33333 Hz and your samples almost certainly do not. That conversion was plain linear interpolation with no band-limiting, which means going from 44100 Hz to 33333 Hz folded every partial above 16.7 kHz back down on top of the music. On bright material - hi-hats, cymbals, anything with air - that is plainly audible, and it sounds like the sampler's fault when it was ours.

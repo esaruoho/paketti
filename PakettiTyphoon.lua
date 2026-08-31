@@ -156,6 +156,13 @@ PakettiTyphoonGMDrumNames = {
 --   byte 13     filter table, 0 = none, 1-20 = a .T## table       [strong]
 --   byte 18     output: 0 none 1 left 2 right 3 mono 4 stereo     [proven]
 --   byte 22-27  AEG: attack, decay1, level1, decay2, level2, release  [likely]
+--   byte 46     polyphony: 0 = poly on, 1 = poly off (monophonic)   [strong]
+--
+-- Byte 46 reads 0 on all 35 groups of the eight factory voices and the
+-- third-party TR_808, and 1 on all four groups of UNISON -- the one voice the
+-- release notes call "a monophonic analog type of lead sound". Byte 47 is
+-- almost certainly the glide time (110 on UNISON, the only voice with
+-- portamento, 0 everywhere else) but its scale is unknown, so it is left at 0.
 --
 -- Evidence, in short. Bytes 0-3 hold for all 36 factory groups and NOISEWAV,
 -- the one voice the release notes call velocity-gated, reads 90-127. Byte 4:
@@ -210,6 +217,7 @@ function PakettiTyphoonApplyParm(parm, f)
   if f.octaves then parm = set_byte(parm, 6, signed_byte(f.octaves)) end
   if f.filter then parm = set_byte(parm, 13, math.max(0, math.min(20, f.filter))) end
   if f.output then parm = set_byte(parm, 18, math.max(0, math.min(4, f.output))) end
+  if f.mono ~= nil then parm = set_byte(parm, 46, f.mono and 1 or 0) end
   if f.aeg then
     for i = 1, 6 do
       parm = set_byte(parm, 21 + i, math.max(0, math.min(127, f.aeg[i] or 0)))
@@ -1063,6 +1071,7 @@ local function build_voice_groups(instrument, splits, opts)
     L.range.filter = opts.filter_table
     L.range.output = opts.output
     L.range.aeg = aeg
+    L.range.mono = opts.mono_voice
     voice_groups[#voice_groups + 1] = L
   end
   return voice_groups
@@ -1236,6 +1245,7 @@ function PakettiTyphoonExportDrumkit(outdir, opts)
     output = opts.output,
     envelope = opts.envelope,
     gm_names = opts.gm_names or false,
+    mono_voice = opts.mono_voice,
     write_images = (opts.write_images ~= false),
     write_loose = (opts.write_loose ~= false),
     reveal = (opts.reveal ~= false),
@@ -1488,6 +1498,250 @@ function PakettiTyphoonExportSong(outdir, opts)
 end
 
 --------------------------------------------------------------------------------
+-- MIDI Sample Dump Standard: samples down a cable, no floppies
+--------------------------------------------------------------------------------
+
+-- Typhoon can receive a wave over MIDI (manual 4.9.7 "Dump"), using the MIDI
+-- Sample Dump Standard. That means a sample can go straight from Renoise to the
+-- sampler with no disk in between.
+--
+--   Header  F0 7E <ch> 01 <sample# 14bit> <bits> <period ns 21bit>
+--                        <length 21bit> <loop start 21bit> <loop end 21bit>
+--                        <loop type> F7
+--   Packet  F0 7E <ch> 02 <packet# 0-127> <120 data bytes> <checksum> F7
+--
+-- Every multi-byte field is 7 bits per byte, least significant first. Sample
+-- words are left-justified and packed MSB-first across the 7-bit bytes, so a
+-- 12-bit sample occupies two bytes and a 16-bit sample three.
+--
+-- This sends open loop. The standard allows it: a sender that gets no ACK
+-- within 20 ms carries on regardless, which is what happens here since Renoise
+-- gives no practical way to block on a reply mid-send.
+
+PAKETTI_SDS_LOOP_FORWARD = 0
+PAKETTI_SDS_LOOP_BIDIR   = 1
+PAKETTI_SDS_LOOP_NONE    = 127
+
+local function sds_u21(v)
+  v = math.max(0, floor(v))
+  return v % 128, floor(v / 128) % 128, floor(v / 16384) % 128
+end
+
+function PakettiTyphoonSDSHeader(channel, sample_num, bits, rate, frames,
+                                 loop_start, loop_end, loop_type)
+  local period = floor(1000000000 / math.max(1, rate) + 0.5)   -- nanoseconds
+  local b = { 0xF0, 0x7E, channel % 128, 0x01,
+              sample_num % 128, floor(sample_num / 128) % 128,
+              math.max(8, math.min(28, bits)) }
+  local function push(v) local a, c, d = sds_u21(v); b[#b+1]=a; b[#b+1]=c; b[#b+1]=d end
+  push(period) ; push(frames) ; push(loop_start) ; push(loop_end)
+  b[#b + 1] = loop_type % 128
+  b[#b + 1] = 0xF7
+  return b
+end
+
+function PakettiTyphoonSDSRequest(channel, sample_num)
+  return { 0xF0, 0x7E, channel % 128, 0x03,
+           sample_num % 128, floor(sample_num / 128) % 128, 0xF7 }
+end
+
+-- ints are signed sample values at `bits` resolution. Returns a list of
+-- complete SysEx packets.
+function PakettiTyphoonSDSPackets(channel, ints, n, bits, yield_every)
+  local bytes_per = math.ceil(bits / 7)
+  local half = 2 ^ (bits - 1)
+  -- Left-justify each word into the top of its byte group, which is what the
+  -- standard means by "most significant bit first, left justified".
+  local shift = bytes_per * 7 - bits
+
+  local stream, si = {}, 0
+  for i = 1, n do
+    -- SDS words are unsigned with centre at half scale.
+    local v = (ints[i] or 0) + half
+    if v < 0 then v = 0 elseif v > half * 2 - 1 then v = half * 2 - 1 end
+    v = v * (2 ^ shift)
+    for k = bytes_per - 1, 0, -1 do
+      si = si + 1
+      stream[si] = floor(v / (128 ^ k)) % 128
+    end
+    if yield_every and i % yield_every == 0 then coroutine.yield() end
+  end
+
+  -- Lua 5.1 has no bitwise operators, so the checksum XOR is done by hand.
+  local function bxor(a, b)
+    local r, bit = 0, 1
+    for _ = 1, 8 do
+      local x, y = a % 2, b % 2
+      if x ~= y then r = r + bit end
+      a = floor(a / 2) ; b = floor(b / 2) ; bit = bit * 2
+    end
+    return r
+  end
+
+  local packets, pnum, pos = {}, 0, 1
+  while pos <= si do
+    local p = { 0xF0, 0x7E, channel % 128, 0x02, pnum % 128 }
+    -- Checksum is the XOR of everything from the channel byte through the last
+    -- data byte, which includes the 0x02 and the packet number.
+    local xor = bxor(channel % 128, 0x02)
+    xor = bxor(xor, pnum % 128)
+    for k = 1, 120 do
+      local v = (pos <= si) and stream[pos] or 0
+      p[#p + 1] = v
+      xor = bxor(xor, v)
+      pos = pos + 1
+    end
+    p[#p + 1] = xor % 128
+    p[#p + 1] = 0xF7
+    packets[#packets + 1] = p
+    pnum = pnum + 1
+    if yield_every then coroutine.yield() end
+  end
+  return packets
+end
+
+local sds_timer = nil
+
+local function sds_stop()
+  if sds_timer then
+    pcall(function() renoise.tool():remove_timer(sds_timer) end)
+    sds_timer = nil
+  end
+end
+
+-- Sends header then packets, paced. Pacing is not optional: MIDI runs at 31250
+-- baud so a 127-byte packet needs ~41 ms on the wire, and firing the next one
+-- early lets short messages overtake queued long ones.
+function PakettiTyphoonSDSSend(device_name, channel, sample_num, sample, gap_ms)
+  local buffer = sample and sample.sample_buffer
+  if not buffer or not buffer.has_sample_data then
+    renoise.app():show_status("Paketti SDS: that sample has no audio")
+    return false
+  end
+  local ok_dev, dev = pcall(function() return renoise.Midi.create_output_device(device_name) end)
+  if not ok_dev or not dev then
+    renoise.app():show_status("Paketti SDS: could not open MIDI output '" .. tostring(device_name) .. "'")
+    return false
+  end
+
+  local bits = PakettiDWVWWordSize()
+  local rate = PakettiDWVWTargetRate()
+  if rate <= 0 then rate = buffer.sample_rate end
+
+  local channels, frames = PakettiDWVWBufferToChannels(
+    buffer, rate, true, bits, nil, PakettiDWVWLoopLimit(sample, buffer))
+
+  local ls, le, lt = 0, math.max(0, frames - 1), PAKETTI_SDS_LOOP_NONE
+  if sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF then
+    local meta = PakettiDWVWSampleMeta(sample, buffer, frames)
+    if meta and meta.loop_start then
+      ls, le = meta.loop_start - 1, meta.loop_end - 1
+      lt = (sample.loop_mode == renoise.Sample.LOOP_MODE_PING_PONG)
+           and PAKETTI_SDS_LOOP_BIDIR or PAKETTI_SDS_LOOP_FORWARD
+    end
+  end
+
+  local msgs = { PakettiTyphoonSDSHeader(channel, sample_num, bits, rate, frames, ls, le, lt) }
+  for _, p in ipairs(PakettiTyphoonSDSPackets(channel, channels[1], frames, bits)) do
+    msgs[#msgs + 1] = p
+  end
+
+  sds_stop()
+  local i, total = 0, #msgs
+  gap_ms = gap_ms or 10
+
+  local tick
+  tick = function()
+    -- Nothing here may throw: an error escaping a timer notifier makes Renoise
+    -- disable every notifier this tool owns until Renoise is restarted.
+    pcall(function()
+      pcall(function() renoise.tool():remove_timer(tick) end)
+      i = i + 1
+      if i > total then
+        sds_timer = nil
+        pcall(function() dev:close() end)
+        renoise.app():show_status(string.format(
+          "Paketti SDS: sent sample %d - %d frames, %d-bit, %d Hz, %d messages",
+          sample_num, frames, bits, rate, total))
+        return
+      end
+      local m = msgs[i]
+      pcall(function() dev:send(m) end)
+      if i % 25 == 0 then
+        renoise.app():show_status(string.format("Paketti SDS: sending %d/%d...", i, total))
+      end
+      local wait = math.ceil(#m * 0.32) + gap_ms
+      sds_timer = tick
+      renoise.tool():add_timer(tick, wait)
+    end)
+  end
+
+  renoise.app():show_status(string.format(
+    "Paketti SDS: sending %d frames as sample %d over '%s'...", frames, sample_num, device_name))
+  sds_timer = tick
+  renoise.tool():add_timer(tick, 5)
+  return true
+end
+
+local sds_dialog = nil
+
+function PakettiTyphoonSDSDialog()
+  if sds_dialog and sds_dialog.visible then
+    sds_dialog:close() ; sds_dialog = nil ; return
+  end
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Paketti SDS: select a sample with audio first")
+    return
+  end
+
+  local outs = renoise.Midi.available_output_devices()
+  if #outs == 0 then
+    renoise.app():show_status("Paketti SDS: no MIDI output ports available")
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local content = vb:column{
+    margin = 10, spacing = 6,
+    vb:text{text = "Send \"" .. sample.name .. "\" to the sampler over MIDI", font = "bold"},
+    vb:text{text = "Typhoon receives waves over MIDI, so this needs no floppy at all.\n"
+                .. "On the sampler, be ready to receive before you start."},
+    vb:row{ vb:text{text = "MIDI output", width = 90},
+      vb:popup{id = "sds_port", items = outs, value = 1, width = 280} },
+    vb:row{ vb:text{text = "Device channel", width = 90},
+      vb:valuebox{id = "sds_chan", min = 0, max = 127, value = 0, width = 70},
+      vb:text{text = "0 is usual; 127 means all devices"} },
+    vb:row{ vb:text{text = "Sample number", width = 90},
+      vb:valuebox{id = "sds_num", min = 0, max = 16383, value = 1, width = 70},
+      vb:text{text = "which slot it lands in on the sampler"} },
+    vb:row{ vb:text{text = "Extra gap", width = 90},
+      vb:valuebox{id = "sds_gap", min = 0, max = 200, value = 10, width = 70},
+      vb:text{text = "ms between messages; raise it if the sampler drops packets"} },
+    vb:text{text = "Sent open loop: the sampler's replies are not waited on, which the\n"
+                .. "standard permits. A long sample takes minutes at MIDI speed."},
+    vb:row{ spacing = 6,
+      vb:button{text = "Send", width = 90, notifier = function()
+        local port = outs[vb.views.sds_port.value]
+        local ch = vb.views.sds_chan.value
+        local num = vb.views.sds_num.value
+        local gap = vb.views.sds_gap.value
+        if sds_dialog and sds_dialog.visible then sds_dialog:close() ; sds_dialog = nil end
+        PakettiTyphoonSDSSend(port, ch, num, renoise.song().selected_sample, gap)
+      end},
+      vb:button{text = "Stop sending", width = 100, notifier = function()
+        sds_stop()
+        renoise.app():show_status("Paketti SDS: stopped")
+      end},
+      vb:button{text = "Close", width = 70, notifier = function()
+        if sds_dialog and sds_dialog.visible then sds_dialog:close() ; sds_dialog = nil end
+      end} },
+  }
+  sds_dialog = renoise.app():show_custom_dialog("Send Sample over MIDI (SDS)", content, my_keyhandler_func)
+end
+
+--------------------------------------------------------------------------------
 -- Export dialog
 --------------------------------------------------------------------------------
 
@@ -1620,6 +1874,11 @@ function PakettiTyphoonExportDialog()
     },
     vb:row{
       vb:text{text = "", width = 110},
+      vb:checkbox{id = "tx_mono", value = false},
+      vb:text{text = "Monophonic (one note at a time, for leads and basses)"},
+    },
+    vb:row{
+      vb:text{text = "", width = 110},
       vb:checkbox{id = "tx_gm", value = gm_default},
       vb:text{text = "Name waves after the General MIDI drum on each key (KICK1, SNARE1, HHCLOSED)"},
     },
@@ -1645,6 +1904,7 @@ function PakettiTyphoonExportDialog()
             force_mono = vb.views.tx_mono.value,
             use_mapping = vb.views.tx_mapping.value,
             gm_names = vb.views.tx_gm.value,
+            mono_voice = vb.views.tx_mono.value or nil,
             filter_table = (vb.views.tx_filter.value > 1)
               and (vb.views.tx_filter.value - 1) or nil,
             output = (vb.views.tx_out.value > 1)
@@ -2047,6 +2307,13 @@ local function is_setup_name(name)
   return name:upper():match("%.X%d%d$") ~= nil
 end
 
+-- Item names may contain spaces ("808 BD 1"); DOS filenames may not, so the
+-- same item is "ANA STRS" inside a performance and "ANA_STRS.O01" on the disk.
+-- Match on a form where the two cannot differ.
+local function name_key(n)
+  return (tostring(n or ""):upper():gsub("[%s_]+", "_"):gsub("^_+", ""):gsub("_+$", ""))
+end
+
 -- Decodes every wave in the file list once, keyed both by Typhoon wave id and
 -- by uppercased base name, because a voice's Splt reference resolves by id when
 -- the wave carries Typhoon's APPL stamp and by name when it does not.
@@ -2060,7 +2327,7 @@ local function decode_waves(files, progress)
       if ok then
         local entry = { name = strip_ext(f.name), info = info, file = f.name }
         order[#order + 1] = entry
-        by_name[strip_ext(f.name):upper()] = entry
+        by_name[name_key(strip_ext(f.name))] = entry
         if info.typhoon_wave_id then by_id[info.typhoon_wave_id] = entry end
       else
         failed[#failed + 1] = f.name .. " (" .. tostring(info) .. ")"
@@ -2091,7 +2358,7 @@ local function build_instrument_from_voice(voice, vname, by_id, by_name, progres
     local splits = group.splits
     for si, sp in ipairs(splits) do
       local entry = (not sp.terminator)
-        and ((sp.id and by_id[sp.id]) or by_name[(sp.name or ""):upper()])
+        and ((sp.id and by_id[sp.id]) or by_name[name_key(sp.name)])
         or nil
       if sp.terminator then
         -- nothing to place; it only bounds the split before it
@@ -2205,7 +2472,7 @@ local function typhoon_import_process(sources, opts)
     local channel_of = {}
     for _, pw in ipairs(perfs) do
       for _, e in ipairs(pw.perf.entries) do
-        local key = (e.name or ""):upper()
+        local key = name_key(e.name)
         if e.channel and not channel_of[key] then channel_of[key] = e.channel end
       end
     end
@@ -2216,7 +2483,7 @@ local function typhoon_import_process(sources, opts)
       coroutine.yield()
       -- Carry the MIDI channel into the instrument name when a performance
       -- said where this voice belongs, so the arrangement is visible in Renoise.
-      local ch = channel_of[(v.name or ""):upper()]
+      local ch = channel_of[name_key(v.name)]
       local label = ch and string.format("%s (MIDI %d)", v.name, ch + 1) or v.name
       local _, placed, missing = build_instrument_from_voice(
         v.voice, label, by_id, by_name, progress)
@@ -2226,7 +2493,7 @@ local function typhoon_import_process(sources, opts)
       for _, g in ipairs(v.voice.groups) do
         for _, sp in ipairs(g.splits) do
           if not sp.terminator then
-            local e = (sp.id and by_id[sp.id]) or by_name[(sp.name or ""):upper()]
+            local e = (sp.id and by_id[sp.id]) or by_name[name_key(sp.name)]
             if e then used[e] = true end
           end
         end
@@ -2400,6 +2667,12 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Export Song to Yamaha TX16W
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Create TX16W Filter Table (.T18)...", invoke = function() PakettiTyphoonExportFilterTable() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Create TX16W Filter Table (.T18)...", invoke = function() PakettiTyphoonExportFilterTable() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create TX16W Filter Table", invoke = function() PakettiTyphoonExportFilterTable() end}
+
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Send Sample over MIDI SDS", invoke = function() PakettiTyphoonSDSDialog() end}
+renoise.tool():add_midi_mapping{name = "Paketti:Send Sample over MIDI SDS", invoke = function(message) if message:is_trigger() then PakettiTyphoonSDSDialog() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Export Song to Yamaha TX16W", invoke = function(message) if message:is_trigger() then PakettiTyphoonExportSong() end end}
 
 
