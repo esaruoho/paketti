@@ -1,11 +1,22 @@
 # Typhoon OS / Yamaha TX16W — file format reference
 
-Reverse-engineered 2026-08-29 from the official NuEdge Development distribution
-(`Typhoon 2000.imz`, `Typhoon User's Manual.pdf`, `Typhoon 2000.pdf`), plus a
-1006-file survey of real TX16W `.C01` libraries.
-
 Typhoon is by Magnus Lidström (later Sonic Charge), who also invented DWVW.
 Typhoon 2000 is freeware and final; there will be no further versions.
+
+Everything here is either measured against real files or marked as unknown.
+Nothing is guessed silently. **None of it has been tested on a real TX16W.**
+
+## The corpus this was derived from
+
+- The official NuEdge distribution: `Typhoon 2000.imz` (a ZIP holding a raw
+  720K image), the 74-page user's manual, and the release notes. Its system
+  disk carries 8 voices, 17 waves, 5 performances, 1 setup, 17 filter tables.
+- **Ten libraries present in *both* formats** — Yamaha originals and Typhoon
+  conversions of the same sounds made on real hardware. 220 Yamaha waves. This
+  pairing is what makes the `.W##` decode verifiable rather than plausible.
+- A 1006-file survey of real `.C01` libraries.
+- `TR_808.O01`, a third-party voice, which is the only non-NuEdge voice here
+  and so the only independent check on the voice format.
 
 ## MS-DOS extensions (manual table 4.4)
 
@@ -401,18 +412,103 @@ destination 2 in every voice.
 **A group has only one modulatable filter axis**, picked as `>D-Axis`. Cutoff and
 resonance cannot both be modulated on the same group.
 
-## Current Paketti implementation
+## What Paketti does today
 
-`PakettiDWVW.lua` — the DWVW codec, import hook (`.C01`–`.C99` both cases),
-single-sample export, folder batch convert.
-`PakettiTyphoon.lua` — `.O01` voice building, FAT12 720K image builder, disk
-packing, drumkit export.
+`PakettiDWVW.lua` — the DWVW codec, import hooks, single-sample export, folder
+batch convert, band-limited resampling.
+`PakettiTyphoon.lua` — voice/performance/setup reading and writing, the FAT12
+image builder and reader, disk packing, kit and song export, the filter table
+writer, and MIDI sample dump.
 
-Verified: all 1006 real `.C01` files parse; 1002 re-encode bit-identically and
-the other 4 decode identically. Built images mount natively on macOS with every
-file byte-identical.
+**Export** — instrument to `.C01` waves + `.O01` voice + 720K images +
+manifest; whole song to `.X01` setup + `.P01` performance + voices + waves;
+velocity layers as groups; GM drum naming; filter, envelope and output choice;
+monophonic flag; modulation table; RAM check before writing; `.T18` filter
+tables; MIDI sample dump, open loop and paced.
 
-Not verified on real hardware. Two known unknowns: 42 splits is the largest any
-factory voice uses, so a 120-split voice is beyond corpus precedent; and the
-12-byte creator stamp is generated fresh, which reads as informational (only
-667 of 1174 real waves shared their voice's stamp).
+**Import** — 720K disk images in both Typhoon and Yamaha format; `.C01` waves;
+`.O01` voices with key mapping; `.W##` Yamaha waves; `.P01` performances (the
+MIDI channel lands in the instrument name); `.X01` setups. Drag and drop for
+`.img` `.ima` `.C##` `.O##` `.P##` `.X##` `.W##`, either case.
+
+**Verified** — all 1006 real `.C01` files parse, 1002 re-encode bit-identically
+and the other 4 decode identically. Built images mount natively with every file
+byte-identical. `.W##` checked against Typhoon's own conversions: 218/218 on
+frames, rate and loop end.
+
+## Open questions
+
+Each of these says what would actually settle it, because most need the machine.
+
+### Q1 — the Mode enum *(highest value)*
+
+Poly (byte 46) and glide time (byte 47) are found; the Normal / Oneshot /
+Glide / Release enum is not. See the Mode page section above for everything
+tried. The likely reason it cannot be found in this corpus: **no voice here
+uses Oneshot**, so a drums-versus-sustained comparison was never going to
+reveal it.
+
+*Settles it:* one voice saved twice on a real TX16W, once `Mode=Normal` and
+once `Mode=Oneshot`, identical otherwise. Diff the two files.
+
+### Q2 — the glide time scale
+
+Byte 47 reads 110 on UNISON and 0 on all 35 other groups. The manual's field is
+0–9999 ms, so 110 is scaled — possibly ~40 ms per step. Paketti writes 0 rather
+than guess.
+
+*Settles it:* two saves, `Glide = 1000 ms` and `Glide = 5000 ms`.
+
+### Q3 — the rest of the group parameter block
+
+Bytes 7–12, 14–17, 19–21, 28–45, 48–63. Known to be in there: LFO1 and LFO2
+(shape, rate, amplitude), ENV1 and ENV2 (seven values each, negative levels
+allowed), key scaling (11 curves), velocity sensitivity, the filter's dynamic
+axis and its two origins, individual outputs, stereo pan (−50..50).
+
+*Settles it:* one voice saved repeatedly with a single parameter changed each
+time. Ten saves would probably map most of the block.
+
+### Q4 — `.W##` header bytes 16–21, 23, 30–31 and the upper bits of 26
+
+Byte 26's upper bits read 3 on 216 of 220 files, so a format marker. Byte 23 is
+not the rate but is clearly *something* — 79 distinct values. Bytes 16–21 are
+called `dummy_aeg` in the published struct and do vary.
+
+*Settles it:* the same sound sampled twice in Yamaha format with one AEG
+setting changed.
+
+### Q5 — is the `.W##` rate a lookup or a formula?
+
+Only four index values are observed (40, 41, 73, 127). No linear or divider
+formula fits. A lookup covers the corpus but will fail on an unseen rate.
+
+*Settles it:* `.W##` files recorded at 16 kHz and 25 kHz, which this corpus
+lacks entirely.
+
+### Q6 — `.A##`, plain AIFF on a floppy
+
+Typhoon reads uncompressed AIFF straight off a disk. Never exercised. Probably
+trivial, but it would be a useful fallback if DWVW ever misbehaved on real
+hardware.
+
+### Q7 — the `.F01` / `.S01` / `.U01` / `.V01` Yamaha OS files
+
+Every Yamaha-format disk carries ten of each alongside its waves. These are the
+stock OS equivalents of filter, setup, performance and voice. **Not looked at
+at all.** Decoding them would let a pre-Typhoon disk import with its key
+mapping instead of as loose samples — the same gap `.O01` reading closed on the
+Typhoon side.
+
+### Q8 — does any of this work on hardware?
+
+Nothing has touched a real TX16W. Highest risk first:
+
+1. **Generated filter tables** — structurally verified byte for byte, never
+   heard by anyone.
+2. **Very large kits** — 42 splits is the most any factory voice uses; we
+   happily write 120.
+3. **The 12-byte creator stamp**, generated fresh. Only 667 of 1174 real waves
+   shared their voice's stamp, so it reads as informational rather than load
+   bearing — but that is an inference.
+4. **MIDI sample dump**, sent open loop and never received by a machine.
