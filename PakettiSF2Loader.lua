@@ -1561,6 +1561,248 @@ end
 
 -- NOTE: File import hook registration moved to PakettiImport.lua for centralized management
 
+local getSF2Files
+local sf2_sanitize_name
+
+--------------------------------------------------------------------------------
+-- Batch SF2 → WAV Exporter
+-- Exports every sample header from every SF2 in a chosen folder as an individual
+-- WAV file named <SF2name>-<SF2Number>-<SampleName>.wav.
+--------------------------------------------------------------------------------
+
+local function PakettiSF2BuildStereoPairMap(headers)
+  local stereo_pairs = {}
+  local skip_indices = {}
+
+  for i, hdr in ipairs(headers) do
+    if hdr.sample_type == 4 or (hdr.sample_type == 1 and hdr.sample_link ~= 0) then
+      local right_idx = hdr.sample_link + 1
+      if right_idx <= #headers then
+        local right_hdr = headers[right_idx]
+        if right_hdr.sample_type == 2 or right_hdr.sample_type == 8 then
+          stereo_pairs[i] = right_hdr
+          skip_indices[right_idx] = true
+        end
+      end
+    elseif hdr.sample_type == 2 or hdr.sample_type == 8 then
+      if not skip_indices[i] then
+        skip_indices[i] = true
+      end
+    end
+  end
+
+  return stereo_pairs, skip_indices
+end
+
+local function PakettiSF2FillSampleBuffer(sample, hdr, sample_data, is_stereo)
+  local channels = is_stereo and 2 or 1
+  local ok, err = pcall(function()
+    sample.sample_buffer:create_sample_data(hdr.sample_rate, 16, channels, #sample_data)
+  end)
+  if not ok then
+    return false, err
+  end
+
+  local buf = sample.sample_buffer
+  buf:prepare_sample_data_changes()
+  if is_stereo then
+    for f_i = 1, #sample_data do
+      buf:set_sample_data(1, f_i, sample_data[f_i].left)
+      buf:set_sample_data(2, f_i, sample_data[f_i].right)
+      if f_i % 50000 == 0 then coroutine.yield() end
+    end
+  else
+    for f_i = 1, #sample_data do
+      buf:set_sample_data(1, f_i, sample_data[f_i])
+      if f_i % 50000 == 0 then coroutine.yield() end
+    end
+  end
+  buf:finalize_sample_data_changes()
+
+  sample.name = hdr.name
+  sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+  return true
+end
+
+function PakettiBatchSF2ToWAV_Worker(sf2_files, output_folder, dialog, vb)
+  local sep = package.config:sub(1, 1)
+  local song = renoise.song()
+  local original_instrument_index = song.selected_instrument_index
+  local temp_idx = #song.instruments + 1
+  local total_saved = 0
+  local total_failed = 0
+
+  if not safeInsertInstrumentAt(song, temp_idx) then
+    if dialog and dialog.visible then dialog:close() end
+    renoise.app():show_error("Batch SF2->WAV: Could not create temporary instrument.")
+    return
+  end
+
+  song.selected_instrument_index = temp_idx
+  local temp_instrument = song.selected_instrument
+  temp_instrument.name = "Paketti SF2 WAV Export"
+  if not temp_instrument.samples[1] then
+    temp_instrument:insert_sample_at(1)
+  end
+
+  for sf2_index, sf2_path in ipairs(sf2_files) do
+    coroutine.yield()
+
+    local sf2_filename = sf2_path:match("[^/\\]+$") or "unknown.sf2"
+    local sf2_name = sf2_filename:gsub("%.sf2$", ""):gsub("%.SF2$", "")
+    local safe_sf2_name = sf2_sanitize_name(sf2_name)
+
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format(
+        "File %d/%d: %s - reading...", sf2_index, #sf2_files, sf2_filename)
+    end
+    renoise.app():show_status(string.format(
+      "Batch SF2->WAV: %d/%d - %s", sf2_index, #sf2_files, sf2_filename))
+
+    local f = io.open(sf2_path, "rb")
+    if not f then
+      print("ERROR: Cannot open SF2: " .. sf2_path)
+      total_failed = total_failed + 1
+    else
+      local data = f:read("*all")
+      f:close()
+
+      if data:sub(1, 4) ~= "RIFF" then
+        print("ERROR: Not a valid SF2 (missing RIFF): " .. sf2_path)
+        total_failed = total_failed + 1
+      else
+        local smpl_pos = data:find("smpl", 1, true)
+        if not smpl_pos then
+          print("ERROR: No smpl chunk: " .. sf2_path)
+          total_failed = total_failed + 1
+        else
+          local smpl_data_start = smpl_pos + 8
+          local headers = PakettiSF2ReadSampleHeaders(data)
+          if not headers or #headers == 0 then
+            print("ERROR: No sample headers: " .. sf2_path)
+            total_failed = total_failed + 1
+          else
+            local stereo_pairs, skip_indices = PakettiSF2BuildStereoPairMap(headers)
+            local sample_total = 0
+            for i = 1, #headers do
+              if not skip_indices[i] then
+                sample_total = sample_total + 1
+              end
+            end
+
+            local sample_count = 0
+            for header_index, hdr in ipairs(headers) do
+              if skip_indices[header_index] then
+                -- Right-side stereo samples are exported with their matching left side.
+              else
+                sample_count = sample_count + 1
+                coroutine.yield()
+
+                if dialog and dialog.visible then
+                  vb.views.progress_text.text = string.format(
+                    "File %d/%d, sample %d/%d: %s",
+                    sf2_index, #sf2_files, sample_count, sample_total, hdr.name)
+                end
+
+                local sample_data, is_stereo = PakettiSF2ExtractSampleData(
+                  data, smpl_data_start, hdr, stereo_pairs[header_index])
+                if not sample_data or #sample_data == 0 then
+                  print("ERROR: No sample data for " .. sf2_filename .. " / " .. hdr.name)
+                  total_failed = total_failed + 1
+                else
+                  local sample = temp_instrument.samples[1]
+                  local fill_ok, fill_err = PakettiSF2FillSampleBuffer(sample, hdr, sample_data, is_stereo)
+                  if not fill_ok then
+                    print("ERROR: Could not prepare WAV buffer for " .. hdr.name .. ": " .. tostring(fill_err))
+                    total_failed = total_failed + 1
+                  else
+                    local safe_sample_name = sf2_sanitize_name(hdr.name)
+                    local wav_name = string.format(
+                      "%s-%03d-%s.wav", safe_sf2_name, header_index, safe_sample_name)
+                    local wav_path = output_folder .. sep .. wav_name
+                    local save_ok, save_err = pcall(function()
+                      return sample.sample_buffer:save_as(wav_path, "wav")
+                    end)
+
+                    if not save_ok or save_err == false then
+                      print("ERROR: Could not save WAV " .. wav_path .. ": " .. tostring(save_err))
+                      total_failed = total_failed + 1
+                    else
+                      print("SUCCESS: " .. wav_path)
+                      total_saved = total_saved + 1
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  song:delete_instrument_at(temp_idx)
+  if original_instrument_index <= #song.instruments then
+    song.selected_instrument_index = original_instrument_index
+  else
+    song.selected_instrument_index = #song.instruments
+  end
+
+  if dialog and dialog.visible then dialog:close() end
+
+  local status_msg = string.format(
+    "Batch SF2->WAV Complete: %d WAVs saved, %d failed, from %d SF2 files",
+    total_saved, total_failed, #sf2_files)
+  print("\n=== " .. status_msg .. " ===")
+  renoise.app():show_status(status_msg)
+
+  if total_failed > 0 then
+    renoise.app():show_warning(string.format(
+      "Batch SF2 to WAV export completed.\n\n"
+      .. "Successfully saved: %d WAV files\n"
+      .. "Failed: %d\n\n"
+      .. "Check the scripting console for details.",
+      total_saved, total_failed))
+  else
+    renoise.app():show_message(string.format(
+      "Batch SF2 to WAV export completed successfully!\n\n"
+      .. "Saved %d WAV files to:\n%s",
+      total_saved, output_folder))
+  end
+end
+
+function PakettiBatchSF2ToWAV()
+  print("=== Batch SF2 to WAV Exporter ===")
+
+  local input_folder = renoise.app():prompt_for_path(
+    "Select Folder Containing SF2 Files")
+  if not input_folder or input_folder == "" then
+    renoise.app():show_status("Batch SF2->WAV: Cancelled - no input folder selected")
+    return
+  end
+
+  local sf2_files = getSF2Files(input_folder)
+  if #sf2_files == 0 then
+    renoise.app():show_error("No SF2 files found in the selected folder.")
+    return
+  end
+
+  local output_folder = renoise.app():prompt_for_path(
+    "Select Output Folder for WAV Files")
+  if not output_folder or output_folder == "" then
+    renoise.app():show_status("Batch SF2->WAV: Cancelled - no output folder selected")
+    return
+  end
+
+  local dialog, vb
+  local process_slicer = ProcessSlicer(function()
+    PakettiBatchSF2ToWAV_Worker(sf2_files, output_folder, dialog, vb)
+  end)
+
+  dialog, vb = process_slicer:create_dialog("Batch SF2 → WAV")
+  process_slicer:start()
+end
+
 --------------------------------------------------------------------------------
 -- Batch SF2 → XRNI Converter
 -- Converts a folder of SF2 files into individual XRNI instrument files,
@@ -1569,8 +1811,8 @@ end
 -- folder, then the temporary instrument is cleaned up.
 --------------------------------------------------------------------------------
 
--- Collect .sf2 files from a folder (non-recursive, case-insensitive)
-local function getSF2Files(dir)
+-- Collect .sf2 files from a folder (recursive, case-insensitive)
+getSF2Files = function(dir)
   local files   = {}
   local command
   if package.config:sub(1, 1) == "\\" then  -- Windows
@@ -1594,7 +1836,7 @@ local function getSF2Files(dir)
 end
 
 -- Replace characters that are unsafe in filenames
-local function sf2_sanitize_name(s)
+sf2_sanitize_name = function(s)
   return (s:gsub('[/\\:*?"<>|%%]', "_"):gsub("%s+", "_"))
 end
 
@@ -2132,6 +2374,15 @@ PakettiAddMenuEntry{
 PakettiAddMenuEntry{
   name   = "Main Menu:File:Paketti Export:Batch Convert SF2 to XRNI (Per Preset)...",
   invoke = PakettiBatchSF2ToXRNI}
+PakettiAddMenuEntry{
+  name   = "Sample Editor:Paketti:Batch Export SF2 Samples to WAV...",
+  invoke = PakettiBatchSF2ToWAV}
+PakettiAddMenuEntry{
+  name   = "Main Menu:File:Paketti Export:Batch Export SF2 Samples to WAV...",
+  invoke = PakettiBatchSF2ToWAV}
 renoise.tool():add_keybinding{
   name   = "Global:Paketti:Batch Convert SF2 to XRNI",
   invoke = PakettiBatchSF2ToXRNI}
+renoise.tool():add_keybinding{
+  name   = "Global:Paketti:Batch Export SF2 Samples to WAV",
+  invoke = PakettiBatchSF2ToWAV}

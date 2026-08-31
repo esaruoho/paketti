@@ -186,6 +186,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMusicMouseFav3 = "Saw",
   pakettiMusicMouseHidePianos = false,
   pakettiMusicMouseHideDetails = false,
+  pakettiMusicMouseHidePattern = false,
   pakettiMusicMouseHideRecRow = false,
   pakettiMusicMousePreviewWave = false,
   pakettiMusicMouseDispLo = 24,

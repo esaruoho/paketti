@@ -110,7 +110,7 @@ local mm = {
   gravity_div = 1,            -- Gravity Play steps every Nth beat (1/4/8/16)
   gravity_beat = 0,           -- beat counter for the divisor
   num_voices  = 4,            -- 4 = classic Music Mouse; 5..9 = richer chords (extra X-chord tones)
-  bell_ms     = 1300,         -- struck-sound length in ms (Plink ~350, Bell 1300, Gong ~3500)
+  bell_ms     = 1300,         -- struck-sound length in ms (Plink ~700, Bell 1300, Gong ~3500)
   bell_decay  = 4.5,          -- struck-sound decay rate; higher = shorter tail
   mute        = { false, false, false, false, false, false, false, false, false },
 
@@ -126,6 +126,7 @@ local mm = {
   dark        = false,        -- theme: false = authentic light Music Mouse, true = dark
   hide_pianos = false,        -- draw only the woven grid (skip the 4 edge keyboards)
   hide_details = false,       -- collapse the control panel (grid + pianos only) for a narrow window
+  hide_pattern = false,       -- hide only the melodic contour drag-bar editor
   hide_recrow = false,        -- hide the vertical "Rec to Row" slider column entirely
   preview_wave = false,       -- when true, changing the waveform re-strikes the chord to preview it (default: silent)
   disp_lo     = 24,           -- grid low note (Renoise value); the display/pitch range is disp_lo..disp_hi
@@ -205,6 +206,7 @@ local function mm_load_prefs()
   if preferences.pakettiMusicMouseHidePianos then
     mm.hide_pianos  = preferences.pakettiMusicMouseHidePianos.value
     mm.hide_details = preferences.pakettiMusicMouseHideDetails.value
+    mm.hide_pattern = preferences.pakettiMusicMouseHidePattern and preferences.pakettiMusicMouseHidePattern.value or false
     mm.hide_recrow  = preferences.pakettiMusicMouseHideRecRow.value
     mm.preview_wave = preferences.pakettiMusicMousePreviewWave.value
   end
@@ -229,6 +231,9 @@ local function mm_load_prefs()
   if preferences.pakettiMusicMouseBellDecay then
     local d = preferences.pakettiMusicMouseBellDecay.value
     if d and d >= 1 then mm.bell_decay = d / 10 end
+  end
+  if mm.bell_ms == 350 and math.abs((mm.bell_decay or 0) - 9.0) < 0.05 then
+    mm.bell_ms = 700
   end
   mm.prefs_loaded = true    -- only now is it safe to write settings back (see mm_save_prefs)
 end
@@ -256,6 +261,7 @@ local function mm_save_prefs()
   if preferences.pakettiMusicMouseHidePianos then
     preferences.pakettiMusicMouseHidePianos.value  = mm.hide_pianos
     preferences.pakettiMusicMouseHideDetails.value = mm.hide_details
+    if preferences.pakettiMusicMouseHidePattern then preferences.pakettiMusicMouseHidePattern.value = mm.hide_pattern end
     preferences.pakettiMusicMouseHideRecRow.value  = mm.hide_recrow
     preferences.pakettiMusicMousePreviewWave.value = mm.preview_wave
   end
@@ -1627,6 +1633,10 @@ end
 -- one step of the current treatment immediately and lets the sequence carry on from where it is.
 function mm_articulate(strike)
   local notes = mm_compute_voices()
+  if mm.pattern_on and not strike then
+    mm.last_notes = notes
+    return                      -- active contour playback owns timing; mouse only reseeds harmony
+  end
   if mm.treatment == 1 then
     mm_play_chord(notes)
     return
@@ -2322,7 +2332,7 @@ end
 
 -- The three named shapes on the panel. Values are (length in ms, decay rate).
 MM_STRIKE_PRESETS = {
-  { name = "Plink", ms = 350,  decay = 9.0 },
+  { name = "Plink", ms = 700,  decay = 9.0 },
   { name = "Bell",  ms = 1300, decay = 4.5 },
   { name = "Gong",  ms = 3500, decay = 1.6 },
 }
@@ -2381,11 +2391,18 @@ local function mm_current_is_mm_instrument()
 end
 
 -- A "foreign" sample is any loaded instrument that ISN'T a Music Mouse one (recognised by name).
--- When one is selected, the sound keys must NOT overwrite/regenerate it — they just trigger it.
+-- When one is selected, the sound keys must NOT overwrite/regenerate or retrigger it.
 -- (An empty instrument with no samples is NOT foreign, so first-press auto-create still works.)
 local function mm_has_foreign_sample()
   local instr = renoise.song().selected_instrument
   return instr and #instr.samples > 0 and not instr.name:find("Music Mouse")
+end
+
+local function mm_warn_foreign_sample()
+  local song = renoise.song()
+  local instr = song and song.selected_instrument
+  local name = instr and instr.name ~= "" and instr.name or "(unnamed instrument)"
+  renoise.app():show_status("Music Mouse: selected instrument already has a non-Music-Mouse sample — " .. name)
 end
 
 -- create a fresh pakettified Music Mouse instrument: load the Paketti default, then render the wavefile
@@ -2446,20 +2463,17 @@ local function mm_sync_wave_ui()
 end
 
 -- from_ui = true when this came from the details-panel Waveform dropdown (not a sound key).
--- Sound keys (u/i/o/p, å, cycle) always re-strike — that's core Music Mouse. The dropdown
--- stays SILENT unless the "Preview" checkbox is on, so tweaking the timbre while composing
--- doesn't blast the held chord.
+-- Sound keys (u/i/o/p, å, cycle) re-strike Music Mouse instruments, but only warn when a
+-- non-Music-Mouse sample is selected. The dropdown stays SILENT unless the "Preview" checkbox
+-- is on, so tweaking the timbre while composing doesn't blast the held chord.
 local function mm_set_waveform(shape, from_ui)
-  -- A non-Music-Mouse sample is loaded: the sound key becomes a PURE TRIGGER — punch-jazz the
-  -- chord with that sample and never overwrite/regenerate it. (Create New still builds an MM
-  -- instrument; an empty instrument still auto-creates one below.)
+  -- A non-Music-Mouse sample is loaded: the sound key becomes a warning only. It must never
+  -- overwrite, regenerate, or retrigger the selected sample while pattern playback is running.
+  -- (Create New still builds an MM instrument; an empty instrument still auto-creates one below.)
   if mm_has_foreign_sample() then
-    if (not from_ui) or mm.preview_wave then
-      mm_retrigger()
-      if mm.treatment == 2 then mm_stamp_arpeggio() end
-    end
+    if (not from_ui) or mm.preview_wave then mm_warn_foreign_sample() end
     if mm_canvas then mm_canvas:update() end
-    return
+    return false
   end
   local changed = (shape ~= mm.waveform) or not mm_current_is_mm_instrument()
   mm.waveform = shape           -- mm.bell is left untouched: Bell stays Bell, Sustain stays Sustain
@@ -2471,26 +2485,30 @@ local function mm_set_waveform(shape, from_ui)
     if mm.treatment == 2 then mm_stamp_arpeggio() end
   end
   if mm_canvas then mm_canvas:update() end
+  return true
 end
 
--- Re-render the current sound after the strike shape changes, so you hear it
--- straight away. Only meaningful in Bell mode, and never touches a foreign
--- sample the user loaded themselves.
-function mm_restrike_current()
+-- Re-render the current sound after strike-shape changes. This is a sound-design action, not a
+-- performance trigger: the selected grid entry is only fired by i/o/p/å or standalone Option/Alt.
+function mm_render_current_sound()
   mm_sync_wave_ui()
   if mm_has_foreign_sample() then return end
   if not mm.bell then return end
   mm_apply_waveform()
-  mm_retrigger()
   if mm_canvas then mm_canvas:update() end
 end
 
 local function mm_set_bell(is_bell)
+  if mm_has_foreign_sample() then
+    mm_warn_foreign_sample()
+    if mm_canvas then mm_canvas:update() end
+    return false
+  end
   mm.bell = is_bell
   mm_sync_wave_ui()
-  if not mm_has_foreign_sample() then mm_apply_waveform() end   -- don't overwrite a foreign sample
-  mm_retrigger()                -- re-strike so you hear the new articulation immediately
+  mm_apply_waveform()
   if mm_canvas then mm_canvas:update() end
+  return true
 end
 
 --------------------------------------------------------------------------------
@@ -2692,7 +2710,7 @@ local function mm_controls_column(vbx)
       vbx:valuebox{ id = "mm_transpose_box", width = 150, min = -48, max = 48, value = mm.transpose,
         notifier = function(v) if mm_ui_busy then return end mm.transpose = v; mm_reseat_axis(); mm_requiet() end },
       hint("z/x or < >") },
-    vbx:row{ spacing = 4, lbl("Interval", "semitones per z / x transpose step"),
+    vbx:row{ spacing = 4, lbl("Transpose Step", "semitones per z / x / < transpose keypress; this is not the Pattern contour interval"),
       vbx:valuebox{ id = "mm_interval_box", width = 150, min = 1, max = 24, value = mm.interval,
         notifier = function(v) if mm_ui_busy then return end mm.interval = v end } },
     vbx:row{ spacing = 4, lbl("Pattern"),
@@ -2704,11 +2722,11 @@ local function mm_controls_column(vbx)
       vbx:popup{ id = "mm_pattarget_popup", width = 150, items = MM_PATTARGET_ITEMS, value = mm_pattarget_index(),
         tooltip = "Melody/Bass: the contour sequences ONLY that voice over a sustained chord (no flood).",
         notifier = function(i) if mm_ui_busy then return end mm.pat_target = MM_PATTARGET_KEYS[i]; mm_requiet() end } },
-    vbx:row{ spacing = 4, lbl("Record", "right-shift also toggles: play + edit mode + follow + imprint. RED = armed."),
+    vbx:row{ spacing = 4, lbl("Record", "right-shift toggles: play + edit mode + follow + imprint. RED = armed."),
       vbx:button{ id = "mm_record_button", width = 150,
         text = mm.record and "● RECORDING" or "○ Record to Pattern",
         color = mm.record and { 0xC0, 0x30, 0x30 } or { 0, 0, 0 },
-        tooltip = "right-shift also toggles: play + edit mode + follow + imprint. RED = armed.",
+        tooltip = "right-shift toggles: play + edit mode + follow + imprint. RED = armed.",
         notifier = function() if mm_ui_busy then return end mm_set_record(not mm.record) end } },
     vbx:row{ spacing = 4, lbl("Keyjazz Punch", "j: mouse aims silently, i/o/p (or å) punch the chord"),
       vbx:checkbox{ id = "mm_keyjazz_check", value = mm.keyjazz,
@@ -2786,23 +2804,23 @@ local function mm_controls_column(vbx)
           local pr = MM_STRIKE_PRESETS[i]
           mm.bell_ms, mm.bell_decay = pr.ms, pr.decay
           mm_save_prefs()
-          mm_restrike_current()
+          mm_render_current_sound()
         end },
       vbx:button{ text = "Bell mode", width = 66, tooltip = "Switch to Bell so you can hear the strike shape",
         notifier = function() if not mm_ui_busy then mm_set_bell(true) end end } },
     vbx:row{ spacing = 4, lbl("Length", "How long the struck sound rings, in milliseconds."),
       vbx:valuebox{ id = "mm_bellms_box", width = 72, min = 50, max = 8000, value = mm.bell_ms,
-        tooltip = "50-8000 ms. Plink 350, Bell 1300, Gong 3500.",
+        tooltip = "50-8000 ms. Plink 700, Bell 1300, Gong 3500.",
         notifier = function(v)
           if mm_ui_busy then return end
-          mm.bell_ms = v; mm_save_prefs(); mm_restrike_current()
+          mm.bell_ms = v; mm_save_prefs(); mm_render_current_sound()
         end },
       lbl("Decay", "How fast it fades. Higher fades sooner, so a long Length with a low Decay is a gong."),
       vbx:valuebox{ id = "mm_belldecay_box", width = 72, min = 1, max = 300, value = math.floor((mm.bell_decay or 4.5) * 10 + 0.5),
         tooltip = "Tenths: 90 = 9.0 (plink), 45 = 4.5 (bell), 16 = 1.6 (gong).",
         notifier = function(v)
           if mm_ui_busy then return end
-          mm.bell_decay = v / 10; mm_save_prefs(); mm_restrike_current()
+          mm.bell_decay = v / 10; mm_save_prefs(); mm_render_current_sound()
         end },
       vbx:text{ id = "mm_strike_hint", text = "" } },
     vbx:row{ spacing = 4, lbl("Preview", "When on, changing the Waveform dropdown re-strikes the held chord so you hear it. Off (default) = silent while you tweak the timbre."),
@@ -3012,10 +3030,13 @@ end
 
 local function mm_transpose(delta_semitones, quiet)
   mm.transpose = mm.transpose + delta_semitones
-  if not quiet then
-    local notes = mm_compute_voices()
-    mm_play_chord(notes)
+  mm_rebuild_axis()
+  mm.last_notes = mm_compute_voices()
+  local muted = mm.frozen or mm.keyjazz or not mm.sound_on or not mm.mouse_active
+  if not quiet and not muted then
+    mm_play_chord(mm.last_notes)
   end
+  if mm_canvas then mm_canvas:update() end
 end
 
 local function mm_toggle_mute(v)
@@ -3033,7 +3054,7 @@ function mm_keyhandler(dlg, key)
   local has_alt = mods:find("alt") ~= nil or mods:find("option") ~= nil
 
   -- KEY PROBE (temporary): surfaces exactly what Renoise reports for each key, so we can
-  -- discover what the right-shift key produces on this machine.
+  -- discover what a physical key produces on this machine.
   if mm.key_probe then
     print(string.format("[MusicMouse] key name='%s' modifiers='%s' repeated=%s", tostring(name), tostring(mods), tostring(key.repeated)))
     renoise.app():show_status("MM key: name='" .. tostring(name) .. "'  mods='" .. tostring(mods) .. "'")
@@ -3058,11 +3079,29 @@ function mm_keyhandler(dlg, key)
     return nil
   end
 
-  -- Keys/combos Music Mouse must NOT capture — let them through to Renoise:
-  -- F8 (and F5..F12; MM only uses F1-F4), any Alt/Option (incl. right-option), and Shift+Cmd combos.
+  -- Standalone left Shift can arrive before a Shift combo on some layouts. Consume it silently
+  -- so it does not replay the grid, while leaving the following Shift+key event available.
   local fnum = name:match("^f(%d+)$")
+  if name == "lshift" then return nil end
+
+  -- RIGHT-shift toggles Record-to-Pattern. Ignore auto-repeat so one press = one toggle.
+  if name == "rshift" then
+    if key.repeated then return nil end
+    mm_set_record(not mm.record)
+    return nil
+  end
+
   local is_alt_key = name == "ralt" or name == "lalt" or name == "alt"
                   or name == "roption" or name == "loption" or name == "option"
+  if is_alt_key then
+    if key.repeated then return nil end
+    mm_articulate(true)
+    if mm_canvas then mm_canvas:update() end
+    return nil
+  end
+
+  -- Keys/combos Music Mouse must NOT capture — let them through to Renoise:
+  -- F8 (and F5..F12; MM only uses F1-F4), any Alt/Option, and Shift+Cmd combos.
   if name == "f8"
      or (fnum and tonumber(fnum) >= 5)
      or has_alt or is_alt_key
@@ -3079,14 +3118,6 @@ function mm_keyhandler(dlg, key)
     mm_update_panel(); if mm_canvas then mm_canvas:update() end
     return nil
   end
-  -- RIGHT-shift only toggles Record-to-Pattern (left-shift stays a normal modifier for your
-  -- shift-combos). Ignore auto-repeat so one press = one toggle.
-  if name == "rshift" then
-    if key.repeated then return nil end
-    mm_set_record(not mm.record)
-    return nil
-  end
-
   -- ===== Bindings that legitimately use cmd/shift (handled before the modifier guard) =====
   -- cmd-up / cmd-down: select previous / next instrument (and re-strike on it)
   if has_cmd and (name == "up" or name == "down") then
@@ -3149,8 +3180,9 @@ function mm_keyhandler(dlg, key)
     mm_update_panel(); mm_save_prefs(); return nil
   end
   -- < / > : transpose down / up by the interval (alongside z / x; cmd = quiet). On ISO/Finnish
-  -- these are the dedicated key left of Z; on US they arrive as shift-comma (= Gravity Play).
-  if name == "<" or name == "less" then mm_transpose(-mm.interval, has_cmd); mm_update_panel(); return nil end
+  -- Shift-< may still report name "<", so use the shift modifier to make it the upward gesture.
+  -- On US, > arrives as shift-comma and stays reserved for Gravity Play above.
+  if name == "<" or name == "less" then mm_transpose(has_shift and mm.interval or -mm.interval, has_cmd); mm_update_panel(); return nil end
   if name == ">" or name == "greater" then mm_transpose(mm.interval, has_cmd); mm_update_panel(); return nil end
   -- ENTER lock (shift = release held)
   if name == "return" or name == "enter" then
@@ -3202,8 +3234,9 @@ function mm_keyhandler(dlg, key)
   -- shift-i : round-robin through the 3 favorite waveforms and punch (handled before the guard)
   if has_shift and name == "i" then
     mm.fav_rr = (mm.fav_rr % 3) + 1
-    mm_set_waveform(mm.fav_waves[mm.fav_rr] or "Triangle")
-    renoise.app():show_status("Music Mouse: favorite round-robin -> " .. (mm.fav_waves[mm.fav_rr] or "?"))
+    if mm_set_waveform(mm.fav_waves[mm.fav_rr] or "Triangle") then
+      renoise.app():show_status("Music Mouse: favorite round-robin -> " .. (mm.fav_waves[mm.fav_rr] or "?"))
+    end
     return nil
   end
   if mods == "" and name == "f1" then mm_set_treatment(1); return nil end
@@ -3362,7 +3395,7 @@ local MM_KEYMAP = {
     { k = "z", label = "Transpose -" }, { k = "x", label = "Transpose +" },
     { k = "<", label = "Transpose - (ISO)" }, { k = ">", label = "Transpose + (ISO)" },
     { k = "c", label = "Reset transpose" },
-    { k = "z", mods = "shift", label = "Interval -" }, { k = "x", mods = "shift", label = "Interval +" },
+    { k = "z", mods = "shift", label = "Transpose step -" }, { k = "x", mods = "shift", label = "Transpose step +" },
     { k = "tab", label = "Cycle tuning" },
   }},
   { title = "Patterns", keys = {
@@ -3398,6 +3431,7 @@ local MM_KEYMAP = {
   }},
   { title = "Performance", keys = {
     { k = "space", label = "Freeze" }, { k = "space", mods = "shift", label = "Chord/Single note" },
+    { k = "option", label = "Trigger grid entry" }, { k = "rshift", label = "Record to Pattern" },
     { k = "return", label = "Lock notes" },
     { k = "return", mods = "shift", label = "Release held" }, { k = "j", label = "Keyjazz punch" },
     { k = ";", label = "Gravity Play" }, { k = "l", label = "Clear seeds" },
@@ -3481,15 +3515,18 @@ mm_build_content = function()
       vb:button{ text = "Gravity Play (;)", width = 150, notifier = mm_toggle_gravity_play },
       vb:button{ text = "Clear Seeds (l)", width = 96, notifier = mm_clear_seeds },
     },
-    vb:text{ text = "Pattern Editor - drag bars (a + 0-9 contour)", style = "strong" },
-    mm_pat_canvas,
-    vb:row{ spacing = 4,
-      vb:button{ text = "Len -", width = 44, notifier = function() mm_pat_length_delta(-1) end },
-      vb:button{ text = "Len +", width = 44, notifier = function() mm_pat_length_delta(1) end },
-      vb:text{ text = "Length", style = "strong" },
-      vb:switch{ width = 150, items = { "8", "16", "32", "64" }, value = 2,
-        notifier = function(i) if not mm_ui_busy then mm_pat_set_length(({ 8, 16, 32, 64 })[i]) end end },
-      vb:button{ text = "Reset", width = 60, notifier = mm_pat_reset },
+    vb:column{
+      id = "mm_pattern_col", spacing = 4, visible = not mm.hide_pattern,
+      vb:text{ text = "Pattern Editor - drag bars (a + 0-9 contour)", style = "strong" },
+      mm_pat_canvas,
+      vb:row{ spacing = 4,
+        vb:button{ text = "Len -", width = 44, notifier = function() mm_pat_length_delta(-1) end },
+        vb:button{ text = "Len +", width = 44, notifier = function() mm_pat_length_delta(1) end },
+        vb:text{ text = "Length", style = "strong" },
+        vb:switch{ width = 150, items = { "8", "16", "32", "64" }, value = 2,
+          notifier = function(i) if not mm_ui_busy then mm_pat_set_length(({ 8, 16, 32, 64 })[i]) end end },
+        vb:button{ text = "Reset", width = 60, notifier = mm_pat_reset },
+      },
     },
   }
 
@@ -3523,7 +3560,7 @@ mm_build_content = function()
     },
   }
 
-  -- minimal top bar: the three Show/Hide toggles (the magic — always visible so you can bring
+  -- minimal top bar: the Show/Hide toggles (the magic — always visible so you can bring
   -- any section back from a bare grid) plus a few essentials. Each toggle rebuilds the dialog.
   local function hidebtn(id, label, flag, toggle)
     return vb:button{ id = id, text = label, width = 120,
@@ -3533,6 +3570,7 @@ mm_build_content = function()
   local topbar = vb:row{ spacing = 4,
     hidebtn("mm_hidepianos_btn",  mm.hide_pianos  and "Show Pianos"     or "Hide Pianos",     mm.hide_pianos,  function() mm.hide_pianos  = not mm.hide_pianos  end),
     hidebtn("mm_hidedetails_btn", mm.hide_details and "Show Details"    or "Hide Details",    mm.hide_details, function() mm.hide_details = not mm.hide_details end),
+    hidebtn("mm_hidepattern_btn", mm.hide_pattern and "Show Pattern"    or "Hide Pattern",    mm.hide_pattern, function() mm.hide_pattern = not mm.hide_pattern end),
     hidebtn("mm_hiderecrow_btn",  mm.hide_recrow  and "Show Rec to Row" or "Hide Rec to Row", mm.hide_recrow,  function() mm.hide_recrow  = not mm.hide_recrow  end),
     vb:space{ width = 12 },
     vb:button{ text = "Light/Dark", width = 74, notifier = mm_toggle_dark },

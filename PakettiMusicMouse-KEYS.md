@@ -11,7 +11,7 @@ through to Renoise**, so your own shortcuts stay live.
 | `cmd-q … cmd-y` | Same, quiet (set without replaying) |
 | `z` / `x` | Transpose down / up by the interval (cmd = quiet) |
 | `c` | Reset transposition to 0 (cmd = quiet) |
-| `shift-z` / `shift-x` | Interval of transposition − / + |
+| `shift-z` / `shift-x` | Transpose step − / + |
 | `shift-c` | Reset interval to 1 |
 | `tab` | Microtonal — internal-sound only; not available via note triggers |
 
@@ -65,6 +65,7 @@ through to Renoise**, so your own shortcuts stay live.
 | Key | Action |
 |-----|--------|
 | `space` | Freeze: pause mouse-follow + auto-play + sound (keys still drive it). While recording, also stops recording. |
+| `option` / `alt` | Trigger the selected grid entry |
 | `enter` | Lock current notes (keep ringing) |
 | `shift-enter` | Release all locked notes |
 | `right-shift` | Record to Pattern on / off (play + edit mode + follow + pattern editor) |

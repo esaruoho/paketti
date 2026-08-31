@@ -31,6 +31,7 @@ Feature: AKAI controller debug/demo entries moved out of the Groovebox menu
   # WATCH: paketti_apc_seq_zone paketti_apc_seq_refresh paketti_midimix_redraw_all_leds PakettiAddMenuEntry
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
   #   2026-08-31  direct-commit  touched: PakettiAddMenuEntry
+  #   2026-08-31  direct-commit  touched: PakettiAddMenuEntry
   #   2026-08-29  direct-commit  touched: PakettiAddMenuEntry
   #   2026-08-28  direct-commit  touched: PakettiAddMenuEntry
   #   2026-08-25  direct-commit  touched: PakettiAddMenuEntry

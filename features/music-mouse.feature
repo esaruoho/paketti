@@ -40,6 +40,7 @@ Context: Global
   #
   # WATCH: pakettiMusicMouseShow mm_compute_voices mm_render mm_tick mm_set_record mm_tune_sample mm_toggle_gravity_play
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+  #   2026-08-31  direct-commit  touched: mm_compute_voices mm_render mm_set_record
   #   2026-08-31  direct-commit  touched: mm_compute_voices mm_toggle_gravity_play
   #   2026-08-31  direct-commit  touched: mm_compute_voices
   #   2026-08-29  direct-commit  touched: mm_compute_voices
