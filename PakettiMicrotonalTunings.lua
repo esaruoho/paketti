@@ -1020,7 +1020,7 @@ end
 -- DRONE GENERATOR
 -- ========================================
 
-local function generate_golden_drone()
+function generate_golden_drone()
   local song = renoise.song()
   if not song then return end
   local sample_rate = 44100
@@ -1091,7 +1091,7 @@ end
 -- BINAURAL BEAT GENERATOR
 -- ========================================
 
-local function generate_binaural_instrument()
+function generate_binaural_instrument()
   local song = renoise.song()
   if not song then return end
   local sample_rate = 44100
@@ -1283,7 +1283,7 @@ end
 -- 18 harmonic "strings" based on ratios of 9
 -- ========================================
 
-local function generate_phi_harmonic_strings_wavetable()
+function generate_phi_harmonic_strings_wavetable()
   local song = renoise.song()
   if not song then return end
   local wave_size = 2048
@@ -2206,7 +2206,7 @@ end
 -- PHRASE-BASED MICROTONAL ARPEGGIOS
 -- ========================================
 
-local function generate_golden_arpeggio_phrases()
+function generate_golden_arpeggio_phrases()
   local song = renoise.song()
   if not song then return end
   local instr = song.selected_instrument
@@ -2476,22 +2476,22 @@ end
 -- QUICK-APPLY FUNCTIONS
 -- ========================================
 
-local function apply_golden_pythagorean()
+function apply_golden_pythagorean()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Golden Pythagorean (13-note)" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_36_edo()
+function apply_36_edo()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "36-EDO" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_solfeggio()
+function apply_solfeggio()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Solfeggio" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_colundi()
+function apply_colundi()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Colundi" then apply_tuning_to_instrument(i) return end
   end
@@ -2536,40 +2536,40 @@ local function apply_pelog()
     if preset.name == "Pelog (gamelan example)" then apply_tuning_to_instrument(i) return end
   end
 end
-local function reset_to_12tet()
+function reset_to_12tet()
   apply_tuning_to_instrument(1)
 end
-local function apply_phi_9_lange()
+function apply_phi_9_lange()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Phi-9 (Lange)" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_phi_7_lange()
+function apply_phi_7_lange()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Phi-7 (Lange)" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_lange_phi_36()
+function apply_lange_phi_36()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Lange 36-note Phi Scale" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_phi_power_series()
+function apply_phi_power_series()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Phi Power Series" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_10_tet_decagono()
+function apply_10_tet_decagono()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "10-TET Decagono (Lange)" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_phi_7_10_hybrid()
+function apply_phi_7_10_hybrid()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Phi 7/10 Hybrid (Lange)" then apply_tuning_to_instrument(i) return end
   end
 end
-local function apply_lange_phi_music_system()
+function apply_lange_phi_music_system()
   for i, preset in ipairs(tuning_presets) do
     if preset.name == "Lange Phi Music System (304.295 Hz)" then apply_tuning_to_instrument(i) return end
   end

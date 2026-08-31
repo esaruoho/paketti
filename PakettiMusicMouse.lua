@@ -1922,7 +1922,7 @@ local function mm_stop_timer()
   mm.timer_running = false
 end
 
-local function mm_restart_timer()
+function mm_restart_timer()
   mm_beat_accum = 0
   mm.sync_line_accum = 0
   mm.last_play_line = nil

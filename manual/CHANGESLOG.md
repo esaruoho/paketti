@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-31 - Fix: Function Search And Action Selector Can Run Their Replayed Commands
+
+Paketti Function Search and Action Selector rebuild command callbacks from their saved source text. A callback that named a `local function` lost that file-local scope when replayed, so it threw a strict-global error even though the normal Renoise shortcut still worked. All 76 replayed helpers across the 19 affected modules are now callable globals. This restores 62 keybinding actions in both tools and 64 MIDI-mapping actions in Function Search, including LFO shape selection and "Divide LPB by 4, return to Original".
+
 ### 2026-08-31 - Fix: Impulse Tracker ALT-X Volume Column Works From The Action Selector Again
 
 The Action Selector saves this command as a separately compiled callback. Its saved callback called ALT-X's file-local helper, which is not visible outside `PakettiImpulseTracker.lua`, so selecting it raised `variable 'alt_x_functionality' is not declared` instead of interpolating and clearing the Volume column. ALT-X is now exposed as the action's global callable while retaining its existing Pattern Editor shortcut behavior.

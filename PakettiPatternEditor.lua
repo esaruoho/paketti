@@ -3983,7 +3983,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Note Offs to All Tracks for F
 
 
 --------------
-local function insert_random_value(mode)
+function insert_random_value(mode)
   local song=renoise.song()
   local selection = song.selection_in_pattern
   local pattern = song.selected_pattern
@@ -5509,7 +5509,7 @@ local function is_in_note_column()
 end
 
 -- Function to match the current sub-column type to all rows in the selected note column
-local function match_current_sub_column_to_track()
+function match_current_sub_column_to_track()
   if not is_in_note_column() then return end
 
   local song=renoise.song()
@@ -5544,7 +5544,7 @@ local function match_current_sub_column_to_track()
 end
 
 -- Function to match volume column to current row
-local function match_volume_to_current_row()
+function match_volume_to_current_row()
   if not is_in_note_column() then return end
 
   local song=renoise.song()
@@ -5570,7 +5570,7 @@ local function match_volume_to_current_row()
 end
 
 -- Function to match panning column to current row
-local function match_panning_to_current_row()
+function match_panning_to_current_row()
   if not is_in_note_column() then return end
 
   local song=renoise.song()
@@ -5596,7 +5596,7 @@ local function match_panning_to_current_row()
 end
 
 -- Function to match delay column to current row
-local function match_delay_to_current_row()
+function match_delay_to_current_row()
   if not is_in_note_column() then return end
 
   local song=renoise.song()
@@ -5976,7 +5976,7 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge with Delay (Down)",invoke=function() nudge_with_delay("down") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge with Delay (Up)",invoke=function() nudge_with_delay("up") end}
 -- Main function for toggling LPB and inserting ZLxx commands.
-local function toggle_lpb_and_insert_commands()
+function toggle_lpb_and_insert_commands()
   local song=renoise.song()
   local pattern=song.selected_pattern
   local track_idx=song.selected_track_index
@@ -6167,7 +6167,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off in Se
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in Selected Tracks",invoke=function() PakettiNoteOffToSelection() end}
 -------
 -- Function with an option to retain or clear silence rows
-local function DuplicateSelectionWithPaddingMoveCursor(retain_silence_content)
+function DuplicateSelectionWithPaddingMoveCursor(retain_silence_content)
     local song=renoise.song()
     local selection = song.selection_in_pattern
 
@@ -8283,7 +8283,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
 
 ---
-local function pakettiFloodFillColumn(use_editstep)
+function pakettiFloodFillColumn(use_editstep)
   local song = renoise.song()
   local track = song.selected_track
   local pattern_index = song.selected_pattern_index

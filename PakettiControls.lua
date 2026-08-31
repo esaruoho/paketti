@@ -605,7 +605,7 @@ local function PakettiSetEditStep(value)
 end
 
 -- Function to double the edit step with bounds checking
-local function PakettiDoubleEditStep()
+function PakettiDoubleEditStep()
   local t = renoise.song().transport
   local current = t.edit_step
   
@@ -627,7 +627,7 @@ local function PakettiDoubleEditStep()
 end
 
 -- Function to halve the edit step with bounds checking
-local function PakettiHalveEditStep()
+function PakettiHalveEditStep()
   local t = renoise.song().transport
   local current = t.edit_step
   
@@ -644,7 +644,7 @@ local function PakettiHalveEditStep()
 end
 
 -- Function to adjust edit step by a fixed amount with bounds checking
-local function PakettiAdjustEditStep(amount)
+function PakettiAdjustEditStep(amount)
   local t = renoise.song().transport
   local current = t.edit_step
   
@@ -807,7 +807,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
 -----------
-local function switch_upper_frame()
+function switch_upper_frame()
   local app_window=renoise.app().window
 
   -- Check if the upper frame is visible; make it visible if not
@@ -869,7 +869,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:F4 Shift Midi Immediately", i
 
 ----
 -- Function to duplicate the selected track and rename it
-local function duplicate_selected_track()
+function duplicate_selected_track()
   local song=renoise.song()
   local selected_track_index=song.selected_track_index
   local selected_track=song.tracks[selected_track_index]

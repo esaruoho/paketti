@@ -167,7 +167,7 @@ function PakettiBlockLoopFollowEnable()
   end
 end
 
-local function toggle_block_loop_follow_auto()
+function toggle_block_loop_follow_auto()
   block_loop_follow_enabled = not block_loop_follow_enabled
 
   -- Save preference
@@ -193,7 +193,7 @@ end
 -- VERSION 2: MANUAL SNAP BLOCK LOOP TO CURSOR
 --------------------------------------------------------------------------------
 
-local function snap_block_loop_to_cursor()
+function snap_block_loop_to_cursor()
   local song = renoise.song()
   local transport = song.transport
 
@@ -210,7 +210,7 @@ local function snap_block_loop_to_cursor()
 end
 
 -- Toggle block loop and snap: if off, turn on and snap. If on, just snap.
-local function toggle_and_snap_block_loop()
+function toggle_and_snap_block_loop()
   local song = renoise.song()
   local transport = song.transport
 

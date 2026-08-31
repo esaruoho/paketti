@@ -64,8 +64,8 @@
 ### `0df7d9eb-d103-4714-84a7-bcefa18fa5d8`  (2026-08-31)
 - Resume: `claude --resume 0df7d9eb-d103-4714-84a7-bcefa18fa5d8`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/0df7d9eb-d103-4714-84a7-bcefa18fa5d8.jsonl
-- Tooling touched: STATUS.md, report-card-stamp.sh
-- Cards touched (2): 2026-06-11-groovebox-controller-follow-and-menu.feature, music-mouse.feature
+- Tooling touched: .githooks/pre-commit, INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py, report-card-stamp.sh
+- Cards touched (13): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, device-hotswap-missing-to-actual.feature, groovebox-8120-default-instrument-slots.feature, groovebox-8120-grid-controllers.feature, groovebox-8120-lpd8.feature, groovebox-8120-record-pakettified-instrument.feature, master-low-cut-200hz.feature, mcp-claude-bridge.feature, mlx-renoise-bridge.feature, music-mouse.feature, pattern-editor-example.feature, song-lifecycle-safety.feature
 
 ### `4b3695b9-8d0d-4878-a41e-6d13d1dca2ad`  (2026-08-31)
 - Resume: `claude --resume 4b3695b9-8d0d-4878-a41e-6d13d1dca2ad`

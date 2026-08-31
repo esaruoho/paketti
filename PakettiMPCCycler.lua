@@ -573,11 +573,11 @@ local function cycle_sample(direction)
   end
 end
 
-local function mpc_previous_sample()
+function mpc_previous_sample()
   cycle_sample(-1)
 end
 
-local function mpc_next_sample()
+function mpc_next_sample()
   cycle_sample(1)
 end
 
@@ -627,11 +627,11 @@ local function cycle_instrument(direction)
   end
 end
 
-local function mpc_previous_instrument()
+function mpc_previous_instrument()
   cycle_instrument(-1)
 end
 
-local function mpc_next_instrument()
+function mpc_next_instrument()
   cycle_instrument(1)
 end
 
@@ -639,7 +639,7 @@ end
 -- Folder navigation (Sample)
 -------------------------------------------------
 
-local function mpc_previous_sample_folder()
+function mpc_previous_sample_folder()
   local state = get_sample_state()
   
   if not state.folder then
@@ -685,7 +685,7 @@ local function mpc_previous_sample_folder()
   renoise.app():show_status("MPC Cycler: Sample folder -> " .. folders[new_index])
 end
 
-local function mpc_next_sample_folder()
+function mpc_next_sample_folder()
   local state = get_sample_state()
   
   if not state.folder then
@@ -735,7 +735,7 @@ end
 -- Folder navigation (Instrument)
 -------------------------------------------------
 
-local function mpc_previous_instrument_folder()
+function mpc_previous_instrument_folder()
   local state = get_instrument_state()
   
   if not state.folder then
@@ -781,7 +781,7 @@ local function mpc_previous_instrument_folder()
   renoise.app():show_status("MPC Cycler: Instrument folder -> " .. folders[new_index])
 end
 
-local function mpc_next_instrument_folder()
+function mpc_next_instrument_folder()
   local state = get_instrument_state()
   
   if not state.folder then
@@ -831,7 +831,7 @@ end
 -- Mode toggles
 -------------------------------------------------
 
-local function mpc_toggle_global_lock()
+function mpc_toggle_global_lock()
   local prefs = get_prefs()
   if prefs.pakettiMPCCyclerGlobalLock then
     prefs.pakettiMPCCyclerGlobalLock.value = not prefs.pakettiMPCCyclerGlobalLock.value
@@ -841,7 +841,7 @@ local function mpc_toggle_global_lock()
   end
 end
 
-local function mpc_toggle_preview()
+function mpc_toggle_preview()
   local prefs = get_prefs()
   if prefs.pakettiMPCCyclerPreviewEnabled then
     prefs.pakettiMPCCyclerPreviewEnabled.value = not prefs.pakettiMPCCyclerPreviewEnabled.value
@@ -857,7 +857,7 @@ local function mpc_toggle_preview()
   end
 end
 
-local function mpc_commit_preview()
+function mpc_commit_preview()
   commit_preview()
 end
 
@@ -1258,5 +1258,4 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MPC Cycler:Next Instrument Fol
 PakettiAddMenuEntry{name="--Main Menu:Tools:Paketti:MPC Cycler:Toggle Preview Mode", invoke=mpc_toggle_preview}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MPC Cycler:Commit Preview", invoke=mpc_commit_preview}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:MPC Cycler:Toggle Global Lock", invoke=mpc_toggle_global_lock}
-
 

@@ -1557,7 +1557,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Open External Editor of Selec
 renoise.tool():add_keybinding{name="Global:Paketti:Hide Track DSP Device External Editors",invoke=function()
 
   -- Function to hide all devices in a given device chain
-  local function hide_devices(device_chain)
+  function hide_devices(device_chain)
     if #device_chain.devices > 1 then
       for i = 2, #device_chain.devices do
         if device_chain.devices[i].external_editor_available == true then
@@ -4408,7 +4408,7 @@ local function get_lfo_device()
   return nil
 end
 
-local function modify_lfo_shape(new_value)
+function modify_lfo_shape(new_value)
   local lfo = get_lfo_device()
   if not lfo then
     renoise.app():show_status("No LFO device found on selected track - Please add an LFO device first")
@@ -4418,7 +4418,7 @@ local function modify_lfo_shape(new_value)
   renoise.app():show_status("LFO Shape changed to: " .. lfo.parameters[7].value_string)
 end
 
-local function next_lfo_shape()
+function next_lfo_shape()
   local lfo = get_lfo_device()
   if not lfo then
     renoise.app():show_status("No LFO device found on selected track")
@@ -4429,7 +4429,7 @@ local function next_lfo_shape()
   modify_lfo_shape(next_value)
 end
 
-local function prev_lfo_shape()
+function prev_lfo_shape()
   local lfo = get_lfo_device()
   if not lfo then
     renoise.app():show_status("No LFO device found on selected track")

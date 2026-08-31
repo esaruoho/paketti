@@ -94,7 +94,7 @@ end
 
 
 -- Search Selected Sample function
-local function search_selected_sample()
+function search_selected_sample()
   SononymphStart(true) -- Open dialog
   if SononymphApp and SononymphApp.ui.dialog and SononymphApp.ui.dialog.visible then
     SononymphApp:search_selected_sample()

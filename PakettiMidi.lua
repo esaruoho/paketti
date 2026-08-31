@@ -13,7 +13,7 @@ end
 
 -------------------------------------------------------------------------------------------------------------------------------
 -- Helper function for handling groove settings
-local function handle_groove_setting(midi_message, indices)
+function handle_groove_setting(midi_message, indices)
   local ga = renoise.song().transport.groove_amounts
   if not renoise.song().transport.groove_enabled then 
     renoise.song().transport.groove_enabled = true 
@@ -385,7 +385,7 @@ end
 
 -------
 -- Helper function to map MIDI value (1-127) to pattern position (0 to pattern_length-1)
-local function mapPatternPosition(midi_value, pattern_length)
+function mapPatternPosition(midi_value, pattern_length)
   -- Ensure midi_value is 1-127
   midi_value = math.max(1, math.min(127, midi_value))
   -- Map 1-127 to 0-(pattern_length-1)
@@ -2925,7 +2925,7 @@ local filter_types = {
 }
 
 -- Function to modify only the filter type in XML
-local function modify_filter_type(midi_value)
+function modify_filter_type(midi_value)
   local track = renoise.song().selected_track
   local found_device = false
   
@@ -3368,7 +3368,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Rename Current Track to Selec
 
 -----
 -- Function to modify selected XY Pad parameter
-local function modify_selected_xy_pad_param(param_name, midi_message)
+function modify_selected_xy_pad_param(param_name, midi_message)
   local song=renoise.song()
   
   if not song.selected_device then

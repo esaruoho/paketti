@@ -1593,7 +1593,7 @@ end
 -- Convenience helpers for common trigger flavors
 ------------------------------------------------------------------------
 
-local function create_named(name)
+function create_named(name)
   return function() PakettiCreateTriggerInstrument(name) end
 end
 

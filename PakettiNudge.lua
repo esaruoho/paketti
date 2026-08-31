@@ -754,7 +754,7 @@ end
 -- MIDI helper
 ------------------------------------------------------------------------
 
-local function midi_is_trigger(message)
+function midi_is_trigger(message)
   if message:is_trigger() then return true end
   if message.int_value > 0 then return true end
   return false

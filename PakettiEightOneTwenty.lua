@@ -5348,13 +5348,13 @@ PakettiEightOneTwentyFocusedRow = 1
 -- row in the dialog (HighlightRow sets it). It is deliberately NOT tied to
 -- Renoise's selected_track_index — the direct-from-input bridge stays
 -- self-contained, which is what makes it reliable.
-local function paketti_8120_selected_row()
+function paketti_8120_selected_row()
   local f = PakettiEightOneTwentyFocusedRow or 1
   if f < 1 then f = 1 elseif f > 8 then f = 8 end
   return f
 end
 
-local function paketti_set_focused_row(target)
+function paketti_set_focused_row(target)
   if target < 1 then target = 1 end
   if target > 8 then target = 8 end
   PakettiEightOneTwentyFocusedRow = target
@@ -7500,25 +7500,25 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=fun
 -- These three actions fill all 8 rows in one go so they don't depend on a
 -- focused-row selection: bind any to a controller button or key and you can
 -- repopulate the entire 8120 from any state, including a fresh empty song.
-local function paketti_8120_sequential_load_safe()
+function paketti_8120_sequential_load_safe()
   if pakettiEightSlotsByOneTwentyDialog and not (dialog and dialog.visible) then
     pakettiEightSlotsByOneTwentyDialog()
   end
   loadSequentialSamplesWithFolderPrompts()
 end
-local function paketti_8120_sequential_random_safe()
+function paketti_8120_sequential_random_safe()
   if pakettiEightSlotsByOneTwentyDialog and not (dialog and dialog.visible) then
     pakettiEightSlotsByOneTwentyDialog()
   end
   loadSequentialDrumkitSamples()
 end
-local function paketti_8120_sequential_random_all_safe()
+function paketti_8120_sequential_random_all_safe()
   if pakettiEightSlotsByOneTwentyDialog and not (dialog and dialog.visible) then
     pakettiEightSlotsByOneTwentyDialog()
   end
   loadSequentialRandomLoadAll()
 end
-local function paketti_8120_clever_load_all_safe()
+function paketti_8120_clever_load_all_safe()
   if pakettiEightSlotsByOneTwentyDialog and not (dialog and dialog.visible) then
     pakettiEightSlotsByOneTwentyDialog()
   end
@@ -7624,7 +7624,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern (Groovebox 
 -- Global Pitch Button: adjust transpose for all 8 groovebox instruments
 gbx_transpose_baseline = gbx_transpose_baseline or {nil,nil,nil,nil,nil,nil,nil,nil}
 
-local function PakettiGrooveboxCaptureTransposeBaseline()
+function PakettiGrooveboxCaptureTransposeBaseline()
   local song = renoise.song()
   for row = 1, 8 do
     local row_elements = rows and rows[row] or nil

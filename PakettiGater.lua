@@ -286,7 +286,7 @@ function PakettiGaterTeardown()
 end
 
 -- Helper function to safely switch to pattern editor only if not in sample/phrase editor
-local function safe_switch_to_pattern_editor()
+function safe_switch_to_pattern_editor()
   local current_frame = renoise.app().window.active_middle_frame
   if current_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR and
      current_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then

@@ -736,7 +736,7 @@ end
 -- SAVE ALL PHRASES AS PRESETS (.xrnz)
 ----------------------------------------------------------------------
 
-local function save_all_phrases_as_presets()
+function save_all_phrases_as_presets()
   local song = renoise.song()
   if not song then
     renoise.app():show_warning("No song loaded.")

@@ -4092,7 +4092,7 @@ function alt_x_functionality(mode)
 end
 
 -- Smart ALT-X function that auto-detects the column type
-local function smart_alt_x_functionality()
+function smart_alt_x_functionality()
   local s = renoise.song()
   local sub_column_type = s.selected_sub_column_type
   

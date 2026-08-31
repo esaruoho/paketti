@@ -21,7 +21,7 @@
 --   rmcp song_get_info
 --   rmcp transport_set_bpm '{"bpm":174}'
 
-local function show_dialog()
+function show_dialog()
   -- Lazy-load so we don't pay the cost at tool startup
   local ok, dialog = pcall(require, "PakettiMCP.dialog")
   if not ok then

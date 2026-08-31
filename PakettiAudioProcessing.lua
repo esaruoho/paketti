@@ -465,7 +465,7 @@ end
 
 
 -- Function to perform phase inversion (subtraction) on a sample
-local function phase_invert_sample()
+function phase_invert_sample()
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -511,13 +511,13 @@ local function phase_invert_sample()
 end
 
 -- Function to handle Phase Inversion and Audio Diff
-local function phase_invert_and_diff_sample()
+function phase_invert_and_diff_sample()
   phase_invert_sample()
   create_audio_diff_sample()
 end
 
 -- Function to perform inversion of right channel and summing to mono
-local function invert_right_sum_mono()
+function invert_right_sum_mono()
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -574,7 +574,7 @@ end
 
 
 -- Function to perform pitch shifting and subtraction
-local function pitch_shift_sample(shift_amount)
+function pitch_shift_sample(shift_amount)
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -628,7 +628,7 @@ local function pitch_shift_sample(shift_amount)
 end
 
 -- Function to handle Pitch Shift and Audio Diff
-local function pitch_shift_and_diff_sample()
+function pitch_shift_and_diff_sample()
   if pitch_shift_amount == 0 then
     renoise.app():show_status("Set pitch valuebox to something other than 0, otherwise nothing happens.")
     return
@@ -639,7 +639,7 @@ local function pitch_shift_and_diff_sample()
 end
 
 -- Function to perform modulation
-local function modulate_samples()
+function modulate_samples()
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -650,7 +650,7 @@ local function modulate_samples()
 end
 
 -- Function to handle Modulation and Audio Diff
-local function modulate_and_diff_sample()
+function modulate_and_diff_sample()
   modulate_samples()
   create_audio_diff_sample()
 end
@@ -3114,5 +3114,4 @@ renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Batch Sample Adjust 
 
 -- MIDI mappings for Batch Sample Adjust
 renoise.tool():add_midi_mapping{name="Paketti:Batch Sample Adjust Dialog...", invoke=function(message) if message:is_trigger() then show_batch_sample_adjust_dialog() end end}
-
 

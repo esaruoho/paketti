@@ -4457,7 +4457,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 Eight 
 
 
 ------------   
- local function select_loop_range_in_sample_editor()
+ function select_loop_range_in_sample_editor()
   local song=renoise.song()
   local sample=song.selected_sample
   
@@ -4531,7 +4531,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random Samples (32) from Path",invoke=function() loadRandomSample(32) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random Samples (01) from Path",invoke=function() loadRandomSample(1) end}
 ----
-local function loadRandomSamplesIntoSingleInstrument(num_samples)
+function loadRandomSamplesIntoSingleInstrument(num_samples)
     -- Prompt the user to select a folder
     local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
     if not folder_path then

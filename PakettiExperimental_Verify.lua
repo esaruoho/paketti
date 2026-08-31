@@ -798,7 +798,7 @@ function crossfade_loop(crossfade_length)
 end
 
 -- Helper function to determine crossfade_length based on the current selection
-local function get_dynamic_crossfade_length()
+function get_dynamic_crossfade_length()
   local song=renoise.song()
   local sample = song and song.selected_sample or nil
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
