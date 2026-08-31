@@ -193,6 +193,10 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMusicMouseStrumMs = 28,
   pakettiMusicMouseStrum = false,
   pakettiMusicMouseArpRateDen = 16,
+  -- Struck-sound shape. Length in milliseconds, decay in tenths (45 = 4.5), so
+  -- both survive as plain integers. Defaults are the original bell.
+  pakettiMusicMouseBellMs = 1300,
+  pakettiMusicMouseBellDecay = 45,
   pakettiCanvasFontStyle="8bit",  -- "8bit" (Asteroids-style) or "monospace"; mirrors to every canvas dialog
   paketti_auto_disk_browser_mode = 0,  -- 0=Do Nothing, 1=Hide, 2=Show
   pakettiRePitchEnhanced = false,

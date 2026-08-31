@@ -110,6 +110,8 @@ local mm = {
   gravity_div = 1,            -- Gravity Play steps every Nth beat (1/4/8/16)
   gravity_beat = 0,           -- beat counter for the divisor
   num_voices  = 4,            -- 4 = classic Music Mouse; 5..9 = richer chords (extra X-chord tones)
+  bell_ms     = 1300,         -- struck-sound length in ms (Plink ~350, Bell 1300, Gong ~3500)
+  bell_decay  = 4.5,          -- struck-sound decay rate; higher = shorter tail
   mute        = { false, false, false, false, false, false, false, false, false },
 
   tempo_basic = 100,          -- quarter-notes/min (a MM beat = a 16th, so beats/min = tempo*4)
@@ -209,6 +211,14 @@ local function mm_load_prefs()
     local den = preferences.pakettiMusicMouseArpRateDen.value
     if den == 1 or den == 2 or den == 4 or den == 8 or den == 16 or den == 32 then mm.arp_rate_den = den end
   end
+  if preferences.pakettiMusicMouseBellMs then
+    local ms = preferences.pakettiMusicMouseBellMs.value
+    if ms and ms >= 50 then mm.bell_ms = ms end
+  end
+  if preferences.pakettiMusicMouseBellDecay then
+    local d = preferences.pakettiMusicMouseBellDecay.value
+    if d and d >= 1 then mm.bell_decay = d / 10 end
+  end
 end
 
 local function mm_save_prefs()
@@ -240,6 +250,10 @@ local function mm_save_prefs()
   end
   if preferences.pakettiMusicMouseStrum then preferences.pakettiMusicMouseStrum.value = mm.strum end
   if preferences.pakettiMusicMouseArpRateDen then preferences.pakettiMusicMouseArpRateDen.value = mm.arp_rate_den end
+  if preferences.pakettiMusicMouseBellMs then
+    preferences.pakettiMusicMouseBellMs.value = mm.bell_ms
+    preferences.pakettiMusicMouseBellDecay.value = math.floor(mm.bell_decay * 10 + 0.5)
+  end
   preferences:save_as("preferences.xml")
 end
 
@@ -514,6 +528,15 @@ local function mm_strum_cancel()
   mm_strum_pending = {}
 end
 
+-- Is the current chord supposed to be raked? TWO controls in the panel offer Strum and they sit
+-- far apart: the Strum checkbox (with the ms spacing), and the Arp Mode popup right beside the
+-- Treatment popup. The popup reads as part of the Treatment row -- "Chord | Strum" -- but Chord
+-- treatment used to ignore Arp Mode completely, so picking Strum there silently did nothing.
+-- Both now mean the same thing.
+local function mm_strum_active()
+  return mm.strum or (mm.treatment == 1 and mm.arp_mode == "Strum")
+end
+
 -- Forward declarations: the bodies need mm_beat_ms / mm_arp_rate_ms / mm_is_rate_treatment, which
 -- are declared with the tempo timer ~450 lines below. Declaring the names HERE is what lets
 -- mm_play_chord and mm_strum_live call them — a function defined later in the file is invisible
@@ -635,7 +658,7 @@ local function mm_play_chord(notes)
   if #offs > 0 then mm_trigger_notes_off(song, ii, ti, offs) end
   if #ons > 0 then
     local vel = math.max(0.01, math.min(1, mm.loudness))
-    if mm.strum then
+    if mm_strum_active() then
       -- Strum chords: rake the note-ons low->high a few ms apart. Cancel any rake still in
       -- flight first, and fit the spacing inside the beat that started this one, so stepping
       -- chords (Gravity Play, or fast mouse movement) can't leave half-played notes stuck.
@@ -675,7 +698,7 @@ local function mm_play_chord(notes)
     for v = 1, #playback_notes do if not mm.mute[v] then rl[#rl + 1] = playback_notes[v] end end
     mm_record_write(rl)
   end
-  if mm.staccato and not mm.strum then
+  if mm.staccato and not mm_strum_active() then
     -- (when strumming, each note is released by its own timer above, right after it sounds)
     local all = {}
     for v = 1, MM_MAX_VOICES do if mm.voice_note[v] then all[#all + 1] = mm.voice_note[v]; mm.voice_note[v] = nil end end
@@ -938,7 +961,7 @@ mm_record_write = function(notelist)
     for _, n in ipairs(notelist) do
       pcall(function() mm_stamp_note_append(pos.sequence, pos.line, n, true) end)
     end
-  elseif mm.treatment ~= 1 or mm.strum then
+  elseif mm.treatment ~= 1 or mm_strum_active() then
     -- Arpeggiate, or a strummed Chord: strum across note columns on the line with delays
     for _, n in ipairs(notelist) do
       pcall(function() mm_stamp_note_append(pos.sequence, pos.line, n, false) end)
@@ -2144,18 +2167,48 @@ local function mm_render_sustain(buf, shape)
   buf:finalize_sample_data_changes()
 end
 
--- bell waveform: ~1.3 s of repeated single cycles with an exponential decay baked in (non-looping fade)
+-- Struck sound: repeated single cycles with an exponential decay baked in, no
+-- loop. Length and decay come from the panel -- a short fast-decaying one is a
+-- plink, a long slow-decaying one is a gong, and the original bell sits between
+-- them. The frame count is rounded to a whole number of cycles so the waveform
+-- never ends mid-period.
 local function mm_render_bell(buf, shape)
-  local frames = 57344   -- ~1.3 s @ 44100, multiple of MM_PERIOD (224 cycles)
+  local ms = math.max(50, math.min(8000, mm.bell_ms or 1300))
+  local cycles = math.max(1, math.floor(44100 * ms / 1000 / MM_PERIOD + 0.5))
+  local frames = cycles * MM_PERIOD
+  local rate = math.max(0.1, math.min(30, mm.bell_decay or 4.5))
   buf:create_sample_data(44100, 16, 1, frames)
   buf:prepare_sample_data_changes()
+  -- A slow decay over a long length is still ringing when the sample runs out,
+  -- which clicks. Taper the last stretch to zero so any Length/Decay pair ends
+  -- silently -- a gong needs this, and it costs a plink nothing.
+  local taper = math.max(MM_PERIOD, math.floor(frames * 0.04))
+  local taper_from = frames - taper
   for i = 1, frames do
     local phase = ((i - 1) % MM_PERIOD) / MM_PERIOD
     local t = (i - 1) / frames
-    local decay = math.exp(-4.5 * t)          -- struck-bell amplitude envelope
+    local decay = math.exp(-rate * t)
+    if i > taper_from then
+      decay = decay * (1 - (i - taper_from) / taper)
+    end
     buf:set_sample_data(1, i, mm_wave_value(shape, phase) * 0.9 * decay)
   end
   buf:finalize_sample_data_changes()
+end
+
+-- The three named shapes on the panel. Values are (length in ms, decay rate).
+MM_STRIKE_PRESETS = {
+  { name = "Plink", ms = 350,  decay = 9.0 },
+  { name = "Bell",  ms = 1300, decay = 4.5 },
+  { name = "Gong",  ms = 3500, decay = 1.6 },
+}
+
+-- Which preset the current settings match, or nil when they have been nudged.
+function mm_strike_preset_index()
+  for i, p in ipairs(MM_STRIKE_PRESETS) do
+    if mm.bell_ms == p.ms and math.abs((mm.bell_decay or 0) - p.decay) < 0.05 then return i end
+  end
+  return nil
 end
 
 -- tune the single-cycle sample so played notes are in pitch (A-4 = 57 = 440 Hz in Renoise note values)
@@ -2293,6 +2346,18 @@ local function mm_set_waveform(shape, from_ui)
     -- In Arpeggiate mode, the sound key also writes the arpeggio into the pattern
     if mm.treatment == 2 then mm_stamp_arpeggio() end
   end
+  if mm_canvas then mm_canvas:update() end
+end
+
+-- Re-render the current sound after the strike shape changes, so you hear it
+-- straight away. Only meaningful in Bell mode, and never touches a foreign
+-- sample the user loaded themselves.
+function mm_restrike_current()
+  mm_sync_wave_ui()
+  if mm_has_foreign_sample() then return end
+  if not mm.bell then return end
+  mm_apply_waveform()
+  mm_retrigger()
   if mm_canvas then mm_canvas:update() end
 end
 
@@ -2439,7 +2504,9 @@ local function mm_controls_column(vbx)
           mm_update_panel()
         end },
       vbx:popup{ id = "mm_arp_popup", width = 96, items = MM_ARP_ITEMS, value = mm_arp_index(),
-        tooltip = "Arpeggiate direction: Up / Down / Up/Down / Down/Up / Scatter / Strum",
+        tooltip = "Arpeggiate direction: Up / Down / Up/Down / Down/Up / Scatter / Strum. " ..
+          "Strum also applies in the Chord treatment (same as the Strum checkbox below); the " ..
+          "other directions need Treatment = Arpeggiate.",
         notifier = function(i)
           if mm_ui_busy then return end
           mm.arp_mode = MM_ARP_ITEMS[i]
@@ -2497,7 +2564,7 @@ local function mm_controls_column(vbx)
       hint("ms"),
       vbx:checkbox{ id = "mm_strum_check", value = mm.strum,
         notifier = function(b) if mm_ui_busy then return end mm.strum = b; mm_save_prefs() end },
-      hint("Strum chords (rake instead of block)") },
+      hint("Strum chords (or set Arp Mode = Strum)") },
     vbx:row{ spacing = 4, lbl("Tuning"),
       vbx:popup{ id = "mm_tuning_popup", width = 250,   -- matches Treatment row: Treatment(150)+gap+Arp(96)
         items = (PakettiMicrotonalTuningNames and PakettiMicrotonalTuningNames()) or { "12-TET" },
@@ -2593,6 +2660,35 @@ local function mm_controls_column(vbx)
         notifier = function(i) if not mm_ui_busy then mm_set_bell(i == 2) end end },
       vbx:button{ text = "Create New", width = 66, tooltip = "Generate a fresh Pakettified Music Mouse instrument",
         notifier = pakettiMusicMouseGenerateInstrument } },
+    -- Shape of the struck sound. Only does anything in Bell mode; a Sustain
+    -- waveform is a single looping cycle with no decay to shape.
+    vbx:row{ spacing = 4, lbl("Strike", "The shape of the struck sound in Bell mode: how long it rings and how fast it fades. Sustain mode ignores this."),
+      vbx:switch{ id = "mm_strike_switch", width = 150,
+        items = { "Plink", "Bell", "Gong" }, value = mm_strike_preset_index() or 2,
+        notifier = function(i)
+          if mm_ui_busy then return end
+          local pr = MM_STRIKE_PRESETS[i]
+          mm.bell_ms, mm.bell_decay = pr.ms, pr.decay
+          mm_save_prefs()
+          mm_restrike_current()
+        end },
+      vbx:button{ text = "Bell mode", width = 66, tooltip = "Switch to Bell so you can hear the strike shape",
+        notifier = function() if not mm_ui_busy then mm_set_bell(true) end end } },
+    vbx:row{ spacing = 4, lbl("Length", "How long the struck sound rings, in milliseconds."),
+      vbx:valuebox{ id = "mm_bellms_box", width = 72, min = 50, max = 8000, value = mm.bell_ms,
+        tooltip = "50-8000 ms. Plink 350, Bell 1300, Gong 3500.",
+        notifier = function(v)
+          if mm_ui_busy then return end
+          mm.bell_ms = v; mm_save_prefs(); mm_restrike_current()
+        end },
+      lbl("Decay", "How fast it fades. Higher fades sooner, so a long Length with a low Decay is a gong."),
+      vbx:valuebox{ id = "mm_belldecay_box", width = 72, min = 1, max = 300, value = math.floor((mm.bell_decay or 4.5) * 10 + 0.5),
+        tooltip = "Tenths: 90 = 9.0 (plink), 45 = 4.5 (bell), 16 = 1.6 (gong).",
+        notifier = function(v)
+          if mm_ui_busy then return end
+          mm.bell_decay = v / 10; mm_save_prefs(); mm_restrike_current()
+        end },
+      vbx:text{ id = "mm_strike_hint", text = "" } },
     vbx:row{ spacing = 4, lbl("Preview", "When on, changing the Waveform dropdown re-strikes the held chord so you hear it. Off (default) = silent while you tweak the timbre."),
       vbx:checkbox{ id = "mm_previewwave_check", value = mm.preview_wave,
         notifier = function(b) if mm_ui_busy then return end mm.preview_wave = b; mm_save_prefs() end },
@@ -2665,6 +2761,21 @@ mm_update_panel = function()
   if v["mm_voices_switch"] then v["mm_voices_switch"].value = mm.num_voices - 3 end
   if v["mm_wave_popup"] then v["mm_wave_popup"].value = mm_wave_index_value() end
   if v["mm_mode_switch"] then v["mm_mode_switch"].value = mm.bell and 2 or 1 end
+  if v["mm_bellms_box"] then v["mm_bellms_box"].value = mm.bell_ms end
+  if v["mm_belldecay_box"] then
+    v["mm_belldecay_box"].value = math.floor((mm.bell_decay or 4.5) * 10 + 0.5)
+  end
+  if v["mm_strike_switch"] then
+    -- Nudged values match no preset; leave the switch where it was rather than
+    -- snapping it to something the sound is not.
+    local pi = mm_strike_preset_index()
+    if pi then v["mm_strike_switch"].value = pi end
+  end
+  if v["mm_strike_hint"] then
+    local pi = mm_strike_preset_index()
+    v["mm_strike_hint"].text = (not mm.bell) and "Sustain mode - no decay to shape"
+      or (pi and MM_STRIKE_PRESETS[pi].name or "Custom")
+  end
   mm_ui_busy = false
   mm_sync_recrow_ui()   -- keep the Row slider range/value in step with the current pattern
 end
@@ -3554,6 +3665,20 @@ function PakettiMusicMouseSetArpRate(rate)
 end
 
 end   -- Launchpad scope: its locals are released here (see the note above)
+
+-- Live state read-out. Everything above is file-local, so from the outside (PakettiMCP, a bug
+-- report, the status bar) there is no way to answer "which mode is Music Mouse actually in".
+-- This is that answer, in one line.
+function mm_state_summary()
+  return string.format(
+    "Treatment=%s  ArpMode=%s  ArpRate=1/%d  Strum=%s(chk=%s)  StrumMs=%d  Gravity=%s(%d seeds, every %d row)  " ..
+    "Sync=%s  Pattern=%s  Staccato=%s  Grouping=%s  Voices=%d  Frozen=%s  Dialog=%s",
+    TREATMENT_NAMES[mm.treatment] or "?", tostring(mm.arp_mode), mm.arp_rate_den or 16,
+    tostring(mm_strum_active()), tostring(mm.strum), mm.strum_ms or MM_STRUM_MS,
+    tostring(mm.gravity_play), #mm.seeds, math.max(1, mm.gravity_div),
+    tostring(mm.sync_bpm), tostring(mm.pattern_on), tostring(mm.staccato), tostring(mm.grouping),
+    mm.num_voices, tostring(mm.frozen), tostring(dialog ~= nil and dialog.visible))
+end
 
 --------------------------------------------------------------------------------
 -- Registration (define-before-register: all functions above; registrations last)

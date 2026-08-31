@@ -65,6 +65,24 @@ The Gravity Rate popup is now stated in pattern rows and offers every 1, 2, 4, 8
 - MIDI Mapping: `Paketti:Music Mouse Key Prev seed`, `Paketti:Music Mouse Key Next seed`, `Paketti:Music Mouse Key Octave +`, `Paketti:Music Mouse Key Octave -` (from the on-screen keymap)
 - Menu: `Main Menu:Tools:Paketti:Instruments:Music Mouse...`
 
+### 2026-08-31 - Feature: Music Mouse Strike Shape. Plink, Bell and Gong, plus Length and Decay on the panel.
+
+The struck sound in Bell mode was one fixed shape - 1.3 seconds with a fixed fade - baked into the code with no way to change it. Every bell in Music Mouse was the same bell.
+
+The panel now has a `Strike` row with three named shapes and two controls behind them:
+
+- **Plink** - 350 ms, fast fade. A short tick, gone almost as soon as it lands.
+- **Bell** - 1300 ms. The original sound, unchanged, and still the default.
+- **Gong** - 3500 ms, slow fade. Still ringing well past halfway.
+
+`Length` sets how long the sound rings, from 50 ms to 8 seconds. `Decay` sets how fast it fades, and reads in tenths so 90 is a plink, 45 a bell, 16 a gong. Move either one and the switch shows `Custom` instead of a preset name. Changes re-render and re-strike immediately so you hear them, and both settings are remembered.
+
+A long ring with a slow fade used to be a problem - the sound was still at full-ish level when the sample ran out, which clicks. Every strike now tapers to silence over its last stretch, so any Length and Decay pair you dial in ends cleanly.
+
+Sustain mode is unaffected: it is a single looping cycle with no decay to shape, and the row says so.
+
+- Keybinding: `b` still toggles Bell / Sustain
+
 ### 2026-08-31 - Fix: Music Mouse Waveforms Now Use Your Paketti Sample Settings. Switching waveform was resetting interpolation to None and turning oversampling off.
 
 Music Mouse builds a Pakettified instrument, but every time it rendered a waveform it wrote fresh sample data and then forced interpolation to None and oversampling off - throwing away the settings the instrument had just been given. Autofade was never applied at all. So pressing the waveform keys gave you a raw, un-Pakettified sample no matter what your preferences said.
