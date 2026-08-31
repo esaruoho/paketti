@@ -38,6 +38,12 @@ The Sample FX Chain counterpart had the same missing save and is fixed the same 
 - Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
 - MIDI Mapping: `Paketti:Toggle Auto-Open Sample FX Chain Devices`
 
+### 2026-08-31 - Fix: Music Mouse Strum Now Fits The Beat Instead Of Overrunning It. A strum spacing longer than the row left half the chord playing after the next chord had already been released.
+
+Music Mouse strums a chord by triggering its notes a few milliseconds apart. Nothing checked that the whole rake finished before the next chord arrived. At the default 28 ms it usually did; at a wider spacing it did not — 67 ms across a four-note chord takes 201 ms, and a row at 120 BPM lasts 125 ms. The last notes of the rake then fired after their voices had already been reassigned and released, so they hung, and the strum was not heard as a strum at all. Gravity Play made this constant rather than occasional, because it changes chord on a fixed row clock.
+
+The strum spacing is now narrowed automatically whenever the full rake would not fit inside the beat that started it, measured against the note rate for Arpeggiate, Line and Improvise and against the row (times the Gravity Rate) for Chord. Starting a new chord cancels any rake still in flight, and stopping the sound, freezing, or disconnecting the mouse cancels it too. Staccato now releases each strummed note just after that note sounds, rather than releasing the whole chord before most of it had been played. The Strum spacing control itself is unchanged — it is still the spacing you get whenever there is room for it.
+
 ### 2026-08-31 - Improvement: The Build Now Warns Before A File Runs Out Of Local Variables. Lua allows 200 per file and Music Mouse had 20 left, which fails as a dead tool load rather than a warning.
 
 Lua allows 200 local variables live at once inside any one function, and a .lua file is itself a function, so every top-level `local` in a Paketti module spends one of the 200. Crossing the line is not a warning: the file stops compiling entirely, which in Renoise means a brittle file and an aborted tool load. Music Mouse had 20 left. `python3 .spine/check.py` now reports the remaining headroom for every file in the repo and prints a warning under 25, so a module can be tidied on purpose instead of on the day one more helper tips it over. The probe asks the real compiler rather than estimating, works under both lua and luajit, and is advisory only — it never fails the build.

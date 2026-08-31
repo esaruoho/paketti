@@ -506,6 +506,21 @@ local MM_STRUM_MS = 28
 -- notes AFTER their voice slots were reassigned and their note-offs sent, leaving stuck notes.
 local mm_strum_pending = {}
 
+-- Drop any rake still in flight. Called before starting a new one, and by mm_all_notes_off.
+local function mm_strum_cancel()
+  for fn in pairs(mm_strum_pending) do
+    if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
+  end
+  mm_strum_pending = {}
+end
+
+-- Forward declarations: the bodies need mm_beat_ms / mm_arp_rate_ms / mm_is_rate_treatment, which
+-- are declared with the tempo timer ~450 lines below. Declaring the names HERE is what lets
+-- mm_play_chord and mm_strum_live call them — a function defined later in the file is invisible
+-- to code above it, and under Renoise's strict globals that read throws instead of returning nil.
+local mm_strum_budget_ms
+local mm_strum_spacing
+
 local function mm_inst_track()
   local song = renoise.song()
   return song.selected_instrument_index, song.selected_track_index
@@ -1093,21 +1108,12 @@ local function mm_arp_rate_lines(song)
   return lpb * (4 / math.max(1, mm.arp_rate_den or 16))
 end
 
--- Strum plumbing. These are globals so mm_play_chord / mm_strum_live (defined ~450 lines above)
--- can reach them; a global resolves at call time, a local would not exist there yet.
-
--- Drop any rake still in flight. Called before starting a new one, and by mm_all_notes_off.
-function mm_strum_cancel()
-  for fn in pairs(mm_strum_pending) do
-    if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
-  end
-  mm_strum_pending = {}
-end
+-- Strum plumbing, attached to the names forward-declared up by mm_strum_pending.
 
 -- How long the current chord is expected to last, in ms: the note clock for the rate treatments,
 -- the beat for Chord — times the Gravity Rate, because under Gravity Play the chord only changes
 -- every Nth beat and the rake may use all of that.
-function mm_strum_budget_ms()
+mm_strum_budget_ms = function()
   if mm_is_rate_treatment() then return mm_arp_rate_ms() end
   local beat = mm_beat_ms()
   if mm.gravity_play and #mm.seeds > 0 then beat = beat * math.max(1, mm.gravity_div) end
@@ -1118,7 +1124,7 @@ end
 -- overruns its beat fires its last notes after the next chord has already sent their note-offs,
 -- which leaves stuck notes and makes the strum inaudible as a strum. 67 ms x 3 gaps = 201 ms does
 -- not fit a 125 ms row, so this is the common case, not a corner one.
-function mm_strum_spacing(count)
+mm_strum_spacing = function(count)
   local sp = mm.strum_ms or MM_STRUM_MS
   if not count or count < 2 then return sp end
   local span = sp * (count - 1)
