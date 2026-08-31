@@ -59,6 +59,14 @@ The Gravity Rate popup is now stated in pattern rows and offers every 1, 2, 4, 8
 - MIDI Mapping: `Paketti:Music Mouse Key Prev seed`, `Paketti:Music Mouse Key Next seed`, `Paketti:Music Mouse Key Octave +`, `Paketti:Music Mouse Key Octave -` (from the on-screen keymap)
 - Menu: `Main Menu:Tools:Paketti:Instruments:Music Mouse...`
 
+### 2026-08-31 - Fix: Music Mouse Waveforms Now Use Your Paketti Sample Settings. Switching waveform was resetting interpolation to None and turning oversampling off.
+
+Music Mouse builds a Pakettified instrument, but every time it rendered a waveform it wrote fresh sample data and then forced interpolation to None and oversampling off - throwing away the settings the instrument had just been given. Autofade was never applied at all. So pressing the waveform keys gave you a raw, un-Pakettified sample no matter what your preferences said.
+
+It now applies your Paketti sample settings on every render: interpolation, oversampling, autofade, autoseek and new note action. If your loader is set to Sinc with oversampling and autofade on, that is what Music Mouse produces.
+
+Loop mode and oneshot are deliberately left alone, because Music Mouse owns them - a Bell is one-shot with looping off, a Sustain waveform is a single-cycle forward loop - and following the loader there would silence it.
+
 ### 2026-08-31 - Fix: TX16W Export Keeps Your Key Layout by Default. A deliberately mapped kit was being re-laid-out on export unless you noticed a checkbox.
 
 `Keep this instrument's key mapping` was off by default, so a kit you had carefully placed - a General MIDI drum layout, a multisample - was silently replaced with a sequential one-sample-per-key layout on the way to the sampler. Every drum moved.

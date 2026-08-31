@@ -495,6 +495,17 @@ end
 -- Sound engine (4 voice slots on the selected instrument)
 --------------------------------------------------------------------------------
 
+-- Live strum spacing (ms between successive notes). Also the basis for the delay-column
+-- values written when a strum/arpeggio is recorded into the pattern. Declared HERE, above
+-- mm_play_chord: it used to sit ~90 lines below its first use, so `mm.strum_ms or MM_STRUM_MS`
+-- was reading an undeclared global — dormant only because mm.strum_ms is never nil.
+local MM_STRUM_MS = 28
+
+-- Strum rakes are built from one-shot timers. Keep the pending ones so a new chord can cancel a
+-- rake still in flight: without this, a strum longer than the beat that started it fires its last
+-- notes AFTER their voice slots were reassigned and their note-offs sent, leaving stuck notes.
+local mm_strum_pending = {}
+
 local function mm_inst_track()
   local song = renoise.song()
   return song.selected_instrument_index, song.selected_track_index
@@ -558,6 +569,7 @@ end
 local MM_MAX_VOICES = 9
 
 local function mm_all_notes_off()
+  mm_strum_cancel()
   for v = 1, MM_MAX_VOICES do mm_note_off(v) end
   mm_release_held()
   if mm_phrase_arp_stop then mm_phrase_arp_stop(false) end
@@ -608,23 +620,33 @@ local function mm_play_chord(notes)
   if #offs > 0 then mm_trigger_notes_off(song, ii, ti, offs) end
   if #ons > 0 then
     local vel = math.max(0.01, math.min(1, mm.loudness))
-    if mm.strum and #ons > 1 then
-      -- Strum chords: rake the note-ons low->high a few ms apart (releases + voice tracking already
-      -- done above; only the audible strike is staggered). Spacing = the Strum spacing control.
+    if mm.strum then
+      -- Strum chords: rake the note-ons low->high a few ms apart. Cancel any rake still in
+      -- flight first, and fit the spacing inside the beat that started this one, so stepping
+      -- chords (Gravity Play, or fast mouse movement) can't leave half-played notes stuck.
+      mm_strum_cancel()
       local ords = {}
       for _, n in ipairs(ons) do ords[#ords + 1] = n end
       table.sort(ords)
-      local sp = mm.strum_ms or MM_STRUM_MS
+      local sp = mm_strum_spacing(#ords)
       for i, nt in ipairs(ords) do
         if i == 1 then
           pcall(function() song:trigger_instrument_note_on(ii, ti, nt, vel) end)
+          if mm.staccato then pcall(function() song:trigger_instrument_note_off(ii, ti, nt) end) end
         else
           local note = nt
           local fn
           fn = function()
             if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
-            if dialog and dialog.visible then pcall(function() renoise.song():trigger_instrument_note_on(ii, ti, note, vel) end) end
+            mm_strum_pending[fn] = nil
+            if dialog and dialog.visible then
+              pcall(function() renoise.song():trigger_instrument_note_on(ii, ti, note, vel) end)
+              -- staccato has to release each note after ITS OWN onset; the blanket sweep at the
+              -- end of this function runs long before these timers fire.
+              if mm.staccato then pcall(function() renoise.song():trigger_instrument_note_off(ii, ti, note) end) end
+            end
           end
+          mm_strum_pending[fn] = true
           renoise.tool():add_timer(fn, sp * (i - 1))
         end
       end
@@ -638,10 +660,13 @@ local function mm_play_chord(notes)
     for v = 1, #playback_notes do if not mm.mute[v] then rl[#rl + 1] = playback_notes[v] end end
     mm_record_write(rl)
   end
-  if mm.staccato then
+  if mm.staccato and not mm.strum then
+    -- (when strumming, each note is released by its own timer above, right after it sounds)
     local all = {}
     for v = 1, MM_MAX_VOICES do if mm.voice_note[v] then all[#all + 1] = mm.voice_note[v]; mm.voice_note[v] = nil end end
     if #all > 0 then mm_trigger_notes_off(song, ii, ti, all) end
+  elseif mm.staccato then
+    for v = 1, MM_MAX_VOICES do mm.voice_note[v] = nil end
   end
 end
 
@@ -675,10 +700,6 @@ local function mm_toggle_single_note()
   mm_all_notes_off()
   if not mm.frozen and not mm.keyjazz then mm_retrigger() end
 end
-
--- Live strum spacing (ms between successive notes). Also the basis for the delay-column
--- values written when a strum/arpeggio is recorded into the pattern.
-local MM_STRUM_MS = 28
 
 -- Delay-column step (00..FF units) between successive strummed notes on ONE line, derived from
 -- the current tempo. A pattern line lasts 60000/(BPM*LPB) ms and the delay column spans that
@@ -1072,6 +1093,40 @@ local function mm_arp_rate_lines(song)
   return lpb * (4 / math.max(1, mm.arp_rate_den or 16))
 end
 
+-- Strum plumbing. These are globals so mm_play_chord / mm_strum_live (defined ~450 lines above)
+-- can reach them; a global resolves at call time, a local would not exist there yet.
+
+-- Drop any rake still in flight. Called before starting a new one, and by mm_all_notes_off.
+function mm_strum_cancel()
+  for fn in pairs(mm_strum_pending) do
+    if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
+  end
+  mm_strum_pending = {}
+end
+
+-- How long the current chord is expected to last, in ms: the note clock for the rate treatments,
+-- the beat for Chord — times the Gravity Rate, because under Gravity Play the chord only changes
+-- every Nth beat and the rake may use all of that.
+function mm_strum_budget_ms()
+  if mm_is_rate_treatment() then return mm_arp_rate_ms() end
+  local beat = mm_beat_ms()
+  if mm.gravity_play and #mm.seeds > 0 then beat = beat * math.max(1, mm.gravity_div) end
+  return beat
+end
+
+-- The Strum spacing control, narrowed if the full rake would not finish in time. A rake that
+-- overruns its beat fires its last notes after the next chord has already sent their note-offs,
+-- which leaves stuck notes and makes the strum inaudible as a strum. 67 ms x 3 gaps = 201 ms does
+-- not fit a 125 ms row, so this is the common case, not a corner one.
+function mm_strum_spacing(count)
+  local sp = mm.strum_ms or MM_STRUM_MS
+  if not count or count < 2 then return sp end
+  local span = sp * (count - 1)
+  local budget = mm_strum_budget_ms() * 0.8
+  if span > budget then sp = math.max(2, budget / (count - 1)) end
+  return sp
+end
+
 local function mm_is_subline_rate(song)
   return mm_is_rate_treatment() and mm_arp_rate_lines(song) < 1
 end
@@ -1374,6 +1429,8 @@ end
 local function mm_strum_live(notes)
   local order = mm_arp_order(notes)
   if #order == 0 then return end
+  mm_strum_cancel()
+  local sp = mm_strum_spacing(#order)
   for i, v in ipairs(order) do
     if i == 1 then
       mm_play_one(v, notes[v])
@@ -1382,9 +1439,11 @@ local function mm_strum_live(notes)
       local fn
       fn = function()
         if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
+        mm_strum_pending[fn] = nil
         if dialog and dialog.visible then mm_play_one(vi, nt) end
       end
-      renoise.tool():add_timer(fn, (mm.strum_ms or MM_STRUM_MS) * (i - 1))
+      mm_strum_pending[fn] = true
+      renoise.tool():add_timer(fn, sp * (i - 1))
     end
   end
 end
@@ -2095,8 +2154,20 @@ end
 
 -- tune the single-cycle sample so played notes are in pitch (A-4 = 57 = 440 Hz in Renoise note values)
 local function mm_tune_sample(smp)
-  smp.interpolation_mode = renoise.Sample.INTERPOLATE_NONE
-  smp.oversample_enabled = false
+  -- Music Mouse renders fresh sample data, which wipes the settings the
+  -- Pakettified instrument arrived with, so they get put back here. Loop mode
+  -- and oneshot are deliberately NOT taken from the preferences: Music Mouse
+  -- owns those (a Bell is one-shot with looping off, a Sustain waveform is a
+  -- single-cycle forward loop) and following the loader would silence it.
+  if preferences then
+    pcall(function()
+      smp.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      smp.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      smp.autofade = preferences.pakettiLoaderAutofade.value
+      smp.autoseek = preferences.pakettiLoaderAutoseek.value
+      smp.new_note_action = preferences.pakettiLoaderNNA.value
+    end)
+  end
   -- Tune with Paketti's PCM Writer single-cycle convention (sample.transpose + fine_tune, base_note
   -- left at default), so Music Mouse instruments match the PCM Writer and can be edited with it.
   -- The wave PERIOD is 256 whether Sustain (256-frame loop) or Bell (many 256-frame cycles).
