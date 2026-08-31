@@ -1325,33 +1325,6 @@ function PakettiHyperEditSetAllStepsToValue(row, value)
 end
 
 -- Change row step count and update UI
-function PakettiHyperEditChangeRowStepCount(row, new_count)
-  row_steps[row] = new_count
-  
-  -- Update the UI valuebox
-  if dialog_vb and dialog_vb.views["steps_" .. row] then
-    dialog_vb.views["steps_" .. row].value = new_count
-  end
-  
-  -- Initialize new steps if needed
-  if not step_data[row] then
-    step_data[row] = {}
-    step_active[row] = {}
-  end
-  
-  -- Clear existing steps beyond new count
-  for step = new_count + 1, MAX_STEPS do
-    step_active[row][step] = false
-    step_data[row][step] = 0.0
-  end
-  
-  -- Redraw canvas with new step count
-  if row_canvases[row] then
-    row_canvases[row]:update()
-  end
-  
-  renoise.app():show_status("HyperEdit Row " .. row .. ": Step count set to " .. new_count)
-end
 
 -- Fill row with pattern every N steps (like PakettiSliceEffectStepSequencer)
 function PakettiHyperEditFillRowEveryN(row, interval)

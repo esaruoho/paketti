@@ -70,6 +70,50 @@ files: [PakettiMusicMouse.lua, Paketti0G01_Loader.lua]
   by: codex
   from: agent
 
+- [x] Let Music Mouse hide the pattern drag bars {#musicmouse-hide-pattern}
+  by: codex
+  from: agent
+
+- [x] Stop Music Mouse pattern playback from stuttering on sound keys and mouse moves {#musicmouse-pattern-stutter}
+  by: codex
+  from: agent
+
+- [x] Keep Music Mouse transpose keys and visuals in sync {#musicmouse-transpose-visuals}
+  by: codex
+  from: agent
+
+- [x] Stop transpose keys from sounding while Music Mouse is muted {#musicmouse-muted-transpose}
+  by: codex
+  from: agent
+
+- [x] Make Music Mouse Plink speak with pitch {#musicmouse-plink-pitch}
+  by: codex
+  from: agent
+
+- [x] Restore right Shift recording and clarify transpose interval {#musicmouse-rightshift-interval}
+  by: codex
+  from: agent
+
+- [x] Keep Music Mouse strike shape changes silent {#musicmouse-silent-strike-shape}
+  by: codex
+  from: agent
+
+## Export SoundFont samples as WAVs {#sf2-wav-export}
+tech: PakettiSF2Loader.lua sample header extraction, Renoise SampleBuffer WAV save
+files: [PakettiSF2Loader.lua]
+
+- [x] Batch-export every SF2 sample in a folder as named WAV files {#sf2-folder-wav-export}
+  by: codex
+  from: agent
+
+## Keep command labels readable {#command-labels}
+tech: shortcut hint display names, autocomplete command labels
+files: [main.lua, PakettiAutocomplete.lua, PakettiShortcutHints.lua]
+
+- [~] Hide internal prefixes from visible menu and autocomplete labels {#hide-internal-command-prefixes}
+  by: codex
+  from: agent
+
 ## decisions
 
 - Music Mouse F1-F4 treatment shortcuts should only react to bare function keys; modified function keys belong to Renoise/macOS/global shortcuts unless explicitly mapped by Music Mouse.
@@ -89,6 +133,15 @@ files: [PakettiMusicMouse.lua, Paketti0G01_Loader.lua]
 - Phrase Strum should encode `strum_ms` as phrase delay-column offsets while keeping the phrase loop interval musical and rate-controlled.
 - Changing Strum spacing must immediately rewrite an active Phrase Arp phrase.
 - Freeze mode must block phrase re-strikes, and arpeggio direction must offer ascending/descending ping-pong cycles.
+- The Pattern drag-bar editor should have its own persisted hide flag, independent from Hide Details, so users can keep the controls visible while hiding only the contour editor.
+- Music Mouse should treat a selected non-Music-Mouse sample as protected: sound keys warn instead of regenerating or retriggering it, and active contour playback should adopt mouse-position changes on the clock instead of adding immediate off-grid strikes.
+- Music Mouse transpose shortcuts must update both the audible notes and the visual readout/canvas; on ISO/Finnish layouts Shift-< should be treated as the upward transpose gesture even if Renoise reports the key name as `<`.
+- Music Mouse transpose shortcuts should update the grid state silently when Music Mouse is frozen, keyjazzing, sound-disabled, or mouse-muted; they must not re-trigger the cursor chord from a muted mode.
+- Music Mouse Plink should keep its fast percussive decay character but use a longer generated strike, so it reads as a short pitched system sound instead of a pitchless thud.
+- Music Mouse Record-to-Pattern stays on right Shift; standalone left Shift must not trigger playback and must leave Shift combos like Shift-< usable. The standalone trigger-this-grid-entry gesture moves from left Shift to standalone Option/Alt.
+- Music Mouse `interval` means transpose step size for z/x/<, not a live pattern-playback interval; the UI should name it accordingly.
+- Music Mouse Strike controls are sound-design/render controls, not performance gestures: Plink/Bell/Gong, Length, Decay, and Bell/Sustain should render/update the instrument silently; i/o/p and standalone Option/Alt trigger the selected grid entry.
+- SF2 folder WAV export should operate on SF2 sample headers directly, saving one WAV per extracted mono sample or stereo pair as `SF2name-SF2Number-SampleName.wav`, without creating permanent Renoise instruments.
 
 ## Read TX16W floppies back into Renoise {#tx16w-import}
 tech: FAT12 reader over 720K .img, .O01 voice parser, rebuild instrument with key mapping
@@ -200,3 +253,44 @@ needs: [tx16w-voice-params]
   copy only; the sampler holds the decoded audio.
 - The 8-byte trailer on every Wave/Voic/Perf reference is a disk name. Writing
   the real volume label is what makes the sampler prompt for a named floppy.
+
+## Give every shared helper exactly one definition {#one-definition-per-helper}
+tech: dedupe global `function` names across the tree; shared helpers hoisted into main.lua; static gate in .spine/check.py
+files: [main.lua, .spine/check.py]
+
+- [x] Put the master-track, sample-editor and pattern-matrix helpers in one place {#tracker-helpers-centralized}
+  by: codex
+  from: agent
+
+- [x] Make the dialog close key work in every Paketti dialog again {#eq30-keyhandler-clobber}
+  by: claude
+  from: agent
+
+- [x] Stop Reset Slice Counter from erroring {#reset-slice-counter-prefs}
+  by: claude
+  from: agent
+
+- [x] Make the Slice Step row shift buttons actually change the pattern {#slicestep-shift-writes}
+  by: claude
+  from: agent
+
+- [x] Give the remaining sixteen doubled-up helpers a single definition each {#dedupe-remaining-globals}
+  by: claude
+  from: agent
+
+- [x] Fail the build when a duplicate global function name is added {#duplicate-global-gate}
+  by: claude
+  from: agent
+
+## decisions
+
+- A helper used by more than one file lives in main.lua's shared-helper block, defined
+  once, above every timed_require. A helper used by one file stays in that file.
+- Duplicate global function names are a build failure, not a style issue: Lua has no
+  duplicate-definition error, so the last file to load silently wins and every earlier
+  body becomes unreachable. Two shipped bugs came from exactly this.
+- Deliberate duplicates (API-version fallback stubs, forward declarations, vendored
+  third-party code, unloaded dev scripts) go in `_DUP_ALLOWED` in .spine/check.py with a
+  written reason, never silenced any other way.
+- A shared ViewBuilder helper takes `vb` as an argument. Reading a module-level `vb`
+  global means whichever file loaded last donates its ViewBuilder to everyone else.

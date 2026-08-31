@@ -2929,32 +2929,6 @@ function PakettiSliceStepFillRowRandomly(row)
 end
 
 -- Shift individual row left/right (like PakettiGater)
-function PakettiSliceStepShiftRow(row, direction)
-  if not row_checkboxes[row] then return end
-  
-  local shifted = {}
-  if direction == "left" then
-    for step = 1, MAX_STEPS do
-      local source_step = (step % MAX_STEPS) + 1
-      shifted[step] = row_checkboxes[row][source_step].value
-    end
-  elseif direction == "right" then
-    for step = 1, MAX_STEPS do
-      local source_step = ((step - 2) % MAX_STEPS) + 1
-      shifted[step] = row_checkboxes[row][source_step].value
-    end
-  end
-  
-  for step = 1, MAX_STEPS do
-    if row_checkboxes[row][step] then
-      row_checkboxes[row][step].value = shifted[step]
-    end
-  end
-  
-  -- Only update this specific row, not entire pattern
-  PakettiSliceStepWriteRowToPattern(row)
-  renoise.app():show_status("Row " .. row .. " shifted " .. direction)
-end
 
 function PakettiSliceStepSetRowMode(row, mode)
   print("DEBUG: PakettiSliceStepSetRowMode - Setting row " .. row .. " to mode " .. mode)
@@ -3286,6 +3260,10 @@ function PakettiSliceStepShiftRow(row, direction)
       row_checkboxes[row][step].value = shifted[step]
     end
   end
+
+  -- Commit the shift. Without this the checkboxes move but the pattern does not.
+  PakettiSliceStepWriteRowToPattern(row)
+  renoise.app():show_status("Row " .. row .. " shifted " .. direction)
 end
 
 -- Helper function to get current sample for transpose

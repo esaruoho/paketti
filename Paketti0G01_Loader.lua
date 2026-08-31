@@ -1264,9 +1264,6 @@ function pakettiGetXRNTDeviceChainFiles()
 end
 
 -- Function to create horizontal rule
-function horizontal_rule()
-    return vb:horizontal_aligner{mode="justify",width="100%", vb:space{width=2}, vb:row{height=2,width="30%", style="panel"}, vb:space{width=2}}
-end
 
 -- Function to create vertical space
 function vertical_space(height) return vb:row{height = height} end
@@ -1492,7 +1489,7 @@ function pakettiPreferences()
   end
 
   local dialog_content = vb:column{
-      horizontal_rule(),
+      horizontal_rule(vb),
       vb:row{ -- this is where the row structure starts.
         vb:column{ -- first column.
           width=column1_width,style="group",margin=5,
@@ -4379,9 +4376,6 @@ end
 function update_loadPaleGreenTheme_preferences() renoise.app():load_theme("Themes/Lackluster - Pale Green Renoise Theme.xrnc") end
 
 -- Function to check if sample editor is visible
-function isSampleEditorVisible()
-  return renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-end
 
 -- ============================================================================
 -- HELPER FUNCTIONS FOR CONDITIONAL REGISTRATION

@@ -773,46 +773,6 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Current Sequence Selection On/Off",invoke=tknaToggleCurrentSequenceSelection}
 
 -- Helper function to select and loop a specific section
-function select_and_loop_section(section_number)
-  local song=renoise.song()
-  local sequencer = song.sequencer
-  local sequence_count = #sequencer.pattern_sequence
-
-  local current_section_start = nil
-  local current_section_index = 0
-
-  -- Find the start index of the specific section
-  for i = 1, sequence_count do
-    if sequencer:sequence_is_start_of_section(i) then
-      current_section_index = current_section_index + 1
-      if current_section_index == section_number then
-        current_section_start = i
-        break
-      end
-    end
-  end
-
-  -- If the specified section is not found, exit the function
-  if not current_section_start then
-    renoise.app():show_status("No such Section exists, doing nothing.")
-    return
-  end
-
-  -- Find the end index of the current section
-  local current_section_end = sequence_count
-  for i = current_section_start + 1, sequence_count do
-    if sequencer:sequence_is_start_of_section(i) then
-      current_section_end = i - 1
-      break
-    end
-  end
-
-  -- Set the loop to the current section
-  song.transport.loop_sequence_range = {current_section_start, current_section_end}
-  
-  -- Notify the user
-  renoise.app():show_status("Loop set to section " .. section_number .. " from sequence " .. current_section_start .. " to " .. current_section_end)
-end
 
 -- Helper function to find the current section index
 function find_current_section_index()

@@ -4,15 +4,6 @@ local dialog = nil
 local lfo_follow_timer = nil
 local lfo_follow_active = false
 
-function validate_sample()
-    local song=renoise.song()
-    local sample = song.selected_sample
-    if not sample or not sample.sample_buffer.has_sample_data then
-        renoise.app():show_status("No sample selected or sample buffer empty")
-        return false
-    end
-    return song, sample
-end
 
 function set_sample_selection_by_hex_offset(hex_value)
     local song=renoise.song()

@@ -2054,52 +2054,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Finet
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Finetune (+10)",invoke=function() selectedInstrumentFinetune(10) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Finetune (0)",invoke=function() renoise.song().selected_sample.fine_tune=0 end}
 -- Function to assign a modulation set to the selected sample based on a given index
-function selectedSampleMod(number)
-  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
-
-  -- Check if there are any modulation sets
-  if not instrument or #instrument.sample_modulation_sets == 0 then
-    print("No modulation sets available or no instrument selected.")
-    return
-  end
-
-  -- Get the number of available modulation sets
-  local num_modulation_sets = #instrument.sample_modulation_sets
-
-  -- Check if the provided index is within the valid range
-  -- Adjusting to include 0 in the check, as it represents no modulation set assigned
-  if number < 0 or number > num_modulation_sets then
-    return
-  end
-
-  -- Assign the modulation set index to the selected sample
-  -- This assignment now confidently allows setting the index to 0
-  instrument.samples[renoise.song().selected_sample_index].modulation_set_index = number
-end
 
 -- Function to assign an FX chain to the selected sample based on a given index
-function selectedSampleFX(number)
-  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
-
-  -- Check if there are any FX chains
-  if not instrument or #instrument.sample_device_chains == 0 then
-    print("No FX chains available or no instrument selected.")
-    return
-  end
-
-  -- Get the number of available FX chains
-  local num_fx_sets = #instrument.sample_device_chains
-
-  -- Check if the provided index is within the valid range
-  -- Adjusting to include 0 in the check, as it represents no FX chain assigned
-  if number < 0 or number > num_fx_sets then
-    return
-  end
-
-  -- Assign the FX chain index to the selected sample
-  -- This assignment confidently allows setting the index to 0
-  instrument.samples[renoise.song().selected_sample_index].device_chain_index = number
-end
 
 -- Function to select the next modulation set
 function selectNextModGroup()
@@ -6140,6 +6096,9 @@ function sample_one_down()
 
 -- "Random" keybinding: Selects a random sample and mutes others
 function sample_random()
+  -- Seed from the clock so repeated triggers do not replay the same sequence
+  math.randomseed(os.time())
+
   local song=renoise.song()
   local ing = song.selected_instrument
 

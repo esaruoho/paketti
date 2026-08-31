@@ -509,11 +509,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Rewind Playback by 4 steps",invoke=function() upbyn(4) end}
 ---------
-function midi_imm()
- if renoise.app().window.active_middle_frame==renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR 
- then renoise.app().window.active_middle_frame=1 
- else renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR end
-end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern Editor <-> Midi Editor Switcher",invoke=function() midi_imm() end}
 -----------

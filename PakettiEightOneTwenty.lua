@@ -446,26 +446,6 @@ function PakettiEightOneTwentyUpdateBeatsyncUiFor(i)
 end
 
 -- "Random" keybinding: Selects a random sample and mutes others
-function sample_random()
-  -- Initialize random seed for true randomness
-  math.randomseed(os.time())
-  
-  local song=renoise.song()
-  local ing = song.selected_instrument
-
-  -- Edge case: no instrument or no samples
-  if not ing or #ing.samples == 0 then
-    renoise.app():show_status("No instrument or samples available.")
-    return
-  end
-
-  -- Pick a random sample index
-  local random_index = math.random(1, #ing.samples)
-  song.selected_sample_index = random_index
-
-  -- Set velocity ranges accordingly
-  pakettiSampleVelocityRangeChoke(random_index)
-end
 
 -- Function to update track name with step count
 local function updateTrackNameWithSteps(track, steps)

@@ -100,6 +100,48 @@ def _strip_lua(text):
     return out
 
 
+# ── static scan: the same global function name defined twice ──────────────────
+# Lua has no duplicate-definition error: the file that loads LAST silently wins and
+# every earlier body becomes dead code. That is how PakettiEQ30's my_keyhandler_func
+# came to replace main.lua's for the whole tool, and how the broken
+# preferences.sliceCounter copy of resetSliceCounter came to be the one that ran.
+# Shared helpers belong in main.lua's helper block, defined exactly once.
+#
+# ALLOWED holds the definitions that are duplicated on purpose. Add to it only with
+# a reason, never to silence a real collision.
+_DUP_ALLOWED = {
+    # API-version fallback stubs, defined in main.lua's `else` branch when the real
+    # module is not loaded at all. Only ever one of the two exists at runtime.
+    "PCMWriterIsCreatingSamples",
+    "PCMWriterSetCreatingSamples",
+    # Forward declaration so pool functions defined above the real body can name it.
+    "PakettiPhraseVoiceUpdateUI",
+    # analyze_ot_comparison.lua is a standalone dev script, never loaded by main.lua.
+    "rb",
+    # Vendored third-party Sononymph cLib; the cDebug pair are if/else branches.
+    "TRACE",
+}
+
+
+def _duplicate_globals(root):
+    """Global `function name(...)` defined in more than one place."""
+    seen = {}
+    paths = [p for p in glob.glob(os.path.join(root, '**', '*.lua'), recursive=True)
+             if '/.git/' not in p and '/.spine/' not in p]
+    for p in sorted(paths):
+        rel = os.path.relpath(p, root)
+        try:
+            lines = open(p, encoding='utf-8', errors='replace').read().split('\n')
+        except OSError:
+            continue
+        for i, raw in enumerate(lines, 1):
+            m = re.match(r'^\s*function\s+(' + _IDENT + r')\s*\(', raw)
+            if m:
+                seen.setdefault(m.group(1), []).append(f"{rel}:{i}")
+    return sorted((n, locs) for n, locs in seen.items()
+                  if len(locs) > 1 and n not in _DUP_ALLOWED)
+
+
 def _undeclared_calls(root):
     paths = [p for p in glob.glob(os.path.join(root, '**', '*.lua'), recursive=True)
              if '/.git/' not in p and '/.spine/' not in p]
@@ -197,6 +239,7 @@ def main():
     tight = _local_headroom()
     undecl = _undeclared_calls(ROOT)
     malformed_kb = _malformed_keybindings(d.get("names", {}).get("keybinding", []))
+    dup_globals = _duplicate_globals(ROOT)
 
     print(f"Paketti registration check — {d['unique']['keybinding']:,} keybindings · "
           f"{d['unique']['midi_mapping']:,} MIDI · {d['unique']['menu_entry']:,} menus · "
@@ -211,6 +254,16 @@ def main():
             print(f"   • {fn}:{ln}  '{name}' is read before it is declared")
             print(f"       {text.strip()}")
             print(f"       fix: initialise without reading it, e.g. `{name} = {{}}`")
+    if dup_globals:
+        fail = True
+        print(f"\n❌ {len(dup_globals)} GLOBAL FUNCTION NAME(S) DEFINED MORE THAN ONCE — "
+              f"the last file to load silently wins and the other bodies become dead code:")
+        for name, locs in dup_globals:
+            print(f"   • {name}()  —  " + ", ".join(locs))
+        print("       fix: keep one definition. A helper used by more than one file goes in")
+        print("       main.lua's shared-helper block near the top; a same-file repeat is dead")
+        print("       code and should be deleted. Deliberate duplicates go in _DUP_ALLOWED")
+        print("       in .spine/check.py, with a reason.")
     if dup_mi:
         fail = True
         print(f"\n❌ {len(dup_mi)} DUPLICATE MIDI MAPPING(S) — Renoise will refuse to load:")

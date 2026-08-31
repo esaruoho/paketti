@@ -81,40 +81,7 @@ end
 
 -----------------------------------------------------------------------------------------------------------------------------------
 
-function instrument_is_empty(instrument)
- local s=renoise.song()
- local inst = s.instruments[instrument]
- local has_sample_data = false
- for sample in ipairs(inst.samples) do
-  has_sample_data = has_sample_data or inst.samples[sample].sample_buffer.has_sample_data
- end
- if inst.plugin_properties.plugin_loaded or inst.midi_output_properties.device_name ~= "" or has_sample_data then return false else return true end
-end
 
-function search_empty_instrument()
-  local proc = renoise.song()
-  for empty_instrument = 1, #proc.instruments do
-    local samples = false
-                
-      for i = 1,#proc.instruments[empty_instrument].samples do
-        local temp_buffer = proc.instruments[empty_instrument].samples[i].sample_buffer
-          if temp_buffer.has_sample_data then samples = true break
-          end
-      end
-  local plugin = proc.instruments[empty_instrument].plugin_properties.plugin_loaded
-  local midi_device = proc.instruments[empty_instrument].midi_output_properties.device_name
-    if ((samples == false) and (plugin == false) and
-        (midi_device == nil or midi_device == "")) then
-    return empty_instrument
-    end
-    end
-  if not canInsertInstrument() then
-    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
-    return nil
-  end
-   proc:insert_instrument_at(#proc.instruments+1)
-  return #proc.instruments
-end
 ------------------------------------------------------------------------------------------------------------
 -- Helper function to add Instr. Automation device after loading a plugin
 -- Optional device_name parameter to rename the device (defaults to instrument name)
@@ -1815,15 +1782,6 @@ function determine_device_type(path)
 end
 
 -- Utility function to concatenate tables
-function table_concat(...)
-  local result = {}
-  for _, list in ipairs({...}) do
-    for _, v in ipairs(list) do
-      table.insert(result, v)
-    end
-  end
-  return result
-end
 
 -- Function to display selected device details
 function display_selected_device_details(index, available_device_infos)

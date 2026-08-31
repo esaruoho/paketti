@@ -648,15 +648,6 @@ local function clear_plugin_selection()
   end
 end
 
-function horizontal_rule()
-    return vb:horizontal_aligner{
-      mode="justify", 
-      width="100%", 
-      vb:space{width=10}, 
-      vb:row{height=2, style="panel",width="30%"}, 
-      vb:space{width=2}
-    }
-end
 
 
 local function save_preferences()
@@ -1160,7 +1151,7 @@ function pakettiMIDIPopulator()
       vb:button{text="Save...", width=70, notifier = on_save_preset_button},
       vb:button{text="Remove", width=70, notifier = on_remove_preset_button}
     }},
-    horizontal_rule(),
+    horizontal_rule(vb),
     vb:horizontal_aligner{mode = "right", vb:row{
       vb:text{text="MIDI Input Device:"},
       vb:popup{
@@ -1177,14 +1168,14 @@ function pakettiMIDIPopulator()
         notifier = on_midi_output_switch_changed
       }
     }},
-    horizontal_rule(),
+    horizontal_rule(vb),
     vb:row{
       vb:button{text="Randomize AU Plugin Selection",width=200, notifier = randomize_au_plugins},
       vb:button{text="Randomize VST Plugin Selection",width=200, notifier = randomize_vst_plugins},
       vb:button{text="Randomize VST3 Plugin Selection",width=200, notifier = randomize_vst3_plugins},
       vb:button{text="Clear Plugin Selection",width=200, notifier = clear_plugin_selection}
     },
-    horizontal_rule(),
+    horizontal_rule(vb),
     header_row,
     vb:column(rows),
     vb:horizontal_aligner{mode = "right", vb:row{
@@ -1227,7 +1218,7 @@ function pakettiMIDIPopulator()
       vb:text{text="Open External Editor for each Plugin:"}, 
       external_editor_switch
     }},
-    horizontal_rule(),
+    horizontal_rule(vb),
     vb:horizontal_aligner{mode="right", vb:row{
       vb:button{
         text="OK", 

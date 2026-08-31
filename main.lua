@@ -49,6 +49,82 @@ function showhidepatternmatrix()
   window.pattern_matrix_is_visible = not window.pattern_matrix_is_visible
 end
 
+-- Returns true when the Sample Editor is the active middle frame.
+-- Single definition for the whole tool (was duplicated in Paketti0G01_Loader
+-- and PakettiSamples).
+function isSampleEditorVisible()
+  return renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+-- Guard used by every sample-editing operation: returns song, sample when a
+-- selected sample with actual audio exists, or false when it does not.
+-- Callers use `local song, sample = validate_sample() if not song then return end`.
+-- Single definition for the whole tool (was duplicated in PakettiHexSliceLoop
+-- and PakettiSlice).
+function validate_sample()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample buffer empty")
+    return false
+  end
+  return song, sample
+end
+
+-- True when instrument at `instrument_index` holds no samples, no plugin and no
+-- MIDI output device. Single definition for the whole tool (was duplicated in
+-- PakettiLoaders and PakettiRecorder).
+function instrument_is_empty(instrument_index)
+  local inst = renoise.song().instruments[instrument_index]
+  local has_sample_data = false
+  for sample in ipairs(inst.samples) do
+    has_sample_data = has_sample_data or inst.samples[sample].sample_buffer.has_sample_data
+  end
+  if inst.plugin_properties.plugin_loaded or inst.midi_output_properties.device_name ~= "" or has_sample_data then
+    return false
+  else
+    return true
+  end
+end
+
+-- Returns the index of the first empty instrument, creating one at the end of
+-- the list when every existing instrument is in use. Returns nil when the 255
+-- instrument ceiling has been reached. Single definition for the whole tool
+-- (was duplicated in PakettiLoaders and PakettiRecorder).
+function search_empty_instrument()
+  local proc = renoise.song()
+  for empty_instrument = 1, #proc.instruments do
+    local samples = false
+    for i = 1, #proc.instruments[empty_instrument].samples do
+      local temp_buffer = proc.instruments[empty_instrument].samples[i].sample_buffer
+      if temp_buffer.has_sample_data then samples = true break end
+    end
+    local plugin = proc.instruments[empty_instrument].plugin_properties.plugin_loaded
+    local midi_device = proc.instruments[empty_instrument].midi_output_properties.device_name
+    if ((samples == false) and (plugin == false) and
+        (midi_device == nil or midi_device == "")) then
+      return empty_instrument
+    end
+  end
+  if not canInsertInstrument() then
+    renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+    return nil
+  end
+  proc:insert_instrument_at(#proc.instruments+1)
+  return #proc.instruments
+end
+
+-- Thin horizontal divider for ViewBuilder dialogs. Takes the caller's
+-- ViewBuilder explicitly instead of reading a module-level `vb` global.
+-- Single definition for the whole tool (was duplicated in Paketti0G01_Loader
+-- and PakettiMidiPopulator, each reading its own `vb`).
+function horizontal_rule(vb)
+  return vb:horizontal_aligner{mode="justify", width="100%",
+    vb:space{width=2},
+    vb:row{height=2, width="30%", style="panel"},
+    vb:space{width=2}}
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------------
 -- Helper function to create a vertical separator in ViewBuilder dialogs
 -- Must be passed a ViewBuilder instance and returns the text view element

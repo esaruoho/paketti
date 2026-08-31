@@ -2313,11 +2313,6 @@ function selectPaddedSliceFromCurrentSlice()
 end
 
 -- Function to reset the slice counter
-function resetSliceCounter()
-  preferences.sliceCounter.value = 1
-  renoise.app():show_status("Slice counter reset to 1. Will start from the first slice.")
-  selectNextSliceInOriginalSample()
-end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Padded Slice from Current Slice",invoke=selectPaddedSliceFromCurrentSlice}
 -------------
@@ -5813,9 +5808,6 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show Selection Info",i
 -- Timer for updating the sample details
 local sample_details_timer = nil
 
-function isSampleEditorVisible()
-  return renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-end
 
 function startSampleDetailsTimer()
   -- First check if we already have this timer
@@ -7009,15 +7001,6 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Unmark / Clear Selection",invoke=pakettiSampleEditorSelectionClear}
 
-function oneshotcontinue()
-  if renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].oneshot then
-    renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].oneshot = false
-    renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].new_note_action = 1
-  else
-    renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].oneshot = true
-    renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].new_note_action = 3
-  end
-end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set to One-Shot + NNA Continue", invoke=function() oneshotcontinue() end}
 

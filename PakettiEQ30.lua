@@ -1335,7 +1335,7 @@ function handle_eq_mouse(ev)
 end
 
 -- Key handler function (using user's preferred pattern)
-function my_keyhandler_func(dialog, key)
+function PakettiEQ30KeyHandler(dialog, key)
   if key.modifiers == "command" and key.name == "h" then
     if eq_dialog then
       eq_dialog:close()
@@ -1759,7 +1759,7 @@ function create_eq_dialog()
 
   }
   
-  eq_dialog = renoise.app():show_custom_dialog("Paketti EQ30 with Automation Controls",dialog_content,my_keyhandler_func)
+  eq_dialog = renoise.app():show_custom_dialog("Paketti EQ30 with Automation Controls",dialog_content,PakettiEQ30KeyHandler)
   
   eq_canvas = vb.views.eq_canvas
   -- Ensure Renoise grabs keyboard focus for the middle frame after opening the dialog

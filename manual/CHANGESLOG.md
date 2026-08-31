@@ -8,6 +8,28 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-31 - Fix: Dialog Close Key Works In Every Paketti Dialog Again
+
+Loading the 30-Band EQ replaced the tool-wide dialog key handler with an EQ-only one that recognised nothing but Cmd+H. From that moment on, the close key you set in Paketti Preferences (Tab by default) stopped closing any of the ~50 Paketti dialogs that use the shared handler. The EQ's handler is now its own function and no longer overwrites the shared one.
+
+### 2026-08-31 - Fix: Reset Slice Counter No Longer Errors
+
+Two versions of this action existed and the one that actually ran read a preference that does not exist, so the shortcut threw instead of resetting the counter.
+
+- Keyboard shortcut: `Global:Paketti:Reset Slice Counter`
+
+### 2026-08-31 - Fix: Slice Step Sequencer Row Shift Buttons Write To The Pattern
+
+The per-row `<` and `>` buttons moved the checkboxes on screen but never committed the shift, so the pattern was unchanged. Shifting a single row now writes that row to the pattern, the same way Shift All Rows already did.
+
+### 2026-08-31 - Fix: Preferences Dialog Builds Its Own Divider Lines
+
+Two modules each defined a `horizontal_rule` divider bound to their own ViewBuilder, and the later one won. The Preferences dialog was therefore drawing dividers made by the MIDI Populator's ViewBuilder. There is now one divider helper and it uses the ViewBuilder of whichever dialog calls it.
+
+### 2026-08-31 - Improvement: Twenty Duplicate Global Functions Reduced To One Definition Each
+
+Beyond the fixes above, 16 more global functions were defined two or three times across the codebase, with the last file to load silently winning and the other copies sitting as dead code. Each now has a single definition. `validate_sample`, `instrument_is_empty`, `search_empty_instrument`, `isSampleEditorVisible` and `horizontal_rule` join the shared helper block in `main.lua`; the rest keep the definition that was already winning, with any behaviour that lived only in the discarded copy folded in — random sample selection reseeds its generator again, and applying phrase settings reports to the status bar again. A new check in `.spine/check.py` fails the build if a duplicate global function name is introduced.
+
 ### 2026-08-31 - Improvement: Shared Master Track, Sample Editor And Pattern Matrix Helpers Have One Owner
 
 `get_master_track_index` had three identical global implementations, and `focus_sample_editor` had two. They now have one canonical definition in `main.lua`, loaded before every feature module. `showhidepatternmatrix` also had two competing global versions; the shared version preserves the behavior users actually received from the later-loaded MIDI module: it toggles only Pattern Matrix visibility without changing the active editor.

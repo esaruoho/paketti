@@ -48,6 +48,8 @@ function pakettiPhraseSettingsApplyPhraseSettings()
   phrase.lpb = preferences.pakettiPhraseInitDialog.LPB.value
   phrase.number_of_lines = preferences.pakettiPhraseInitDialog.Length.value
   phrase.looping = preferences.pakettiPhraseInitDialog.PhraseLooping.value
+
+  renoise.app():show_status("Phrase settings applied")
 end
 
 -- Function to create a new phrase and apply settings

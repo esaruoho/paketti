@@ -997,15 +997,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Di
 -- BPM-Based Slicing Functions
 -- These functions slice samples based on a specified BPM, independent of song BPM
 
-function validate_sample()
-    local song = renoise.song()
-    local sample = song.selected_sample
-    if not sample or not sample.sample_buffer.has_sample_data then
-        renoise.app():show_status("No sample selected or sample buffer empty")
-        return false
-    end
-    return song, sample
-end
 
 -- Core BPM-based slicing function
 function pakettiBPMBasedSlice(sample_bpm, beats_per_slice)
