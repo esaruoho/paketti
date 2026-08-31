@@ -211,28 +211,47 @@ Evidence for each, beyond bytes 0–3 below:
   play out untouched. Marked *likely* rather than proven because no single
   factory value contradicts an alternative offset by one.
 
-**Not found: the Mode page** (Normal / One-shot / Glide / Release, and poly
-on/off). No byte separates DRUMKIT's 20 one-shot groups from the 15 sustained
-groups. In practice the one-shot AEG above achieves the same thing, which is
-what TR_808 does.
+### The Mode page: two of four fields found
 
-Confirmed across all 36 groups in the factory voices (the eight on the Typhoon
-2000 system disk plus `TR_808.O01`): every one satisfies
-`low <= high <= 127` on both pairs. The decisive check is that exactly one voice
-has a velocity range other than 0–127 — `NOISEWAV.O01`, two groups at 90–127 —
-and the Typhoon release notes describe the NEW_AGE performance as one where
-"NOISEWAV only plays at higher key velocities."
+Manual section 4.6.8 gives each group a `>Poly` flag (on/off), a `>Mode` of
+Normal / Oneshot / Glide / Release, and a `>Glide` time in milliseconds.
 
-**This is why velocity layers are groups.** A split carries only a first key; the
-velocity range lives on the group. A velocity-layered instrument is therefore N
-groups with overlapping key ranges and stacked velocity ranges.
+**byte 46 = polyphony, 0 = poly on, 1 = poly off.** Reads 0 on all 35 groups of
+the eight factory voices *and* the third-party `TR_808.O01`, and 1 on all four
+groups of `UNISON.O01` — the one voice the release notes describe as "a
+monophonic analog type of lead sound". Nothing else in the corpus is
+monophonic, and nothing else has this bit set.
 
-Bytes 4–6 look like pitch (byte 5 varies as a small signed value across the four
-detuned groups of `UNISON.O01`, which is exactly what a unison patch does, and
-byte 4 carries large signed values on the tuned `DRUMKIT` groups), and byte 9 is
-0x60 = 96 on every group surveyed, consistent with a volume default. None of
-that is confirmed, so the exporter leaves bytes 4–63 at the values taken from a
-known-good factory voice.
+**byte 47 = glide time**, location strong, unit unknown. Reads 110 on UNISON's
+groups and 0 on all 35 others. UNISON is the only voice with portamento (its
+release notes say XCTL2 controls the portamento time). The manual's field runs
+0–9999 ms, so 110 is clearly scaled rather than milliseconds — possibly ~40 ms
+per step, which would put UNISON near 4.4 s. **Paketti writes 0 here and does
+not offer the control**, because guessing the scale would produce a glide of
+unpredictable length.
+
+**The Mode enum itself is still not located.** What was tried:
+
+1. **Set difference on drums.** For every byte 4–63, compare the values across
+   `DRUMKIT.O01`'s 20 groups against the 15 sustained groups elsewhere. No byte
+   separates them.
+2. **Candidate elimination by range.** A four-value enum shows 0–3 or 1–4.
+   Every byte with a small enough value set is better explained by something
+   else, or splits the drum groups against each other.
+3. **Byte 30** looked promising — `ANA_STRS` 0, `UNISON` 2, which fits 0-based
+   Normal and Glide exactly. But every other voice reads 255, which is not a
+   valid mode, so it is something else.
+
+**The likely reason it cannot be found: no voice in the corpus uses Oneshot.**
+The Typhoon demo drum kit is built from sine and noise with heavy envelope and
+modulation work rather than one-shot playback, and `TR_808.O01` gets its
+behaviour from an envelope that never releases (`0,0,127,127,127,127`). If the
+corpus only contains Normal and Glide, a drums-versus-sustained comparison was
+never going to reveal the field.
+
+**What would settle it.** One voice saved twice on a real TX16W — once Mode =
+Normal, once Mode = Oneshot with a known glide time — identical otherwise.
+Diffing those two files locates the enum and the glide scale immediately.
 
 ## Group parameters — what the pages mean (from the manual)
 

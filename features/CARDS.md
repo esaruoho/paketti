@@ -201,7 +201,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** Context: Global
 
-**Behaviour (23 scenarios):**
+**Behaviour (28 scenarios):**
 
 - Open Music Mouse from the menu — `@built`
 - Move the mouse to play a quantized 4-voice chord — `@built`
@@ -219,7 +219,12 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Pattern Applies = Melody sequences one voice over a sustained chord (no flood) — `@built`
 - Recording auto-widens the track to the voice count — `@built`
 - space is owned by Music Mouse and never bleeds to the pattern editor — `@built`
-- Gravity Play beat divisor — `@built`
+- Gravity Play rate is stated in pattern rows — `@built`
+- Gravity Play moves the position; the Treatment plays it — `@built`
+- Changing a dropdown never retriggers Gravity Play — `@built`
+- Gravity Play keeps one tempo whether or not Renoise is playing — `@built`
+- Gravity Play owns the sounding position — `@built`
+- The gravitation seeds are playable from the PC keyboard — `@built`
 - Arpeggiate has Up / Down / Scatter / Strum — `@built`
 - i / o / p punch saved favorite waveforms; å = current; shift-i round-robin — `@built`
 - Tuning dropdown and < > transpose — `@built`
@@ -227,7 +232,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Pattern contour up to 64 steps with a length switch — `@built`
 - Keyboard Map is clickable and MIDI-mappable — `@built`
 
-**Grade:** @built ×23
+**Grade:** @built ×28
 
 
 <a id="parameter-editor-mixer-and-config"></a>

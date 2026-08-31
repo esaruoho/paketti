@@ -1920,6 +1920,93 @@ function PakettiTyphoonParseVoice(data)
   return voice
 end
 
+-- Parses a .P01 performance. Returns
+--   { stamp, id, entries = { { channel, transpose, volume, name, id, disk } },
+--     programs = { { program, name, id, disk } } }
+-- channel is nil when the entry answers any channel (stored as 0xFF).
+function PakettiTyphoonParsePerformance(data)
+  local perf = { entries = {}, programs = {} }
+
+  local function ref(body)
+    if #body < 12 then return nil end
+    return {
+      name = body:sub(1, 8):gsub("[%z%s]+$", ""),
+      id = body:sub(9, 12),
+      disk = (#body >= 20) and body:sub(13, 20):gsub("[%z%s\255]+$", "") or nil,
+    }
+  end
+
+  -- Entr and PChg bodies are bare chunk streams, like Grop.
+  local function inner(body)
+    local out, p = {}, 1
+    while p + 8 <= #body do
+      local cid = body:sub(p, p + 3)
+      local sz = 0
+      for i = p + 4, p + 7 do sz = sz * 256 + body:byte(i) end
+      if sz < 0 or p + 8 + sz - 1 > #body then break end
+      out[cid] = body:sub(p + 8, p + 8 + sz - 1)
+      p = p + 8 + sz + (sz % 2)
+    end
+    return out
+  end
+
+  local ok = iff_walk(data, "TYPP", function(id, body)
+    if id == "VInf" and #body >= 16 then
+      perf.stamp, perf.id = body:sub(1, 12), body:sub(13, 16)
+    elseif id == "Entr" then
+      local c = inner(body)
+      local v = c["Voic"] and ref(c["Voic"])
+      if v then
+        local parm = c["Parm"] or ""
+        local ch = parm:byte(1)
+        v.channel = (ch and ch < 16) and ch or nil
+        v.transpose = parm:byte(2) or 0
+        if v.transpose > 127 then v.transpose = v.transpose - 256 end
+        v.volume = (#parm >= 4) and (parm:byte(3) * 256 + parm:byte(4)) or 96
+        perf.entries[#perf.entries + 1] = v
+      end
+    elseif id == "PChg" then
+      local c = inner(body)
+      local v = c["Voic"] and ref(c["Voic"])
+      if v then
+        v.program = (c["Parm"] and c["Parm"]:byte(1)) or 0
+        perf.programs[#perf.programs + 1] = v
+      end
+    end
+  end)
+  if not ok then error("not a Typhoon performance file (no FORM/TYPP header)") end
+  return perf
+end
+
+-- Parses a .X01 setup: a flat list of everything the machine had in memory.
+function PakettiTyphoonParseSetup(data)
+  local setup = { perfs = {}, voices = {}, waves = {} }
+  local function ref(body)
+    if #body < 12 then return nil end
+    return {
+      name = body:sub(1, 8):gsub("[%z%s]+$", ""),
+      id = body:sub(9, 12),
+      disk = (#body >= 20) and body:sub(13, 20):gsub("[%z%s\255]+$", "") or nil,
+    }
+  end
+  local ok = iff_walk(data, "TYPS", function(id, body)
+    if id == "VInf" and #body >= 16 then
+      setup.stamp, setup.id = body:sub(1, 12), body:sub(13, 16)
+    elseif id == "Parm" then
+      -- The setup's own name sits inside the globals block.
+      setup.name = body:sub(18, 25):gsub("[%z%s]+$", "")
+    elseif id == "Perf" then
+      local r = ref(body) ; if r then setup.perfs[#setup.perfs + 1] = r end
+    elseif id == "Voic" then
+      local r = ref(body) ; if r then setup.voices[#setup.voices + 1] = r end
+    elseif id == "Wave" then
+      local r = ref(body) ; if r then setup.waves[#setup.waves + 1] = r end
+    end
+  end)
+  if not ok then error("not a Typhoon setup file (no FORM/TYPS header)") end
+  return setup
+end
+
 --------------------------------------------------------------------------------
 -- Importing: disk images and voices become Renoise instruments
 --------------------------------------------------------------------------------
@@ -1952,6 +2039,12 @@ local function is_voice_name(name)
 end
 local function is_aiff_name(name)
   return name:upper():match("%.A%d%d$") ~= nil
+end
+local function is_perf_name(name)
+  return name:upper():match("%.P%d%d$") ~= nil
+end
+local function is_setup_name(name)
+  return name:upper():match("%.X%d%d$") ~= nil
 end
 
 -- Decodes every wave in the file list once, keyed both by Typhoon wave id and
@@ -2062,7 +2155,7 @@ local function typhoon_import_process(sources, opts)
         files[#files + 1] = { name = base_of(src), data = data }
         -- A loose voice needs its waves; take them from the same folder.
         local dir = src:match("^(.*)[/\\][^/\\]*$")
-        if dir and is_voice_name(src) then
+        if dir and (is_voice_name(src) or is_perf_name(src) or is_setup_name(src)) then
           for _, n in ipairs(os.filenames(dir, {"*.C0*", "*.C1*", "*.C2*",
               "*.C3*", "*.C4*", "*.C5*", "*.C6*", "*.C7*", "*.C8*", "*.C9*"})) do
             local f = io.open(dir .. package.config:sub(1, 1) .. n, "rb")
@@ -2091,12 +2184,42 @@ local function typhoon_import_process(sources, opts)
       end
     end
 
+    -- Performances and setups carry the arrangement: which voice sits on which
+    -- MIDI channel, and what the machine had loaded. They reference voices by
+    -- name and id rather than containing them, so they are read for the layout
+    -- and reported, and the voices themselves still become the instruments.
+    local perfs, setups = {}, {}
+    for _, f in ipairs(files) do
+      if is_perf_name(f.name) then
+        local pok, pf = pcall(PakettiTyphoonParsePerformance, f.data)
+        if pok then perfs[#perfs + 1] = { name = strip_ext(f.name), perf = pf }
+        else failed[#failed + 1] = f.name .. " (" .. tostring(pf) .. ")" end
+      elseif is_setup_name(f.name) then
+        local sok, st = pcall(PakettiTyphoonParseSetup, f.data)
+        if sok then setups[#setups + 1] = { name = strip_ext(f.name), setup = st }
+        else failed[#failed + 1] = f.name .. " (" .. tostring(st) .. ")" end
+      end
+    end
+
+    -- A voice's MIDI channel, taken from the first performance that places it.
+    local channel_of = {}
+    for _, pw in ipairs(perfs) do
+      for _, e in ipairs(pw.perf.entries) do
+        local key = (e.name or ""):upper()
+        if e.channel and not channel_of[key] then channel_of[key] = e.channel end
+      end
+    end
+
     local made, used, total_placed, all_missing = 0, {}, 0, {}
     for _, v in ipairs(voices) do
       progress("Building " .. v.name .. "...")
       coroutine.yield()
+      -- Carry the MIDI channel into the instrument name when a performance
+      -- said where this voice belongs, so the arrangement is visible in Renoise.
+      local ch = channel_of[(v.name or ""):upper()]
+      local label = ch and string.format("%s (MIDI %d)", v.name, ch + 1) or v.name
       local _, placed, missing = build_instrument_from_voice(
-        v.voice, v.name, by_id, by_name, progress)
+        v.voice, label, by_id, by_name, progress)
       made = made + 1
       total_placed = total_placed + placed
       for _, m in ipairs(missing) do all_missing[#all_missing + 1] = m end
@@ -2141,10 +2264,29 @@ local function typhoon_import_process(sources, opts)
     local aiffs = 0
     for _, f in ipairs(files) do if is_aiff_name(f.name) then aiffs = aiffs + 1 end end
 
+    -- Print the arrangement, which is the whole reason to read a performance.
+    for _, pw in ipairs(perfs) do
+      print(string.format("PakettiTyphoon: performance %s - %d entries, %d program changes",
+        pw.name, #pw.perf.entries, #pw.perf.programs))
+      for _, e in ipairs(pw.perf.entries) do
+        print(string.format("    MIDI %-3s %-9s volume %d%s",
+          e.channel and tostring(e.channel + 1) or "any", e.name or "?", e.volume or 96,
+          (e.transpose ~= 0) and string.format(", transpose %+d", e.transpose) or ""))
+      end
+      for _, pc in ipairs(pw.perf.programs) do
+        print(string.format("    program %-3d -> %s", pc.program, pc.name or "?"))
+      end
+    end
+    for _, sw in ipairs(setups) do
+      print(string.format("PakettiTyphoon: setup %s - %d performance(s), %d voice(s), %d wave(s)",
+        sw.name, #sw.setup.perfs, #sw.setup.voices, #sw.setup.waves))
+    end
+
     local msg = string.format(
-      "Paketti TX16W: %d instrument(s) from %d wave(s)%s%s",
+      "Paketti TX16W: %d instrument(s) from %d wave(s)%s%s%s",
       made, #order,
       (#voices > 0) and string.format(", %d voice(s), %d key zone(s)", #voices, total_placed) or "",
+      (#perfs > 0) and string.format(", %d performance(s) - MIDI channels are in the instrument names, full layout in the console", #perfs) or "",
       (label and label ~= "") and (", disk '" .. label .. "'") or "")
     if #all_missing > 0 then
       msg = msg .. string.format(" - %d wave(s) referenced but not on the disk", #all_missing)
@@ -2206,8 +2348,11 @@ function PakettiTyphoonImportFolder()
   local dir = renoise.app():prompt_for_path("Choose a folder of TX16W files")
   if not dir or dir == "" then return end
   local sep = package.config:sub(1, 1)
-  local names = os.filenames(dir, {"*.O0*", "*.O1*", "*.O2*", "*.O3*", "*.O4*",
-    "*.O5*", "*.O6*", "*.O7*", "*.O8*", "*.O9*"})
+  local pats = {}
+  for _, letter in ipairs({"O", "P", "X"}) do
+    for d = 0, 9 do pats[#pats + 1] = string.format("*.%s%d*", letter, d) end
+  end
+  local names = os.filenames(dir, pats)
   local sources = {}
   for _, n in ipairs(names) do sources[#sources + 1] = dir .. sep .. n end
   if #sources == 0 then
@@ -2295,8 +2440,9 @@ end
 local typhoon_extensions = {"img", "IMG", "ima", "IMA"}
 for n = 1, 99 do
   local nn = string.format("%02d", n)
-  typhoon_extensions[#typhoon_extensions + 1] = "o" .. nn
-  typhoon_extensions[#typhoon_extensions + 1] = "O" .. nn
+  for _, letter in ipairs({"o", "O", "p", "P", "x", "X"}) do
+    typhoon_extensions[#typhoon_extensions + 1] = letter .. nn
+  end
 end
 
 for _, ext in ipairs(typhoon_extensions) do
