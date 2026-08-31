@@ -8,6 +8,17 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-31 - Fix: Loading A Missing Or Broken Plugin No Longer Throws A Lua Error Dialog. You get a plain status message instead of a stack traceback.
+
+Pressing a Load-device shortcut for a plugin that isn't installed - or one that is installed but crashes while starting up - made Renoise raise `std::logic_error: 'failed to instantiate the device ...'` straight out of `insert_device_at`, which surfaced as a Paketti error dialog with a Lua stack traceback. Reported for "Load OhmForce OhmBoyz" on a machine without OhmBoyz.
+
+Every device insert done by Paketti's Load Device and Load VST/AU shortcuts, menu entries and MIDI mappings is now protected. Nothing is added to the track or Sample FX chain, and you get one of two readable status messages:
+
+- "Paketti: Can't load <device> - that plugin isn't installed, or Renoise hasn't scanned it yet. Rescan in Renoise Preferences -> Plug/Misc." - when Renoise doesn't know the plugin at all.
+- "Paketti: <device> failed to load - the plugin errored while starting up, so nothing was added." - when the plugin is installed but fails to initialize.
+
+The device path is written to the scripting terminal in both cases so a missing plugin can still be identified exactly. Devices that load fine are unaffected, including the hidden native devices that Renoise doesn't list.
+
 ### 2026-08-31 - Fix: "Automatically Open Selected Track Device Editors" Stays Off When You Turn It Off. Toggling it off now writes and saves the preference, so it no longer switches itself back on every time the tool reloads.
 
 Turning the feature off from the Options menu, the Mixer or Pattern Matrix context menus, the keyboard shortcut or the MIDI mapping only flipped an in-memory flag - it never touched `Always Open Track DSPs` in the Paketti Preferences and never saved preferences.xml. On the next tool reload Paketti read the untouched preference, found it still on, and forced the feature back on with the checkmark showing in the Options menu. There was no way to make "off" stick short of hand-editing preferences.xml.

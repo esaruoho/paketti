@@ -401,7 +401,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
       end
       -- When loading at beginning, don't modify checkline - use the calculated position
 
-      chain:insert_device_at(effect, checkline)
+      if PakettiInsertDeviceAtSafely(chain, effect, checkline) == nil then return end
       sample_devices = chain.devices
 
       if sample_devices[checkline] then
@@ -555,7 +555,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
     end
     -- When loading at beginning, don't modify checkline - use the calculated position
 
-    s.selected_track:insert_device_at(effect, checkline)
+    if PakettiInsertDeviceAtSafely(s.selected_track, effect, checkline) == nil then return end
     s.selected_device_index = checkline
     sdevices = s.selected_track.devices
 
@@ -833,6 +833,63 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise (Hidden) S
 
 
 ------------------------------------------------------------------------------------------------------
+-- Turn a device path into something a human can read in a status message.
+-- "Audio/Effects/AU/aumf:OByZ:OmFo" is meaningless on its own, so ask the host
+-- what it calls that device first, and only fall back to the raw path.
+function PakettiDeviceDisplayNameForPath(target, device_path)
+  if target ~= nil then
+    local ok, infos = pcall(function() return target.available_device_infos end)
+    if ok and infos ~= nil then
+      for i = 1, #infos do
+        if infos[i].path == device_path then
+          return infos[i].short_name ~= nil and infos[i].short_name ~= "" and infos[i].short_name or infos[i].name
+        end
+      end
+    end
+  end
+  -- Native/VST paths end in a readable name; AU paths end in four-character codes.
+  local tail = tostring(device_path):match("([^/]+)$") or tostring(device_path)
+  if tail:match("^%w%w%w%w:%w%w%w%w:%w%w%w%w$") then return tostring(device_path) end
+  return tail
+end
+
+-- Is this device path listed by the current Renoise install? Only used to word
+-- the failure message: hidden native devices instantiate fine without being
+-- listed, so this is never allowed to veto an insert on its own.
+function PakettiIsDeviceListed(target, device_path)
+  if target == nil then return false end
+  local ok, list = pcall(function() return target.available_devices end)
+  if not ok or list == nil then return false end
+  for i = 1, #list do
+    if list[i] == device_path then return true end
+  end
+  return false
+end
+
+-- Insert a device without letting a missing or broken plugin throw a Lua error
+-- dialog with a stack traceback at the user. Returns the inserted device, or
+-- nil plus a message. Renoise raises
+--   std::logic_error("failed to instantiate the device '...'")
+-- from insert_device_at() both when the plugin isn't installed and when it is
+-- installed but errors while initializing; neither deserves a traceback.
+-- The insert is always attempted first, so hidden/unlisted-but-working devices
+-- keep loading exactly as before.
+function PakettiInsertDeviceAtSafely(target, device_path, index)
+  local ok, err = pcall(function() target:insert_device_at(device_path, index) end)
+  if ok then return target.devices[index] end
+
+  local pretty = PakettiDeviceDisplayNameForPath(target, device_path)
+  local msg
+  if PakettiIsDeviceListed(target, device_path) then
+    msg = "Paketti: " .. pretty .. " failed to load - the plugin errored while starting up, so nothing was added."
+  else
+    msg = "Paketti: Can't load " .. pretty .. " - that plugin isn't installed, or Renoise hasn't scanned it yet. Rescan in Renoise Preferences -> Plug/Misc."
+  end
+  renoise.app():show_status(msg)
+  print(msg .. " (path: " .. tostring(device_path) .. ") " .. tostring(err))
+  return nil, msg
+end
+
 -- Paketti-specific VST/AU EFX loading. Specific parameters set, such as:
 -- Pro-Q always boots up with Pre-Post visualization on
 -- TAL Reverb 4 Plugin opens with massive-ish Reverb
@@ -960,8 +1017,8 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
       end
       -- When loading at beginning, don't modify checkline - use the calculated position
 
-      chain:insert_device_at(vstname, checkline)
-      local inserted_device = chain.devices[checkline]
+      local inserted_device = PakettiInsertDeviceAtSafely(chain, vstname, checkline)
+      if inserted_device == nil then return end
 
       if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
         return
@@ -1133,8 +1190,8 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
     -- When loading at beginning, don't modify checkline - use the calculated position
 
     -- Insert device into track
-    s.selected_track:insert_device_at(vstname, checkline)
-    local inserted_device = s.selected_track.devices[checkline]
+    local inserted_device = PakettiInsertDeviceAtSafely(s.selected_track, vstname, checkline)
+    if inserted_device == nil then return end
 
     if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
       return
