@@ -492,13 +492,53 @@ Typhoon reads uncompressed AIFF straight off a disk. Never exercised. Probably
 trivial, but it would be a useful fallback if DWVW ever misbehaved on real
 hardware.
 
-### Q7 — the `.F01` / `.S01` / `.U01` / `.V01` Yamaha OS files
+### Q7 — the Yamaha OS `.F01` / `.S01` / `.U01` / `.V01` files *(partly decoded)*
 
-Every Yamaha-format disk carries ten of each alongside its waves. These are the
-stock OS equivalents of filter, setup, performance and voice. **Not looked at
-at all.** Decoding them would let a pre-Typhoon disk import with its key
-mapping instead of as loose samples — the same gap `.O01` reading closed on the
-Typhoon side.
+Every Yamaha-format disk carries exactly one of each, at fixed sizes: `.F01`
+and `.S01` are 1536 bytes, `.U01` 5120, `.V01` 15360. All four begin with the
+same `LM8953` magic as the waves and filter tables; `.S01`, `.U01` and `.V01`
+follow it with the ASCII version string `"0200"`.
+
+**What is solid.**
+
+`.S01` is the **wave directory**. 16-byte records: an 8-character wave name,
+then 8 bytes holding a 3-byte memory address and a 4-byte length. The length is
+**frames + 64** — verified exactly against all five waves of the ceramic flute
+disk (58326/58262, 34875/34811, 67137/67073, 31751/31687, 22405/22341). The
+addresses descend as waves are allocated from the top of memory, at roughly two
+bytes per sample. There is **no key mapping here**.
+
+`.U01` is the **performance bank**, with 20-character names
+("Ceramic Flute WX", "Breath XFade", "Ceramic Suspense").
+
+`.V01` holds two banks. The **voice bank** starts at offset 138 with 32 records
+of 146 bytes: a 12-character name at +12, then four-byte entries from +24 of
+the form `[timbre index, bottom key, top key, 0]`, terminated by
+`00 FF FF 00`. These key ranges are certainly real — they tile the keyboard
+without overlapping (46–76, 77–85, 86–97, 98–104, 105–109, 110–126 on the
+violin disk). After the voice bank comes a **timbre bank** whose records carry
+the referenced wave's name in plain ASCII.
+
+`.F01` is the **filter bank** — its bytes are full of 0x63, 0x32 and 0x1E
+(99, 50, 30), which are filter parameter values in the manual's 0–99 range.
+
+**What is not solid, and why this is not implemented.**
+
+The timbre record size does not hold up: measuring the stride between wave
+names gives 56 bytes on the ceramic flute disk and 53 on the violin disk, and
+at a fixed +36 offset the violin names decode truncated. So either the records
+are variable length or the bank does not start where assumed. Consequently the
+**timbre index base is also unresolved** — neither 0- nor 1-based produces a
+musically sensible order on the flute disk, which is itself a sign the record
+model is still wrong rather than a sign about the base.
+
+Until the timbre record is pinned down, importing these would attach samples to
+the wrong keys, which is worse than importing them as loose samples. Paketti
+reads the `.W##` waves from these disks and ignores the other four files.
+
+*Settles it:* work out the timbre record layout, most cheaply by finding the
+bank's true start offset (search for the first wave name and walk backwards to
+a record boundary that gives a consistent stride across several disks).
 
 ### Q8 — does any of this work on hardware?
 
