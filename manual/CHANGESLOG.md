@@ -38,6 +38,22 @@ The Sample FX Chain counterpart had the same missing save and is fixed the same 
 - Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
 - MIDI Mapping: `Paketti:Toggle Auto-Open Sample FX Chain Devices`
 
+### 2026-08-31 - Fix: A Gravitation Node Now Performs The Whole Gesture, Not One Note Of It. Pressing a node in Arpeggiate plays the arpeggio; in Chord it strikes or rakes the chord.
+
+Music Mouse arpeggiates continuously while the window is open, so stepping a gravitation node with the cursor keys only moved the harmony that the running arpeggio happened to be reading. An earlier attempt to make the step audible fired a single extra note, which landed on top of the arpeggio already playing rather than replacing it.
+
+A node is a trigger, and it now performs the current treatment's whole gesture for that chord: the full arpeggio run in the chosen direction, the complete rake in Strum, the ascending run in Line, the four-voice entry in Improvise, and a struck or raked chord in Chord. The free-running clock stands aside for the length of the burst instead of playing through the middle of it, and pressing again cancels a burst still in flight, so holding the key retriggers rather than piling voices up. Spacing is the Arp/Line Rate, or the Strum spacing when raking. Automatic Gravity Play is unchanged: it still moves the harmony under the continuously running clock.
+
+Measured with one cursor-right press per treatment, four voices: Up gives four notes, Down four, Up/Down six, Strum four, Line four, Improvise four, Chord with Strum four. Previously every one of them gave one.
+
+### 2026-08-31 - Fix: Switching Treatment From The Keyboard No Longer Leaves A Phrase Playing. Going from Line to Improvise could leave two phrases sounding at once.
+
+There were four ways to change the Treatment — the dropdown, cmd-1 to cmd-4, F1 to F4, and MIDI — and only the dropdown shut down the phrase-arpeggio prototype on the way out. Leaving Line or Arpeggiate from the keyboard left the previous phrase held and playing underneath the new treatment. All four paths now go through one place that stops the phrase, clears any stale keymap mode, resets the sequence and cancels a gesture still in flight.
+
+### 2026-08-31 - Fix: Stamping A Scatter Arpeggio Could Throw. A helper was defined below the code that used it.
+
+The pseudo-random helper behind Scatter was declared about 390 lines below the arpeggio stamper that calls it. Under Renoise's strict globals that reads a name that does not exist yet and throws, aborting whatever invoked it. The helper has been moved above its callers. `python3 .spine/check.py` now reports this whole class across the repo — a call to something declared later in the same file, or never declared anywhere — because neither the Lua compiler nor the load harness catches it.
+
 ### 2026-08-31 - Fix: Stepping Music Mouse Gravitation Seeds Now Plays In Every Treatment. Arpeggiate, Line and Improvise did nothing audible when the seeds were stepped from the keyboard.
 
 Stepping a gravitation seed with the cursor keys moved the harmony but, in the Arpeggiate, Line and Improvise treatments, produced no sound at the moment of the press and rewound the sequence to its first voice. The next tick of the clock therefore always played the same lowest note, so holding the cursor key walked through the seeds while repeating one note. Only the Chord treatment sounded.

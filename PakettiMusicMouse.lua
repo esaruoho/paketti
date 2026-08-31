@@ -156,6 +156,7 @@ local mm = {
   seq_i = 0,                  -- arp/line/improvise voice index
   notes_played = 0,           -- lifetime note-on counter (diagnostics; see mm_state_summary)
   prefs_loaded = false,       -- guard: never SAVE settings we have not LOADED yet (see mm_save_prefs)
+  burst_until = 0,            -- ms deadline of a triggered gesture; the free clock waits for it
   sync_line_accum = 0,        -- line counter for synced arpeggio rates slower than one row
   random_seed = 12345,        -- deterministic pseudo-random for improvise
   timer_running = false,
@@ -167,6 +168,14 @@ local mm = {
   phrase_arp_trigger_track = nil,
   phrase_arp_prev_mode = nil,
 }
+
+-- deterministic pseudo-random 0..1 (avoid math.random for reproducibility per the workflow rules).
+-- Declared HERE, above every caller: it used to sit ~390 lines BELOW mm_stamp_arpeggio, so
+-- stamping a Scatter arpeggio read an undeclared global and threw under Renoise's strict globals.
+local function mm_rand()
+  mm.random_seed = (mm.random_seed * 1103515245 + 12345) % 2147483648
+  return mm.random_seed / 2147483648
+end
 
 -- persist performance settings (tempo + loudness) across close/reopen and tool reloads
 local function mm_load_prefs()
@@ -535,6 +544,7 @@ local function mm_strum_cancel()
     if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
   end
   mm_strum_pending = {}
+  mm.burst_until = 0
 end
 
 -- Is the current chord supposed to be raked? TWO controls in the panel offer Strum and they sit
@@ -680,6 +690,7 @@ local function mm_play_chord(notes)
       for i, nt in ipairs(ords) do
         if i == 1 then
           pcall(function() song:trigger_instrument_note_on(ii, ti, nt, vel) end)
+          mm.notes_played = mm.notes_played + 1
           if mm.staccato then pcall(function() song:trigger_instrument_note_off(ii, ti, nt) end) end
         else
           local note = nt
@@ -689,6 +700,7 @@ local function mm_play_chord(notes)
             mm_strum_pending[fn] = nil
             if dialog and dialog.visible then
               pcall(function() renoise.song():trigger_instrument_note_on(ii, ti, note, vel) end)
+              mm.notes_played = mm.notes_played + 1
               -- staccato has to release each note after ITS OWN onset; the blanket sweep at the
               -- end of this function runs long before these timers fire.
               if mm.staccato then pcall(function() renoise.song():trigger_instrument_note_off(ii, ti, note) end) end
@@ -1206,12 +1218,6 @@ local function mm_effective_tempo_text()
   return string.format("Free: row clock @ %d BPM%s", t, mm_grav_suffix())
 end
 
--- deterministic pseudo-random 0..1 (avoid math.random for reproducibility per the workflow rules)
-local function mm_rand()
-  mm.random_seed = (mm.random_seed * 1103515245 + 12345) % 2147483648
-  return mm.random_seed / 2147483648
-end
-
 -- active (unmuted) voice indices, sorted by pitch ascending — the order the arp walks
 local function mm_arp_order(notes)
   local idx = {}
@@ -1543,6 +1549,74 @@ end
 -- their sequence on the new harmony and keep running at the Arp/Line Rate. This is the single place
 -- that turns "the chord under the cursor changed" into sound, so the mouse, Gravity Play and the
 -- cursor keys all behave identically.
+-- The order the CURRENT treatment walks a chord in, as voice indices -- the same directions
+-- mm_arp_step steps through one beat at a time, laid out as a complete run.
+local function mm_burst_order(playback)
+  local order = mm_arp_order(playback)
+  local n = #order
+  if n == 0 then return {} end
+  if mm.treatment == 4 then
+    local seq = {}   -- Improvise: the voices enter in index order, one per beat, and sustain
+    for v = 1, #playback do
+      if not mm.mute[v] and playback[v] then seq[#seq + 1] = v end
+    end
+    return seq
+  end
+  local mode = (mm.treatment == 3) and "Up" or mm.arp_mode
+  local seq = {}
+  if mode == "Down" then
+    for i = n, 1, -1 do seq[#seq + 1] = order[i] end
+  elseif mode == "Up/Down" then
+    for i = 1, n do seq[#seq + 1] = order[i] end
+    for i = n - 1, 2, -1 do seq[#seq + 1] = order[i] end
+  elseif mode == "Down/Up" then
+    for i = n, 1, -1 do seq[#seq + 1] = order[i] end
+    for i = 2, n - 1 do seq[#seq + 1] = order[i] end
+  elseif mode == "Scatter" then
+    for i = 1, n do seq[#seq + 1] = order[i] end
+    for i = n, 2, -1 do
+      local j = math.floor(mm_rand() * i) + 1
+      seq[i], seq[j] = seq[j], seq[i]
+    end
+  else
+    for i = 1, n do seq[#seq + 1] = order[i] end   -- Up, and Strum (same order, tighter spacing)
+  end
+  return seq
+end
+
+-- Play a chord's WHOLE gesture as one scheduled burst: the entire arpeggio run, the whole rake,
+-- the full Improvise entry -- not one note of it. That is what a deliberate trigger means. The
+-- previous attempt fired a single step and left the rest to the free-running clock, which is why
+-- pressing a gravitation node produced one stray note on top of the arpeggio already running.
+-- Spacing is the Arp/Line Rate, or the Strum spacing when raking. Re-triggering cancels the burst
+-- still in flight, so holding the key retriggers instead of piling voices up.
+local function mm_perform_burst(notes)
+  local playback = mm_playback_notes(notes)
+  local seq = mm_burst_order(playback)
+  if #seq == 0 then return end
+  mm_strum_cancel()
+  local raking = (mm.treatment == 2 and mm.arp_mode == "Strum")
+  local sp = raking and mm_strum_spacing(#seq) or mm_arp_rate_ms()
+  if sp < 4 then sp = 4 end
+  for i, v in ipairs(seq) do
+    if i == 1 then
+      mm_play_one(v, playback[v])
+    else
+      local vi, nt = v, playback[v]
+      local fn
+      fn = function()
+        if renoise.tool():has_timer(fn) then renoise.tool():remove_timer(fn) end
+        mm_strum_pending[fn] = nil
+        if dialog and dialog.visible then mm_play_one(vi, nt) end
+      end
+      mm_strum_pending[fn] = true
+      renoise.tool():add_timer(fn, sp * (i - 1))
+    end
+  end
+  mm.seq_i = mm.seq_i + #seq          -- keep the free clock in phase with what we just played
+  mm.burst_until = (os.clock() * 1000) + sp * (#seq - 1)
+end
+
 -- `strike` = this came from a deliberate gesture (a gravitation-seed step, an octave shift),
 -- as opposed to the mouse sweeping across cells.
 --
@@ -1563,20 +1637,22 @@ function mm_articulate(strike)
     return                      -- Renoise is clocking the phrase; don't also strike by hand
   end
   if not strike then return end
-  if mm.treatment == 4 then mm_improvise_step(notes) else mm_arp_step(notes) end
+  mm_perform_burst(notes)
   mm_beat_accum = 0             -- re-phase, so the clock's next hit is a full interval away
 end
 
 -- Move to the next (delta = 1) or previous (delta = -1) gravitation seed and articulate it.
 -- Gravity Play only ever MOVES the position; the Treatment does the playing. That is why the
 -- Arp/Line Rate, Strum, Articulation and the phrase prototype all apply during Gravity Play.
-function mm_gravity_goto(delta)
+function mm_gravity_goto(delta, strike)
   local n = #mm.seeds
   if n == 0 then return false end
   mm.gravity_index = ((mm.gravity_index - 1 + delta) % n) + 1
   local s = mm.seeds[mm.gravity_index]
   mm.deg_x = s.dx; mm.deg_y = s.dy
-  mm_articulate(true)
+  -- Automatic Gravity Play only MOVES; the free clock is already arpeggiating over it. A manual
+  -- step is a performance gesture, so it plays the whole thing.
+  mm_articulate(strike and true or false)
   if mm_canvas then mm_canvas:update() end
   return true
 end
@@ -1617,7 +1693,7 @@ function mm_gravity_on_line()
   mm.gravity_beat = mm.gravity_beat + 1
   if (mm.gravity_beat % math.max(1, mm.gravity_div)) ~= 0 then return end
   mm_grav.accum = 0
-  mm_gravity_goto(1)
+  mm_gravity_goto(1, false)
 end
 
 -- called every tick when there is no moving playhead to lock to. Uses the SAME row length
@@ -1631,7 +1707,7 @@ function mm_gravity_free_tick()
     mm_grav.accum = mm_grav.accum - step
     if mm_grav.accum > step then mm_grav.accum = 0 end   -- clamp runaway
     mm.gravity_beat = 0
-    mm_gravity_goto(1)
+    mm_gravity_goto(1, false)
   end
 end
 
@@ -1642,7 +1718,7 @@ function mm_gravity_step(delta)
     renoise.app():show_status("Music Mouse: no gravitation seeds yet — left-click the grid to drop one")
     return
   end
-  mm_gravity_goto(delta)
+  mm_gravity_goto(delta, true)
   mm_gravity_reset_phase()
   mm.gravity_beat = 0
   renoise.app():show_status(string.format("Music Mouse: gravitation seed %d/%d",
@@ -1657,6 +1733,12 @@ local mm_timer_fn  -- forward declaration
 mm_play_synced_beat = function()
   if not dialog or not dialog.visible then return end
   if mm.frozen or not mm.sound_on then return end
+  -- A triggered gesture owns the voices until it finishes, otherwise the free-running arpeggio
+  -- plays straight through the middle of it and you hear both at once.
+  if mm.burst_until > 0 then
+    if (os.clock() * 1000) < mm.burst_until then return end
+    mm.burst_until = 0
+  end
   local song = renoise.song()
   if not song then return end
 
@@ -1837,6 +1919,23 @@ local function mm_restart_timer()
   mm_stop_timer()
   mm_start_timer()
 end
+-- Switching treatment has to LEAVE the old one cleanly, and there were four ways to do it: the
+-- popup, cmd-1..4, F1-F4, and MIDI. Only the popup stopped the phrase-arpeggio prototype, so
+-- leaving Line for Improvise from the keyboard left the old phrase held and playing underneath
+-- the new treatment -- two phrases at once. All four now go through here.
+local function mm_set_treatment(i)
+  if i ~= 2 and i ~= 3 then
+    mm.phrase_arp_proto = false
+    if mm_phrase_arp_stop then mm_phrase_arp_stop(true) end
+  end
+  mm.treatment = i
+  if i == 1 and mm_phrase_arp_clear_stale_mode then mm_phrase_arp_clear_stale_mode() end
+  mm.seq_i = 0
+  mm_strum_cancel()          -- a burst from the old treatment must not finish under the new one
+  mm_restart_timer()
+  if mm_update_panel then mm_update_panel() end
+end
+
 
 --------------------------------------------------------------------------------
 -- Mouse interaction
@@ -2518,15 +2617,7 @@ local function mm_controls_column(vbx)
       vbx:popup{ id = "mm_treatment_popup", width = 150, items = TREATMENT_NAMES, value = mm.treatment,
         notifier = function(i)
           if mm_ui_busy then return end
-          if i ~= 2 and i ~= 3 then
-            mm.phrase_arp_proto = false
-            if mm_phrase_arp_stop then mm_phrase_arp_stop(true) end
-          end
-          mm.treatment = i
-          if i == 1 then mm_phrase_arp_clear_stale_mode() end
-          mm.seq_i = 0
-          mm_restart_timer()
-          mm_update_panel()
+          mm_set_treatment(i)
         end },
       vbx:popup{ id = "mm_arp_popup", width = 96, items = MM_ARP_ITEMS, value = mm_arp_index(),
         tooltip = "Arpeggiate direction: Up / Down / Up/Down / Down/Up / Scatter / Strum. " ..
@@ -3106,7 +3197,7 @@ function mm_keyhandler(dlg, key)
   end
   -- Treatments cmd-1..4 / bare F1-F4. Modified function keys must pass through to Renoise/macOS.
   if has_cmd and name:match("^[1-4]$") then
-    mm.treatment = tonumber(name); mm.seq_i = 0; mm_restart_timer(); mm_update_panel(); return nil
+    mm_set_treatment(tonumber(name)); return nil
   end
   -- shift-i : round-robin through the 3 favorite waveforms and punch (handled before the guard)
   if has_shift and name == "i" then
@@ -3115,10 +3206,10 @@ function mm_keyhandler(dlg, key)
     renoise.app():show_status("Music Mouse: favorite round-robin -> " .. (mm.fav_waves[mm.fav_rr] or "?"))
     return nil
   end
-  if mods == "" and name == "f1" then mm.treatment = 1; mm_restart_timer(); mm_update_panel(); return nil end
-  if mods == "" and name == "f2" then mm.treatment = 2; mm_restart_timer(); mm_update_panel(); return nil end
-  if mods == "" and name == "f3" then mm.treatment = 3; mm_restart_timer(); mm_update_panel(); return nil end
-  if mods == "" and name == "f4" then mm.treatment = 4; mm_restart_timer(); mm_update_panel(); return nil end
+  if mods == "" and name == "f1" then mm_set_treatment(1); return nil end
+  if mods == "" and name == "f2" then mm_set_treatment(2); return nil end
+  if mods == "" and name == "f3" then mm_set_treatment(3); return nil end
+  if mods == "" and name == "f4" then mm_set_treatment(4); return nil end
 
   -- ===== MODIFIER GUARD: any shift/cmd combo Music Mouse did NOT map → pass through to Renoise =====
   if has_shift or has_cmd then return key end

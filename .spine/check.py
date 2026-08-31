@@ -70,6 +70,80 @@ def _self_ref_violations(root):
     return out
 
 
+# ── static scan: a call to something not declared yet, or not declared at all ─────────────────
+# Renoise runs with strict globals: reading a name that was never assigned THROWS rather than
+# returning nil. Two shapes of that keep shipping, and neither is a syntax error, so luac and the
+# harness both pass them:
+#   * `foo()` where `local function foo` appears LATER in the same file — the earlier line reads a
+#     global that does not exist. Dormant until that path runs. (MM_STRUM_MS and mm_rand in
+#     PakettiMusicMouse.lua were both sitting like this.)
+#   * `foo()` where nothing anywhere defines foo — a rename that missed a call site, or a menu
+#     entry pointing at a deleted function. Throws the moment the user clicks it.
+# Advisory, not a gate: the tree already carries a backlog of the second kind.
+_KW = set("and break do else elseif end false for function goto if in local nil not or repeat "
+          "return then true until while self".split())
+_BUILTIN = set("assert collectgarbage dofile error getfenv getmetatable ipairs load loadfile "
+               "loadstring next pairs pcall print rawequal rawget rawlen rawset require select "
+               "setfenv setmetatable tonumber tostring type unpack xpcall math table string os io "
+               "coroutine debug bit renoise class ProcessSlicer".split())
+
+
+def _strip_lua(text):
+    """Blank out comments and string literals so menu paths and prose cannot look like calls."""
+    text = re.sub(r'--\[\[.*?\]\]', '', text, flags=re.S)
+    text = re.sub(r'\[\[.*?\]\]', '""', text, flags=re.S)
+    out = []
+    for line in text.split('\n'):
+        line = re.sub(r'"(\\.|[^"\\])*"', '""', line)
+        line = re.sub(r"'(\\.|[^'\\])*'", "''", line)
+        out.append(re.sub(r'--.*$', '', line))
+    return out
+
+
+def _undeclared_calls(root):
+    paths = [p for p in glob.glob(os.path.join(root, '**', '*.lua'), recursive=True)
+             if '/.git/' not in p and '/.spine/' not in p]
+    code = {}
+    for p in paths:
+        try:
+            code[p] = _strip_lua(open(p, encoding='utf-8', errors='ignore').read())
+        except OSError:
+            pass
+    tool_globals = set()
+    for lines in code.values():
+        joined = '\n'.join(lines)
+        tool_globals |= set(re.findall(r'^\s*function\s+(' + _IDENT + r')\s*[\(.:]', joined, re.M))
+        tool_globals |= set(re.findall(r'^\s*(' + _IDENT + r')\s*=', joined, re.M))
+    out = []
+    for p, lines in code.items():
+        joined = '\n'.join(lines)
+        declared = {}
+        for i, line in enumerate(lines, 1):
+            for m in re.finditer(r'\blocal\s+(?:function\s+)?(' + _IDENT +
+                                 r'(?:\s*,\s*' + _IDENT + r')*)', line):
+                for name in m.group(1).split(','):
+                    name = name.strip()
+                    if name and name not in declared:
+                        declared[name] = i
+        params = set()
+        for m in re.finditer(r'function\s*[\w.:]*\s*\(([^)]*)\)', joined):
+            params |= {x.strip() for x in m.group(1).split(',')
+                       if x.strip() and x.strip() != '...'}
+        for i, line in enumerate(lines, 1):
+            for m in re.finditer(r'(?<![\w.:])(' + _IDENT + r')\s*\(', line):
+                name = m.group(1)
+                if name in _KW or name in _BUILTIN or name in params or name in tool_globals:
+                    continue
+                rel = os.path.relpath(p, root)
+                if name in declared:
+                    if i < declared[name]:
+                        out.append((rel, i, name, "declared later in this file (line %d) — this "
+                                    "line reads an undeclared global" % declared[name]))
+                else:
+                    out.append((rel, i, name, "never declared anywhere in the tool"))
+    return out
+
+
 def _malformed_keybindings(names):
     """Renoise keybinding names are `Context:Topic:Name`.
     Subcategories must be flattened into the final name part instead of adding
@@ -121,6 +195,7 @@ def main():
     fs = d["file_stats"]
     selfref = _self_ref_violations(ROOT)
     tight = _local_headroom()
+    undecl = _undeclared_calls(ROOT)
     malformed_kb = _malformed_keybindings(d.get("names", {}).get("keybinding", []))
 
     print(f"Paketti registration check — {d['unique']['keybinding']:,} keybindings · "
@@ -159,6 +234,21 @@ def main():
         print(f"\n❌ {len(brittle)} BRITTLE FILE(S) (errored during registration):")
         for f in brittle:
             print(f"   • {f['module']} — {f.get('err','')[:160]}")
+
+    if undecl:
+        print(f"\n⚠️  {len(undecl)} CALL(S) TO SOMETHING NOT DECLARED — Renoise strict globals "
+              "throw on these at runtime, and neither luac nor the harness catches them:")
+        late = [r for r in undecl if "declared later" in r[3]]
+        gone = [r for r in undecl if r not in late]
+        for label, rows in (("used before it is declared", late), ("no definition anywhere", gone)):
+            if not rows:
+                continue
+            print(f"   {label}: {len(rows)}")
+            for f, ln, name, why in rows[:12]:
+                print(f"     • {f}:{ln}  {name}()  — {why}")
+            if len(rows) > 12:
+                print(f"     … and {len(rows) - 12} more")
+        print("       fix: move the definition above its first use, or restore the missing function.")
 
     if tight:
         print(f"\n⚠️  {len(tight)} FILE(S) LOW ON LOCAL-VARIABLE HEADROOM (Lua allows 200 per "
