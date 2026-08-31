@@ -8,6 +8,31 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-31 - Improvement: Music Mouse Gravity Play Is Now Playable. Gravity Play sequences the seeds, and the Treatment plays them — so arpeggios, strums, lines and phrases finally apply, and the seeds can be triggered from the keyboard.
+
+Gravity Play used to be a closed loop: it stepped through the dropped gravitation seeds and struck a block chord itself, ignoring the Treatment and the Arp/Line Rate entirely. Now it only ever moves the position, and the selected Treatment (Chord / Arpeggiate / Line / Improvise) articulates whatever chord it lands on, at the Arp/Line Rate — so a seed can be strummed, arpeggiated up or down, played as a line, or held as a block chord, and the phrase-arpeggio prototype applies too. The seed clock and the note clock are separate, so a slow chord change can carry a fast arpeggio.
+
+Gravity Play now runs on the pattern row clock whether or not Renoise is playing, so stopping the transport no longer makes it drift to a different tempo. Changing the Treatment, the Arp/Line Rate, the Tempo or the Sync checkbox no longer re-phases it, which means a dropdown change can no longer retrigger the chord that is already sounding. While Gravity Play runs the mouse only aims — you can still drop and remove seeds, but the seed sequencer owns the sounding position, which is what makes right-shift Record to Pattern usable: one chord change per gravity beat, landing on the row, instead of several unrelated chords stamped into the same row.
+
+The Gravity Rate popup is now stated in pattern rows and offers every 1, 2, 4, 8 or 16 rows. A Gravity Step row of ◀ Prev / Next ▶ buttons was added beside it.
+
+- Keyboard (Music Mouse window): `left` / `right` — previous / next gravitation seed, triggered one at a time. Works with Gravity Play running (it re-phases the auto clock so the timer does not jump ahead on the next row) or stopped, for fully manual playing.
+- Keyboard (Music Mouse window): `up` / `down` — octave down / up on the current grid position, re-articulated through the current Treatment so it follows the arpeggio, strum, line or phrase instead of forcing a block chord. `cmd-up` / `cmd-down` still select the previous / next instrument.
+- MIDI Mapping: `Paketti:Music Mouse Gravity Seed Next`
+- MIDI Mapping: `Paketti:Music Mouse Gravity Seed Previous`
+- MIDI Mapping: `Paketti:Music Mouse Key Prev seed`, `Paketti:Music Mouse Key Next seed`, `Paketti:Music Mouse Key Octave +`, `Paketti:Music Mouse Key Octave -` (from the on-screen keymap)
+- Menu: `Main Menu:Tools:Paketti:Instruments:Music Mouse...`
+
+### 2026-08-31 - Fix: TX16W Export Keeps Your Key Layout by Default. A deliberately mapped kit was being re-laid-out on export unless you noticed a checkbox.
+
+`Keep this instrument's key mapping` was off by default, so a kit you had carefully placed - a General MIDI drum layout, a multisample - was silently replaced with a sequential one-sample-per-key layout on the way to the sampler. Every drum moved.
+
+It now decides for itself. If the instrument's samples sit on distinct narrow key ranges, it has a layout worth keeping and the option is on. If every sample answers the whole keyboard, it is an unmapped pile and the one-per-key layout is what you want. The dialog states plainly which of the two you are about to get.
+
+General MIDI naming also switches itself on when three or more samples are already on GM drum keys, so a kit built on Renoise's GM template arrives named `KICK1`, `SNARE1`, `HHCLOSED` without you asking. Renoise's note numbers match MIDI's, so the GM kick is the row Renoise labels C-3.
+
+- Menu: `Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+
 ### 2026-08-30 - Feature: Make Your Own TX16W Filters. The sampler holds twenty filter tables and ships with seventeen, so three slots have been empty since 2000.
 
 The `.T##` filter table format is decoded and Paketti can now write one. Choose low pass, high pass, band pass or notch and a free slot, and you get a file to put on a disk alongside your kit and assign as the group's filter.

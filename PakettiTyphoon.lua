@@ -102,6 +102,30 @@ PakettiTyphoonDefaultParm =
   "\003\255\000\127\255\000\000\205\000\127\127\127\000\061\000\000" ..
   "\000\061\127\000\127\000\000\000\000\004\000\000\000\000\127\000"
 
+-- Does this instrument already have a key layout worth keeping? An instrument
+-- someone has mapped -- a GM drum kit, a multisample -- has samples sitting on
+-- distinct, narrow key ranges. A pile of samples that was never mapped has
+-- every sample answering the whole keyboard, and is better laid out one per key
+-- on export. Getting this right matters: silently replacing a GM layout with a
+-- sequential one moves every drum.
+function PakettiTyphoonHasKeyMapping(instrument)
+  local n, narrow, seen = 0, 0, {}
+  for _, smp in ipairs(instrument.samples) do
+    if smp.sample_buffer and smp.sample_buffer.has_sample_data then
+      n = n + 1
+      local r = smp.sample_mapping.note_range
+      if (r[2] - r[1]) < 119 then narrow = narrow + 1 end
+      seen[r[1] .. ":" .. r[2]] = true
+    end
+  end
+  if n < 2 then return false end
+  local distinct = 0
+  for _ in pairs(seen) do distinct = distinct + 1 end
+  -- Both must hold: the samples are on narrow ranges, and they differ from each
+  -- other. Ten identical one-key mappings are not a layout.
+  return narrow == n and distinct > 1
+end
+
 -- General MIDI percussion key map, keyed by MIDI note. Renoise's own GM kit
 -- template lays drums out on these keys, so when an instrument follows it the
 -- exported waves can be named for what they actually are instead of DRUM_017.
@@ -1206,7 +1230,8 @@ function PakettiTyphoonExportDrumkit(outdir, opts)
     wordsize = opts.wordsize or PakettiDWVWWordSize(),
     force_mono = (opts.force_mono ~= nil) and opts.force_mono or PakettiDWVWForceMono(),
     base_key = opts.base_key or 36,
-    use_mapping = opts.use_mapping or false,
+    use_mapping = (opts.use_mapping ~= nil) and opts.use_mapping
+                  or PakettiTyphoonHasKeyMapping(renoise.song().selected_instrument),
     filter_table = opts.filter_table,
     output = opts.output,
     envelope = opts.envelope,
@@ -1501,7 +1526,20 @@ function PakettiTyphoonExportDialog()
   end
 
   local force_mono = PakettiDWVWForceMono()
-  local use_mapping = false
+  -- Default to keeping the layout when the instrument actually has one, so a
+  -- GM drum kit exports where you put it rather than being re-laid-out.
+  local use_mapping = PakettiTyphoonHasKeyMapping(instrument)
+
+  -- If several samples already sit on General MIDI drum keys, naming them after
+  -- those drums is almost certainly wanted.
+  local gm_default = false
+  do
+    local hits = 0
+    for _, smp in ipairs(instrument.samples) do
+      if PakettiTyphoonGMDrumNames[smp.sample_mapping.note_range[1]] then hits = hits + 1 end
+    end
+    gm_default = use_mapping and hits >= 3
+  end
 
   -- Recomputed whenever a setting that changes the size is touched, so the fit
   -- is visible before anything is written rather than discovered afterwards.
@@ -1518,6 +1556,21 @@ function PakettiTyphoonExportDialog()
       math.floor(points / installed * 100 + 0.5),
       (points > installed) and "   -- TOO BIG, it will not all load" or "")
     vb.views.tx_fit.style = (points > installed) and "strong" or "normal"
+
+    -- Say plainly which keys the samples will land on, and point out a GM kit
+    -- when we see one, since that is the case where the choice matters most.
+    local ins = song.selected_instrument
+    local gm = 0
+    for _, smp in ipairs(ins.samples) do
+      if PakettiTyphoonGMDrumNames[smp.sample_mapping.note_range[1]] then gm = gm + 1 end
+    end
+    if vb.views.tx_mapping.value then
+      vb.views.tx_map_label.text = (gm >= 3)
+        and string.format("Keep this instrument's key layout - %d sample(s) are on General MIDI drum keys", gm)
+        or "Keep this instrument's key layout"
+    else
+      vb.views.tx_map_label.text = "Lay the samples out one per key from C-3 instead of using their mapping"
+    end
   end
 
   local content = vb:column{
@@ -1561,12 +1614,13 @@ function PakettiTyphoonExportDialog()
     },
     vb:row{
       vb:text{text = "", width = 110},
-      vb:checkbox{id = "tx_mapping", value = use_mapping},
-      vb:text{text = "Keep the instrument's own key mapping (otherwise one sample per key from C-2)"},
+      vb:checkbox{id = "tx_mapping", value = use_mapping,
+                  notifier = function() refresh() end},
+      vb:text{id = "tx_map_label", text = ""},
     },
     vb:row{
       vb:text{text = "", width = 110},
-      vb:checkbox{id = "tx_gm", value = false},
+      vb:checkbox{id = "tx_gm", value = gm_default},
       vb:text{text = "Name waves after the General MIDI drum on each key (KICK1, SNARE1, HHCLOSED)"},
     },
 
