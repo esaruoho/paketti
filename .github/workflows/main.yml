@@ -5,9 +5,19 @@ on:
   push:
     branches:
       - master
+    # features/ is the report-card wiki: cards, sessions, bundled transcripts and the
+    # generated views. Renoise never loads any of it and it is excluded from the .xrnx
+    # below, so a commit that touches ONLY features/ has nothing to validate and nothing
+    # new to package — it should not spend a full validate + two ~250 MB builds + a
+    # release. A commit touching features/ AND any real file still runs normally, because
+    # paths-ignore only skips when EVERY changed path matches.
+    paths-ignore:
+      - 'features/**'
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - 'features/**'
 
 jobs:
   # ── Job 0: Validate — fail FAST on anything that crashes/degrades a real load ──
