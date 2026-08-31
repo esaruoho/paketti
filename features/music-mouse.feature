@@ -38,7 +38,35 @@ Context: Global
   #   • Gravity seeds: NO auto-snap (it trapped the cursor) — reached via Gravity Play.
   #   • ';' is shift-comma on Esa's layout → bound to Gravity Play before loudness.
   #
-  # WATCH: pakettiMusicMouseShow mm_compute_voices mm_render mm_tick mm_set_record mm_tune_sample mm_toggle_gravity_play
+  # RESULT — 2026-08-31 session "musicmouse" (Gravity nodes / strum / treatments)
+  # ----------------------------------------------------------------------------
+  # Delivery: direct-push to master, no PR (verified by first-parent ancestry on
+  # origin/master; interleaved with commits from a sibling Claude session and from Esa).
+  #   c3465c5d  Gravity Play feeds the Treatment engine; cursor keys step the seeds
+  #             (swept into Esa's own commit "again" while both sessions shared the index)
+  #   ec49e262  .spine local-variable headroom warning + Launchpad do...end scope (20 -> 36)
+  #   44a01e89  strum rake fits the beat, cancels in flight, staccato-safe; MM_STRUM_MS hoisted
+  #   aae34805  Arp Mode = Strum rakes in the Chord treatment too; mm_state_summary + menu entry
+  #   15f5c7d0  seed steps play in every treatment; mm.prefs_loaded guard
+  #   e1f6495f  a node performs the WHOLE gesture; mm_set_treatment; mm_rand hoisted;
+  #             .spine/check.py undeclared-call sweep
+  # Files: PakettiMusicMouse.lua, PakettiMusicMouse-KEYS.md, PakettiMusicMouse-LOCALS.md,
+  #        manual/CHANGESLOG.md, .spine/check.py, .spine/localroom.lua,
+  #        features/music-mouse.feature + .session.md
+  # Outside the repo: ~/.local/bin/gumroad-paketti — size-settle budget 45s -> 300s, and a
+  #        foreign file size now fails fast instead of being read as "still processing".
+  #
+  # WHAT WENT WRONG HERE, kept on the record because the grades depend on it:
+  #   • Two wrong diagnoses before measuring. Guessing cost Esa two rounds.
+  #   • A half-written file was picked up by Renoise's auto-reload mid-session and crashed
+  #     his live tool (`variable 'mm_strum_cancel' is not declared` + notifier death).
+  #     The working tree IS the running tool; every write must be internally coherent.
+  #   • My own reload cycles destroyed his three saved gravitation seeds. Restored by hand;
+  #     the mm.prefs_loaded guard exists so it cannot recur.
+  #   • "launched detached pid N" reported twice for ~/work/apple/bin/gumroad-paketti, a
+  #     path that does not exist. nohup had already failed. The tool is in ~/.local/bin.
+  #
+  # WATCH: pakettiMusicMouseShow mm_compute_voices mm_render mm_tick mm_set_record mm_tune_sample mm_toggle_gravity_play mm_articulate mm_perform_burst mm_burst_order mm_gravity_goto mm_gravity_step mm_set_treatment mm_strum_active mm_strum_spacing mm_strum_cancel mm_save_prefs mm_state_summary
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
   #   2026-08-31  direct-commit  touched: mm_compute_voices mm_render mm_set_record
   #   2026-08-31  direct-commit  touched: mm_compute_voices mm_toggle_gravity_play
@@ -235,16 +263,107 @@ Context: Global
     And Record to Pattern stamps one chord change per gravity beat, on the row
     # built — the gravity guard in mm_update_from_mouse restores deg_x/deg_y to the live seed
 
+  @runtime-verified
+  Scenario: Pressing a gravitation node performs the WHOLE gesture, not one note of it
+    Given gravitation seeds exist and the Music Mouse window is open
+    When the user presses cursor right to step to the next seed
+    Then the current Treatment's entire gesture is played for that seed's chord:
+      the full arpeggio run in the chosen direction, the complete rake in Strum,
+      the ascending run in Line, the four-voice entry in Improvise,
+      and a struck or raked chord in Chord
+    And the free-running clock stands aside until the burst finishes
+    And pressing again cancels a burst still in flight rather than piling voices up
+    # runtime-verified 2026-08-31 over PakettiMCP, frozen clock, 4 voices, ONE press each:
+    #   Arpeggiate Up 4 | Down 4 | Up/Down 6 (1-2-3-4-3-2) | Strum 4
+    #   Line 4 | Improvise 4 | Chord+Strum 4      — every one of them was 1 before.
+    #   Patterning ON: Chord 4, Arpeggiate 4, Line 4 (x3 runs), Improvise 4.
+    # cite: PakettiMusicMouse.lua mm_perform_burst / mm_burst_order / mm_articulate; e1f6495f
+    # NOT ear-confirmed by Esa yet — the counts are note-on counts, not a listening test.
+
   @built
-  Scenario: The gravitation seeds are playable from the PC keyboard
-    Given gravitation seeds exist
-    When the user presses cursor left / right
-    Then the previous / next seed is triggered through the current Treatment
-    And the automatic gravity clock is re-phased so it does not jump on the next row
-    When the user presses cursor up / down
-    Then the whole instrument shifts an octave and re-articulates through the Treatment
-    # built — mm_gravity_step / mm_octave_shift; cmd-up / cmd-down still change instrument.
-    # Also on the ◀ Prev / Next ▶ buttons and the Gravity Seed Next/Previous MIDI mappings
+  Scenario: Cursor up / down shifts an octave through the current Treatment
+    Given the Music Mouse window is open
+    When the user presses cursor up or cursor down
+    Then the instrument shifts an octave and the new position is performed by the Treatment
+    And cmd-up / cmd-down still select the previous / next instrument
+    # built — mm_octave_shift -> mm_articulate(true). Seed stepping is also on the
+    # ◀ Prev / Next ▶ buttons and the Gravity Seed Next/Previous MIDI mappings.
+
+  @runtime-verified
+  Scenario: A strum rake fits inside the beat that started it
+    Given Strum is on with a spacing wide enough to overrun the row
+    When a chord change arrives on the row clock
+    Then the spacing is narrowed so the whole rake lands before the next chord
+    And a new chord cancels any rake still in flight
+    And staccato releases each strummed note just after that note sounds
+    # runtime-verified 2026-08-31: at 94 BPM / LPB 4 the budget is 159.6 ms;
+    # 28 ms spacing is left alone (84 ms fits), 67 ms x 3 gaps = 201 ms narrows to ~43 ms.
+    # Before this, 67 ms left the last notes firing after their voices had been released
+    # and re-assigned — stuck notes, and no audible strum. Gravity Play made it constant.
+    # cite: mm_strum_spacing / mm_strum_budget_ms / mm_strum_cancel / mm_strum_pending; 44a01e89
+
+  @runtime-verified
+  Scenario: Strum can be chosen from either control that offers it
+    Given the Treatment is Chord
+    When Arp Mode is set to Strum
+    Then the chord is raked, exactly as if the Strum checkbox were ticked
+    # The Arp Mode popup sits beside the Treatment popup, so "Chord | Strum" reads as one
+    # setting; Chord ignored arp_mode entirely and the real control was an unlabelled
+    # checkbox elsewhere in the panel. Picking Strum there did nothing, silently.
+    # runtime-verified 2026-08-31: Chord+ArpMode=Up -> Strum=false, Chord+ArpMode=Strum
+    # -> Strum=true, with the checkbox off in both. cite: mm_strum_active; aae34805
+
+  @runtime-verified
+  Scenario: Automatic Gravity Play is not disturbed by the manual one
+    Given Gravity Play is running on the row clock
+    When it advances to the next seed on its own
+    Then it only MOVES the harmony; the continuously running clock keeps articulating it
+    And no burst is fired, so the automatic mode sounds as it did before
+    # cite: mm_gravity_goto(delta, strike) — auto passes false, mm_gravity_step passes true
+
+  @built
+  Scenario: Leaving a Treatment stops the phrase it was driving
+    Given the phrase-arpeggio prototype is on in Line or Arpeggiate
+    When the Treatment is changed from the dropdown, cmd-1..4, F1-F4 or MIDI
+    Then the held phrase is stopped before the new treatment starts
+    And two phrases can no longer sound at once
+    # Only the dropdown used to do this; the three keyboard/MIDI paths did not, so
+    # leaving Line for Improvise left the old phrase playing underneath.
+    # cite: mm_set_treatment — all four paths now route through it; e1f6495f
+
+  @runtime-verified
+  Scenario: A tool reload cannot destroy the saved gravitation seeds
+    Given seeds and settings are saved in preferences
+    When the tool reloads while the Music Mouse window is closed
+    Then the rebuilt default state is never written back over them
+    And the saved seeds, Sync and Strum spacing survive until the window loads them
+    # A reload rebuilds mm from defaults (no seeds, Sync on, 28 ms) and the saved values are
+    # only read back on dialog OPEN. In between, any control that saved — a loudness key, a
+    # checkbox, a MIDI tempo knob — wrote the defaults over the real ones. Esa's three seeds
+    # were destroyed this way during this session and had to be restored by hand.
+    # cite: mm.prefs_loaded, set by mm_load_prefs, required by mm_save_prefs; 15f5c7d0
+
+  @runtime-verified
+  Scenario: No helper is called before it is declared
+    Given Renoise runs Lua with strict globals, where reading an unassigned name throws
+    When the file is scanned for calls to names declared later, or not at all
+    Then PakettiMusicMouse.lua reports zero of either
+    # This class is invisible to luac AND to the .spine load harness. It produced three real
+    # faults here: mm_strum_cancel (a crash Esa hit mid-session, from a half-written file),
+    # MM_STRUM_MS (dormant only because mm.strum_ms is never nil), and mm_rand — which sat
+    # ~390 lines below mm_stamp_arpeggio, so stamping a Scatter arpeggio would have thrown.
+    # `python3 .spine/check.py` now sweeps the whole repo for it: 61 pre-existing hits
+    # elsewhere, 48 of them calls to functions that do not exist anywhere. cite: e1f6495f
+
+  @stock
+  Scenario: The file still fits Lua's 200-locals-per-chunk ceiling
+    Given a .lua file is a function and every top-level local spends one of 200
+    When PakettiMusicMouse.lua is compiled with N extra locals appended
+    Then it still builds, and .spine/check.py warns below 25 of headroom
+    # Crossing the line is not a warning: the file stops compiling, which in Renoise is a
+    # brittle file and a dead tool load. 180/200 when this session started (8120 is three
+    # times the size at 126). Scoping the Launchpad section in do...end took it to 36.
+    # cite: .spine/localroom.lua + the check.py headroom section; PakettiMusicMouse-LOCALS.md
 
   @built
   Scenario: Arpeggiate has Up / Down / Scatter / Strum

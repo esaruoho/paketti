@@ -11,4 +11,17 @@ Derived views — GENERATED, never hand-edit:
 
 | Card | What it covers | Session | Shipped in |
 |------|----------------|---------|------------|
-| _(first card goes here)_ | | | |
+| `2026-06-11-groovebox-controller-follow-and-menu.feature` | AKAI controller debug/demo entries moved out of the Groovebox menu | `2026-06-11-groovebox-controller-follow-and-menu.session.md` | `37f054b1` `aae34805` `5483d3e3` |
+| `2026-06-11-ui-fixes-and-menu-config.feature` | Groovebox 8120 Kit loader status column alignment | `2026-06-11-ui-fixes-and-menu-config.session.md` | `47e81a77` `bc06819a` `2a1bce7a` |
+| `device-hotswap-missing-to-actual.feature` | Device hotswap — missing plugins → actually-installed equivalents | — | `bc06819a` `2300b421` |
+| `groovebox-8120-default-instrument-slots.feature` | Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open | — | `bc06819a` `d045e817` |
+| `groovebox-8120-grid-controllers.feature` | Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8) | — | `bc06819a` `a3636675` `7d3dd71f` |
+| `groovebox-8120-lpd8.feature` | Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select) | — | `bc06819a` `a3636675` `7d3dd71f` |
+| `groovebox-8120-record-pakettified-instrument.feature` | Groovebox 8120 Record button records into a Pakettified instrument | — | `1797e45a` `34fac2d3` `bc06819a` |
+| `master-low-cut-200hz.feature` | Master Low-Cut 200Hz punch toggle | — | `bc06819a` `d348b0be` |
+| `mcp-claude-bridge.feature` | Paketti × Claude MCP + probe bridges (Renoise ↔ Claude) | — | `4bc8daab` `26c583a5` `bc06819a` |
+| `mlx-renoise-bridge.feature` | Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens) | — | `4bc8daab` `26c583a5` `bc06819a` |
+| `music-mouse.feature` | Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise | `music-mouse.session.md` | `37f054b1` `c3465c5d` `ab144dc2` |
+| `parameter-editor-mixer-and-config.feature` | Parameter Editor exposes on the Mixer the parameter you're modifying | `parameter-editor-mixer-and-config.session.md` | `bc06819a` `b4a43b27` `94e4c343` |
+| `pattern-editor-example.feature` | Pattern Editor note manipulation | — | `bc06819a` `b953f2f4` |
+| `song-lifecycle-safety.feature` | Song-lifecycle safety for canvas dialogs and song observers | — | `bc06819a` `3d2cd863` `83526e80` |

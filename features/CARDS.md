@@ -201,7 +201,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** Context: Global
 
-**Behaviour (28 scenarios):**
+**Behaviour (36 scenarios):**
 
 - Open Music Mouse from the menu — `@built`
 - Move the mouse to play a quantized 4-voice chord — `@built`
@@ -224,7 +224,15 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Changing a dropdown never retriggers Gravity Play — `@built`
 - Gravity Play keeps one tempo whether or not Renoise is playing — `@built`
 - Gravity Play owns the sounding position — `@built`
-- The gravitation seeds are playable from the PC keyboard — `@built`
+- Pressing a gravitation node performs the WHOLE gesture, not one note of it — `@runtime-verified`
+- Cursor up / down shifts an octave through the current Treatment — `@built`
+- A strum rake fits inside the beat that started it — `@runtime-verified`
+- Strum can be chosen from either control that offers it — `@runtime-verified`
+- Automatic Gravity Play is not disturbed by the manual one — `@runtime-verified`
+- Leaving a Treatment stops the phrase it was driving — `@built`
+- A tool reload cannot destroy the saved gravitation seeds — `@runtime-verified`
+- No helper is called before it is declared — `@runtime-verified`
+- The file still fits Lua's 200-locals-per-chunk ceiling — `@stock`
 - Arpeggiate has Up / Down / Scatter / Strum — `@built`
 - i / o / p punch saved favorite waveforms; å = current; shift-i round-robin — `@built`
 - Tuning dropdown and < > transpose — `@built`
@@ -232,7 +240,9 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Pattern contour up to 64 steps with a length switch — `@built`
 - Keyboard Map is clickable and MIDI-mappable — `@built`
 
-**Grade:** @built ×28
+**How it does it:** **Source files:** `PakettiMusicMouse.lua`, `.spine/localroom.lua`, `check.py`, `PakettiMusicMouse-LOCALS.md`
+
+**Grade:** @built ×29 · @runtime-verified ×6 · @stock ×1
 
 
 <a id="parameter-editor-mixer-and-config"></a>
