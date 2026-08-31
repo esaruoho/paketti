@@ -38,6 +38,16 @@ The Sample FX Chain counterpart had the same missing save and is fixed the same 
 - Keyboard shortcut: `Global:Paketti:Toggle Automatically Open Selected Sample FX Chain Device Editors On/Off`
 - MIDI Mapping: `Paketti:Toggle Auto-Open Sample FX Chain Devices`
 
+### 2026-08-31 - Fix: Music Mouse Strum Works From The Arp Mode Dropdown Too. Picking Strum next to a Chord treatment used to do nothing at all.
+
+The Music Mouse panel offers Strum in two places. The Arp Mode dropdown sits immediately to the right of the Treatment dropdown, so the pair reads as one setting — Chord, Strum. It was not one setting: the Chord treatment ignored Arp Mode entirely, and the control that actually rakes a chord is an unlabelled checkbox further down the panel, beside the Strum spacing box. Choosing Strum next to Chord therefore did nothing, silently, including when stepping the gravitation seeds with the cursor keys.
+
+Both controls now mean the same thing: a chord is raked when the Strum checkbox is on, or when Arp Mode is set to Strum while the Treatment is Chord. The Arp Mode tooltip says so, and the checkbox hint now reads "Strum chords (or set Arp Mode = Strum)". The other Arp directions still need Treatment = Arpeggiate, as before.
+
+A state read-out was added for answering "which mode is it actually in" without guesswork. It prints the live Treatment, Arp Mode, Arp rate, strum state, Gravity Play state and seed count, sync, patterning, articulation, voice count and freeze state to the status bar and copies the same line to the clipboard.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Music Mouse Show Current State`
+
 ### 2026-08-31 - Fix: Music Mouse Strum Now Fits The Beat Instead Of Overrunning It. A strum spacing longer than the row left half the chord playing after the next chord had already been released.
 
 Music Mouse strums a chord by triggering its notes a few milliseconds apart. Nothing checked that the whole rake finished before the next chord arrived. At the default 28 ms it usually did; at a wider spacing it did not — 67 ms across a four-note chord takes 201 ms, and a row at 120 BPM lasts 125 ms. The last notes of the rake then fired after their voices had already been reassigned and released, so they hung, and the strum was not heard as a strum at all. Gravity Play made this constant rather than occasional, because it changes chord on a fixed row clock.

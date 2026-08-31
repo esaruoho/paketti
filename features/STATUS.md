@@ -22,7 +22,7 @@
 | master-low-cut-200hz | 3 | ✗ | — | ✓ | @hw-verified |
 | mcp-claude-bridge | 11 | ✓ | — | ✓ | @built @code-verified @hw-verified @untested |
 | mlx-renoise-bridge | 10 | ✓ | — | ✓ | @built @code-verified @designed @hw-verified |
-| music-mouse | 23 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @user-verified |
+| music-mouse | 28 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @user-verified |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 

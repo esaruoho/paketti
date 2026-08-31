@@ -3712,6 +3712,14 @@ do
   end
 end
 
+-- "Which mode is it actually in?" — status bar + clipboard, so a bug report can say so exactly.
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse Show Current State",
+  invoke = function()
+    local txt = mm_state_summary()
+    renoise.app():show_status("Music Mouse: " .. txt)
+    pcall(function() renoise.app():set_clipboard_text(txt) end)
+  end }
+
 PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }
 PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse...", invoke = pakettiMusicMouseShow }
 PakettiAddMenuEntry{ name = "Instrument Box:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }
