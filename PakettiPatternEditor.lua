@@ -1357,6 +1357,12 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern Halver",invoke=pakettiPatternHalver}
 
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Paketti Pattern Halver",invoke=pakettiPatternHalver}
+
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Paketti Pattern Halver",invoke=pakettiPatternHalver}
+
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern Halver",invoke=pakettiPatternHalver}
 
