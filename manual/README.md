@@ -465,7 +465,9 @@ Reads a TX16W floppy back into Renoise - the mirror of the export. Point it at a
 
 `Import Typhoon Voice` takes a loose `.O01` and picks up its `.C01` waves from the same folder. `Import TX16W Folder` does a whole folder at once, falling back to loading every wave when the folder has no voices.
 
-Dragging a `.img`, `.ima` or `.O01` file straight onto Renoise works too, in either letter case.
+**Pre-Typhoon disks work too.** A TX16W disk made before Typhoon was installed holds waves in Yamaha's own format, `.W01` and up. Those are read as well, with their loops intact - so a library you have owned since before any of this existed opens in Renoise the same as everything else.
+
+Dragging a `.img`, `.ima`, `.O01`, `.P01`, `.X01` or `.W01` file straight onto Renoise works too, in either letter case.
 
 The voice's references are matched to waves by Typhoon's own wave id first and by filename second, so a disk whose files have been renamed still resolves. Anything unreadable is reported and skipped rather than stopping the import, and uncompressed `.A##` AIFF files on the disk are counted in the summary.
 

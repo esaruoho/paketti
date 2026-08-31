@@ -113,6 +113,20 @@ The Gravity Rate popup is now stated in pattern rows and offers every 1, 2, 4, 8
 - MIDI Mapping: `Paketti:Music Mouse Key Prev seed`, `Paketti:Music Mouse Key Next seed`, `Paketti:Music Mouse Key Octave +`, `Paketti:Music Mouse Key Octave -` (from the on-screen keymap)
 - Menu: `Main Menu:Tools:Paketti:Instruments:Music Mouse...`
 
+### 2026-08-31 - Feature: Pre-Typhoon TX16W Disks Now Open. The stock Yamaha wave format is decoded, so a library you owned before any of this existed reads straight into Renoise.
+
+Until now Paketti could only read disks written by Typhoon. A TX16W disk made with the sampler's original operating system stores its sounds in Yamaha's own format, `.W01` and up, and those were unreadable - which put a hole in "read my whole collection" exactly the size of your oldest disks.
+
+That format is now decoded, from 220 files across ten Yamaha-format library disks. Waves come in with their loops intact, and the loops are right: this format stores a sound as an attack followed by a repeating tail, which is the machine's own rule that a loop always runs to the end of the wave.
+
+Verified by decoding all 220. The measure is how smooth the result is - a pure sine scores 125 on it and white noise 1365, and every wrong interpretation scored around 1100. The correct one gives a median of 90, with peaks filling the full 12-bit range. As a cross-check, a guitar sample named `GTB1` has a loop exactly 268 frames long, which at the sampler's standard rate is 124 Hz - the note B, which is what its name says.
+
+Two things are honestly not known: the sample rate field has not been identified, so waves import at 33333 Hz, the TX16W standard, which is what the pitch of every file in the corpus measures at. And a handful of header bytes remain unexplained.
+
+- Menu: `Main Menu:File:Paketti Import:Import TX16W Disk Image (.img)...` reads both formats
+- Menu: `Main Menu:File:Paketti Import:Import TX16W Folder (.O01 + .C01)...` now also picks up `.W##`
+- Drag and drop: `.W01`-`.W99` in either letter case
+
 ### 2026-08-31 - Feature: Read Performances and Setups, Send Samples over MIDI, Monophonic Voices.
 
 **Performances and setups are now read, not just written.** Importing a disk used to hand back a pile of loose instruments even when the disk knew how they were arranged. Now the performance is read too, and each voice's MIDI channel appears in the instrument name - `DRUMKIT (MIDI 10)`. The full layout, every entry and every program change, is printed to the scripting console. Setups are read as well and report what the machine had loaded. Verified against the factory `MULTI.P01`, which the Typhoon release notes document as ANA_STRS on channel 1, UNISON on 2 and DRUMKIT on 10: all three come back exactly right, as do its four program changes.

@@ -17,7 +17,7 @@ Typhoon 2000 is freeware and final; there will be no further versions.
 | Wave (DWVW audio) | `.C##` | import + export |
 | Filter table | `.T##` | export |
 | AIFF (uncompressed) | `.A##` | none |
-| Yamaha OS waves | `.W##` | **none — format not decoded, no sample files available** |
+| Yamaha OS waves | `.W##` | import |
 | System files | `.SYS` | n/a |
 
 `##` distinguishes items with equal names, it is not a sequence number.
@@ -149,6 +149,59 @@ Axis name pairs seen: `freq`/`level` (Q filters), `freq`/`slope` (slope
 filters), `freq`/`reson` (LOWPASS.T17, new in Typhoon 2000).
 
 Typhoon supports 20 filter tables; the stock disk ships 17.
+
+## `.W##` — the stock Yamaha OS wave, decoded
+
+What a TX16W disk holds before anyone installs Typhoon. Decoded 2026-08-31 from
+**220 files across ten Yamaha-format library disks**.
+
+```
+ 0..5    "LM8953"      the same magic the filter tables carry
+ 6..15   zero
+16..21   not identified
+22       0x49 = looped, 0xC9 = not looped   (only these two values appear)
+23       not identified
+24..26   attack length, 17-bit little endian, bit 16 = byte 26 bit 0
+27..29   loop length, same encoding
+30..31   not identified
+32..     audio, 12-bit signed, two samples per three bytes:
+           sample 1 = (b0 << 4) | (b1 & 0x0F)
+           sample 2 = (b2 << 4) | (b1 >> 4)
+```
+
+**Total frames = attack + loop, and the loop begins where the attack ends.** The
+format encodes the machine's own rule directly: a loop always runs to the end of
+the wave, so a wave *is* an attack followed by a repeating tail.
+
+### How each part was established
+
+- **Length.** File sizes are all padded to 512 bytes, so no field matches a size
+  directly. Brute-forcing every 2- and 3-byte field at every offset, in both
+  byte orders, against "does this many samples fit with less than one sector of
+  padding" found nothing — until pairs were tried, and `field@24 + field@27` at
+  1.5 bytes per sample fit 200 of 220 immediately. With the 17-bit mask it fits
+  all 220.
+- **Packing.** Decided by smoothness, the mean absolute difference between
+  consecutive samples. A pure sine scores 125 and white noise 1365. The wrong
+  nibble layouts all scored ~1100 — noise. The correct one gives a **median of
+  90 across all 220 files**, with only 3 above 400, and peak amplitudes filling
+  the 12-bit range (median 2040 of 2048).
+- **Loop.** Loop start lands exactly one sample after the attack ends and loop
+  end on the final frame, for every file. `GTB1.W27` is a guitar B1: its loop is
+  268 frames, which at 33333 Hz is 124 Hz — B2, matching both its filename and
+  its measured pitch. The loop is one period long.
+- **Rate.** *Not identified.* Byte 29 bit 1 splits the corpus 166/50 and is the
+  best candidate, but pitch measurement settles the practical question:
+  decoding at 33333 Hz makes each file's fundamental match the note in its own
+  name (FLC3 → C, GTB1 → B, CFL-C3 → C) with a consistent octave offset.
+  Paketti imports at 33333 Hz, the TX16W standard.
+
+### Still unidentified
+
+Bytes 16–21, 23, 30–31, and the upper bits of 26 and 29. Byte 26's upper bits
+read 3 on 216 of 220 files, so they are a format marker rather than data. Three
+files decode above the smoothness threshold; they may be genuinely noisy
+content (the corpus includes cymbals and effects) rather than misparsed.
 
 ## Hardware constraints that affect export
 

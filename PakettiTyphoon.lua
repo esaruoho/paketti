@@ -2106,6 +2106,75 @@ function PakettiTyphoonReadDiskImage(data, yield_every)
   return files, label
 end
 
+-- The stock Yamaha OS wave format, .W## -- what a TX16W disk holds before
+-- anyone installs Typhoon. Decoded 2026-08-31 from 220 files across ten
+-- Yamaha-format library disks; see docs/TYPHOON-FORMATS.md for the evidence.
+--
+--    0..5    "LM8953"        the same magic the filter tables carry
+--    6..15   zero
+--   16..21   not identified
+--   22       0x49 = looped, 0xC9 = not looped
+--   23       not identified
+--   24..26   attack length, 17-bit little endian, bit 16 in byte 26 bit 0
+--   27..29   loop length, same encoding
+--   30..31   not identified
+--   32..     audio: 12-bit signed, two samples per three bytes
+--              sample 1 = (b0 << 4) | (b1 & 0x0F)
+--              sample 2 = (b2 << 4) | (b1 >> 4)
+--
+-- Total length is attack + loop, and the loop begins where the attack ends.
+-- The format encodes the machine's own rule directly: a loop always runs to
+-- the end of the wave, so a wave is an attack followed by a repeating tail.
+PAKETTI_YAMAHA_WAVE_MAGIC = "LM8953"
+
+function PakettiTyphoonParseYamahaWave(data)
+  if #data < 48 or data:sub(1, 6) ~= PAKETTI_YAMAHA_WAVE_MAGIC then
+    error("not a Yamaha TX16W wave (no LM8953 header)")
+  end
+  local function b(i) return data:byte(i + 1) or 0 end
+  local function len17(o)
+    return b(o) + b(o + 1) * 256 + (b(o + 2) % 2) * 65536
+  end
+
+  local attack = len17(24)
+  local loop = len17(27)
+  local frames = attack + loop
+  if frames < 1 then error("wave header reports no audio") end
+  -- Guard against a corrupt header claiming more than the file holds.
+  local avail = floor((#data - 32) / 3) * 2
+  if frames > avail then frames = avail end
+
+  local ints, p = {}, 33
+  for i = 1, frames, 2 do
+    local b0, b1, b2 = data:byte(p), data:byte(p + 1), data:byte(p + 2)
+    if not b2 then break end
+    p = p + 3
+    local s1 = b0 * 16 + (b1 % 16)
+    local s2 = b2 * 16 + floor(b1 / 16)
+    if s1 >= 2048 then s1 = s1 - 4096 end
+    if s2 >= 2048 then s2 = s2 - 4096 end
+    ints[i] = s1
+    if i + 1 <= frames then ints[i + 1] = s2 end
+  end
+
+  return {
+    nsamples = frames,
+    nchannels = 1,
+    wordsize = 12,
+    -- The rate field has not been identified. 33333 is the TX16W standard and
+    -- is what the corpus measures at: decoded pitches match the note in each
+    -- file's own name at this rate.
+    rate = 33333,
+    channels = { ints },
+    attack = attack,
+    loop_length = loop,
+    looped = (b(22) == 0x49),
+    loop_start = (b(22) == 0x49 and loop > 0) and (attack + 1) or nil,
+    loop_end = (b(22) == 0x49 and loop > 0) and frames or nil,
+    loop_mode = (b(22) == 0x49 and loop > 0) and 1 or 0,
+  }
+end
+
 -- Walks an IFF FORM, calling fn(id, body) for each chunk at the top level.
 local function iff_walk(data, expect, fn)
   if #data < 12 or data:sub(1, 4) ~= "FORM" then return false end
@@ -2294,6 +2363,10 @@ end
 local function is_wave_name(name)
   return name:upper():match("%.C%d%d$") ~= nil
 end
+-- The stock Yamaha OS wave, which a pre-Typhoon library disk is full of.
+local function is_yamaha_wave_name(name)
+  return name:upper():match("%.W%d%d$") ~= nil
+end
 local function is_voice_name(name)
   return name:upper():match("%.O%d%d$") ~= nil
 end
@@ -2320,10 +2393,12 @@ end
 local function decode_waves(files, progress)
   local by_id, by_name, order, failed = {}, {}, {}, {}
   for _, f in ipairs(files) do
-    if is_wave_name(f.name) then
+    if is_wave_name(f.name) or is_yamaha_wave_name(f.name) then
       if progress then progress("Decoding " .. f.name .. "...") end
       coroutine.yield()
-      local ok, info = pcall(PakettiDWVWParseFile, f.data, 4096)
+      local parser = is_yamaha_wave_name(f.name)
+        and PakettiTyphoonParseYamahaWave or PakettiDWVWParseFile
+      local ok, info = pcall(parser, f.data, 4096)
       if ok then
         local entry = { name = strip_ext(f.name), info = info, file = f.name }
         order[#order + 1] = entry
@@ -2616,7 +2691,7 @@ function PakettiTyphoonImportFolder()
   if not dir or dir == "" then return end
   local sep = package.config:sub(1, 1)
   local pats = {}
-  for _, letter in ipairs({"O", "P", "X"}) do
+  for _, letter in ipairs({"O", "P", "X", "W"}) do
     for d = 0, 9 do pats[#pats + 1] = string.format("*.%s%d*", letter, d) end
   end
   local names = os.filenames(dir, pats)
@@ -2624,8 +2699,11 @@ function PakettiTyphoonImportFolder()
   for _, n in ipairs(names) do sources[#sources + 1] = dir .. sep .. n end
   if #sources == 0 then
     -- No voices: fall back to every wave in the folder.
-    for _, n in ipairs(os.filenames(dir, {"*.C0*", "*.C1*", "*.C2*", "*.C3*",
-        "*.C4*", "*.C5*", "*.C6*", "*.C7*", "*.C8*", "*.C9*"})) do
+    local wpats = {}
+    for _, letter in ipairs({"C", "W"}) do
+      for d = 0, 9 do wpats[#wpats + 1] = string.format("*.%s%d*", letter, d) end
+    end
+    for _, n in ipairs(os.filenames(dir, wpats)) do
       sources[#sources + 1] = dir .. sep .. n
     end
   end
@@ -2713,7 +2791,7 @@ end
 local typhoon_extensions = {"img", "IMG", "ima", "IMA"}
 for n = 1, 99 do
   local nn = string.format("%02d", n)
-  for _, letter in ipairs({"o", "O", "p", "P", "x", "X"}) do
+  for _, letter in ipairs({"o", "O", "p", "P", "x", "X", "w", "W"}) do
     typhoon_extensions[#typhoon_extensions + 1] = letter .. nn
   end
 end
