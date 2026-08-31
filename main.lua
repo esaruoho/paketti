@@ -31,6 +31,24 @@ if PAKETTI_API >= 5 then
   phrase = phraseEditor
   sampleFX = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
 end
+
+function get_master_track_index()
+  for index, track in ripairs(renoise.song().tracks) do
+    if track.type == renoise.Track.TRACK_TYPE_MASTER then
+      return index
+    end
+  end
+end
+
+function focus_sample_editor()
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+function showhidepatternmatrix()
+  local window = renoise.app().window
+  window.pattern_matrix_is_visible = not window.pattern_matrix_is_visible
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------------
 -- Helper function to create a vertical separator in ViewBuilder dialogs
 -- Must be passed a ViewBuilder instance and returns the text view element
@@ -1617,6 +1635,5 @@ PakettiFlushMenuEntries()
 
 --dbug(renoise.song())
 -- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument
-
 
 

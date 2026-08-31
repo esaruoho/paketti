@@ -183,13 +183,6 @@ function analyze_pattern_selection()
   }
 end
 
--- Get master track index
-function get_master_track_index()
-  for k,v in ripairs(renoise.song().tracks)
-    do if v.type == renoise.Track.TRACK_TYPE_MASTER then return k end  
-  end
-end
-
 -- Write BPM and LPB to master track using effect columns
 function PakettiMetricModulationWriteBPMToMaster(bpm_value, lpb_value)
   lpb_value = lpb_value or renoise.song().transport.lpb -- default to current LPB

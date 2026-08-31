@@ -1186,11 +1186,6 @@ function pakettiBPMBasedSliceQuarterBeat(sample_bpm)
     pakettiBPMBasedSlice(sample_bpm, 0.25)
 end
 
--- Focus sample editor utility
-function focus_sample_editor()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-end
-
 -- Set all slices to End-Half loop mode (loop the end half of each slice)
 function pakettiSetAllSlicesToEndHalfLoop()
     print("=== Setting All Slices to End-Half Loop Mode ===")

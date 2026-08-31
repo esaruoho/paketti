@@ -1,16 +1,3 @@
--- Show or hide Pattern Matrix
-function showhidepatternmatrix()
-  if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-    then renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR 
-    renoise.app().window.pattern_matrix_is_visible = true
-    return
-  end
-  if renoise.app().window.pattern_matrix_is_visible == true
-    then renoise.app().window.pattern_matrix_is_visible = false
-    else renoise.app().window.pattern_matrix_is_visible = true
-  end
-end
-
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Pattern Matrix",invoke=function() showhidepatternmatrix() end}
 -------
 ------------------------------------------------------------------------------
@@ -1173,4 +1160,3 @@ renoise.tool():add_keybinding{name="Mixer:Paketti:Unmute All Slots Across All Pa
 
 -- MIDI mapping for Unmute All Slots Across All Pattern Sequences
 renoise.tool():add_midi_mapping{name="Paketti:Unmute All Slots Across All Pattern Sequences", invoke=function(message) if message:is_trigger() then PakettiUnmuteAllSlotsAcrossAllPatternSequences() end end}
-

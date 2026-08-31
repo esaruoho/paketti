@@ -2702,12 +2702,6 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 ----
 
-function get_master_track_index()
-  for k,v in ripairs(renoise.song().tracks)
-    do if v.type == renoise.Track.TRACK_TYPE_MASTER then return k end  
-  end
-end
-
 function AutoGapper()
 renoise.song().tracks[get_master_track_index()].visible_effect_columns = 4  
 local gapper=nil

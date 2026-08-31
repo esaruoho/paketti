@@ -4,10 +4,6 @@ local dialog = nil
 local lfo_follow_timer = nil
 local lfo_follow_active = false
 
-function focus_sample_editor()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-end
-
 function validate_sample()
     local song=renoise.song()
     local sample = song.selected_sample
