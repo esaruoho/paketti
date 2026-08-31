@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-08-31 - Fix: Impulse Tracker ALT-X Volume Column Works From The Action Selector Again
+
+The Action Selector saves this command as a separately compiled callback. Its saved callback called ALT-X's file-local helper, which is not visible outside `PakettiImpulseTracker.lua`, so selecting it raised `variable 'alt_x_functionality' is not declared` instead of interpolating and clearing the Volume column. ALT-X is now exposed as the action's global callable while retaining its existing Pattern Editor shortcut behavior.
+
+- Keyboard shortcut: `Pattern Editor:Paketti:Impulse Tracker ALT-X Volume Column (Interpolate&Clear)`
+- Keyboard shortcut: `Pattern Editor:Paketti:Impulse Tracker ALT-X Effect Column (Interpolate&Clear)`
+- Keyboard shortcut: `Pattern Editor:Paketti:Impulse Tracker ALT-X Smart (Auto-detect Column)`
+
 ### 2026-08-31 - Fix: Loading A Missing Or Broken Plugin No Longer Throws A Lua Error Dialog. You get a plain status message instead of a stack traceback.
 
 Pressing a Load-device shortcut for a plugin that isn't installed - or one that is installed but crashes while starting up - made Renoise raise `std::logic_error: 'failed to instantiate the device ...'` straight out of `insert_device_at`, which surfaced as a Paketti error dialog with a Lua stack traceback. Reported for "Load OhmForce OhmBoyz" on a machine without OhmBoyz.

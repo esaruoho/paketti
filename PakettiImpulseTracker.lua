@@ -3501,7 +3501,8 @@ end}
 local already_interpolated = false
 
 -- Main function triggered by the keybinding
-local function alt_x_functionality(mode)
+-- Kept global because Action Selector callbacks are compiled in a separate chunk.
+function alt_x_functionality(mode)
   local s = renoise.song()
 
   -- Retrieve selection bounds
