@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Fix: Ableton Drum Rack Pads Land On The Right Keys
+
+Live stores a Drum Rack pad's key inverted: `ZoneSettings/ReceivingNote` holds 128 minus the MIDI note, so the standard C1 pad (36) is written as 92. Checked across a whole library of real racks -- every one of them tops out at 92, an eight-pad kit reads 92 down to 85, a twenty-four pad slice rack 92 down to 69.
+
+Paketti had been taking that number at face value in both directions. Exported racks landed their pads roughly two octaves too high instead of starting at C1, and imported racks came in at the wrong pitches. It also made the pad order look reversed, because descending stored values are ascending pitches -- so the earlier "sort the pads by note" change had been sorting them backwards.
+
+Both directions now convert, and the note-order warning that came out of the same misreading is gone: those racks were never inverted.
+
 ### 2026-09-02 - Improvement: Cue WAV Export Now Loads On The Dirtywave M8
 
 `Export WAV with Embedded CUE Headers` used to append its cue points and its label block onto the end of the file, giving `fmt` -> `data` -> `cue` -> `LIST`. The M8's WAV parser will not accept that trailing `LIST`, so those files did not load on the device.

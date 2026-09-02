@@ -119,6 +119,26 @@ function PakettiAbletonParseXML(xml, on_progress)
   return root
 end
 
+--- Drum Rack pad notes are stored INVERTED in Live's XML: ZoneSettings holds
+--- 128 minus the MIDI note, so the standard C1 base pad (36) is written as 92.
+--- Verified across every Drum Rack in a real library -- an 8-pad kit reads 92..85
+--- (notes 36..43), a 12-pad kit 92..81 (36..47), a 24-pad slice rack 92..69
+--- (36..59). Taking the stored value as a MIDI note lands the pads two octaves
+--- high AND reverses their order, because descending stored values are ascending
+--- pitches.
+local ABLETON_PAD_NOTE_BASE = 128
+
+function PakettiAbletonPadNoteFromXML(stored)
+  if not stored or stored < 0 then return -1 end
+  local n = ABLETON_PAD_NOTE_BASE - stored
+  if n < 0 or n > 127 then return -1 end
+  return n
+end
+
+function PakettiAbletonPadNoteToXML(note)
+  return ABLETON_PAD_NOTE_BASE - note
+end
+
 -- first direct child by name
 function PakettiAbletonChild(node, name)
   if not node or not node.children then return nil end
@@ -374,9 +394,10 @@ function PakettiAbletonExtract(root, preset_name)
     result.kind = "drumrack"
     for i = 1, #branches do
       local br = branches[i]
-      local note = tonumber(
+      local stored = tonumber(
         PakettiAbletonValue(PakettiAbletonChild(br, "ZoneSettings") or {}, "ReceivingNote")
-        or PakettiAbletonValue(br, "ReceivingNote") or "") or -1
+        or PakettiAbletonValue(br, "ReceivingNote") or "")
+      local note = stored and PakettiAbletonPadNoteFromXML(stored) or -1
       local dev = first_sampler_device(br)
       if dev then
         local entries = read_sampler_device(dev)
@@ -390,9 +411,9 @@ function PakettiAbletonExtract(root, preset_name)
       end
     end
     if #result.pads > 0 then
-      -- Live stores branches in descending note order, so document order puts the
-      -- HIGHEST pad first. Ordering by note instead means Renoise sample 1 is the
-      -- lowest key, matching what Live plays at the bottom of the pad grid.
+      -- Sorting by the DECODED note puts Renoise sample 1 on the lowest pad, which
+      -- is also the document order Live writes -- the stored values only look
+      -- descending because they are inverted.
       local all_noted = true
       for i = 1, #result.pads do
         if result.pads[i].note < 0 then all_noted = false break end
@@ -571,28 +592,6 @@ function PakettiAbletonImportFile(path, opts)
     for i = 1, #resolved do starts[#starts + 1] = resolved[i].sample_start end
     table.sort(starts)
 
-    -- Renoise slices are positions in one buffer, so they can only ever play in
-    -- time order; a rack that maps its highest key to the first region cannot be
-    -- reproduced note-for-note. Say so rather than silently flipping the feel.
-    local inverted = false
-    do
-      local by_note = {}
-      for i = 1, #model.pads do
-        local e = model.pads[i].entries[1]
-        if model.pads[i].note >= 0 and e and e.resolved then
-          by_note[#by_note + 1] = { note = model.pads[i].note, start = e.sample_start }
-        end
-      end
-      if #by_note > 2 then
-        table.sort(by_note, function(a, b) return a.note < b.note end)
-        local descending = 0
-        for i = 1, #by_note - 1 do
-          if by_note[i + 1].start < by_note[i].start then descending = descending + 1 end
-        end
-        inverted = descending > (#by_note - 1) / 2
-      end
-    end
-
     local frames = sample.sample_buffer.number_of_frames
     local placed, last = 0, -1
     for i = 1, #starts do
@@ -607,9 +606,6 @@ function PakettiAbletonImportFile(path, opts)
 
     local msg = string.format("Ableton sliced Drum Rack '%s': %s, %d slices",
       model.name, sample.name, #sample.slice_markers)
-    if inverted then
-      msg = msg .. " (note: the rack mapped its highest key to the first slice; Renoise slices always run in time order, so the key order is now the other way round)"
-    end
     if #undecodable > 0 then
       msg = msg .. string.format(", %d skipped (%s)", #undecodable,
         undecodable_reason or "undecodable")
@@ -826,6 +822,10 @@ renoise.tool():add_keybinding{
 -- to the sampler in its chain; it is written as ZoneSettings/SendingNote and is
 -- what the pad's MultiSamplePart must be keyed and rooted to.
 local DRUM_PAD_SENDING_NOTE = 60
+
+-- C1: where Live lays out the first pad of a Drum Rack, including the racks its
+-- own "Slice to New MIDI Track" produces
+local DRUM_PAD_FIRST_NOTE = 36
 
 local function xml_escape(s)
   s = tostring(s or "")
@@ -1079,7 +1079,8 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 
     for i = 1, #bounds - 1 do
       if yield_fn then yield_fn() end
-      local note = 35 + i
+      -- C1, the note Live's own Drum Racks start their pads on
+      local note = DRUM_PAD_FIRST_NOTE + i - 1
       if note <= 127 then
         -- A Drum Rack pad receives its own note but SENDS note 60 into its chain,
         -- so the Simpler inside is always played at C3 no matter which pad it is.
@@ -1100,7 +1101,8 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       status_fn(string.format("Writing sample %d of %d...", i, #instrument.samples))
       if yield_fn then yield_fn() end
       local s = instrument.samples[i]
-      local note = 35 + i
+      -- C1, the note Live's own Drum Racks start their pads on
+      local note = DRUM_PAD_FIRST_NOTE + i - 1
       if s.sample_buffer.has_sample_data and note <= 127 then
         local nm = pakettiFSPath.sanitize_filename(
           (s.name ~= "" and s.name) or (base .. "_" .. i), base .. "_" .. i)
@@ -1149,7 +1151,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 </DrumBranchPreset>]],
       next_id(), xml_escape(pad.part.name), next_id(),
       build_simpler(build_sample_part(pad.part, next_id), 0, next_id),
-      pad.note)
+      PakettiAbletonPadNoteToXML(pad.note))
   end
 
   local xml = ABLETON_HEADER .. string.format([[

@@ -440,6 +440,8 @@ Send the selected instrument to Ableton Live, verified loading in Live 12.
 
 Both write the audio into a `Samples/Imported/` folder beside the preset, which is the layout Live uses for imported media. Keep the preset and that folder together when you move them.
 
+A Drum Rack pad's key is stored inverted in Live's XML — `ReceivingNote` holds 128 minus the MIDI note, so C1 (36) is written as 92 — and Paketti converts in both directions. Exported racks start their pads at C1, the same place Live's own slicing puts them.
+
 A Drum Rack pad receives its own note but passes note 60 down its own chain, so the sampler inside every pad is keyed across the full range and rooted at C3 — the pad's identity lives in the rack, not in the sampler. Writing the pad's note into the sampler instead makes the pad load, show its waveform, and stay silent.
 
 **One difference Renoise cannot express.** A Live pad has an independent start *and* end, so its regions can have gaps between them. Renoise slices are contiguous — each one runs to the next marker. A rack with gaps therefore comes back with those gaps filled, and exporting it again keeps the filled version.
