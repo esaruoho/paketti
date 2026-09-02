@@ -976,6 +976,11 @@ local function build_sample_part(o, next_id)
     table.concat(slice_xml))
 end
 
+--- Globals/IsSimpler is what decides which UI Live draws. Every OriginalSimpler in
+--- a real rack carries IsSimpler true and every MultiSampler carries false; leave it
+--- out and Live defaults to false, showing the pad as "Multisample Mode" with no
+--- waveform and no Start/Loop/Length controls no matter what else is correct.
+---
 --- Simpler's loop lives in the device, not in the sample part: Player/LoopModulators
 --- carries LoopOn (the toggle) and LoopLength (how much of the region the loop
 --- covers, as a fraction). Real presets bear this out — 79 pads across the library
@@ -1039,7 +1044,7 @@ local function build_simpler(parts_xml, playback_mode, next_id, loop)
 </MultiSampleMap>
 %s
 </Player>
-<Globals><PlaybackMode Value="%d" /></Globals>
+<Globals><IsSimpler Value="true" /><PlaybackMode Value="%d" /></Globals>
 <SimplerSlicing><PlaybackMode Value="%d" /></SimplerSlicing>
 </OriginalSimpler>]],
     next_id(), next_id(), next_id(), parts_xml, build_loop_modulators(loop, next_id),
