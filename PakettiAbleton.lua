@@ -903,10 +903,14 @@ local function num(v)
   return (string.format("%.10f", v):gsub("0+$", ""):gsub("%.$", ""))
 end
 
---- Ids must be unique inside one document; Live uses them to wire automation.
+--- Live's Id attributes are POSITIONAL, not globally unique. In a real Drum Rack
+--- every OriginalSimpler, MultiSamplePart, AutomationTarget, ModulationTarget and
+--- Pointee carries Id="0", AbletonDevicePreset counts within its own DevicePresets
+--- list, and only DrumBranchPreset runs 0..N-1 as an index into its collection.
+--- Handing out globally increasing numbers instead makes Live mis-resolve the
+--- device and fall back to the "Multisample Mode" panel.
 local function id_allocator()
-  local n = 0
-  return function() n = n + 1; return n end
+  return function() return 0 end
 end
 
 local function build_sample_part(o, next_id)
@@ -986,37 +990,43 @@ end
 --- covers, as a fraction). Real presets bear this out — 79 pads across the library
 --- have LoopOn true, and MultiSamplePart/SustainLoop stays Mode 0 on all of them,
 --- because SustainLoop is what the full Sampler uses instead.
+--- Loop export is OFF.
+---
+--- Writing a Player/LoopModulators block -- in any shape tried, stub or complete --
+--- made Live show every pad as "Multisample Mode": no waveform, no Start / Loop /
+--- Length controls. Removing it restores the normal Simpler view. Live evidently
+--- reconstructs the loop parameters itself and objects to being handed them, so
+--- Paketti leaves the block out and lets Live supply it.
+---
+--- The consequence is that Renoise slice loops do not reach Live on export. Import
+--- still reads Live's loops, since reading is unaffected. Reinstating export means
+--- finding the exact shape Live accepts, not another guess at it.
 local function build_loop_modulators(loop, next_id)
-  -- Each of these is a full modulatable parameter in Live, not a bare value.
-  -- Emitting a partial LoopModulators subtree makes Live fall back to showing the
-  -- pad as "Multisample Mode" with no waveform and no Start/Loop/Length controls,
-  -- so the whole block is written the way Live writes it.
-  local function param(name, value)
-    return string.format(
-      "<%s><LomId Value=\"0\" /><Manual Value=\"%s\" />" ..
-      "<MidiControllerRange><Min Value=\"0\" /><Max Value=\"1\" /></MidiControllerRange>" ..
-      "<AutomationTarget Id=\"%d\"><LockEnvelope Value=\"0\" /></AutomationTarget>" ..
-      "<ModulationTarget Id=\"%d\"><LockEnvelope Value=\"0\" /></ModulationTarget></%s>",
-      name, value, next_id(), next_id(), name)
-  end
-
-  local loop_on = (loop and loop.on) and "true" or "false"
-  local loop_len = (loop and loop.on) and num(loop.length) or "1"
-
-  return table.concat({
-    "<LoopModulators><IsModulated Value=\"false\" />",
-    param("SampleStart", "0"),
-    param("SampleLength", "1"),
-    string.format(
-      "<LoopOn><LomId Value=\"0\" /><Manual Value=\"%s\" />" ..
-      "<AutomationTarget Id=\"%d\"><LockEnvelope Value=\"0\" /></AutomationTarget>" ..
-      "<MidiCCOnOffThresholds><Min Value=\"64\" /><Max Value=\"127\" /></MidiCCOnOffThresholds></LoopOn>",
-      loop_on, next_id()),
-    param("LoopLength", loop_len),
-    param("LoopFade", "0"),
-    "</LoopModulators>",
-  })
+  return ""
 end
+
+-- Live writes these as full parameters; Reverse and Snap are on/off, SampleSelector
+-- is a ranged value. They sit after LoopModulators inside Player.
+local SIMPLER_PLAYER_TAIL = table.concat({
+  '<Reverse><LomId Value="0" /><Manual Value="false" />',
+  '<AutomationTarget Id="0"><LockEnvelope Value="0" /></AutomationTarget>',
+  '<MidiCCOnOffThresholds><Min Value="64" /><Max Value="127" /></MidiCCOnOffThresholds></Reverse>',
+  '<Snap><LomId Value="0" /><Manual Value="false" />',
+  '<AutomationTarget Id="0"><LockEnvelope Value="0" /></AutomationTarget>',
+  '<MidiCCOnOffThresholds><Min Value="64" /><Max Value="127" /></MidiCCOnOffThresholds></Snap>',
+  '<SampleSelector><LomId Value="0" /><Manual Value="0" />',
+  '<MidiControllerRange><Min Value="0" /><Max Value="127" /></MidiControllerRange>',
+  '<AutomationTarget Id="0"><LockEnvelope Value="0" /></AutomationTarget>',
+  '<ModulationTarget Id="0"><LockEnvelope Value="0" /></ModulationTarget></SampleSelector>',
+})
+
+-- The view state Live keeps per device. ZoneEditorVisible and SelectedPage are the
+-- two that decide which panel a Simpler shows.
+local SIMPLER_VIEW_SETTINGS =
+  '<ViewSettings><SelectedPage Value="0" /><ZoneEditorVisible Value="false" />' ..
+  '<Seconds Value="false" /><SelectedSampleChannel Value="0" />' ..
+  '<VerticalSampleZoom Value="1" /><IsAutoSelectEnabled Value="false" />' ..
+  '<SimplerBreakoutVisible Value="false" /></ViewSettings>'
 
 local function build_simpler(parts_xml, playback_mode, next_id, loop)
   return string.format([[
@@ -1043,8 +1053,10 @@ local function build_simpler(parts_xml, playback_mode, next_id, loop)
 <SourceContext />
 </MultiSampleMap>
 %s
+]] .. SIMPLER_PLAYER_TAIL .. [[
 </Player>
 <Globals><IsSimpler Value="true" /><PlaybackMode Value="%d" /></Globals>
+]] .. SIMPLER_VIEW_SETTINGS .. [[
 <SimplerSlicing><PlaybackMode Value="%d" /></SimplerSlicing>
 </OriginalSimpler>]],
     next_id(), next_id(), next_id(), parts_xml, build_loop_modulators(loop, next_id),
@@ -1316,7 +1328,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 <SourceContext />
 <ZoneSettings><ReceivingNote Value="%d" /><SendingNote Value="60" /><ChokeGroup Value="0" /></ZoneSettings>
 </DrumBranchPreset>]],
-        next_id(), xml_escape(pad.part.name), next_id(),
+        i - 1, xml_escape(pad.part.name), 0,
         build_simpler(build_sample_part(pad.part, next_id), 0, next_id, pad.loop),
         PakettiAbletonPadNoteToXML(note))
     end

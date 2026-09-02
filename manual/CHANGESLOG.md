@@ -8,15 +8,23 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-09-02 - Feature: Slice Loops Travel Between Renoise And Ableton
+### 2026-09-02 - Improvement: Ableton Import Reads Slice Loops
 
-Paketti's Wipe&Slice can set a loop on every slice it makes, and until now the Ableton export threw all of it away — every pad arrived in Live non-looping.
+Importing a Live preset now brings its loops across: a looping Simpler pad becomes a looping Renoise slice. Simpler keeps its loop on the device rather than on the sample, in `Player/LoopModulators`, and Simpler only loops forwards, so Renoise's reverse and ping-pong have no equivalent going the other way.
 
-Loops now cross in both directions. Simpler keeps its loop on the device rather than on the sample, in `Player/LoopModulators`, so that is where Paketti writes the loop toggle and how much of the pad's region the loop covers. Exporting a Wipe&Sliced Amen with slice looping on gives 128 pads that all loop in Live; importing it back gives 128 Renoise slices that all loop, with the loop extent preserved to within a frame.
-
-Simpler in Classic mode only loops forwards, so Renoise's reverse and ping-pong slices arrive in Live as ordinary forward loops. That is a limit of the destination, not of the conversion.
+Export does **not** write loops. Handing Live a `LoopModulators` block — in any shape tried, minimal or complete — made it show every pad as "Multisample Mode" with no waveform and no Start / Loop / Length controls. Live reconstructs those parameters itself and objects to being given them, so Paketti leaves the block out. Renoise slice loops therefore do not reach Live yet.
 
 Import also no longer loses the first slice. Renoise's own slicer puts its first marker at frame 1, and Paketti had been skipping any marker there, so a 128-pad rack came back as 127 slices. It now comes back as 128.
+
+### 2026-09-02 - Fix: Exported Pads Showed As "Multisample Mode"
+
+Two things in the generated XML were wrong, both found by diffing an exported Simpler against a Live-authored one rather than by reasoning about symptoms.
+
+`Globals/IsSimpler` was missing entirely. Every `OriginalSimpler` in a real rack carries it as true and every `MultiSampler` as false; left out, Live defaults it to false and draws the Sampler's panel.
+
+Live's `Id` attributes are positional, not globally unique — `OriginalSimpler`, `MultiSamplePart`, `AutomationTarget` and `ModulationTarget` are always `Id="0"`, and only `DrumBranchPreset` counts 0…N−1 as an index into its collection. Paketti had been handing out globally increasing numbers reaching into the thousands.
+
+The device also now writes its full `ViewSettings` block and the rest of `Player` (`Reverse`, `Snap`, `SampleSelector`).
 
 ### 2026-09-02 - Fix: Drum Rack Export No Longer Drops Slices Past The 92nd
 

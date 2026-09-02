@@ -139,6 +139,10 @@ links: [fileformats]
   from: agent
 - [ ] Import the audio clips in a Live Set that has no sampler device {#ableton-audio-clips}
   from: agent
+- [!] Send Renoise slice loops out to Live {#ableton-export-loops}
+  tech: any Player/LoopModulators block makes Live render the pad as "Multisample Mode"; find the accepted shape with a one-load bisect rack (one pad per variant) rather than by guessing
+  by: claude
+  from: agent
 
 ## decisions
 
