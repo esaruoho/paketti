@@ -935,7 +935,7 @@ local function build_sample_part(o, next_id)
 <VelocityRange><Min Value="%d" /><Max Value="%d" /><CrossfadeMin Value="%d" /><CrossfadeMax Value="%d" /></VelocityRange>
 <SelectorRange><Min Value="0" /><Max Value="127" /><CrossfadeMin Value="0" /><CrossfadeMax Value="127" /></SelectorRange>
 <RootKey Value="%d" />
-<Detune Value="0" />
+<Detune Value="%d" />
 <TuneScale Value="100" />
 <Panorama Value="0" />
 <Volume Value="1" />
@@ -975,7 +975,7 @@ local function build_sample_part(o, next_id)
     o.part_id or 0, has_slices, xml_escape(o.name),
     o.key_min, o.key_max, o.key_min, o.key_max,
     o.vel_min, o.vel_max, o.vel_min, o.vel_max,
-    o.root_key,
+    o.root_key, o.detune,
     o.sample_start, o.sample_end,
     o.sample_start, o.sample_end,
     o.sample_start, o.sample_end,
@@ -1121,6 +1121,8 @@ local function describe_sample(sample, wav_path, rel_path, key_min, key_max, roo
     sample_start = 0,
     sample_end = buf.number_of_frames - 1,
     key_min = key_min, key_max = key_max, root_key = root,
+    -- Renoise fine_tune spans -127..127 for one semitone either way; Live wants cents
+    detune = math.floor((tonumber(sample.fine_tune) or 0) / 127 * 100 + 0.5),
     -- Live's lowest velocity is 1, Renoise's is 0
     vel_min = 1, vel_max = 127,
     slices = {},
@@ -1169,7 +1171,19 @@ function PakettiAbletonExportSimpler(adv_path)
     return false, "could not write " .. wav_path
   end
 
-  local o = describe_sample(sample, wav_path, "Samples/Imported/" .. wav_name, 0, 127, 60)
+  -- A Simpler preset is the right home for melodic material, so unlike a drum pad
+  -- it keeps the instrument's own mapping: Renoise's note range, and a root note
+  -- taken from base_note less any transpose, since transposing up moves the key at
+  -- which the sample sounds unpitched down. Rooting everything at C3 regardless
+  -- shifted melodic samples by however far base_note sat from 60.
+  local map = sample.sample_mapping
+  local key_min = math.max(0, math.min(127, map.note_range[1]))
+  local key_max = math.max(key_min, math.min(127, map.note_range[2]))
+  local root = math.max(0, math.min(127,
+    (map.base_note or 60) - (tonumber(sample.transpose) or 0)))
+
+  local o = describe_sample(sample, wav_path, "Samples/Imported/" .. wav_name,
+    key_min, key_max, root)
   o.name = base
 
   local rate = sample.sample_buffer.sample_rate
@@ -1243,7 +1257,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
         -- outside its range and the pad is silent. Real racks use 0..127 / root 60
         -- and let ZoneSettings/ReceivingNote carry the pad's identity.
         local o = describe_sample(first, wav_path, "Samples/Imported/" .. wav_name,
-          0, 127, DRUM_PAD_SENDING_NOTE)
+          0, 127, DRUM_PAD_SENDING_NOTE - (tonumber(first.transpose) or 0))
         o.name = string.format("%s %02d", base, i)
         o.sample_start = bounds[i] - 1
         o.sample_end = bounds[i + 1] - 2
@@ -1303,7 +1317,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
         local ok = pcall(function() return smp.sample_buffer:save_as(wav_path, "wav") end)
         if ok and io.exists(wav_path) then
           local o = describe_sample(smp, wav_path, "Samples/Imported/" .. wav_name,
-            0, 127, DRUM_PAD_SENDING_NOTE)
+            0, 127, DRUM_PAD_SENDING_NOTE - (tonumber(smp.transpose) or 0))
           if o.name == "" then o.name = nm end
           local vr = smp.sample_mapping.velocity_range
           o.vel_min = math.max(1, vr[1])

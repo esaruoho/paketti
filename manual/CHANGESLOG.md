@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Fix: Melodic Samples Keep Their Root Note And Tuning
+
+Exporting a melodic instrument as a Simpler preset rooted every sample at C3 no matter where it actually sat, so a sample rooted at C-4 in Renoise came out a fourth off across the whole keyboard.
+
+The Simpler preset now takes its key range from the instrument's own note range, and its root note from `base_note` less any transpose — transposing up moves the key at which the sample sounds unpitched down. Fine tune travels too, converted from Renoise's -127…127 to Live's cents.
+
+Drum Rack pads are unaffected in principle: a pad always receives note 60, so its zones stay rooted there — but a transposed sample now offsets that root, so a pitched drum keeps its pitch.
+
+Which export to use: **Simpler (.adv)** for anything melodic, since it stays playable across the keyboard. **Drum Rack (.adg)** for slices and drum kits. A melodic instrument sent to a Drum Rack lands on a single pad and is only playable from that one key.
+
 ### 2026-09-02 - Fix: Drum Rack Export Keeps Your Note Mapping
 
 Renoise lets several samples share one key — eight kicks all on C-0, eight snares on C#0. Export walked the sample list in order and gave each sample its own pad, so those sixteen samples landed on sixteen different keys and the instrument no longer played the way it did in Renoise.

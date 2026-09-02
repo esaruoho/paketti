@@ -434,7 +434,9 @@ Send the selected instrument to Ableton Live, verified loading in Live 12.
 - Keyboard shortcut: `Global:Paketti:Export Instrument as Ableton Simpler`
 - Keyboard shortcut: `Global:Paketti:Export Instrument as Ableton Drum Rack`
 
-**Simpler (.adv)** writes the instrument's first sample. If it has slice markers, the preset opens in Slicing mode with the markers carried across as slice points.
+Use **Simpler (.adv)** for melodic material and **Drum Rack (.adg)** for slices and kits. A melodic instrument exported to a Drum Rack lands on one pad and is only playable from that key.
+
+**Simpler (.adv)** writes the instrument's first sample, keeping its note range, its root note (`base_note` less any transpose) and its fine tune. If it has slice markers, the preset opens in Slicing mode with the markers carried across as slice points.
 
 **Drum Rack (.adg)** writes a sliced instrument as one WAV with a pad per slice — the exact shape Live's own slicing produces — and writes a multi-sample instrument as one WAV and one pad per sample, laid out from C1 upward.
 
