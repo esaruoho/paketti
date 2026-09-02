@@ -913,6 +913,28 @@ local function id_allocator()
   return function() return 0 end
 end
 
+--- Renoise loop mode -> Live Sampler SustainLoop mode, and the loop frames with it.
+--- Real presets only ever show mode 2 in the wild; 1 is the plain forward loop.
+--- Simpler has no reverse loop of any kind, so a reversed Renoise loop travels as
+--- forward and the direction is lost.
+local function sustain_loop_from_sample(o, sample)
+  local ok, mode = pcall(function() return sample.loop_mode end)
+  if not ok or mode == nil or mode == renoise.Sample.LOOP_MODE_OFF then return false end
+
+  if mode == renoise.Sample.LOOP_MODE_PING_PONG then
+    o.loop_mode = 2
+  else
+    o.loop_mode = 1
+  end
+
+  local frames = sample.sample_buffer.number_of_frames
+  local a = math.max(0, (tonumber(sample.loop_start) or 1) - 1)
+  local b = math.max(a + 1, (tonumber(sample.loop_end) or frames) - 1)
+  if b > frames - 1 then b = frames - 1 end
+  o.loop_start, o.loop_end = a, b
+  return true
+end
+
 local function build_sample_part(o, next_id)
   local slice_xml = {}
   for i = 1, #o.slices do
@@ -942,7 +964,7 @@ local function build_sample_part(o, next_id)
 <Link Value="false" />
 <SampleStart Value="%d" />
 <SampleEnd Value="%d" />
-<SustainLoop><Start Value="%d" /><End Value="%d" /><Mode Value="0" /><Crossfade Value="0" /><Detune Value="0" /></SustainLoop>
+<SustainLoop><Start Value="%d" /><End Value="%d" /><Mode Value="%d" /><Crossfade Value="0" /><Detune Value="0" /></SustainLoop>
 <ReleaseLoop><Start Value="%d" /><End Value="%d" /><Mode Value="3" /><Crossfade Value="0" /><Detune Value="0" /></ReleaseLoop>
 <SampleRef>
 <FileRef>
@@ -977,7 +999,7 @@ local function build_sample_part(o, next_id)
     o.vel_min, o.vel_max, o.vel_min, o.vel_max,
     o.root_key, o.detune,
     o.sample_start, o.sample_end,
-    o.sample_start, o.sample_end,
+    o.loop_start, o.loop_end, o.loop_mode,
     o.sample_start, o.sample_end,
     xml_escape(o.rel_path), xml_escape(o.abs_path),
     o.file_size, o.frames, o.sample_rate,
@@ -1123,6 +1145,12 @@ local function describe_sample(sample, wav_path, rel_path, key_min, key_max, roo
     key_min = key_min, key_max = key_max, root_key = root,
     -- Renoise fine_tune spans -127..127 for one semitone either way; Live wants cents
     detune = math.floor((tonumber(sample.fine_tune) or 0) / 127 * 100 + 0.5),
+    -- Sampler keeps its loop here, in frames. Simpler does not use SustainLoop at
+    -- all -- its loop lives in Player/LoopModulators, which Live refuses to accept
+    -- from a written preset, so only a MultiSampler can carry a loop out of Paketti.
+    loop_mode = 0,
+    loop_start = 0,
+    loop_end = math.max(0, sample.sample_buffer.number_of_frames - 1),
     -- Live's lowest velocity is 1, Renoise's is 0
     vel_min = 1, vel_max = 127,
     slices = {},
@@ -1193,17 +1221,21 @@ function PakettiAbletonExportSimpler(adv_path)
   end
   local playback_mode = (#o.slices > 0) and 2 or 0
 
+  local looping = sustain_loop_from_sample(o, sample)
+
   local next_id = id_allocator()
   local xml = ABLETON_HEADER ..
-    build_simpler(build_sample_part(o, next_id), playback_mode, next_id,
-      loop_from_sample(sample, sample.sample_buffer.number_of_frames)) ..
+    build_simpler(build_sample_part(o, next_id), playback_mode, next_id, nil,
+      looping and "MultiSampler" or "OriginalSimpler") ..
     "\n</Ableton>\n"
 
   local written, werr = PakettiGzipToFile(adv_path, xml, base .. ".adv")
   if not written then return false, werr end
 
-  return true, string.format("Wrote %s (%s, %d slice%s)",
-    pakettiFSPath.basename(adv_path), wav_name, #o.slices, #o.slices == 1 and "" or "s")
+  return true, string.format("Wrote %s (%s, %d slice%s%s)",
+    pakettiFSPath.basename(adv_path), wav_name, #o.slices,
+    #o.slices == 1 and "" or "s",
+    looping and ", looping - written as a Sampler" or "")
 end
 
 --- Write the selected instrument as a Drum Rack (.adg).
@@ -1319,6 +1351,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
           local o = describe_sample(smp, wav_path, "Samples/Imported/" .. wav_name,
             0, 127, DRUM_PAD_SENDING_NOTE - (tonumber(smp.transpose) or 0))
           if o.name == "" then o.name = nm end
+          sustain_loop_from_sample(o, smp)
           local vr = smp.sample_mapping.velocity_range
           o.vel_min = math.max(1, vr[1])
           o.vel_max = math.max(o.vel_min, vr[2])

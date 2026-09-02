@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: Looping Samples Export As Samplers, With Their Loop
+
+A looping sample now takes its loop to Live. The two Live devices keep loops in different places, and only one of them accepts a written one: Simpler's loop lives in `Player/LoopModulators`, which Live refuses from a generated preset, while Sampler's lives in the sample zone's `SustainLoop`. Every non-zero `SustainLoop` in a real library sits inside a Sampler, never a Simpler.
+
+So an instrument whose sample loops is written as a **Sampler** rather than a Simpler, carrying the loop's start, end and mode. A non-looping sample is still written as a Simpler, with its waveform and Start / Loop / Length controls. Layered Drum Rack pads are already Samplers, so their samples' loops travel too.
+
+Renoise's forward loop maps to Sampler mode 1 and ping-pong to mode 2. Reverse has no equivalent in Live and travels as forward. Drum Rack pads holding a single sample are Simplers and still cannot carry a loop.
+
 ### 2026-09-02 - Fix: Melodic Samples Keep Their Root Note And Tuning
 
 Exporting a melodic instrument as a Simpler preset rooted every sample at C3 no matter where it actually sat, so a sample rooted at C-4 in Renoise came out a fourth off across the whole keyboard.

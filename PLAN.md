@@ -139,9 +139,12 @@ links: [fileformats]
   from: agent
 - [ ] Import the audio clips in a Live Set that has no sampler device {#ableton-audio-clips}
   from: agent
-- [!] Send Renoise slice loops out to Live {#ableton-export-loops}
-  tech: any Player/LoopModulators block makes Live render the pad as "Multisample Mode"; find the accepted shape with a one-load bisect rack (one pad per variant) rather than by guessing
+- [x] Send a looping sample out to Live {#ableton-export-loops}
+  tech: Simpler loops live in Player/LoopModulators, which Live refuses from a written preset; Sampler loops live in MultiSamplePart/SustainLoop and are accepted, so a looping sample exports as a MultiSampler
   by: claude
+  from: agent
+- [ ] Carry loops on single-sample Drum Rack pads {#ableton-simpler-pad-loops}
+  tech: those pads are Simplers, so they need the LoopModulators shape Live will accept; find it with a one-load bisect rack, one variant per pad
   from: agent
 
 ## decisions

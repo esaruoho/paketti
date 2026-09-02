@@ -450,6 +450,8 @@ A Drum Rack pad receives its own note but passes note 60 down its own chain, so 
 
 **Several samples on one key.** Renoise lets samples share a key, and the export keeps that: one pad per Renoise note, laid out from C1 upward. Eight kicks on C-0 and eight snares on C#0 become two pads of eight, not sixteen pads. A pad with one sample is a Simpler; a pad with several is a Sampler with one zone per sample, velocity ranges included.
 
+**Sample loops.** A looping sample is written as a **Sampler** rather than a Simpler, since that is the only Live device that accepts a written loop — its loop start, end and mode travel with it. A non-looping sample stays a Simpler with the familiar waveform view. Renoise's forward loop becomes Sampler mode 1 and ping-pong mode 2; reverse has no Live equivalent and arrives as forward.
+
 **Slice loops.** Importing a Live preset brings its loops across — a looping Simpler pad becomes a looping Renoise slice. Export does not yet write loops: Live shows a pad as "Multisample Mode" with no waveform when it is handed a loop block, so Paketti leaves that to Live. Simpler only loops forwards in any case, so Renoise's reverse and ping-pong have no equivalent there.
 
 **Slice counts.** A Drum Rack holds 128 pads, one per MIDI note. Pads start at C1 where the set fits, which is Live's own convention; a larger set starts lower so it still fits whole, and more than 128 slices is split across several files (`Kit.adg`, `Kit 2.adg`, …). Nothing is dropped — a 256-slice instrument becomes two racks of 128 and 127.
