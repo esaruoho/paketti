@@ -444,6 +444,8 @@ A Drum Rack pad's key is stored inverted in Live's XML — `ReceivingNote` holds
 
 A Drum Rack pad receives its own note but passes note 60 down its own chain, so the sampler inside every pad is keyed across the full range and rooted at C3 — the pad's identity lives in the rack, not in the sampler. Writing the pad's note into the sampler instead makes the pad load, show its waveform, and stay silent.
 
+**Slice counts.** A Drum Rack holds 128 pads, one per MIDI note. Pads start at C1 where the set fits, which is Live's own convention; a larger set starts lower so it still fits whole, and more than 128 slices is split across several files (`Kit.adg`, `Kit 2.adg`, …). Nothing is dropped — a 256-slice instrument becomes two racks of 128 and 127.
+
 **One difference Renoise cannot express.** A Live pad has an independent start *and* end, so its regions can have gaps between them. Renoise slices are contiguous — each one runs to the next marker. A rack with gaps therefore comes back with those gaps filled, and exporting it again keeps the filled version.
 
 #### Export PTI

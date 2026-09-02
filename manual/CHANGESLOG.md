@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Fix: Drum Rack Export No Longer Drops Slices Past The 92nd
+
+A Drum Rack has 128 pads, one per MIDI note, so a rack that starts its pads at C1 only has room for 92 of them. Export was laying pads out from C1 and discarding every slice that ran past MIDI note 127 — a 128-slice instrument silently arrived in Live as 92 pads with 36 slices missing, and nothing said so.
+
+Export now makes room instead of dropping: when a set does not fit from C1 the first pad moves down far enough that it does, and anything past 128 pads is split across further files (`Kit.adg`, `Kit 2.adg`, …) the way Live does when you slice more than one rack's worth. The status line names each file, its pad count and its starting note.
+
+A 128-slice instrument now exports whole. A 256-slice one becomes two racks of 128 and 127.
+
 ### 2026-09-02 - Fix: Ableton Drum Rack Pads Land On The Right Keys
 
 Live stores a Drum Rack pad's key inverted: `ZoneSettings/ReceivingNote` holds 128 minus the MIDI note, so the standard C1 pad (36) is written as 92. Checked across a whole library of real racks -- every one of them tops out at 92, an eight-pad kit reads 92 down to 85, a twenty-four pad slice rack 92 down to 69.

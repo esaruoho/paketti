@@ -821,6 +821,13 @@ renoise.tool():add_keybinding{
 -- Every Drum Rack pad translates its incoming note to this one before handing it
 -- to the sampler in its chain; it is written as ZoneSettings/SendingNote and is
 -- what the pad's MultiSamplePart must be keyed and rooted to.
+--- Live names middle C (MIDI 60) as C3, so MIDI 36 reads as C1 on its pads.
+local ABLETON_NOTE_NAMES = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"}
+
+function PakettiAbletonNoteName(note)
+  return ABLETON_NOTE_NAMES[(note % 12) + 1] .. tostring(math.floor(note / 12) - 2)
+end
+
 local DRUM_PAD_SENDING_NOTE = 60
 
 -- C1: where Live lays out the first pad of a Drum Rack, including the racks its
@@ -1079,9 +1086,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 
     for i = 1, #bounds - 1 do
       if yield_fn then yield_fn() end
-      -- C1, the note Live's own Drum Racks start their pads on
-      local note = DRUM_PAD_FIRST_NOTE + i - 1
-      if note <= 127 then
+      do
         -- A Drum Rack pad receives its own note but SENDS note 60 into its chain,
         -- so the Simpler inside is always played at C3 no matter which pad it is.
         -- Keying the sampler to the pad's note therefore puts the incoming note
@@ -1092,7 +1097,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
         o.name = string.format("%s %02d", base, i)
         o.sample_start = bounds[i] - 1
         o.sample_end = bounds[i + 1] - 2
-        pads[#pads + 1] = { note = note, part = o }
+        pads[#pads + 1] = { part = o }
       end
     end
   else
@@ -1101,9 +1106,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       status_fn(string.format("Writing sample %d of %d...", i, #instrument.samples))
       if yield_fn then yield_fn() end
       local s = instrument.samples[i]
-      -- C1, the note Live's own Drum Racks start their pads on
-      local note = DRUM_PAD_FIRST_NOTE + i - 1
-      if s.sample_buffer.has_sample_data and note <= 127 then
+      if s.sample_buffer.has_sample_data then
         local nm = pakettiFSPath.sanitize_filename(
           (s.name ~= "" and s.name) or (base .. "_" .. i), base .. "_" .. i)
         local wav_name = string.format("%s_%02d_%s.wav", base, i, nm)
@@ -1114,7 +1117,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
           local o = describe_sample(s, wav_path, "Samples/Imported/" .. wav_name,
             0, 127, DRUM_PAD_SENDING_NOTE)
           if o.name == "" then o.name = nm end
-          pads[#pads + 1] = { note = note, part = o }
+          pads[#pads + 1] = { part = o }
         end
       end
     end
@@ -1124,13 +1127,44 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
     return false, "nothing to export: no sample in the instrument holds audio"
   end
 
-  local next_id = id_allocator()
-  local branches = {}
-  for i = 1, #pads do
-    status_fn(string.format("Building pad %d of %d...", i, #pads))
-    if yield_fn then yield_fn() end
-    local pad = pads[i]
-    branches[#branches + 1] = string.format([[
+  -- A Drum Rack has 128 pads, one per MIDI note, so a rack starting at C1 only has
+  -- room for 92 of them. Rather than dropping the rest, drop the starting note far
+  -- enough to fit the set, and split anything past 128 across further files -- the
+  -- same thing Live does when you slice more than one rack's worth.
+  local MAX_PADS = 128
+  local groups = {}
+  for i = 1, #pads, MAX_PADS do
+    local g = {}
+    for j = i, math.min(i + MAX_PADS - 1, #pads) do g[#g + 1] = pads[j] end
+    groups[#groups + 1] = g
+  end
+
+  local report = {}
+
+  for gi = 1, #groups do
+    local group = groups[gi]
+
+    local first_note = DRUM_PAD_FIRST_NOTE
+    if first_note + #group - 1 > 127 then first_note = 128 - #group end
+    if first_note < 0 then first_note = 0 end
+
+    local rack_name = base
+    local out_path = adg_path
+    if #groups > 1 then
+      rack_name = string.format("%s %d", base, gi)
+      if gi > 1 then
+        out_path = adg_path:gsub("%.adg$", "") .. string.format(" %d.adg", gi)
+      end
+    end
+
+    local next_id = id_allocator()
+    local branches = {}
+    for i = 1, #group do
+      status_fn(string.format("Building pad %d of %d...", i, #group))
+      if yield_fn then yield_fn() end
+      local pad = group[i]
+      local note = first_note + i - 1
+      branches[#branches + 1] = string.format([[
 <DrumBranchPreset Id="%d">
 <Name Value="%s" />
 <IsSoloed Value="false" />
@@ -1149,12 +1183,12 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 <SourceContext />
 <ZoneSettings><ReceivingNote Value="%d" /><SendingNote Value="60" /><ChokeGroup Value="0" /></ZoneSettings>
 </DrumBranchPreset>]],
-      next_id(), xml_escape(pad.part.name), next_id(),
-      build_simpler(build_sample_part(pad.part, next_id), 0, next_id),
-      PakettiAbletonPadNoteToXML(pad.note))
-  end
+        next_id(), xml_escape(pad.part.name), next_id(),
+        build_simpler(build_sample_part(pad.part, next_id), 0, next_id),
+        PakettiAbletonPadNoteToXML(note))
+    end
 
-  local xml = ABLETON_HEADER .. string.format([[
+    local xml = ABLETON_HEADER .. string.format([[
 <GroupDevicePreset>
 <OverwriteProtectionNumber Value="2817" />
 <Device>
@@ -1190,13 +1224,18 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 <BranchPresets>%s</BranchPresets>
 </GroupDevicePreset>
 </Ableton>
-]], next_id(), next_id(), xml_escape(base), table.concat(branches))
+]], next_id(), next_id(), xml_escape(rack_name), table.concat(branches))
 
-  local written, werr = PakettiGzipToFile(adg_path, xml, base .. ".adg")
-  if not written then return false, werr end
+    local wrote, werr = PakettiGzipToFile(out_path, xml,
+      pakettiFSPath.basename(out_path))
+    if not wrote then return false, werr end
 
-  return true, string.format("Wrote %s (%d pad%s)",
-    pakettiFSPath.basename(adg_path), #pads, #pads == 1 and "" or "s")
+    report[#report + 1] = string.format("%s (%d pads from %s)",
+      pakettiFSPath.basename(out_path), #group,
+      PakettiAbletonNoteName(first_note))
+  end
+
+  return true, "Wrote " .. table.concat(report, " + ")
 end
 
 --- Drum Rack export writes one WAV per pad, so a large instrument is slow enough
