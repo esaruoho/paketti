@@ -822,6 +822,11 @@ renoise.tool():add_keybinding{
 -- is the layout Live itself uses for imported media, so RelativePathType is 1.
 --------------------------------------------------------------------------------
 
+-- Every Drum Rack pad translates its incoming note to this one before handing it
+-- to the sampler in its chain; it is written as ZoneSettings/SendingNote and is
+-- what the pad's MultiSamplePart must be keyed and rooted to.
+local DRUM_PAD_SENDING_NOTE = 60
+
 local function xml_escape(s)
   s = tostring(s or "")
   s = s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub('"', "&quot;")
@@ -1076,8 +1081,13 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       if yield_fn then yield_fn() end
       local note = 35 + i
       if note <= 127 then
+        -- A Drum Rack pad receives its own note but SENDS note 60 into its chain,
+        -- so the Simpler inside is always played at C3 no matter which pad it is.
+        -- Keying the sampler to the pad's note therefore puts the incoming note
+        -- outside its range and the pad is silent. Real racks use 0..127 / root 60
+        -- and let ZoneSettings/ReceivingNote carry the pad's identity.
         local o = describe_sample(first, wav_path, "Samples/Imported/" .. wav_name,
-          note, note, note)
+          0, 127, DRUM_PAD_SENDING_NOTE)
         o.name = string.format("%s %02d", base, i)
         o.sample_start = bounds[i] - 1
         o.sample_end = bounds[i + 1] - 2
@@ -1100,7 +1110,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
         local ok = pcall(function() return s.sample_buffer:save_as(wav_path, "wav") end)
         if ok and io.exists(wav_path) then
           local o = describe_sample(s, wav_path, "Samples/Imported/" .. wav_name,
-            note, note, note)
+            0, 127, DRUM_PAD_SENDING_NOTE)
           if o.name == "" then o.name = nm end
           pads[#pads + 1] = { note = note, part = o }
         end

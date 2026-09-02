@@ -440,6 +440,8 @@ Send the selected instrument to Ableton Live, verified loading in Live 12.
 
 Both write the audio into a `Samples/Imported/` folder beside the preset, which is the layout Live uses for imported media. Keep the preset and that folder together when you move them.
 
+A Drum Rack pad receives its own note but passes note 60 down its own chain, so the sampler inside every pad is keyed across the full range and rooted at C3 — the pad's identity lives in the rack, not in the sampler. Writing the pad's note into the sampler instead makes the pad load, show its waveform, and stay silent.
+
 **One difference Renoise cannot express.** A Live pad has an independent start *and* end, so its regions can have gaps between them. Renoise slices are contiguous — each one runs to the next marker. A rack with gaps therefore comes back with those gaps filled, and exporting it again keeps the filled version.
 
 #### Export PTI
