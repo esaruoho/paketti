@@ -440,7 +440,9 @@ function PakettiWavCueBuildCueChunk(slice_markers, sample_rate)
   -- Write all slice markers
   for i, marker in ipairs(slice_markers) do
     cue_data = cue_data .. PakettiWavCueWriteU32LE(i)         -- cue ID
-    cue_data = cue_data .. PakettiWavCueWriteU32LE(0)          -- dwPosition
+    -- dwPosition matches dwSampleOffset: with a single data chunk and no playlist
+    -- the two are the same, and readers differ over which one they trust
+    cue_data = cue_data .. PakettiWavCueWriteU32LE(marker)     -- dwPosition
     cue_data = cue_data .. "data"                               -- fccChunk
     cue_data = cue_data .. PakettiWavCueWriteU32LE(0)          -- dwChunkStart
     cue_data = cue_data .. PakettiWavCueWriteU32LE(0)          -- dwBlockStart
@@ -517,104 +519,94 @@ function PakettiWavCueBuildAdtlChunk(sample_name, slice_markers)
   return list_chunk
 end
 
--- Write cue chunks into an existing WAV file
+--[[
+Rebuild a WAV so the Dirtywave M8 will load it.
+
+The M8's WAV parser is strict about what a file may contain, and Paketti's old
+behaviour was to append `cue ` and a `LIST`/`adtl` label block onto the end of
+whatever Renoise had written, producing:
+
+    fmt  ->  data  ->  cue   ->  LIST
+
+The `LIST` at the end is the part the M8 will not take. Comparing against a
+converter whose output is known to load on the M8, the working shape keeps only
+`fmt `, `data` and `cue `, with the cue points carrying dwChunkStart 0,
+dwBlockStart 0, fccChunk "data" and dwSampleOffset as a frame index — all of
+which Paketti already wrote correctly.
+
+So the labels are not dropped, they are moved ahead of the audio:
+
+    fmt  ->  LIST/adtl  ->  data  ->  cue
+
+Everything following `data` is then exactly what the M8 expects, while the label
+block survives for every other tool that reads it. The file is rebuilt in one
+pass from the source's `fmt ` and `data` chunks alone, so anything else Renoise
+may have emitted (INFO metadata, `smpl`, `fact`) is left out rather than trailing
+the audio.
+]]
 function PakettiWavCueWriteCueChunksToWav(wav_path, slice_markers, sample_rate, sample_name)
-  -- Read the entire WAV file
   local f, err = io.open(wav_path, "rb")
   if not f then
     return false, "Could not open WAV file: " .. (err or "")
   end
-  
   local wav_data = f:read("*all")
   f:close()
-  
-  if #wav_data < 44 then
+
+  if not wav_data or #wav_data < 44 then
     return false, "WAV file too small"
   end
-  
-  -- Verify RIFF/WAVE header
-  if wav_data:sub(1,4) ~= "RIFF" or wav_data:sub(9,12) ~= "WAVE" then
+  if wav_data:sub(1, 4) ~= "RIFF" or wav_data:sub(9, 12) ~= "WAVE" then
     return false, "Not a valid RIFF/WAVE file"
   end
-  
-  -- Build cue chunk
+
+  -- Collect the two chunks worth keeping, with their headers intact
+  local fmt_chunk, data_chunk = nil, nil
+  local pos = 13
+  while pos + 8 <= #wav_data do
+    local chunk_id = wav_data:sub(pos, pos + 3)
+    local chunk_size = PakettiWavCueU32LE(wav_data, pos + 4)
+    if chunk_size < 0 or pos + 8 + chunk_size - 1 > #wav_data then
+      break
+    end
+    local whole = wav_data:sub(pos, pos + 8 + chunk_size - 1)
+    if chunk_id == "fmt " then
+      fmt_chunk = whole
+    elseif chunk_id == "data" then
+      -- pad to word alignment here, so nothing after it starts on an odd byte
+      if (chunk_size % 2) == 1 then whole = whole .. string.char(0) end
+      data_chunk = whole
+    end
+    pos = pos + 8 + chunk_size
+    if (chunk_size % 2) == 1 then pos = pos + 1 end
+  end
+
+  if not fmt_chunk then return false, "WAV file has no fmt chunk" end
+  if not data_chunk then return false, "WAV file has no data chunk" end
+
   local cue_chunk = PakettiWavCueBuildCueChunk(slice_markers, sample_rate)
   if not cue_chunk then
     return false, "Failed to build cue chunk"
   end
-  
-  -- Build adtl chunk
   local adtl_chunk = PakettiWavCueBuildAdtlChunk(sample_name, slice_markers)
-  
-  -- Find the end of the data chunk to insert our chunks after it
-  local pos = 13  -- Start after "RIFF" header (bytes 1-12: RIFF + size + WAVE)
-  local insert_pos = #wav_data  -- Default: append at end
-  
-  print("  Scanning WAV file for chunks:")
-  print(string.format("    WAV file total size: %d bytes", #wav_data))
-  
-  while pos < #wav_data - 8 do
-    local chunk_id = wav_data:sub(pos, pos+3)
-    local chunk_size = PakettiWavCueU32LE(wav_data, pos+4)
-    
-    print(string.format("    Found chunk '%s' at pos %d, size %d", chunk_id, pos, chunk_size))
-    
-    if chunk_id == "data" then
-      -- Found data chunk - insert after it
-      insert_pos = pos + 8 + chunk_size
-      if (chunk_size % 2) == 1 then
-        insert_pos = insert_pos + 1  -- Account for padding
-        print(string.format("    Data chunk has odd size, adding padding byte"))
-      end
-      print(string.format("    Will insert cue chunks at position %d", insert_pos))
-      break
-    end
-    
-    pos = pos + 8 + chunk_size
-    if (chunk_size % 2) == 1 then
-      pos = pos + 1  -- Account for padding
-    end
-  end
-  
-  -- Build new WAV file with cue chunks inserted
-  print(string.format("  Building new WAV file:"))
-  print(string.format("    Original data up to insert point (excluding): %d bytes", insert_pos - 1))
-  print(string.format("    Cue chunk size: %d bytes", #cue_chunk))
-  if adtl_chunk then
-    print(string.format("    ADTL chunk size: %d bytes", #adtl_chunk))
-  end
-  print(string.format("    Discarding %d bytes after insert point (old trailing data)", #wav_data - insert_pos + 1))
-  
-  -- Build new file: original data + our cue chunks (discard any old trailing data)
-  -- Use insert_pos - 1 because insert_pos is the position AFTER the last byte we want
-  local new_wav = wav_data:sub(1, insert_pos - 1)
-  new_wav = new_wav .. cue_chunk
-  if adtl_chunk then
-    new_wav = new_wav .. adtl_chunk
-  end
-  -- DO NOT append old trailing data: new_wav = new_wav .. wav_data:sub(insert_pos + 1)
-  
-  print(string.format("    New WAV file total size: %d bytes (was %d bytes)", #new_wav, #wav_data))
-  
-  -- Update RIFF chunk size (file size - 8)
-  local old_riff_size = PakettiWavCueU32LE(wav_data, 5)
-  local new_size = #new_wav - 8
-  local size_bytes = PakettiWavCueWriteU32LE(new_size)
-  new_wav = new_wav:sub(1, 4) .. size_bytes .. new_wav:sub(9)
-  
-  print(string.format("    Updated RIFF size from %d to %d", old_riff_size, new_size))
-  
-  -- Write the modified WAV file
+
+  local body = fmt_chunk
+  if adtl_chunk then body = body .. adtl_chunk end
+  body = body .. data_chunk .. cue_chunk
+
+  local new_wav = "RIFF" .. PakettiWavCueWriteU32LE(#body + 4) .. "WAVE" .. body
+
+  print(string.format(
+    "  M8-safe WAV layout: fmt(%d) %s data(%d) cue(%d) -- total %d bytes",
+    #fmt_chunk, adtl_chunk and ("LIST(" .. #adtl_chunk .. ")") or "(no labels)",
+    #data_chunk, #cue_chunk, #new_wav))
+
   f, err = io.open(wav_path, "wb")
   if not f then
     return false, "Could not write WAV file: " .. (err or "")
   end
-  
   f:write(new_wav)
   f:close()
-  
-  print(string.format("    Successfully wrote %d bytes to disk", #new_wav))
-  
+
   return true
 end
 

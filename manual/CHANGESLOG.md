@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Improvement: Cue WAV Export Now Loads On The Dirtywave M8
+
+`Export WAV with Embedded CUE Headers` used to append its cue points and its label block onto the end of the file, giving `fmt` -> `data` -> `cue` -> `LIST`. The M8's WAV parser will not accept that trailing `LIST`, so those files did not load on the device.
+
+The file is now rebuilt in one pass as `fmt` -> `LIST` -> `data` -> `cue`. Nothing follows the audio except the cue points, which is the shape the M8 wants, and the labels are kept — they simply sit ahead of the audio instead of behind it. Anything else Renoise had written (INFO metadata, `smpl`, `fact`) is left out rather than trailing the audio. Cue points also carry their position in `dwPosition` as well as `dwSampleOffset`, since readers differ over which one they trust.
+
+Verified round-tripping through Paketti's own cue reader: 25 cue points and 25 labels back out, at the same frame offsets.
+
+- Menu: `Main Menu:File:Export WAV with Embedded CUE Headers...`
+- Menu: `Sample Editor:Paketti:Export:Export WAV with Embedded CUE Headers...`
+- Menu: `Sample Navigator:Paketti:Export WAV with Embedded CUE Headers...`
+
 ### 2026-09-02 - Feature: Ableton Live Import and Export
 
 Paketti reads and writes Ableton Live presets. Drop a `.adv` (Simpler), `.adg` (Drum Rack), `.als` (Live Set) or `.alc` (Live Clip) onto Renoise and it becomes an instrument; send an instrument the other way and Live opens it.
