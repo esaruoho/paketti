@@ -143,8 +143,9 @@ links: [fileformats]
   tech: Simpler loops live in Player/LoopModulators, which Live refuses from a written preset; Sampler loops live in MultiSamplePart/SustainLoop and are accepted, so a looping sample exports as a MultiSampler
   by: claude
   from: agent
-- [ ] Carry loops on single-sample Drum Rack pads {#ableton-simpler-pad-loops}
-  tech: those pads are Simplers, so they need the LoopModulators shape Live will accept; find it with a one-load bisect rack, one variant per pad
+- [x] Carry loops on single-sample Drum Rack pads {#ableton-simpler-pad-loops}
+  tech: solved by writing a looping pad as a MultiSampler with SustainLoop instead of a Simpler; the LoopModulators shape Live accepts is still unknown and would only be needed to keep the Simpler waveform view on a looping pad
+  by: claude
   from: agent
 
 ## decisions

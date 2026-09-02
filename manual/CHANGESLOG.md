@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: Sliced Instruments Export Their Slice Loops
+
+Wipe&Slice can put a loop on every slice, and those loops now reach Live. A pad whose slice loops is written as a Sampler carrying the loop's start, end and mode in frames of the whole file; a pad whose slice does not loop stays a Simpler with the waveform view.
+
+That split is forced by Live, not chosen: Simpler keeps its loop in `Player/LoopModulators`, which Live refuses from a written preset, and Sampler keeps it in the zone's `SustainLoop`, which Live accepts. A Sampler pad shows Live's Sampler panel rather than the Simpler waveform — the price of the loop travelling at all. Slice without looping and you keep the waveform view.
+
+A 128-slice looping Amen exports as 128 Sampler pads, each with its slice region and its loop inside that region.
+
 ### 2026-09-02 - Feature: Looping Samples Export As Samplers, With Their Loop
 
 A looping sample now takes its loop to Live. The two Live devices keep loops in different places, and only one of them accepts a written one: Simpler's loop lives in `Player/LoopModulators`, which Live refuses from a generated preset, while Sampler's lives in the sample zone's `SustainLoop`. Every non-zero `SustainLoop` in a real library sits inside a Sampler, never a Simpler.

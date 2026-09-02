@@ -1102,29 +1102,6 @@ local ABLETON_HEADER =
   'Creator="Paketti" Revision="">\n'
 
 --- Gather what one Renoise sample contributes to a preset.
---- Turn one Renoise sample's loop into Simpler terms. Renoise offers off, forward,
---- reverse and ping-pong; Simpler in Classic mode has a plain forward loop and
---- nothing else, so the three looping modes all arrive as "looping" and only the
---- extent survives. Returns nil when the sample does not loop.
-local function loop_from_sample(sample, region_frames)
-  if not sample then return nil end
-  local ok, mode = pcall(function() return sample.loop_mode end)
-  if not ok or mode == nil or mode == renoise.Sample.LOOP_MODE_OFF then return nil end
-
-  local length = 1.0
-  local ok2 = pcall(function()
-    local a, b = sample.loop_start, sample.loop_end
-    if region_frames and region_frames > 0 and b > a then
-      length = (b - a) / region_frames
-    end
-  end)
-  if not ok2 then length = 1.0 end
-  if length > 1 then length = 1 end
-  if length <= 0 then length = 1 end
-
-  return { on = true, length = length }
-end
-
 local function describe_sample(sample, wav_path, rel_path, key_min, key_max, root)
   local buf = sample.sample_buffer
   local size = 0
@@ -1293,12 +1270,27 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
         o.name = string.format("%s %02d", base, i)
         o.sample_start = bounds[i] - 1
         o.sample_end = bounds[i + 1] - 2
-        -- slice i lives at samples[i + 1]; samples[1] is the parent buffer
+        -- slice i lives at samples[i + 1]; samples[1] is the parent buffer.
+        --
+        -- A slice that loops has to go out as a Sampler: Simpler keeps its loop in
+        -- Player/LoopModulators, which Live refuses from a written preset, while
+        -- Sampler keeps it in the zone's SustainLoop, which Live accepts. The cost
+        -- is that such a pad shows Live's Sampler panel instead of the Simpler
+        -- waveform, so pads whose slice does not loop stay Simplers.
         local slice_sample = instrument.samples[i + 1]
-        pads[#pads + 1] = {
-          parts = { o },
-          loop = loop_from_sample(slice_sample, bounds[i + 1] - bounds[i]),
-        }
+        local looping = false
+        if slice_sample then
+          looping = sustain_loop_from_sample(o, slice_sample)
+          -- SustainLoop is measured in frames of the whole file, like SampleStart
+          if looping then
+            o.loop_start = o.sample_start + o.loop_start
+            o.loop_end = math.min(o.sample_end, o.sample_start + o.loop_end)
+            if o.loop_end <= o.loop_start then
+              o.loop_start, o.loop_end = o.sample_start, o.sample_end
+            end
+          end
+        end
+        pads[#pads + 1] = { parts = { o }, looping = looping }
       end
     end
   else
@@ -1338,6 +1330,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       if yield_fn then yield_fn() end
 
       local parts = {}
+      local group_loops = false
       for si = 1, #group.samples do
         local smp = group.samples[si]
         local nm = pakettiFSPath.sanitize_filename(
@@ -1351,7 +1344,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
           local o = describe_sample(smp, wav_path, "Samples/Imported/" .. wav_name,
             0, 127, DRUM_PAD_SENDING_NOTE - (tonumber(smp.transpose) or 0))
           if o.name == "" then o.name = nm end
-          sustain_loop_from_sample(o, smp)
+          if sustain_loop_from_sample(o, smp) then group_loops = true end
           local vr = smp.sample_mapping.velocity_range
           o.vel_min = math.max(1, vr[1])
           o.vel_max = math.max(o.vel_min, vr[2])
@@ -1360,13 +1353,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       end
 
       if #parts > 0 then
-        pads[#pads + 1] = {
-          parts = parts,
-          loop = (#parts == 1)
-            and loop_from_sample(group.samples[1],
-                  group.samples[1].sample_buffer.number_of_frames)
-            or nil,
-        }
+        pads[#pads + 1] = { parts = parts, looping = group_loops }
       end
     end
   end
@@ -1440,8 +1427,8 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 <ZoneSettings><ReceivingNote Value="%d" /><SendingNote Value="60" /><ChokeGroup Value="0" /></ZoneSettings>
 </DrumBranchPreset>]],
         i - 1, xml_escape(pad.parts[1].name), 0,
-        build_simpler(pad_parts_xml(pad, next_id), 0, next_id, pad.loop,
-          (#pad.parts > 1) and "MultiSampler" or "OriginalSimpler"),
+        build_simpler(pad_parts_xml(pad, next_id), 0, next_id, nil,
+          (#pad.parts > 1 or pad.looping) and "MultiSampler" or "OriginalSimpler"),
         PakettiAbletonPadNoteToXML(note))
     end
 
@@ -1487,9 +1474,14 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       pakettiFSPath.basename(out_path))
     if not wrote then return false, werr end
 
-    report[#report + 1] = string.format("%s (%d pads from %s)",
+    local sampler_pads = 0
+    for i = 1, #group do
+      if #group[i].parts > 1 or group[i].looping then sampler_pads = sampler_pads + 1 end
+    end
+    report[#report + 1] = string.format("%s (%d pads from %s%s)",
       pakettiFSPath.basename(out_path), #group,
-      PakettiAbletonNoteName(first_note))
+      PakettiAbletonNoteName(first_note),
+      sampler_pads > 0 and string.format(", %d as Samplers for their loops", sampler_pads) or "")
   end
 
   return true, "Wrote " .. table.concat(report, " + ")
