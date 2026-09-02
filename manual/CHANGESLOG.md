@@ -8,6 +8,19 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: Teenage Engineering OP-XY Preset Export (.preset.zip)
+
+`Export OP-XY Preset` writes the selected instrument as an OP-XY drum preset — a ZIP holding `patch.json` and one WAV per region, laid out from key 53 where the device's pads begin.
+
+Unlike the Ableton Drum Rack, where every pad points into one shared file, OP-XY wants each region as its own audio file. A sliced Renoise instrument gives its slices — their buffers already view only their own frames, so each writes out as exactly one slice — and any other instrument gives its samples. A looping slice becomes a looping region.
+
+The device takes 24 regions; anything beyond that is dropped and the status line says how many.
+
+- Menu: `Main Menu:File:Paketti Export:OP-XY Preset (.preset.zip)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export OP-XY Preset (.preset.zip)...`
+- Menu: `Sample Editor:Paketti:Export:Export OP-XY Preset (.preset.zip)...`
+- Keyboard shortcut: `Global:Paketti:Export OP-XY Preset`
+
 ### 2026-09-02 - Feature: Ableton Export In The Export Menu, With Batch Modes
 
 The Ableton exports were reachable only from the Tools and Sample Editor menus, not from `Main Menu:File:Paketti Export` where the other format exports live. They are there now, and they gain the same two batch modes SFZ has.

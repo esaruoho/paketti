@@ -472,6 +472,15 @@ Writes a plain-text SFZ beside its WAV — an open format read by sfizz, Sforzan
 
 **Batch SFZ.** `SFZ Export All Instruments in Song` writes one `.sfz` per audio-bearing instrument into a folder you choose. `SFZ Batch Convert Folder` walks a folder of `.xrni`, `.wav`, `.mp3`, `.flac`, `.aif` and `.ogg` — recursing — and writes a `.sfz` beside each. Audio sources are referenced, not copied, so nothing is duplicated; a WAV with CUE points arrives sliced and exports a region per slice.
 
+#### Export Teenage Engineering OP-XY Preset (.preset.zip)
+
+Writes the selected instrument as an OP-XY drum preset: a ZIP with `patch.json` and one WAV per region, from key 53 up. A sliced instrument contributes its slices, one file each; anything else contributes its samples. Looping slices become looping regions. The device takes 24 regions and the rest are dropped, with a count in the status line.
+
+- Menu: `Main Menu:File:Paketti Export:OP-XY Preset (.preset.zip)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export OP-XY Preset (.preset.zip)...`
+- Menu: `Sample Editor:Paketti:Export:Export OP-XY Preset (.preset.zip)...`
+- Keyboard shortcut: `Global:Paketti:Export OP-XY Preset`
+
 #### Export Elektron Digitakt II Preset (.dt2pst)
 
 Writes the selected instrument as a Digitakt II preset — a ZIP containing `manifest.json`, the sample under `Samples/transfers-YYMMDD/`, and a binary preset with one entry per slice. The device takes 64 slices and a twelve-character name of letters, digits and spaces; anything beyond that is trimmed or dropped, and the status line says so.
