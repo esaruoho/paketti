@@ -321,7 +321,7 @@ It _seems_ that the best way would be to split this into smaller pieces by categ
 
 #### Import Ableton Live (.adv / .adg / .als / .alc)
 
-Format notes, for anyone writing their own converter: [`Docs/ABLETON-LIVE-FORMAT.md`](https://github.com/esaruoho/paketti/blob/master/Docs/ABLETON-LIVE-FORMAT.md) documents Live's preset XML — the inverted pad notes, `IsSimpler`, positional `Id`s, `FileRef` roots, and the fields whose wrong values make Live silently misdraw or refuse a preset.
+Format notes, for anyone writing their own converter: [`ableton-live-format.txt`](https://github.com/esaruoho/paketti/blob/master/ableton-live-format.txt) documents Live's preset XML — the inverted pad notes, `IsSimpler`, positional `Id`s, `FileRef` roots, and the fields whose wrong values make Live silently misdraw or refuse a preset.
 
 Ableton Live preset import: `.adv` (Simpler), `.adg` (Drum Rack), `.als` (Live Set) and `.alc` (Live Clip). Drag one onto Renoise, or use the menu.
 
