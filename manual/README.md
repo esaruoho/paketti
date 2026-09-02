@@ -460,6 +460,22 @@ Importing a Live preset brings its loops across — a looping Simpler pad become
 
 **One difference Renoise cannot express.** A Live pad has an independent start *and* end, so its regions can have gaps between them. Renoise slices are contiguous — each one runs to the next marker. A rack with gaps therefore comes back with those gaps filled, and exporting it again keeps the filled version.
 
+#### Export SFZ Mapping (.sfz)
+
+Writes a plain-text SFZ beside its WAV — an open format read by sfizz, Sforzando, Bitwig, Falcon and most free samplers. A sliced instrument gives one WAV and a region per slice using `offset`/`end`; anything else gives one WAV and one region per sample, keeping key range, root note, velocity range, transpose, fine tune and loops.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export SFZ Mapping (.sfz)...`
+- Menu: `Sample Editor:Paketti:Export:Export SFZ Mapping (.sfz)...`
+- Keyboard shortcut: `Global:Paketti:Export SFZ Mapping`
+
+#### Export Elektron Digitakt II Preset (.dt2pst)
+
+Writes the selected instrument as a Digitakt II preset — a ZIP containing `manifest.json`, the sample under `Samples/transfers-YYMMDD/`, and a binary preset with one entry per slice. The device takes 64 slices and a twelve-character name of letters, digits and spaces; anything beyond that is trimmed or dropped, and the status line says so.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export Digitakt II Preset (.dt2pst)...`
+- Menu: `Sample Editor:Paketti:Export:Export Digitakt II Preset (.dt2pst)...`
+- Keyboard shortcut: `Global:Paketti:Export Digitakt II Preset`
+
 #### Export PTI
 
 Polyend Tracker Instrument Export Support

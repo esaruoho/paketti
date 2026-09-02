@@ -488,3 +488,80 @@ function PakettiGzipToFile(path, data, filename)
   f:close()
   return true
 end
+
+--------------------------------------------------------------------------------
+-- PakettiZipWrite — minimal ZIP writer using stored (uncompressed) entries
+--
+-- Same reasoning as the gzip writer above: the ZIP spec's method 0 stores bytes
+-- verbatim and every reader must accept it, so Paketti can produce legal archives
+-- without a compressor. This is what the container-based instrument formats need
+-- — Digitakt II .dt2pst today, OP-XY .preset.zip and .xrni later.
+--
+-- entries is an array of { name = "path/in/zip", data = "..." }, written in order.
+--------------------------------------------------------------------------------
+
+local function zip_u16(v)
+  return string.char(bit.band(v, 0xFF), bit.band(bit.rshift(v, 8), 0xFF))
+end
+
+local function zip_u32(v)
+  -- v may exceed 2^31, so fold it down rather than using bit ops on the top byte
+  local b1 = v % 256; v = math.floor(v / 256)
+  local b2 = v % 256; v = math.floor(v / 256)
+  local b3 = v % 256; v = math.floor(v / 256)
+  return string.char(b1, b2, b3, v % 256)
+end
+
+function PakettiZipWrite(path, entries)
+  if type(entries) ~= "table" or #entries == 0 then
+    return false, "zip: nothing to write"
+  end
+
+  local locals, central = {}, {}
+  local offset = 0
+  -- a fixed timestamp keeps output reproducible: 2025-01-01 00:00:00
+  local mod_time, mod_date = 0, 45 * 512 + 1 * 32 + 1
+
+  for i = 1, #entries do
+    local name = entries[i].name
+    local data = entries[i].data or ""
+    local crc = PakettiCRC32(data)
+    local size = #data
+
+    local header = "PK\3\4"
+      .. zip_u16(20) .. zip_u16(0) .. zip_u16(0)      -- version, flags, method 0
+      .. zip_u16(mod_time) .. zip_u16(mod_date)
+      .. zip_u32(crc) .. zip_u32(size) .. zip_u32(size)
+      .. zip_u16(#name) .. zip_u16(0)
+      .. name
+
+    locals[#locals + 1] = header
+    locals[#locals + 1] = data
+
+    central[#central + 1] = "PK\1\2"
+      .. zip_u16(20) .. zip_u16(20) .. zip_u16(0) .. zip_u16(0)
+      .. zip_u16(mod_time) .. zip_u16(mod_date)
+      .. zip_u32(crc) .. zip_u32(size) .. zip_u32(size)
+      .. zip_u16(#name) .. zip_u16(0) .. zip_u16(0)
+      .. zip_u16(0) .. zip_u16(0) .. zip_u32(0)
+      .. zip_u32(offset)
+      .. name
+
+    offset = offset + #header + size
+  end
+
+  local central_str = table.concat(central)
+  local eocd = "PK\5\6"
+    .. zip_u16(0) .. zip_u16(0)
+    .. zip_u16(#entries) .. zip_u16(#entries)
+    .. zip_u32(#central_str) .. zip_u32(offset)
+    .. zip_u16(0)
+
+  local f = io.open(path, "wb")
+  if not f then return false, "zip: cannot write " .. tostring(path) end
+  f:write(table.concat(locals))
+  f:write(central_str)
+  f:write(eocd)
+  f:close()
+  return true
+end

@@ -1426,6 +1426,8 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiSF2Loader")
   timed_require("PakettiFSPath")
   timed_require("PakettiAbleton")
+  timed_require("PakettiSFZExport")
+  timed_require("PakettiDT2Export")
   timed_require("PakettiEXS24Parser")
   timed_require("PakettiEXS24Loader")
   timed_require("PakettiMODParser")

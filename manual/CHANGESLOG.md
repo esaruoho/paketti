@@ -8,6 +8,28 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: SFZ Export
+
+Paketti could turn SFZ into XRNI; it now goes the other way. `Export SFZ Mapping (.sfz)` writes a plain-text SFZ beside its WAV — an open format read by sfizz, Sforzando, Bitwig, Falcon and most free samplers.
+
+A sliced instrument becomes one WAV with a region per slice, delimited by `offset` and `end`, laid out from C1 up — or lower when a set would not otherwise fit inside 128 notes. Anything else becomes one WAV and one region per sample, keeping each sample's own key range, root note, velocity range, transpose and fine tune. Loops travel in both shapes, including ping-pong as `loop_alternate`.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export SFZ Mapping (.sfz)...`
+- Menu: `Sample Editor:Paketti:Export:Export SFZ Mapping (.sfz)...`
+- Keyboard shortcut: `Global:Paketti:Export SFZ Mapping`
+
+### 2026-09-02 - Feature: Elektron Digitakt II Preset Export (.dt2pst)
+
+`Export Digitakt II Preset (.dt2pst)` writes the selected instrument as a Digitakt II preset: a ZIP holding `manifest.json`, the sample under `Samples/transfers-YYMMDD/`, and a binary preset carrying one entry per slice. Slice positions, the payload name and a CRC-32 of the audio are written where the device expects them.
+
+The device takes 64 slices and a twelve-character name of letters, digits and spaces, so longer names are trimmed and slices past the 64th are dropped — the status line says how many.
+
+This needed a ZIP writer, which Paketti now has (stored entries, no compressor — the same trick as the gzip writer). That also opens the door to OP-XY presets and native `.xrni` handling later.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export Digitakt II Preset (.dt2pst)...`
+- Menu: `Sample Editor:Paketti:Export:Export Digitakt II Preset (.dt2pst)...`
+- Keyboard shortcut: `Global:Paketti:Export Digitakt II Preset`
+
 ### 2026-09-02 - Feature: Sliced Instruments Export Their Slice Loops
 
 Wipe&Slice can put a loop on every slice, and those loops now reach Live. A pad whose slice loops is written as a Sampler carrying the loop's start, end and mode in frames of the whole file; a pad whose slice does not loop stays a Simpler with the waveform view.
