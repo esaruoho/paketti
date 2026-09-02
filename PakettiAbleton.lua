@@ -921,6 +921,9 @@ local function build_sample_part(o, next_id)
   end
   local has_slices = (#o.slices > 0) and "true" or "false"
 
+  -- Id is the zone's index inside its own SampleParts collection, the same
+  -- positional rule DrumBranchPreset follows. Every zone claiming Id 0 makes Live
+  -- refuse the whole preset with "The preset cannot be loaded."
   return string.format([[
 <MultiSamplePart Id="%d" HasImportedSlicePoints="%s" NeedsAnalysisData="false">
 <LomId Value="0" />
@@ -969,7 +972,7 @@ local function build_sample_part(o, next_id)
 <UseDynamicBeatSlices Value="true" />
 <UseDynamicRegionSlices Value="true" />
 </MultiSamplePart>]],
-    next_id(), has_slices, xml_escape(o.name),
+    o.part_id or 0, has_slices, xml_escape(o.name),
     o.key_min, o.key_max, o.key_min, o.key_max,
     o.vel_min, o.vel_max, o.vel_min, o.vel_max,
     o.root_key,
@@ -1364,7 +1367,10 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       local note = first_note + i - 1
       local function pad_parts_xml(p, alloc)
         local xs = {}
-        for k = 1, #p.parts do xs[#xs + 1] = build_sample_part(p.parts[k], alloc) end
+        for k = 1, #p.parts do
+          p.parts[k].part_id = k - 1
+          xs[#xs + 1] = build_sample_part(p.parts[k], alloc)
+        end
         return table.concat(xs)
       end
       branches[#branches + 1] = string.format([[
