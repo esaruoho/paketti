@@ -981,16 +981,36 @@ end
 --- covers, as a fraction). Real presets bear this out — 79 pads across the library
 --- have LoopOn true, and MultiSamplePart/SustainLoop stays Mode 0 on all of them,
 --- because SustainLoop is what the full Sampler uses instead.
-local function build_loop_modulators(loop)
-  if not loop or not loop.on then
-    return "<LoopModulators><IsModulated Value=\"false\" /><LoopOn><Manual Value=\"false\" /></LoopOn></LoopModulators>"
+local function build_loop_modulators(loop, next_id)
+  -- Each of these is a full modulatable parameter in Live, not a bare value.
+  -- Emitting a partial LoopModulators subtree makes Live fall back to showing the
+  -- pad as "Multisample Mode" with no waveform and no Start/Loop/Length controls,
+  -- so the whole block is written the way Live writes it.
+  local function param(name, value)
+    return string.format(
+      "<%s><LomId Value=\"0\" /><Manual Value=\"%s\" />" ..
+      "<MidiControllerRange><Min Value=\"0\" /><Max Value=\"1\" /></MidiControllerRange>" ..
+      "<AutomationTarget Id=\"%d\"><LockEnvelope Value=\"0\" /></AutomationTarget>" ..
+      "<ModulationTarget Id=\"%d\"><LockEnvelope Value=\"0\" /></ModulationTarget></%s>",
+      name, value, next_id(), next_id(), name)
   end
-  return string.format(
-    "<LoopModulators><IsModulated Value=\"false\" />" ..
-    "<LoopOn><Manual Value=\"true\" /></LoopOn>" ..
-    "<LoopLength><Manual Value=\"%s\" /></LoopLength>" ..
-    "<LoopFade><Manual Value=\"0\" /></LoopFade></LoopModulators>",
-    num(loop.length))
+
+  local loop_on = (loop and loop.on) and "true" or "false"
+  local loop_len = (loop and loop.on) and num(loop.length) or "1"
+
+  return table.concat({
+    "<LoopModulators><IsModulated Value=\"false\" />",
+    param("SampleStart", "0"),
+    param("SampleLength", "1"),
+    string.format(
+      "<LoopOn><LomId Value=\"0\" /><Manual Value=\"%s\" />" ..
+      "<AutomationTarget Id=\"%d\"><LockEnvelope Value=\"0\" /></AutomationTarget>" ..
+      "<MidiCCOnOffThresholds><Min Value=\"64\" /><Max Value=\"127\" /></MidiCCOnOffThresholds></LoopOn>",
+      loop_on, next_id()),
+    param("LoopLength", loop_len),
+    param("LoopFade", "0"),
+    "</LoopModulators>",
+  })
 end
 
 local function build_simpler(parts_xml, playback_mode, next_id, loop)
@@ -1022,7 +1042,7 @@ local function build_simpler(parts_xml, playback_mode, next_id, loop)
 <Globals><PlaybackMode Value="%d" /></Globals>
 <SimplerSlicing><PlaybackMode Value="%d" /></SimplerSlicing>
 </OriginalSimpler>]],
-    next_id(), next_id(), next_id(), parts_xml, build_loop_modulators(loop),
+    next_id(), next_id(), next_id(), parts_xml, build_loop_modulators(loop, next_id),
     playback_mode, playback_mode)
 end
 
