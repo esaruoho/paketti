@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Fix: Drum Rack Export Keeps Your Note Mapping
+
+Renoise lets several samples share one key — eight kicks all on C-0, eight snares on C#0. Export walked the sample list in order and gave each sample its own pad, so those sixteen samples landed on sixteen different keys and the instrument no longer played the way it did in Renoise.
+
+Pads are now grouped by note mapping: one pad per Renoise note, laid out from C1 upward. The kicks-and-snares instrument above exports as two pads, eight samples each, instead of sixteen pads.
+
+A pad holding one sample is still a Simpler. A pad holding several becomes a Sampler (`MultiSampler`) with one zone per sample — the only one of the two devices that can hold more than one — and velocity ranges carry across, so a velocity-layered Renoise drum arrives as a velocity-layered Sampler pad rather than everything stacking at once.
+
+Sliced instruments are unaffected; they already made one pad per slice.
+
 ### 2026-09-02 - Improvement: Ableton Import Reads Slice Loops
 
 Importing a Live preset now brings its loops across: a looping Simpler pad becomes a looping Renoise slice. Simpler keeps its loop on the device rather than on the sample, in `Player/LoopModulators`, and Simpler only loops forwards, so Renoise's reverse and ping-pong have no equivalent going the other way.

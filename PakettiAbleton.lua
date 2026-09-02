@@ -929,7 +929,7 @@ local function build_sample_part(o, next_id)
 <IsActive Value="true" />
 <Solo Value="false" />
 <KeyRange><Min Value="%d" /><Max Value="%d" /><CrossfadeMin Value="%d" /><CrossfadeMax Value="%d" /></KeyRange>
-<VelocityRange><Min Value="1" /><Max Value="127" /><CrossfadeMin Value="1" /><CrossfadeMax Value="127" /></VelocityRange>
+<VelocityRange><Min Value="%d" /><Max Value="%d" /><CrossfadeMin Value="%d" /><CrossfadeMax Value="%d" /></VelocityRange>
 <SelectorRange><Min Value="0" /><Max Value="127" /><CrossfadeMin Value="0" /><CrossfadeMax Value="127" /></SelectorRange>
 <RootKey Value="%d" />
 <Detune Value="0" />
@@ -971,6 +971,7 @@ local function build_sample_part(o, next_id)
 </MultiSamplePart>]],
     next_id(), has_slices, xml_escape(o.name),
     o.key_min, o.key_max, o.key_min, o.key_max,
+    o.vel_min, o.vel_max, o.vel_min, o.vel_max,
     o.root_key,
     o.sample_start, o.sample_end,
     o.sample_start, o.sample_end,
@@ -1028,9 +1029,15 @@ local SIMPLER_VIEW_SETTINGS =
   '<VerticalSampleZoom Value="1" /><IsAutoSelectEnabled Value="false" />' ..
   '<SimplerBreakoutVisible Value="false" /></ViewSettings>'
 
-local function build_simpler(parts_xml, playback_mode, next_id, loop)
+--- tag is "OriginalSimpler" for a single sample or "MultiSampler" -- Live's full
+--- Sampler -- when a pad holds several. IsSimpler follows the tag: that flag is
+--- exactly what tells Live which of the two UIs to draw, so a layered pad must
+--- declare itself a Sampler or Live shows an empty Simpler.
+local function build_simpler(parts_xml, playback_mode, next_id, loop, tag)
+  tag = tag or "OriginalSimpler"
+  local is_simpler = (tag == "OriginalSimpler") and "true" or "false"
   return string.format([[
-<OriginalSimpler Id="%d">
+<%s Id="%d">
 <LomId Value="0" />
 <LomIdView Value="0" />
 <IsExpanded Value="true" />
@@ -1055,12 +1062,13 @@ local function build_simpler(parts_xml, playback_mode, next_id, loop)
 %s
 ]] .. SIMPLER_PLAYER_TAIL .. [[
 </Player>
-<Globals><IsSimpler Value="true" /><PlaybackMode Value="%d" /></Globals>
+<Globals><IsSimpler Value="%s" /><PlaybackMode Value="%d" /></Globals>
 ]] .. SIMPLER_VIEW_SETTINGS .. [[
 <SimplerSlicing><PlaybackMode Value="%d" /></SimplerSlicing>
-</OriginalSimpler>]],
-    next_id(), next_id(), next_id(), parts_xml, build_loop_modulators(loop, next_id),
-    playback_mode, playback_mode)
+</%s>]],
+    tag, next_id(), next_id(), next_id(), parts_xml,
+    build_loop_modulators(loop, next_id),
+    is_simpler, playback_mode, playback_mode, tag)
 end
 
 local ABLETON_HEADER =
@@ -1110,6 +1118,8 @@ local function describe_sample(sample, wav_path, rel_path, key_min, key_max, roo
     sample_start = 0,
     sample_end = buf.number_of_frames - 1,
     key_min = key_min, key_max = key_max, root_key = root,
+    -- Live's lowest velocity is 1, Renoise's is 0
+    vel_min = 1, vel_max = 127,
     slices = {},
   }
 end
@@ -1237,33 +1247,76 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
         -- slice i lives at samples[i + 1]; samples[1] is the parent buffer
         local slice_sample = instrument.samples[i + 1]
         pads[#pads + 1] = {
-          part = o,
+          parts = { o },
           loop = loop_from_sample(slice_sample, bounds[i + 1] - bounds[i]),
         }
       end
     end
   else
-    -- multi-sample instrument: one file per sample
+    -- Multi-sample instrument. Renoise lets several samples share one key -- eight
+    -- kicks all on C-0, say -- so pads are grouped by note mapping rather than one
+    -- pad per sample; otherwise those eight kicks land on eight different keys and
+    -- the instrument no longer plays the way it did in Renoise.
+    --
+    -- A pad holding one sample stays a Simpler. A pad holding several becomes a
+    -- MultiSampler (Live's full Sampler) with one zone per sample, which is the
+    -- only device of the two that can hold more than one, and velocity ranges
+    -- carry across so a velocity-layered drum stays velocity-layered.
+    local groups, by_key = {}, {}
     for i = 1, #instrument.samples do
-      status_fn(string.format("Writing sample %d of %d...", i, #instrument.samples))
+      local smp = instrument.samples[i]
+      if smp.sample_buffer.has_sample_data then
+        local map = smp.sample_mapping
+        local lo, hi = map.note_range[1], map.note_range[2]
+        local key = lo .. ":" .. hi
+        local g = by_key[key]
+        if not g then
+          g = { lo = lo, hi = hi, samples = {} }
+          by_key[key] = g
+          groups[#groups + 1] = g
+        end
+        g.samples[#g.samples + 1] = smp
+      end
+    end
+    table.sort(groups, function(a, b)
+      if a.lo ~= b.lo then return a.lo < b.lo end
+      return a.hi < b.hi
+    end)
+
+    for gi = 1, #groups do
+      local group = groups[gi]
+      status_fn(string.format("Writing pad %d of %d...", gi, #groups))
       if yield_fn then yield_fn() end
-      local s = instrument.samples[i]
-      if s.sample_buffer.has_sample_data then
+
+      local parts = {}
+      for si = 1, #group.samples do
+        local smp = group.samples[si]
         local nm = pakettiFSPath.sanitize_filename(
-          (s.name ~= "" and s.name) or (base .. "_" .. i), base .. "_" .. i)
-        local wav_name = string.format("%s_%02d_%s.wav", base, i, nm)
-        wav_name = pakettiFSPath.sanitize_filename(wav_name:gsub("%.wav$", ""), "sample") .. ".wav"
+          (smp.name ~= "" and smp.name) or (base .. "_" .. gi .. "_" .. si),
+          base .. "_" .. gi .. "_" .. si)
+        local wav_name = pakettiFSPath.sanitize_filename(
+          string.format("%s_%02d_%02d_%s", base, gi, si, nm), "sample") .. ".wav"
         local wav_path = pakettiFSPath.join(samples_dir, wav_name)
-        local ok = pcall(function() return s.sample_buffer:save_as(wav_path, "wav") end)
+        local ok = pcall(function() return smp.sample_buffer:save_as(wav_path, "wav") end)
         if ok and io.exists(wav_path) then
-          local o = describe_sample(s, wav_path, "Samples/Imported/" .. wav_name,
+          local o = describe_sample(smp, wav_path, "Samples/Imported/" .. wav_name,
             0, 127, DRUM_PAD_SENDING_NOTE)
           if o.name == "" then o.name = nm end
-          pads[#pads + 1] = {
-            part = o,
-            loop = loop_from_sample(s, s.sample_buffer.number_of_frames),
-          }
+          local vr = smp.sample_mapping.velocity_range
+          o.vel_min = math.max(1, vr[1])
+          o.vel_max = math.max(o.vel_min, vr[2])
+          parts[#parts + 1] = o
         end
+      end
+
+      if #parts > 0 then
+        pads[#pads + 1] = {
+          parts = parts,
+          loop = (#parts == 1)
+            and loop_from_sample(group.samples[1],
+                  group.samples[1].sample_buffer.number_of_frames)
+            or nil,
+        }
       end
     end
   end
@@ -1309,6 +1362,11 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       if yield_fn then yield_fn() end
       local pad = group[i]
       local note = first_note + i - 1
+      local function pad_parts_xml(p, alloc)
+        local xs = {}
+        for k = 1, #p.parts do xs[#xs + 1] = build_sample_part(p.parts[k], alloc) end
+        return table.concat(xs)
+      end
       branches[#branches + 1] = string.format([[
 <DrumBranchPreset Id="%d">
 <Name Value="%s" />
@@ -1328,8 +1386,9 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 <SourceContext />
 <ZoneSettings><ReceivingNote Value="%d" /><SendingNote Value="60" /><ChokeGroup Value="0" /></ZoneSettings>
 </DrumBranchPreset>]],
-        i - 1, xml_escape(pad.part.name), 0,
-        build_simpler(build_sample_part(pad.part, next_id), 0, next_id, pad.loop),
+        i - 1, xml_escape(pad.parts[1].name), 0,
+        build_simpler(pad_parts_xml(pad, next_id), 0, next_id, pad.loop,
+          (#pad.parts > 1) and "MultiSampler" or "OriginalSimpler"),
         PakettiAbletonPadNoteToXML(note))
     end
 
