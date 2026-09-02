@@ -1324,6 +1324,10 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       return a.hi < b.hi
     end)
 
+    -- how many WAVs will actually be written; a single one keeps the plain name
+    local total_samples = 0
+    for gi = 1, #groups do total_samples = total_samples + #groups[gi].samples end
+
     for gi = 1, #groups do
       local group = groups[gi]
       status_fn(string.format("Writing pad %d of %d...", gi, #groups))
@@ -1333,11 +1337,16 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
       local group_loops = false
       for si = 1, #group.samples do
         local smp = group.samples[si]
-        local nm = pakettiFSPath.sanitize_filename(
-          (smp.name ~= "" and smp.name) or (base .. "_" .. gi .. "_" .. si),
-          base .. "_" .. gi .. "_" .. si)
-        local wav_name = pakettiFSPath.sanitize_filename(
-          string.format("%s_%02d_%02d_%s", base, gi, si, nm), "sample") .. ".wav"
+        -- Only distinguish the file when there is something to distinguish it from,
+        -- and never repeat a sample name that already equals the preset name --
+        -- that produced "break_01_01_break.wav" beside "break.adg".
+        local stem = base
+        if total_samples > 1 then
+          stem = string.format("%s_%02d_%02d", base, gi, si)
+          local nm = smp.name
+          if nm ~= "" and nm ~= base then stem = stem .. "_" .. nm end
+        end
+        local wav_name = pakettiFSPath.sanitize_filename(stem, "sample") .. ".wav"
         local wav_path = pakettiFSPath.join(samples_dir, wav_name)
         local ok = pcall(function() return smp.sample_buffer:save_as(wav_path, "wav") end)
         if ok and io.exists(wav_path) then
@@ -1560,3 +1569,211 @@ renoise.tool():add_keybinding{
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Export Instrument as Ableton Drum Rack",
   invoke = function() PakettiAbletonExportDrumRackDialog() end }
+
+--------------------------------------------------------------------------------
+-- Batch exports
+--
+-- Mirrors what PakettiSFZExport does, so the two behave the same way: every
+-- instrument in the song into one folder, or a folder of sources converted in
+-- place. Drum Rack is the batch target because it is the one that carries a
+-- sliced or multi-sampled instrument whole; a melodic single sample is better
+-- served by the single-instrument Simpler export.
+--------------------------------------------------------------------------------
+
+--- Export every audio-bearing instrument in the song as its own Drum Rack.
+function PakettiAbletonExportAllInstrumentsToFolder(folder)
+  local song = renoise.song()
+
+  local usable = {}
+  for i = 1, #song.instruments do
+    local inst = song.instruments[i]
+    for s = 1, #inst.samples do
+      if inst.samples[s].sample_buffer.has_sample_data then
+        usable[#usable + 1] = i
+        break
+      end
+    end
+  end
+
+  if #usable == 0 then
+    renoise.app():show_status("Batch Ableton: no instrument in this song holds audio")
+    return
+  end
+
+  local dialog, vb
+  local original_index = song.selected_instrument_index
+
+  local slicer = ProcessSlicer(function()
+    local done, failed = 0, 0
+    for n, idx in ipairs(usable) do
+      if vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = string.format("Instrument %d of %d...", n, #usable)
+      end
+
+      song.selected_instrument_index = idx
+      local name = song.instruments[idx].name
+      if name == "" then name = string.format("Instrument %02d", idx) end
+      local file = pakettiFSPath.join(folder,
+        pakettiFSPath.sanitize_filename(string.format("%02d %s", idx, name), "instrument") .. ".adg")
+
+      local ran, ok, msg = pcall(function() return PakettiAbletonExportDrumRack(file) end)
+      if ran and ok then
+        done = done + 1
+      else
+        failed = failed + 1
+        print("-- Batch Ableton: FAILED " .. name .. ": " .. tostring(ran and msg or ok))
+      end
+      coroutine.yield()
+    end
+
+    song.selected_instrument_index = original_index
+    if dialog and dialog.visible then dialog:close() end
+
+    local msg = string.format("Batch Ableton: %d Drum Rack%s written to %s",
+      done, done == 1 and "" or "s", folder)
+    if failed > 0 then msg = msg .. string.format(" (%d failed)", failed) end
+    renoise.app():show_status(msg)
+    print("-- " .. msg)
+  end)
+
+  dialog, vb = slicer:create_dialog("Exporting every instrument as a Drum Rack...")
+  slicer:start()
+end
+
+function PakettiAbletonExportAllInstruments()
+  local folder = renoise.app():prompt_for_path("Select a folder for the Drum Racks")
+  if not folder or folder == "" then
+    renoise.app():show_status("Batch Ableton: no folder selected")
+    return
+  end
+  PakettiAbletonExportAllInstrumentsToFolder(folder)
+end
+
+--- Convert a folder of instruments and audio files to Drum Racks, in place.
+function PakettiAbletonBatchConvertFolderPath(folder)
+  local song = renoise.song()
+
+  -- the folder walk is shared with the SFZ exporter, which loads after this file;
+  -- both are loaded by the time a menu entry can fire, but guard it the way
+  -- PakettiBatchExport guards the PTI collector rather than assume
+  if type(rawget(_G, "PakettiSFZCollectSourceFiles")) ~= "function" then
+    renoise.app():show_status("Batch Ableton: the file collector is not available")
+    return
+  end
+
+  local sources = PakettiSFZCollectSourceFiles(folder)
+  if #sources == 0 then
+    renoise.app():show_status("Batch Ableton: no .xrni or audio files found in that folder")
+    return
+  end
+
+  local dialog, vb
+  local original_index = song.selected_instrument_index
+
+  local slicer = ProcessSlicer(function()
+    local done, failed = 0, 0
+    local failures = {}
+
+    for i, path in ipairs(sources) do
+      if vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = string.format("%d/%d  %s", i, #sources,
+          pakettiFSPath.basename(path))
+      end
+
+      local is_xrni = path:lower():match("%.xrni$") ~= nil
+      local base = path:gsub("%.[^.]+$", "")
+
+      local load_ok, load_err = pcall(function()
+        if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then
+          error("maximum of 255 instruments reached")
+        end
+        song.selected_instrument_index = song.selected_instrument_index + 1
+        if is_xrni then
+          renoise.app():load_instrument(path)
+        else
+          pakettiPreferencesDefaultInstrumentLoader()
+          local inst = song.selected_instrument
+          inst.name = pakettiFSPath.basename(base)
+          if not inst.samples[1].sample_buffer:load_from(path) then
+            error("Renoise could not decode this file")
+          end
+          inst.samples[1].name = pakettiFSPath.basename(base)
+        end
+      end)
+
+      if load_ok then
+        local exp_ok, ok, msg = pcall(function()
+          return PakettiAbletonExportDrumRack(base .. ".adg")
+        end)
+        pcall(function()
+          if #song.instruments > 1 then
+            song:delete_instrument_at(song.selected_instrument_index)
+          end
+        end)
+        if exp_ok and ok then
+          done = done + 1
+        else
+          failed = failed + 1
+          failures[#failures + 1] = path .. " (" .. tostring(exp_ok and msg or ok) .. ")"
+        end
+      else
+        failed = failed + 1
+        failures[#failures + 1] = path .. " (" .. tostring(load_err) .. ")"
+        if tostring(load_err):match("maximum of 255") then
+          renoise.app():show_status("Batch Ableton: hit the 255-instrument cap, stopping")
+          break
+        end
+      end
+
+      coroutine.yield()
+    end
+
+    song.selected_instrument_index = math.min(original_index, #song.instruments)
+    if dialog and dialog.visible then dialog:close() end
+
+    local msg = string.format("Batch Ableton: converted %d of %d file%s", done, #sources,
+      #sources == 1 and "" or "s")
+    if failed > 0 then msg = msg .. string.format(" (%d failed)", failed) end
+    renoise.app():show_status(msg)
+    print("-- " .. msg)
+    for _, f in ipairs(failures) do print("   - " .. f) end
+  end)
+
+  dialog, vb = slicer:create_dialog("Converting folder to Ableton Drum Racks...")
+  slicer:start()
+end
+
+function PakettiAbletonBatchConvertFolder()
+  local folder = renoise.app():prompt_for_path(
+    "Select folder to convert to Drum Racks (.xrni, .wav, .mp3, .flac, .aif, .ogg — recurses)")
+  if not folder or folder == "" then
+    renoise.app():show_status("Batch Ableton: no folder selected")
+    return
+  end
+  PakettiAbletonBatchConvertFolderPath(folder)
+end
+
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Ableton Simpler (.adv)...",
+  invoke=function() PakettiAbletonExportSimplerDialog() end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Ableton Drum Rack (.adg)...",
+  invoke=function() PakettiAbletonExportDrumRackDialog() end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Ableton Export All Instruments as Drum Racks...",
+  invoke=function() PakettiAbletonExportAllInstruments() end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Ableton Batch Convert Folder (.xrni/.wav/.mp3/.flac)...",
+  invoke=function() PakettiAbletonBatchConvertFolder() end}
+PakettiAddMenuEntry{name="Disk Browser:Paketti:Import/Export:Ableton Batch Convert Folder...",
+  invoke=function() PakettiAbletonBatchConvertFolder() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Export All Instruments as Drum Racks...",
+  invoke=function() PakettiAbletonExportAllInstruments() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Batch Convert Folder to Drum Racks...",
+  invoke=function() PakettiAbletonBatchConvertFolder() end}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Export All Instruments as Ableton Drum Racks",
+  invoke = function() PakettiAbletonExportAllInstruments() end }
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Ableton Batch Convert Folder",
+  invoke = function() PakettiAbletonBatchConvertFolder() end }
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Export All Instruments as Ableton Drum Racks",
+  invoke = function(message) if message:is_trigger() then PakettiAbletonExportAllInstruments() end end }

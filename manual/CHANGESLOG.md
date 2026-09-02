@@ -8,6 +8,25 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: Ableton Export In The Export Menu, With Batch Modes
+
+The Ableton exports were reachable only from the Tools and Sample Editor menus, not from `Main Menu:File:Paketti Export` where the other format exports live. They are there now, and they gain the same two batch modes SFZ has.
+
+**Ableton Export All Instruments as Drum Racks** writes one `.adg` per audio-bearing instrument into a folder you pick. **Ableton Batch Convert Folder** walks a folder of `.xrni`, `.wav`, `.mp3`, `.flac`, `.aif` and `.ogg`, recursing, and writes a `.adg` beside each source. Both run on a ProcessSlicer with progress and cancel, and restore your selected instrument.
+
+Also fixed: a Drum Rack whose preset name matched its sample name wrote its audio as `break_01_01_break.wav`. A single-sample export now writes plainly named audio, and multi-sample exports stop repeating a sample name that already matches the preset.
+
+- Menu: `Main Menu:File:Paketti Export:Ableton Simpler (.adv)...`
+- Menu: `Main Menu:File:Paketti Export:Ableton Drum Rack (.adg)...`
+- Menu: `Main Menu:File:Paketti Export:Ableton Export All Instruments as Drum Racks...`
+- Menu: `Main Menu:File:Paketti Export:Ableton Batch Convert Folder (.xrni/.wav/.mp3/.flac)...`
+- Menu: `Disk Browser:Paketti:Import/Export:Ableton Batch Convert Folder...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Export All Instruments as Drum Racks...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Batch Convert Folder to Drum Racks...`
+- Keyboard shortcut: `Global:Paketti:Export All Instruments as Ableton Drum Racks`
+- Keyboard shortcut: `Global:Paketti:Ableton Batch Convert Folder`
+- MIDI Mapping: `Paketti:Export All Instruments as Ableton Drum Racks`
+
 ### 2026-09-02 - Feature: SFZ Batch Exports, And SFZ/Digitakt II In The Export Menu
 
 Both new exporters now sit in `Main Menu:File:Paketti Export` alongside the Octatrack and Polyend entries, and SFZ gains two batch modes.

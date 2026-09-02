@@ -456,6 +456,8 @@ A Drum Rack pad receives its own note but passes note 60 down its own chain, so 
 
 Importing a Live preset brings its loops across — a looping Simpler pad becomes a looping Renoise slice. Export does not yet write loops: Live shows a pad as "Multisample Mode" with no waveform when it is handed a loop block, so Paketti leaves that to Live. Simpler only loops forwards in any case, so Renoise's reverse and ping-pong have no equivalent there.
 
+**Batch Ableton.** `Ableton Export All Instruments as Drum Racks` writes one `.adg` per audio-bearing instrument into a folder you choose. `Ableton Batch Convert Folder` walks a folder of `.xrni`, `.wav`, `.mp3`, `.flac`, `.aif` and `.ogg` — recursing — and writes a `.adg` beside each source. Both are in `Main Menu:File:Paketti Export`.
+
 **Slice counts.** A Drum Rack holds 128 pads, one per MIDI note. Pads start at C1 where the set fits, which is Live's own convention; a larger set starts lower so it still fits whole, and more than 128 slices is split across several files (`Kit.adg`, `Kit 2.adg`, …). Nothing is dropped — a 256-slice instrument becomes two racks of 128 and 127.
 
 **One difference Renoise cannot express.** A Live pad has an independent start *and* end, so its regions can have gaps between them. Renoise slices are contiguous — each one runs to the next marker. A rack with gaps therefore comes back with those gaps filled, and exporting it again keeps the filled version.
