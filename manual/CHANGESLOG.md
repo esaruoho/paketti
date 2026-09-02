@@ -8,6 +8,21 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: OP-1 Drum Kit And Apple Loops Export
+
+Two formats that needed real audio-container writers rather than a sidecar.
+
+**OP-1 drum kit (.aif)** — an AIFF carrying the OP-1's `APPL` metadata chunk, with slice positions in its `start` and `end` arrays, up to 24 pads. The export reports when a kit runs past the roughly 20 seconds of stereo or 12 of mono the device holds.
+
+**Apple Loop (.caf)** — Core Audio Format with the two UUID chunks Logic Pro and GarageBand look for: loop metadata (tempo taken from your song, beat count, time signature, category) and beat markers, which is where slice positions go. Drop it into Logic or GarageBand and it behaves as a loop rather than a plain file. Apple Loops are 44.1 kHz only, and the export says so instead of writing something Logic refuses.
+
+Both are big-endian formats, and both let Renoise render the audio and then flip it — one pattern substitution over the PCM rather than a million-iteration Lua loop, which keeps a multi-second kit instant.
+
+- Menu: `Main Menu:File:Paketti Export:OP-1 Drum Kit (.aif)...`
+- Menu: `Main Menu:File:Paketti Export:Apple Loop (.caf)...`
+- Also under `Main Menu:Tools:Paketti:Instruments:File Formats:` and `Sample Editor:Paketti:Export:`
+- Keyboard shortcuts: `Global:Paketti:Export OP-1 Drum Kit`, `Global:Paketti:Export Apple Loop`
+
 ### 2026-09-02 - Feature: Akai MPC, Decent Sampler And Elektron Multi-Sample Export
 
 Three more targets, all sidecar-plus-audio, all writing regions from a sliced instrument.
