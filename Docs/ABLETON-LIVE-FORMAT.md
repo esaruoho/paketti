@@ -1,0 +1,215 @@
+# Ableton Live preset formats — `.adv`, `.adg`, `.als`
+
+Reverse-engineering notes for Live 11 / Live 12 preset files, written while building
+Ableton import/export into [Paketti](https://github.com/esaruoho/paketti) for Renoise
+(`PakettiAbleton.lua`, `PakettiDeflate.lua`).
+
+Everything here was verified against Live-authored files on disk, or by control
+experiment — deliberately breaking one field and confirming Live's reaction. None of
+it comes from documentation, and several of the facts contradict what a reasonable
+person would assume. Where a wrong value produces a *plausible but broken* file, the
+symptom is given, because these fail in confusing ways rather than loudly.
+
+Corrections and additions welcome.
+
+---
+
+## 1. The container
+
+`.adv` (a single device), `.adg` (a device group — a Drum Rack is one), `.als` (a Live
+Set) and `.alc` (a Live Clip) are **gzipped XML**.
+
+Live 12 sometimes writes **plain, uncompressed XML** instead — 8 of 1,434 files in one
+real library, all Max devices. A reader must accept both: sniff for the `1f 8b` gzip
+magic, otherwise look for `<Ableton`.
+
+For writing, note that DEFLATE's **stored** block type (BTYPE=00) carries bytes
+verbatim, and every conforming gzip reader — Live included — must accept it. That
+means a writer needs no compressor at all, only correct framing plus a CRC-32. Files
+are larger; Live does not care.
+
+## 2. Document shapes
+
+```
+.adv   Ableton/OriginalSimpler                     a bare device, no wrapper element
+
+.adg   Ableton/GroupDevicePreset/
+         Device/DrumGroupDevice                    the rack itself
+         BranchPresets/DrumBranchPreset            one per pad
+           ZoneSettings/ReceivingNote
+           DevicePresets/AbletonDevicePreset/Device/OriginalSimpler
+
+.als   Ableton/LiveSet/Tracks/...                  uses DrumBranch, not DrumBranchPreset
+```
+
+Both sampler devices share a layout:
+
+```
+<OriginalSimpler|MultiSampler>
+  Player/MultiSampleMap/SampleParts/MultiSamplePart
+    SampleRef/FileRef/{Path,RelativePath,RelativePathType,Type}
+    SampleStart, SampleEnd          frame offsets into the file
+    KeyRange, VelocityRange, RootKey, Detune
+    SlicePoints/SlicePoint          TimeInSeconds, from Live's onset analysis
+    ManualSlicePoints/SlicePoint    TimeInSeconds, placed by hand
+  Player/LoopModulators             see §7
+  Globals/IsSimpler                 see §5
+  Globals/PlaybackMode              0 Classic, 1 One-Shot, 2 Slicing
+```
+
+When harvesting samples, scope the search to `MultiSamplePart`. A Drum Rack also
+contains `SampleRef` elements for reverb impulse responses under
+`Hybrid/ImpulseResponseHandler`, which are not instrument content.
+
+## 3. Drum Rack pad notes are stored INVERTED
+
+`ZoneSettings/ReceivingNote` holds **`128 − midi_note`**, not the note number.
+
+Evidence across a full library: every Drum Rack's highest stored value is exactly 92.
+An 8-pad kit reads 92→85, a 12-pad kit 92→81, a 24-pad slice rack 92→69. All decode to
+consecutive runs beginning at 36 = C1, the standard Drum Rack base pad.
+
+Reading the stored value as a note number causes two symptoms at once, which makes it
+hard to recognise: pads land roughly two octaves high, **and** their order appears
+reversed, because descending stored values are ascending pitches. Applying a "sort the
+pads by note" correction on top of that inverts them properly and makes it worse.
+
+## 4. A pad passes note 60 to its own chain
+
+Every real pad has `ZoneSettings/SendingNote` = 60. The pad receives its own note and
+hands **60** to whatever device sits in its chain.
+
+Therefore a pad's sampler zones must be `KeyRange 0..127` with `RootKey 60`. Key them
+to the pad's own note instead and the incoming 60 matches no zone: **the pad triggers
+visibly, shows its waveform, and is silent.** Real racks universally use 0..127 / 60.
+
+To preserve a transposed sample's pitch on a pad, offset the root instead:
+`RootKey = 60 − transpose_in_semitones`.
+
+## 5. `Globals/IsSimpler` decides which editor Live draws
+
+```
+OriginalSimpler   IsSimpler = true    waveform + Start / Loop / Length controls
+MultiSampler      IsSimpler = false   the "Multisample Mode" panel
+```
+
+Omit the flag and Live defaults it to false, so a correct single-sample Simpler renders
+as an empty multisample panel with no waveform and no controls — while still playing
+audio. Verified across a real rack: every `OriginalSimpler` carries true, every
+`MultiSampler` carries false.
+
+`OriginalSimpler` is single-sample by definition. **A pad holding more than one sample
+must be a `MultiSampler`** with one zone per sample.
+
+## 6. `Id` attributes are POSITIONAL, not globally unique
+
+```
+DrumBranchPreset      0 .. N-1     index within BranchPresets
+AbletonDevicePreset   0 .. N-1     index within its own DevicePresets
+MultiSamplePart       0 .. N-1     index within its own SampleParts
+OriginalSimpler       0
+AutomationTarget      0
+ModulationTarget      0
+Pointee               0
+```
+
+Assigning globally increasing numbers (`OriginalSimpler Id="4"`, `MultiSamplePart
+Id="3"`, …) makes Live mis-resolve the device.
+
+There is a trap here worth stating explicitly: almost every device in a typical library
+holds exactly one zone, so `MultiSamplePart Id="0"` looks like a constant. It is an
+index. Emitting several zones that all claim `Id="0"` makes Live reject the **entire
+file** with *"The preset cannot be loaded."*
+
+## 7. Do not write `Player/LoopModulators`
+
+Writing any `LoopModulators` block — a minimal stub, or a complete one with all five
+parameters in Live's own shape — makes Live render every affected pad as "Multisample
+Mode". Removing the block restores the normal view. Live appears to reconstruct these
+parameters itself and to object to being handed them.
+
+Reading is unaffected: `LoopOn/Manual` and `LoopLength/Manual` are where Simpler keeps
+its loop. Note that Simpler's loop lives on the **device**, whereas
+`MultiSamplePart/SustainLoop` is what the full Sampler uses; in a library of 1,379
+sampler devices, `SustainLoop` was Mode 0 on all but five, while 79 pads carried
+`LoopOn = true`.
+
+## 8. `FileRef` decides whether Live finds the audio
+
+`RelativePathType` names which root `RelativePath` is measured from:
+
+```
+1   the preset file's own folder
+5   a Live Pack root
+6   the User Library root
+7   Live's built-in resources
+```
+
+Audio references always carry `Type="2"`.
+
+Get either wrong and Live opens the preset with its structure fully intact and **every
+sample listed as Missing**. Live resolves through the relative root; it does *not* fall
+back to the absolute `Path`, even when that path is valid.
+
+## 9. Live Pack audio cannot be decoded outside Live
+
+Samples inside a commercial Live Pack are AIFF-C whose `COMM` chunk declares
+`compressionType = "able"` — Ableton's proprietary codec. Nothing else reads them;
+macOS CoreAudio fails on them too. Screen the AIFF header before handing such a file to
+a decoder.
+
+## 10. Slice points
+
+Live 11/12 store slices as:
+
+```xml
+<SlicePoints>
+  <SlicePoint TimeInSeconds="0.000725623582766439924" Rank="0" NormalizedEnergy="1" />
+</SlicePoints>
+<ManualSlicePoints />
+```
+
+`SlicePoints` is Live's onset analysis; `ManualSlicePoints` is user-placed. Prefer
+manual when non-empty. `Globals/PlaybackMode = 2` means Slicing mode.
+
+`InitialSlicePointsFromOnsets` does **not** appear in Live 11/12 files, despite being
+what some third-party converters search for.
+
+A rack produced by Live's *Slice to New MIDI Track* does not use slice points at all:
+it is **N pads all referencing one file**, each playing a distinct
+`SampleStart..SampleEnd` region.
+
+## 11. Limits and conversion notes
+
+- A Drum Rack has **128 pads**, one per MIDI note. Pads starting at C1 leave room for
+  only 92, so assign notes after collecting pads rather than during, and split larger
+  sets across several files.
+- Live's minimum velocity is 1.
+- A Live pad has an independent start *and* end, so regions may have gaps. Formats
+  whose slices are contiguous (Renoise, for one) cannot represent that exactly.
+- Melodic material belongs in `.adv`. A Drum Rack is a grid of one-key pads, so a
+  melodic instrument collapses onto a single pad.
+
+## 12. Working method
+
+Two things that save a great deal of time:
+
+**Diff against a real file rather than reasoning from symptoms.** Extract the element
+paths of the subtree from a Live-authored preset and from your output, and list what
+theirs has that yours lacks. This finds problems like the missing `IsSimpler` in one
+step, where reasoning from the visible symptom produced two confident wrong answers.
+
+**Live tolerates absent elements but not partial ones.** It fills whole missing blocks
+from defaults, which is why a minimal skeleton works at all — but a half-written block
+is worse than no block. Both `FileRef` and `LoopModulators` fail this way.
+
+For an automated "did Live accept it" check, query accessibility: a rejected preset
+leaves extra borderless windows behind.
+
+```bash
+osascript -e 'tell application "System Events" to tell process "Live" to return (count of windows)'
+# 1 = just the Set; more = a dialog is up
+```
+
+Validate that oracle against a deliberately broken control before trusting it. Live's
+`Log.txt` does **not** record preset load failures.
