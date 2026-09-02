@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: Slice Loops Travel Between Renoise And Ableton
+
+Paketti's Wipe&Slice can set a loop on every slice it makes, and until now the Ableton export threw all of it away — every pad arrived in Live non-looping.
+
+Loops now cross in both directions. Simpler keeps its loop on the device rather than on the sample, in `Player/LoopModulators`, so that is where Paketti writes the loop toggle and how much of the pad's region the loop covers. Exporting a Wipe&Sliced Amen with slice looping on gives 128 pads that all loop in Live; importing it back gives 128 Renoise slices that all loop, with the loop extent preserved to within a frame.
+
+Simpler in Classic mode only loops forwards, so Renoise's reverse and ping-pong slices arrive in Live as ordinary forward loops. That is a limit of the destination, not of the conversion.
+
+Import also no longer loses the first slice. Renoise's own slicer puts its first marker at frame 1, and Paketti had been skipping any marker there, so a 128-pad rack came back as 127 slices. It now comes back as 128.
+
 ### 2026-09-02 - Fix: Drum Rack Export No Longer Drops Slices Past The 92nd
 
 A Drum Rack has 128 pads, one per MIDI note, so a rack that starts its pads at C1 only has room for 92 of them. Export was laying pads out from C1 and discarding every slice that ran past MIDI note 127 — a 128-slice instrument silently arrived in Live as 92 pads with 36 slices missing, and nothing said so.

@@ -355,6 +355,17 @@ local function read_sampler_device(dev)
   if not parts_node or not parts_node.children then return {} end
 
   local mode = tonumber(PakettiAbletonValue(PakettiAbletonChild(dev, "Globals") or {}, "PlaybackMode") or "") or 0
+
+  -- Simpler keeps its loop on the device, so it applies to every part of it
+  local loop_on, loop_length = false, 1
+  local mods = PakettiAbletonPath(dev, "Player", "LoopModulators")
+  if mods then
+    local on = PakettiAbletonChild(mods, "LoopOn")
+    if on and PakettiAbletonValue(on, "Manual") == "true" then loop_on = true end
+    local len = PakettiAbletonChild(mods, "LoopLength")
+    local lv = len and tonumber(PakettiAbletonValue(len, "Manual") or "")
+    if lv and lv > 0 and lv <= 1 then loop_length = lv end
+  end
   local out = {}
   for i = 1, #parts_node.children do
     local part = parts_node.children[i]
@@ -362,6 +373,8 @@ local function read_sampler_device(dev)
       local e = read_sample_part(part)
       if e then
         e.playback_mode = mode
+        e.loop_on = loop_on
+        e.loop_length = loop_length
         out[#out + 1] = e
       end
     end
@@ -453,6 +466,29 @@ end
 -- Import into Renoise
 --------------------------------------------------------------------------------
 
+--- Apply a Live pad's loop to a Renoise sample. Simpler only loops forward, so
+--- that is the mode; LoopLength is the fraction of the region the loop covers and
+--- Live loops up to the region end, so the loop starts that fraction back from it.
+local function apply_loop(sample, loop_on, loop_length, region_frames)
+  if not loop_on then return false end
+  local ok = pcall(function()
+    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    local frames = region_frames
+    if not frames or frames <= 0 then
+      frames = sample.sample_buffer.has_sample_data
+        and sample.sample_buffer.number_of_frames or 0
+    end
+    if frames > 1 then
+      local len = math.floor(frames * (loop_length or 1))
+      if len < 1 then len = 1 end
+      if len > frames then len = frames end
+      sample.loop_start = math.max(1, frames - len + 1)
+      sample.loop_end = frames
+    end
+  end)
+  return ok
+end
+
 local function apply_slices(sample, seconds)
   if #seconds == 0 then return 0 end
   local buf = sample.sample_buffer
@@ -465,7 +501,7 @@ local function apply_slices(sample, seconds)
     -- Renoise tops out at 255 slice markers
     if placed >= 255 then break end
     local frame = math.floor(seconds[i] * rate + 0.5) + 1
-    if frame > 1 and frame < frames then
+    if frame >= 1 and frame < frames then
       local ok = pcall(function() sample:insert_slice_marker(frame) end)
       if ok then placed = placed + 1 end
     end
@@ -592,11 +628,13 @@ function PakettiAbletonImportFile(path, opts)
     for i = 1, #resolved do starts[#starts + 1] = resolved[i].sample_start end
     table.sort(starts)
 
+    -- Renoise's own slicer puts its first marker AT frame 1, so a region starting
+    -- at frame 0 in Live must get one too; skipping it turned 128 slices into 127.
     local frames = sample.sample_buffer.number_of_frames
     local placed, last = 0, -1
     for i = 1, #starts do
       local frame = starts[i] + 1
-      if frame > 1 and frame < frames and frame ~= last and placed < 255 then
+      if frame >= 1 and frame < frames and frame ~= last and placed < 255 then
         if pcall(function() sample:insert_slice_marker(frame) end) then
           placed = placed + 1
           last = frame
@@ -604,8 +642,22 @@ function PakettiAbletonImportFile(path, opts)
       end
     end
 
+    -- each pad carried its own loop; slice i of the collapsed sample is samples[i+1]
+    local looped = 0
+    for i = 1, #resolved do
+      local slice = instrument.samples[i + 1]
+      if slice and resolved[i].loop_on then
+        if apply_loop(slice, true, resolved[i].loop_length,
+             slice.sample_buffer.has_sample_data
+               and slice.sample_buffer.number_of_frames or nil) then
+          looped = looped + 1
+        end
+      end
+    end
+
     local msg = string.format("Ableton sliced Drum Rack '%s': %s, %d slices",
       model.name, sample.name, #sample.slice_markers)
+    if looped > 0 then msg = msg .. string.format(", %d looping", looped) end
     if #undecodable > 0 then
       msg = msg .. string.format(", %d skipped (%s)", #undecodable,
         undecodable_reason or "undecodable")
@@ -661,6 +713,11 @@ function PakettiAbletonImportFile(path, opts)
           else
             sample.sample_mapping.note_range = { 0, 119 }
             sample.sample_mapping.velocity_range = { 0, 127 }
+          end
+
+          if entry.loop_on then
+            apply_loop(sample, true, entry.loop_length,
+              sample.sample_buffer.number_of_frames)
           end
 
           -- Live's Slicing mode is the only one where the slice list is playable
@@ -919,7 +976,24 @@ local function build_sample_part(o, next_id)
     table.concat(slice_xml))
 end
 
-local function build_simpler(parts_xml, playback_mode, next_id)
+--- Simpler's loop lives in the device, not in the sample part: Player/LoopModulators
+--- carries LoopOn (the toggle) and LoopLength (how much of the region the loop
+--- covers, as a fraction). Real presets bear this out — 79 pads across the library
+--- have LoopOn true, and MultiSamplePart/SustainLoop stays Mode 0 on all of them,
+--- because SustainLoop is what the full Sampler uses instead.
+local function build_loop_modulators(loop)
+  if not loop or not loop.on then
+    return "<LoopModulators><IsModulated Value=\"false\" /><LoopOn><Manual Value=\"false\" /></LoopOn></LoopModulators>"
+  end
+  return string.format(
+    "<LoopModulators><IsModulated Value=\"false\" />" ..
+    "<LoopOn><Manual Value=\"true\" /></LoopOn>" ..
+    "<LoopLength><Manual Value=\"%s\" /></LoopLength>" ..
+    "<LoopFade><Manual Value=\"0\" /></LoopFade></LoopModulators>",
+    num(loop.length))
+end
+
+local function build_simpler(parts_xml, playback_mode, next_id, loop)
   return string.format([[
 <OriginalSimpler Id="%d">
 <LomId Value="0" />
@@ -943,11 +1017,13 @@ local function build_simpler(parts_xml, playback_mode, next_id)
 <LayerCrossfade Value="0" />
 <SourceContext />
 </MultiSampleMap>
+%s
 </Player>
 <Globals><PlaybackMode Value="%d" /></Globals>
 <SimplerSlicing><PlaybackMode Value="%d" /></SimplerSlicing>
 </OriginalSimpler>]],
-    next_id(), next_id(), next_id(), parts_xml, playback_mode, playback_mode)
+    next_id(), next_id(), next_id(), parts_xml, build_loop_modulators(loop),
+    playback_mode, playback_mode)
 end
 
 local ABLETON_HEADER =
@@ -956,6 +1032,29 @@ local ABLETON_HEADER =
   'Creator="Paketti" Revision="">\n'
 
 --- Gather what one Renoise sample contributes to a preset.
+--- Turn one Renoise sample's loop into Simpler terms. Renoise offers off, forward,
+--- reverse and ping-pong; Simpler in Classic mode has a plain forward loop and
+--- nothing else, so the three looping modes all arrive as "looping" and only the
+--- extent survives. Returns nil when the sample does not loop.
+local function loop_from_sample(sample, region_frames)
+  if not sample then return nil end
+  local ok, mode = pcall(function() return sample.loop_mode end)
+  if not ok or mode == nil or mode == renoise.Sample.LOOP_MODE_OFF then return nil end
+
+  local length = 1.0
+  local ok2 = pcall(function()
+    local a, b = sample.loop_start, sample.loop_end
+    if region_frames and region_frames > 0 and b > a then
+      length = (b - a) / region_frames
+    end
+  end)
+  if not ok2 then length = 1.0 end
+  if length > 1 then length = 1 end
+  if length <= 0 then length = 1 end
+
+  return { on = true, length = length }
+end
+
 local function describe_sample(sample, wav_path, rel_path, key_min, key_max, root)
   local buf = sample.sample_buffer
   local size = 0
@@ -1032,7 +1131,8 @@ function PakettiAbletonExportSimpler(adv_path)
 
   local next_id = id_allocator()
   local xml = ABLETON_HEADER ..
-    build_simpler(build_sample_part(o, next_id), playback_mode, next_id) ..
+    build_simpler(build_sample_part(o, next_id), playback_mode, next_id,
+      loop_from_sample(sample, sample.sample_buffer.number_of_frames)) ..
     "\n</Ableton>\n"
 
   local written, werr = PakettiGzipToFile(adv_path, xml, base .. ".adv")
@@ -1097,7 +1197,12 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
         o.name = string.format("%s %02d", base, i)
         o.sample_start = bounds[i] - 1
         o.sample_end = bounds[i + 1] - 2
-        pads[#pads + 1] = { part = o }
+        -- slice i lives at samples[i + 1]; samples[1] is the parent buffer
+        local slice_sample = instrument.samples[i + 1]
+        pads[#pads + 1] = {
+          part = o,
+          loop = loop_from_sample(slice_sample, bounds[i + 1] - bounds[i]),
+        }
       end
     end
   else
@@ -1117,7 +1222,10 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
           local o = describe_sample(s, wav_path, "Samples/Imported/" .. wav_name,
             0, 127, DRUM_PAD_SENDING_NOTE)
           if o.name == "" then o.name = nm end
-          pads[#pads + 1] = { part = o }
+          pads[#pads + 1] = {
+            part = o,
+            loop = loop_from_sample(s, s.sample_buffer.number_of_frames),
+          }
         end
       end
     end
@@ -1184,7 +1292,7 @@ function PakettiAbletonExportDrumRack(adg_path, opts)
 <ZoneSettings><ReceivingNote Value="%d" /><SendingNote Value="60" /><ChokeGroup Value="0" /></ZoneSettings>
 </DrumBranchPreset>]],
         next_id(), xml_escape(pad.part.name), next_id(),
-        build_simpler(build_sample_part(pad.part, next_id), 0, next_id),
+        build_simpler(build_sample_part(pad.part, next_id), 0, next_id, pad.loop),
         PakettiAbletonPadNoteToXML(note))
     end
 
