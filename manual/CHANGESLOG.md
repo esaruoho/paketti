@@ -8,6 +8,20 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: Read REX2 Files Without Wine
+
+Paketti's `.rx2` import shells out to a Windows decoder under Wine, which blocks Renoise's UI thread and is simply unavailable on many machines. `Inspect REX File` reads the container itself, in Lua, on every platform: tempo, detected tempo, time signature, sample rate, bit depth, channels, loop points, creator metadata, and the whole slice table with each slice's position, length and mute/lock state.
+
+It does not decode the audio — REX2 stores PCM in a proprietary DPCM scheme, and that remains a separate piece of work. This answers "what is in this file" without Wine, which is what slice counts, BPM detection and sorting through a folder of loops actually need.
+
+Verified against a set of labelled test files, each parsing to exactly what its name claims — 100 and 120 and 240 BPM, 24-bit, 7/8, stereo, 500 slices — and across 300 real `.rx2` files with no failures and no crashes, reading 15,346 slices. Corrupt files and failed web downloads saved as `.rx2` are reported rather than silently mangled.
+
+The container is documented in `rex2-format.txt` in the repository root.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Inspect REX File (.rx2/.rex/.rcy)...`
+- Menu: `Main Menu:File:Paketti Import:Inspect REX File (.rx2/.rex/.rcy)...`
+- Keyboard shortcut: `Global:Paketti:Inspect REX File`
+
 ### 2026-09-02 - Feature: OP-1 Drum Kit And Apple Loops Export
 
 Two formats that needed real audio-container writers rather than a sidecar.
