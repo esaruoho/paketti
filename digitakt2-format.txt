@@ -1,0 +1,135 @@
+# Elektron Digitakt II preset format — `.dt2pst`
+
+Notes on the Digitakt II sound-preset container, written while adding export to
+[Paketti](https://github.com/esaruoho/paketti) (`PakettiDT2Export.lua`). There is
+essentially nothing public about this layout; the structure below is transcribed
+from the implementation in [chirashi](https://github.com/g-lok/chirashi), whose
+author reverse-engineered it byte by byte, and re-verified against files Paketti
+produces.
+
+Corrections welcome — particularly from anyone who can diff this against presets
+saved by the device itself.
+
+---
+
+## 1. The container
+
+A `.dt2pst` is an ordinary **ZIP archive** with three members:
+
+```
+manifest.json                          JSON, described below
+Samples/transfers-YYMMDD/<NAME>.wav    the audio
+<NAME>                                 the binary preset — no extension
+```
+
+`<NAME>` is the *payload name* and appears three times: as the preset member's
+filename, inside `manifest.json`, and patched into the binary preset.
+
+Compression method does not appear to matter. chirashi writes deflate; Paketti
+writes **stored** (method 0) entries, which every ZIP reader accepts and which
+means no compressor is needed.
+
+## 2. The payload name
+
+The device is strict about it:
+
+- letters, digits and spaces only — everything else becomes `_`
+- trimmed of surrounding whitespace
+- **twelve characters maximum**
+- empty falls back to `OUTPUT`
+
+## 3. `manifest.json`
+
+A single line, no whitespace:
+
+```json
+{"FormatVersion":"1.0","ProductType":[],"Payload":"<NAME>","FileType":"Sound",
+ "FirmwareVersion":"1.15B","MetaInfo":{"Tags":[]},
+ "Samples":[{"FileName":"Samples/transfers-YYMMDD/<NAME>.wav",
+             "FileSize":<bytes>,"Hash":"<crc32>"}]}
+```
+
+- `FileSize` is the size of the **whole WAV file**, header included.
+- `Hash` is a **CRC-32 (IEEE) of the WAV's PCM only** — the contents of the `data`
+  chunk, not the file — written as a **decimal string**.
+- The transfer directory carries the date as `YYMMDD`.
+
+## 4. The binary preset
+
+```
+offset  size          contents
+------  ------------  ----------------------------------------------------
+0x00    206 bytes     fixed header (see §5)
+0xCE    8 × N         one entry per slice, N ≤ 64
+...     87 bytes      fixed footer
+```
+
+Two fields are patched into the header after assembly:
+
+```
+0x34    12 bytes      payload name, NUL padded
+0xBB    4 bytes       CRC-32 of the WAV PCM, BIG-endian
+```
+
+Note the endianness difference: the CRC is big-endian in the binary preset and a
+decimal string in the manifest, but it is the same value in both.
+
+### Slice entries
+
+Each slice is eight bytes:
+
+```
+00 22 <uint32 little-endian frame position> 00 08
+```
+
+The position is a **frame index into the sample**, zero based. A preset with no
+slices still carries one entry, at position 0. Positions beyond the 64th slice are
+dropped — the device takes 64.
+
+## 5. Header and footer
+
+The 206-byte header and 87-byte footer are fixed blobs. Their meaning is largely
+undecoded; what is known is that the header begins:
+
+```
+ac 11 d3 03 02 00 04 00  10 30 30 37 30 00 00 00
+```
+
+where `30 30 37 30` is ASCII `"0070"`, and that the name and CRC fields sit at the
+offsets above. Everything else appears to be default sound parameters — filter,
+envelope, LFO and machine settings — carried verbatim from a reference preset.
+
+For the exact bytes see `PakettiDT2Export.lua` in this repository (`DT2_HEADER`
+and `DT2_FOOTER`), or `internal/engine/encoder_dt2pst.go` in chirashi.
+
+**This is the weakest part of the format's public description.** Because the
+parameter block is copied wholesale, an exported preset inherits whatever the
+reference preset's filter, amp envelope and machine settings were. Editing sound
+parameters programmatically would need those offsets mapped, which has not been
+done.
+
+## 6. What is not known
+
+- the meaning of the 206-byte header beyond the name and CRC fields
+- whether `FirmwareVersion` is validated, and what other values are accepted
+- whether `ProductType` and `MetaInfo.Tags` are ever non-empty
+- whether the device cares about the WAV's sample rate or bit depth
+- whether multi-sample or multi-track presets use a different `FileType`
+
+## 7. A verification recipe
+
+Paketti's export can be checked without hardware:
+
+```bash
+unzip -l preset.dt2pst          # three members, names as in §1
+unzip -p preset.dt2pst manifest.json | python3 -m json.tool
+unzip -p preset.dt2pst "<NAME>" > preset.bin
+# size should be 206 + 8*N + 87
+python3 -c "
+d=open('preset.bin','rb').read()
+print(len(d), d[0x34:0x40], '%02x%02x%02x%02x' % tuple(d[0xBB:0xBF]))"
+```
+
+The CRC printed from `0xBB` should equal the manifest's `Hash` when converted from
+hex to decimal. None of this proves the device accepts the file — only that the
+container matches the format as understood here.

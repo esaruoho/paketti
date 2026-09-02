@@ -468,6 +468,8 @@ Writes a plain-text SFZ beside its WAV — an open format read by sfizz, Sforzan
 - Menu: `Sample Editor:Paketti:Export:Export SFZ Mapping (.sfz)...`
 - Keyboard shortcut: `Global:Paketti:Export SFZ Mapping`
 
+**Batch SFZ.** `SFZ Export All Instruments in Song` writes one `.sfz` per audio-bearing instrument into a folder you choose. `SFZ Batch Convert Folder` walks a folder of `.xrni`, `.wav`, `.mp3`, `.flac`, `.aif` and `.ogg` — recursing — and writes a `.sfz` beside each. Audio sources are referenced, not copied, so nothing is duplicated; a WAV with CUE points arrives sliced and exports a region per slice.
+
 #### Export Elektron Digitakt II Preset (.dt2pst)
 
 Writes the selected instrument as a Digitakt II preset — a ZIP containing `manifest.json`, the sample under `Samples/transfers-YYMMDD/`, and a binary preset with one entry per slice. The device takes 64 slices and a twelve-character name of letters, digits and spaces; anything beyond that is trimmed or dropped, and the status line says so.
@@ -475,6 +477,8 @@ Writes the selected instrument as a Digitakt II preset — a ZIP containing `man
 - Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export Digitakt II Preset (.dt2pst)...`
 - Menu: `Sample Editor:Paketti:Export:Export Digitakt II Preset (.dt2pst)...`
 - Keyboard shortcut: `Global:Paketti:Export Digitakt II Preset`
+
+Format notes, for anyone writing their own converter: [`digitakt2-format.txt`](https://github.com/esaruoho/paketti/blob/master/digitakt2-format.txt) documents the `.dt2pst` container, the manifest, the binary preset layout and what remains unknown about it.
 
 #### Export PTI
 

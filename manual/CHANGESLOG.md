@@ -8,6 +8,27 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: SFZ Batch Exports, And SFZ/Digitakt II In The Export Menu
+
+Both new exporters now sit in `Main Menu:File:Paketti Export` alongside the Octatrack and Polyend entries, and SFZ gains two batch modes.
+
+**Export All Instruments in Song as SFZ** writes one `.sfz` per instrument that holds audio, into a folder you pick, skipping empty and plugin instruments.
+
+**SFZ Batch Convert Folder** walks a folder — `.xrni`, `.wav`, `.mp3`, `.flac`, `.aif`, `.aiff`, `.ogg`, recursing into subfolders — and writes a `.sfz` beside each source. A source that is already an audio file is *referenced* rather than copied, so converting a folder of breaks leaves the folder as it was plus one `.sfz` per file. A WAV carrying CUE points arrives already sliced, since Renoise turns those into slice markers on load, and its `.sfz` comes out with a region per slice.
+
+Both run on a ProcessSlicer with progress and a cancel button, and both restore your selected instrument afterwards.
+
+- Menu: `Main Menu:File:Paketti Export:SFZ Export Current Instrument...`
+- Menu: `Main Menu:File:Paketti Export:SFZ Export All Instruments in Song...`
+- Menu: `Main Menu:File:Paketti Export:SFZ Batch Convert Folder (.xrni/.wav/.mp3/.flac)...`
+- Menu: `Main Menu:File:Paketti Export:Digitakt II Preset (.dt2pst)...`
+- Menu: `Disk Browser:Paketti:Import/Export:SFZ Batch Convert Folder...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Export All Instruments as SFZ...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:SFZ Batch Convert Folder...`
+- Keyboard shortcut: `Global:Paketti:Export All Instruments as SFZ`
+- Keyboard shortcut: `Global:Paketti:SFZ Batch Convert Folder`
+- MIDI Mapping: `Paketti:Export All Instruments as SFZ`
+
 ### 2026-09-02 - Feature: SFZ Export
 
 Paketti could turn SFZ into XRNI; it now goes the other way. `Export SFZ Mapping (.sfz)` writes a plain-text SFZ beside its WAV — an open format read by sfizz, Sforzando, Bitwig, Falcon and most free samplers.

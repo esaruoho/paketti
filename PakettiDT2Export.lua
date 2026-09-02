@@ -207,6 +207,8 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Expor
   invoke=function() PakettiDT2ExportDialog() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Export Digitakt II Preset (.dt2pst)...",
   invoke=function() PakettiDT2ExportDialog() end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Digitakt II Preset (.dt2pst)...",
+  invoke=function() PakettiDT2ExportDialog() end}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Export Digitakt II Preset",
