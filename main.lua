@@ -1429,6 +1429,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiSFZExport")
   timed_require("PakettiDT2Export")
   timed_require("PakettiOPXYExport")
+  timed_require("PakettiSamplerExports")
   timed_require("PakettiEXS24Parser")
   timed_require("PakettiEXS24Loader")
   timed_require("PakettiMODParser")

@@ -8,6 +8,26 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: Akai MPC, Decent Sampler And Elektron Multi-Sample Export
+
+Three more targets, all sidecar-plus-audio, all writing regions from a sliced instrument.
+
+**Akai MPC program (.xpm)** for MPC Live, One, X and Force — XML with one Instrument per pad, each pad a start/end window into one WAV, up to 128 pads. Slice loops carry across as the pad's loop.
+
+**Decent Sampler (.dspreset)** — XML with one `<sample>` per region, mapped from note 24 up, or lower when a set would not otherwise fit inside 128 notes.
+
+**Elektron multi-sample mapping (`_slices.txt`)** — the key-zone config plus one `slice_NN.wav` per zone, 64 zones.
+
+MPC and Decent Sampler point into a single shared WAV; Elektron wants one file per slice, like OP-XY.
+
+- Menu: `Main Menu:File:Paketti Export:Akai MPC Program (.xpm)...`
+- Menu: `Main Menu:File:Paketti Export:Decent Sampler Preset (.dspreset)...`
+- Menu: `Main Menu:File:Paketti Export:Elektron Multi-Sample Mapping (_slices.txt)...`
+- Also under `Main Menu:Tools:Paketti:Instruments:File Formats:` and `Sample Editor:Paketti:Export:`
+- Keyboard shortcuts: `Global:Paketti:Export Akai MPC Program`, `Global:Paketti:Export Decent Sampler Preset`, `Global:Paketti:Export Elektron Multi-Sample Mapping`
+
+Worth noting alongside this: Paketti's older Akai support (S900/S1000/S3000/MPC2000, `PakettiAkai*.lua`) is not loaded by `main.lua`, so those menu entries do not currently register. The MPC program export above is a separate, modern path and works independently of them.
+
 ### 2026-09-02 - Feature: Teenage Engineering OP-XY Preset Export (.preset.zip)
 
 `Export OP-XY Preset` writes the selected instrument as an OP-XY drum preset — a ZIP holding `patch.json` and one WAV per region, laid out from key 53 where the device's pads begin.
