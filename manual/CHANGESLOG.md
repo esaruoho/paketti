@@ -8,6 +8,31 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-02 - Feature: Ableton Live Import and Export
+
+Paketti reads and writes Ableton Live presets. Drop a `.adv` (Simpler), `.adg` (Drum Rack), `.als` (Live Set) or `.alc` (Live Clip) onto Renoise and it becomes an instrument; send an instrument the other way and Live opens it.
+
+The case this was built for is slicing. A Drum Rack made by Live's "Slice to New MIDI Track" is a set of pads all pointing at one file, each playing one region — Paketti collapses that into a single Renoise sample with a slice marker per region, instead of loading two dozen identical copies. Exporting a sliced Renoise instrument produces the same shape back: one WAV, one pad per slice. A Simpler in Slicing mode carries its slice points across in both directions.
+
+Live Pack audio is encrypted (AIFF-C `able`) and nothing outside Live can decode it. Paketti now recognises those files and says so in one sentence, rather than letting Renoise raise a "no decoder is installed" dialog per pad.
+
+When a preset points at samples that have moved, Paketti searches the preset's own folder, its Live Pack parents, and the sample library roots you configure — the same shared setting the Octatrack and EXS24 importers use.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Import Live Preset (.adv/.adg/.als)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Export Instrument as Simpler (.adv)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Export Instrument as Drum Rack (.adg)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Add Sample Library Root (for missing samples)...`
+- Menu: `Main Menu:File:Paketti Import:Ableton Live Preset (.adv/.adg/.als)...`
+- Menu: `Sample Editor:Paketti:Ableton:Export Instrument as Simpler (.adv)...`
+- Menu: `Sample Editor:Paketti:Ableton:Export Instrument as Drum Rack (.adg)...`
+- Keyboard shortcut: `Global:Paketti:Import Ableton Live Preset`
+- Keyboard shortcut: `Global:Paketti:Export Instrument as Ableton Simpler`
+- Keyboard shortcut: `Global:Paketti:Export Instrument as Ableton Drum Rack`
+
+### 2026-09-02 - Feature: gzip And DEFLATE Support
+
+Ableton presets are gzipped XML, and Paketti had no compression code of any kind, which is what kept every gzip- and zip-wrapped instrument format out of reach. Paketti now decodes DEFLATE and reads and writes gzip in pure Lua, so it behaves the same on macOS, Windows and Linux with no shell tools and no external binaries. Verified byte-identical against system `gunzip` on Ableton presets up to a megabyte.
+
 ### 2026-08-31 - Fix: Dialog Close Key Works In Every Paketti Dialog Again
 
 Loading the 30-Band EQ replaced the tool-wide dialog key handler with an EQ-only one that recognised nothing but Cmd+H. From that moment on, the close key you set in Paketti Preferences (Tab by default) stopped closing any of the ~50 Paketti dialogs that use the shared handler. The EQ's handler is now its own function and no longer overwrites the shared one.

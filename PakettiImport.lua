@@ -372,6 +372,26 @@ if should_register_hook("pakettiImportPTI") then
   end
 end
 
+-- Ableton Live Import Hook (.adv, .adg, .als, .alc)
+-- Registered per extension: Renoise matches a hook by its whole extension list,
+-- so one hook covering all four would not fire for a single dropped .adg.
+if should_register_hook("pakettiImportAbleton") then
+  for _, ext in ipairs({"adv", "adg", "als", "alc"}) do
+    if not renoise.tool():has_file_import_hook("instrument", {ext}) then
+      local success, error_msg = pcall(function()
+        renoise.tool():add_file_import_hook({
+          category = "instrument",
+          extensions = {ext},
+          invoke = PakettiAbletonImportHook
+        })
+      end)
+      if not success then
+        print("Warning: Could not register Ableton ." .. ext .. " hook: " .. tostring(error_msg))
+      end
+    end
+  end
+end
+
 -- MTP/MT Import Hook (.mtp, .mt) - Polyend Tracker Pattern/Project
 if should_register_hook("pakettiImportMTP") then
   -- MTP Pattern Import

@@ -420,6 +420,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportSTRD = true,          -- STRD (.strd, .work) import
   pakettiImportPTI = true,           -- PTI/MTI (.pti, .mti) import
   pakettiImportMTP = true,           -- MTP/MT (.mtp, .mt) import
+  pakettiImportAbleton = true,       -- Ableton Live (.adv, .adg, .als, .alc) import
   pakettiImportMID = true,           -- MIDI (.mid) import
   pakettiImportTXT = true,           -- TXT (.txt) import - eSpeak
   pakettiImportImage = true,         -- Image (.png, .bmp, .jpg, .jpeg, .gif) import
@@ -4081,7 +4082,8 @@ function PakettiDeactivatorDialog()
           vb:row{vb:checkbox{value = preferences.pakettiImportWT.value, notifier = function(v) preferences.pakettiImportWT.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "WT (.wt)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportSTRD.value, notifier = function(v) preferences.pakettiImportSTRD.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "STRD (.strd, .work)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportPTI.value, notifier = function(v) preferences.pakettiImportPTI.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "PTI/MTI (.pti, .mti)", width = 140}},
-          vb:row{vb:checkbox{value = preferences.pakettiImportMTP.value, notifier = function(v) preferences.pakettiImportMTP.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "MTP/MT (.mtp, .mt)", width = 140}}
+          vb:row{vb:checkbox{value = preferences.pakettiImportMTP.value, notifier = function(v) preferences.pakettiImportMTP.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "MTP/MT (.mtp, .mt)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportAbleton.value, notifier = function(v) preferences.pakettiImportAbleton.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Ableton (.adv/.adg/.als)", width = 140}}
         },
         -- Column 3
         vb:column{

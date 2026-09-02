@@ -114,7 +114,44 @@ files: [main.lua, PakettiAutocomplete.lua, PakettiShortcutHints.lua]
   by: codex
   from: agent
 
+## Trade instruments with Ableton Live {#ableton}
+tech: PakettiDeflate.lua pure-Lua inflate/gzip, PakettiAbleton.lua XML reader+writer, hooks in PakettiImport.lua
+files: [PakettiDeflate.lua, PakettiAbleton.lua, PakettiImport.lua]
+links: [fileformats]
+
+- [x] Read and write gzip without shell tools or binaries {#deflate}
+  by: claude
+  from: agent
+- [x] Open Ableton Simpler, Drum Rack, Live Set and Live Clip presets {#ableton-import}
+  by: claude
+  from: agent
+- [x] Turn a Live sliced Drum Rack into one Renoise sample with slice markers {#ableton-sliced-rack}
+  by: claude
+  from: agent
+- [x] Say plainly when a preset's audio is Live-Pack encrypted {#ableton-encrypted-audio}
+  by: claude
+  from: agent
+- [x] Find samples that have moved, using the shared library roots {#ableton-relocate}
+  by: claude
+  from: agent
+- [x] Save an instrument as a Simpler or Drum Rack that Live 12 opens {#ableton-export}
+  by: claude
+  from: agent
+- [ ] Import the audio clips in a Live Set that has no sampler device {#ableton-audio-clips}
+  from: agent
+
 ## decisions
+
+- Ableton FileRef is resolved through RelativePathType, not the absolute Path: 1 means
+  relative to the preset file, 5 a Live Pack, 6 the User Library, 7 Live's own resources,
+  and every audio reference is Type="2". Writing the wrong root makes Live open the preset
+  with its structure intact and every sample marked Missing, which is how it first failed.
+- Paketti writes gzip using DEFLATE "stored" blocks. Every conforming reader must accept
+  them, so Paketti needs a decompressor but never a compressor — the largest piece of the
+  work disappears and the output is still byte-for-byte legal gzip.
+- Renoise decodes and encodes the audio, so porting a container format is container and
+  metadata only. That is the structural advantage over a standalone converter, which has
+  to carry its own codecs.
 
 - Music Mouse F1-F4 treatment shortcuts should only react to bare function keys; modified function keys belong to Renoise/macOS/global shortcuts unless explicitly mapped by Music Mouse.
 - Music Mouse Sync overrides Tempo 1 and Tempo 2; the UI should disable ignored free-run controls and expose the effective arpeggio rate so users can see whether playback is synced to Renoise lines or free-running.

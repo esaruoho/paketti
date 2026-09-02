@@ -319,6 +319,20 @@ It _seems_ that the best way would be to split this into smaller pieces by categ
 
 ### Import
 
+#### Import Ableton Live (.adv / .adg / .als / .alc)
+
+Ableton Live preset import: `.adv` (Simpler), `.adg` (Drum Rack), `.als` (Live Set) and `.alc` (Live Clip). Drag one onto Renoise, or use the menu.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Import Live Preset (.adv/.adg/.als)...`
+- Menu: `Main Menu:File:Paketti Import:Ableton Live Preset (.adv/.adg/.als)...`
+- Keyboard shortcut: `Global:Paketti:Import Ableton Live Preset`
+
+A Drum Rack built by Live's **Slice to New MIDI Track** is a set of pads that all point at one file, each playing one region. Paketti collapses that into a single Renoise sample carrying a slice marker per region, rather than loading one full-length copy per pad. A Drum Rack of distinct one-shots instead becomes a multi-sample instrument with each pad on its own key. A Simpler in Slicing mode brings its slice points across.
+
+**Samples that have moved.** A Live preset stores only a path, so Paketti searches the preset's own folder, its Live Pack parent folders, and the sample library roots you configure — the same shared setting the Octatrack and EXS24 importers use. Add one with `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Add Sample Library Root (for missing samples)...`.
+
+**Live Pack audio cannot be imported.** Samples inside a commercial Live Pack are stored as AIFF-C with Ableton's encrypted `able` codec, which nothing outside Live decodes. Paketti detects these and tells you in one sentence. To use them, export the audio from Live first.
+
 #### Import PTI
 
 Polyend Tracker Instrument Import support
@@ -408,6 +422,25 @@ Turns a whole folder of samples into TX16W-ready `.C01` files in one run. Anythi
 Your chosen rate, bit depth and mono setting are saved as preferences and become the defaults for single-sample export as well. Each file is converted in a temporary instrument slot which is removed again, so your own instruments and your selected instrument are left as they were. Progress is shown with a Cancel button.
 
 ### Export
+
+#### Export Ableton Live (.adv / .adg)
+
+Send the selected instrument to Ableton Live, verified loading in Live 12.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Export Instrument as Simpler (.adv)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Export Instrument as Drum Rack (.adg)...`
+- Menu: `Sample Editor:Paketti:Ableton:Export Instrument as Simpler (.adv)...`
+- Menu: `Sample Editor:Paketti:Ableton:Export Instrument as Drum Rack (.adg)...`
+- Keyboard shortcut: `Global:Paketti:Export Instrument as Ableton Simpler`
+- Keyboard shortcut: `Global:Paketti:Export Instrument as Ableton Drum Rack`
+
+**Simpler (.adv)** writes the instrument's first sample. If it has slice markers, the preset opens in Slicing mode with the markers carried across as slice points.
+
+**Drum Rack (.adg)** writes a sliced instrument as one WAV with a pad per slice — the exact shape Live's own slicing produces — and writes a multi-sample instrument as one WAV and one pad per sample, laid out from C1 upward.
+
+Both write the audio into a `Samples/Imported/` folder beside the preset, which is the layout Live uses for imported media. Keep the preset and that folder together when you move them.
+
+**One difference Renoise cannot express.** A Live pad has an independent start *and* end, so its regions can have gaps between them. Renoise slices are contiguous — each one runs to the next marker. A rack with gaps therefore comes back with those gaps filled, and exporting it again keeps the filled version.
 
 #### Export PTI
 

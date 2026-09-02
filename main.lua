@@ -1093,6 +1093,7 @@ end
 --------
 timed_require("rx")
 timed_require("base64float")
+timed_require("PakettiDeflate")
 timed_require("Paketti0G01_Loader")
 timed_require("PakettiShortcutHints")
 
@@ -1424,6 +1425,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiVideoSlicer")
   timed_require("PakettiSF2Loader")
   timed_require("PakettiFSPath")
+  timed_require("PakettiAbleton")
   timed_require("PakettiEXS24Parser")
   timed_require("PakettiEXS24Loader")
   timed_require("PakettiMODParser")
