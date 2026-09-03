@@ -10,7 +10,7 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 ### 2026-09-03 - Fix: Device Control records Active / Bypassed automation, never Mix
 
-Device Control's Graphical Automation mode now uses Renoise's selected `Active / Bypassed` parameter for the device being enabled, disabled or toggled. Renoise does not expose that special parameter through `device.parameters` (where parameter 1 is often `Mix`), so the old fallback silently automated the wrong parameter.
+Device Control's Graphical Automation mode now uses Renoise's selected `Active / Bypassed` parameter for the device being enabled, disabled or toggled. Renoise does not expose that special parameter through `device.parameters` (where parameter 1 is often `Mix`), so the old fallback silently automated the wrong parameter. The target is checked through the numeric `selected_track_device_index`; Renoise userdata must never be compared directly because it invokes an unsupported `__eq` metamethod.
 
 To record a graphical bypass envelope, select the target device's `Active / Bypassed` lane first. If a different device or parameter is selected, Device Control still changes the device live but explains that selection must be made instead of writing an incorrect envelope. Pattern Effects mode is unchanged and continues to write `x000` / `x001`. Keybindings: `Global:Paketti:Device Control 01 (Enable/Disable/Toggle)` through `Global:Paketti:Device Control 34 (Enable/Disable/Toggle)`. MIDI Mappings: `Paketti:Device Control 01 (Enable/Disable/Toggle)` through `Paketti:Device Control 34 (Enable/Disable/Toggle)`.
 
@@ -19,6 +19,23 @@ To record a graphical bypass envelope, select the target device's `Active / Bypa
 Launch App Filter Mode no longer discards a CLI filter's error output or treats a failed command as merely a missing file. It captures the process exit code and stderr, reports the actual failure in Renoise, and rejects output that is not a WAV before attempting to import it.
 
 The per-slot `stdin` and `stdout` controls now work: stdin supplies the temporary input WAV to the process and stdout captures a WAV stream as the output. `$infile` and `$outfile` remain supported, with an explicit configuration message when an argument template does not route output or attempts to use both `$outfile` and stdout. This makes shell filters such as sox, ffmpeg, and scripts diagnosable rather than silently failing. No menu, keybinding, or MIDI mapping names changed.
+
+### 2026-09-03 - Feature: Find and Remove Missing Plugins
+
+Open a song on a machine that no longer has one of its VST/VST3/AU/LADSPA/DSSI effects and Renoise keeps the device in the chain as a dead placeholder. They pile up in old songs and on machines you have moved to. This finds every one of them.
+
+Three places are checked: **track DSP chains** and **sample FX chains**, both of which can be cleaned out, and **instrument plugins**, which are reported but deliberately never removed - deleting one throws away the instrument's plugin settings, and that is not a housekeeping decision to make on your behalf.
+
+A device counts as missing only when its saved device path is absent from that chain's own available-devices list, and only paths under `Audio/Effects/VST|VST3|AU|LADSPA|DSSI` are ever considered, so native, routing and meta devices can never be touched.
+
+**Find Missing Plugins...** scans and shows a report grouped by track and chain, with a `Remove These N` button - so a destructive sweep is never one misclick away. **Remove Missing Plugins** skips the confirmation for when you already know what you are doing. Both report anything that failed to delete rather than failing silently, and both are one undo step.
+
+- Menu: `Main Menu:Tools:Paketti:Plugins/Devices:Find Missing Plugins...`
+- Menu: `Main Menu:Tools:Paketti:Plugins/Devices:Remove Missing Plugins`
+- Menu: both under `Mixer:Paketti:` and `DSP Chain:Paketti:`
+- Keybinding: `Global:Paketti:Find Missing Plugins...`
+- Keybinding: `Global:Paketti:Remove Missing Plugins`
+- MIDI Mapping: `Paketti:Find Missing Plugins...` and `Paketti:Remove Missing Plugins`
 
 ### 2026-09-03 - Feature: Spread Round Robins by Velocity, in the Keyzone Distributor
 
