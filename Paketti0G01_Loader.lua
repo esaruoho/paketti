@@ -409,6 +409,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportHooksEnabled = true,  -- Master toggle for all import hooks
   pakettiImportREX = true,           -- REX (.rex) import
   pakettiImportRX2 = true,           -- RX2 (.rx2) import
+  pakettiRX2NativeDecoder = false,   -- decode .rx2 in Lua instead of running the external decoder binary
   pakettiImportIFF = true,           -- IFF (.iff, .8svx, .16sv) import
   pakettiImportSF2 = true,           -- SF2 (.sf2) import
   pakettiImportITI = true,           -- ITI (.iti) import
@@ -4072,6 +4073,7 @@ function PakettiDeactivatorDialog()
         vb:column{
           vb:row{vb:checkbox{value = preferences.pakettiImportREX.value, notifier = function(v) preferences.pakettiImportREX.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "REX (.rex)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportRX2.value, notifier = function(v) preferences.pakettiImportRX2.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "RX2 (.rx2)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiRX2NativeDecoder.value, notifier = function(v) preferences.pakettiRX2NativeDecoder.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "..RX2: decode in Lua", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportIFF.value, notifier = function(v) preferences.pakettiImportIFF.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "IFF (.iff, .8svx)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportSF2.value, notifier = function(v) preferences.pakettiImportSF2.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "SF2 (.sf2)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportITI.value, notifier = function(v) preferences.pakettiImportITI.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "ITI (.iti)", width = 140}}

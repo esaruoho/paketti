@@ -345,6 +345,10 @@ Octatrack Instrument Import support
 
 #### Import REX AND RX2
 
+Two decoders are available. By default Paketti runs the external decoder — a native binary on macOS and Windows, the Windows build under Wine on Linux. Turning on **RX2: decode in Lua** in Paketti Preferences switches every `.rx2` path to Paketti's own decoder, which needs nothing installed.
+
+The built-in decoder is roughly forty times slower (about a second per two seconds of audio, on a progress dialog you can cancel), so it is not a speed choice. It is there for machines without the binary — Linux especially — and because it returns the file's own audio, so the slice markers land where the file says they do. The external decoder renders the loop time-stretched to a target tempo, so its audio and markers agree with each other but not with the frame numbers stored in the file.
+
 Propellerheads ReCycle v1.0 (.REX) & Propellerheads ReCycle v2.0 (.RX2) Import support
 
 #### Import SF2

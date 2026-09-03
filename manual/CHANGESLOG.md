@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Improvement: Choose Which RX2 Decoder Paketti Uses
+
+The Lua decoder is now a preference rather than a separate menu entry. Turn on **RX2: decode in Lua** in Paketti Preferences, beside the RX2 import toggle, and every way of opening a `.rx2` uses it — the file import hook, drag-and-drop, the menu entries, Expand Loadable and the fuzzy sample search. Off, which is the default, keeps the external decoder.
+
+The switch lives in one place: `rx2_loadsample`, which every one of those paths already calls, so none of them needed its own branch. `.rex` is unaffected, being a different container with its own reader.
+
+Loading the same file both ways shows what the setting changes: the external decoder gives 88200 frames with 10 markers, and the Lua decoder 91528 frames with 9 — the file's own length, with the container's own slice positions.
+
 ### 2026-09-03 - Feature: RX2 Import Without Any External Decoder
 
 Paketti can now decode REX2 audio itself. `Import RX2 with Paketti's Own Decoder` reads a `.rx2` and produces the instrument — audio and slice markers — with no decoder binary and no Wine, on every platform.

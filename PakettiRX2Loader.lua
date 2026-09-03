@@ -263,6 +263,23 @@ end
 -- Main RX2 import function using the external decoder
 --------------------------------------------------------------------------------
 function rx2_loadsample(filename)
+  -- Paketti has two ways to read a .rx2: this one, which runs the external
+  -- decoder (native on macOS and Windows, the Windows build under Wine on Linux),
+  -- and PakettiRX2Decode.lua, which decodes the codec in Lua with nothing
+  -- installed. The preference picks between them, and dispatching HERE means the
+  -- file import hook, the menu entries, drag-and-drop, Expand Loadable and the
+  -- fuzzy sample search all honour it without each needing its own branch.
+  --
+  -- .rex is not affected: that is a different container entirely and has its own
+  -- reader (PakettiRXLegacyImport).
+  if filename and filename:lower():match("%.rx2$")
+     and preferences and preferences.pakettiRX2NativeDecoder
+     and preferences.pakettiRX2NativeDecoder.value
+     and type(rawget(_G, "PakettiRX2ImportNativeSliced")) == "function" then
+    PakettiRX2ImportNativeSliced(filename)
+    return true
+  end
+
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
