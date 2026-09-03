@@ -189,6 +189,18 @@ Write to Pattern used the Instrument valuebox, but audition and playback used wh
 
 Every timer in the dialog is now a one-shot. Renoise timers repeat until they are removed, and the playback tick was never removed, so once the progression reached its last chord the tail kept re-firing: the last slot buttons flashed, their notes retriggered as clicks and pops, and the highlight was left stuck. When a progression now finishes on its own, playback stops once, the notes stop once, and no slot is left highlighted.
 
+### 2026-09-03 - Feature: Save A Loop As A REX2 File (.rx2)
+
+Paketti could read REX2 two ways and write it none, so a break that came in from a .rx2 could never go back out as one. It can now: the selected instrument becomes a real .rx2 carrying its slices, tempo and compressed audio, with nothing external installed.
+
+The files it writes are byte-for-byte what ReCycle itself would write. That was checked by decoding 120 real commercial .rx2 files, re-encoding them, and comparing the compressed audio against the originals - all 120 matched exactly. Encoding is a slow business, so it runs on a progress dialog you can cancel.
+
+One caveat stated plainly: every REX2 file available for testing was stereo, so mono export round-trips correctly through Paketti's own decoder but has not been compared against ReCycle's own mono output.
+- Menu: `Main Menu:File:Paketti Export:REX2 (.rx2)...`
+- Also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save` and `Instrument Box:Paketti:Save`
+- Keybinding: `Global:Paketti:Export REX2`
+- MIDI Mapping: `Paketti:Export REX2`
+
 ### 2026-09-03 - Feature: Reading Back The Sliced Formats Paketti Could Only Write
 
 Four formats were one-way streets - Paketti could export them and never open one again. All four now import, and each rebuilds a sliced instrument with its slice markers in place.

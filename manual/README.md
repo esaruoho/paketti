@@ -379,6 +379,17 @@ The built-in decoder is roughly forty times slower (about a second per two secon
 
 Propellerheads ReCycle v1.0 (.REX) & Propellerheads ReCycle v2.0 (.RX2) Import support
 
+#### Export REX2 (.rx2)
+
+The selected instrument goes out as a REX2 loop — slices, tempo and compressed audio — with no external tool involved. The files are byte-for-byte what ReCycle writes: 120 real commercial `.rx2` files were decoded, re-encoded and compared against the originals, and all 120 matched. Encoding is slow, so it runs on a progress dialog you can cancel.
+
+Mono is the one untested corner: every REX2 available for testing was stereo, so a mono export round-trips correctly through Paketti's own decoder but has not been checked against ReCycle's bytes.
+
+- Menu: `Main Menu:File:Paketti Export:REX2 (.rx2)...` (also `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Instrument Box:Paketti:Save`)
+- Keyboard shortcut: `Global:Paketti:Export REX2`
+
+Format notes: [`rex2-format.txt`](https://github.com/esaruoho/paketti/blob/master/rex2-format.txt).
+
 #### Import SF2
 
 SoundFont V2.0 Import support

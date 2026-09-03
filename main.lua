@@ -1439,6 +1439,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiSlicedImport")
   timed_require("PakettiRX2Reader")
   timed_require("PakettiRX2Decode")
+  timed_require("PakettiRX2Encode")
   timed_require("PakettiEXS24Parser")
   timed_require("PakettiEXS24Loader")
   timed_require("PakettiMODParser")

@@ -152,3 +152,38 @@ from `MARK` entries named "Loop start" and "Loop end".
 A file starting `<!DOCTYPE html>` is
 a failed web download, worth detecting explicitly since it is a common way to end
 up with a broken "rx2".
+
+## Writing a REX2 back out
+
+Paketti encodes as well as decodes now (`PakettiRX2Encode.lua`), and the output
+is bit-identical to what ReCycle itself writes: 120 real commercial `.rx2` files
+were decoded, re-encoded, and their SDAT streams compared byte for byte against
+the originals. All 120 matched.
+
+Two things are worth knowing if you write your own encoder.
+
+**The prefix length has to be searched, not computed.** The decoder reads a
+unary prefix counted in units of `step`, derives `j` and `rbits` from the `step`
+it ends on, and only then reads the binary remainder. So the encoder cannot
+invert this arithmetically -- the prefix it picks determines the width available
+for the remainder that still has to be sent. The way out is to try each
+candidate prefix in turn, work out the `j`/`rbits` the decoder would arrive at,
+and ask whether the remaining value can be expressed there; the first one that
+fits is the one to write.
+
+**The stream ends with one extra zero word.** After the last sample's bits are
+flushed to a whole 32-bit word, ReCycle appends a further four zero bytes. Every
+file checked has an SDAT exactly four bytes longer than its data requires, and
+those four bytes are zero. Leave it out and your bitstream is a correct *prefix*
+of ReCycle's rather than the same file -- which is easy to miss, because it
+decodes perfectly either way.
+
+Everything else is the decoder run backwards: the same five predictors, the same
+winner-by-smallest-running-average choice (so the choice costs no bits and never
+has to be transmitted), the same sign folded into the low bit, the same double
+amplitude, and the right channel carried as a difference from the left.
+
+**Not verified for mono.** The 240 REX2 files available here are all stereo, so
+while mono round-trips losslessly through Paketti's own decoder, whether it is
+byte-identical to ReCycle's mono output is untested.
+
