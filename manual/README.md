@@ -335,6 +335,34 @@ A Drum Rack built by Live's **Slice to New MIDI Track** is a set of pads that al
 
 **Live Pack audio cannot be imported.** Samples inside a commercial Live Pack are stored as AIFF-C with Ableton's encrypted `able` codec, which nothing outside Live decodes. Paketti detects these and tells you in one sentence. To use them, export the audio from Live first.
 
+#### Import Akai MPC, OP-XY, Digitakt II and Apple Loops
+
+The four formats Paketti used to export and never read back. Each one rebuilds a sliced instrument with the slice markers in place.
+
+- Menu: `Main Menu:File:Paketti Import:Akai MPC Program (.xpm)...` — reads the WAV sitting beside the program; each pad's start and end becomes a slice
+- Menu: `Main Menu:File:Paketti Import:OP-XY Preset (.preset.zip)...` — an OP-XY kit keeps one WAV per region, so the regions are joined back into one sample and sliced at the joins
+- Menu: `Main Menu:File:Paketti Import:Digitakt II Preset (.dt2pst)...` — the WAV and the slice table come out of the preset's ZIP
+- Menu: `Main Menu:File:Paketti Import:Apple Loop (.caf)...` — beat markers become slices and the loop's tempo is printed
+- All four also under `Main Menu:Tools:Paketti:Instruments:File Formats` and `Instrument Box:Paketti:Load`
+- Keyboard shortcuts: `Global:Paketti:Import Akai MPC Program`, `Global:Paketti:Import OP-XY Preset`, `Global:Paketti:Import Digitakt II Preset`, `Global:Paketti:Import Apple Loop`
+
+#### AIFF slice markers, both ways
+
+WAV cue markers already went in and out of Paketti. AIFF's `MARK` chunk now does too.
+
+- Menu: `Main Menu:File:Paketti Import:AIFF with Markers (.aif)...`
+- Menu: `Main Menu:File:Paketti Export:AIFF with Slice Markers (.aif)...` (also `Sample Editor:Paketti:Save`)
+- Keyboard shortcuts: `Global:Paketti:Import AIFF with Markers`, `Global:Paketti:Export AIFF with Slice Markers`
+
+Renoise writes the audio; Paketti adds the markers to what it wrote, so the sound is byte-for-byte what Renoise would have saved on its own.
+
+#### Export an Ableton Live Set (.als)
+
+Alongside the Simpler preset and the Drum Rack, Paketti writes a whole Live Set: one MIDI track with a Simpler on it, sliced and ready to play, so opening it in Live does not mean building the track yourself first.
+
+- Menu: `Main Menu:File:Paketti Export:Ableton Live Set (.als)...` (also `Main Menu:Tools:Paketti:Instruments:File Formats` and `Instrument Box:Paketti:Save`)
+- Keyboard shortcut: `Global:Paketti:Export Ableton Live Set`
+
 #### Import PTI
 
 Polyend Tracker Instrument Import support

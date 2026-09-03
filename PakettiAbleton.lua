@@ -1215,6 +1215,207 @@ function PakettiAbletonExportSimpler(adv_path)
     looping and ", looping - written as a Sampler" or "")
 end
 
+--- Wrap a device's XML in the Live Set scaffolding: one MIDI track holding it.
+---
+--- A Live Set is normally enormous -- a single real MidiTrack runs to 28 KB and
+--- the MasterTrack to 650 KB -- but Live fills in what a set does not mention.
+--- It is *partial* elements it rejects, not absent ones, which is what makes a
+--- set this small openable at all. Everything here is present because leaving it
+--- out stopped the set opening; nothing is present speculatively.
+local function build_live_set(device_xml, track_name, next_id, next_pointee)
+  -- Every Id below comes from the same allocator as the device's, because Live
+  -- treats Pointee, AutomationTarget and ModulationTarget as one id space and
+  -- refuses a set whose ids repeat or run past NextPointeeId. A preset gets away
+  -- with Id="0" everywhere; a Live Set does not -- it fails with
+  -- "The document is corrupt and cannot be loaded. (Invalid Pointee Id.)"
+  local id = {}
+  for i = 1, 12 do id[i] = next_id() end
+  return string.format([[
+<LiveSet>
+<NextPointeeId Value="%d" />
+<Tracks>
+<MidiTrack Id="1">
+<LomId Value="0" />
+<LomIdView Value="0" />
+<IsContentSelected Value="false" />
+<TrackDelay><Value Value="0" /><IsValueSampleBased Value="false" /></TrackDelay>
+<Name><EffectiveName Value="%s" /><UserName Value="%s" /><Annotation Value="" /><MemorizedFirstClipName Value="" /></Name>
+<ColorIndex Value="26" />
+<AutomationEnvelopes><Envelopes /></AutomationEnvelopes>
+<TrackGroupId Value="-1" />
+<TrackUnfolded Value="true" />
+<DevicesListWrapper LomId="0" />
+<ClipSlotsListWrapper LomId="0" />
+<ViewData Value="{}" />
+<DeviceChain>
+<AutomationLanes>
+<AutomationLanes>
+<AutomationLane Id="0"><SelectedDevice Value="0" /><SelectedEnvelope Value="0" /><IsContentSelectedInDocument Value="false" /><LaneHeight Value="68" /></AutomationLane>
+</AutomationLanes>
+<AreAdditionalAutomationLanesFolded Value="false" />
+</AutomationLanes>
+<ClipEnvelopeChooserViewState><SelectedDevice Value="0" /><SelectedEnvelope Value="0" /><PreferModulationVisible Value="false" /></ClipEnvelopeChooserViewState>
+<AudioInputRouting><Target Value="AudioIn/External/S0" /><UpperDisplayString Value="Ext. In" /><LowerDisplayString Value="1/2" /><MpeSettings><ZoneType Value="0" /><FirstNoteChannel Value="1" /><LastNoteChannel Value="15" /></MpeSettings><MpePitchBendUsesTuning Value="true" /></AudioInputRouting>
+<MidiInputRouting><Target Value="MidiIn/External.All/-1" /><UpperDisplayString Value="Ext: All Ins" /><LowerDisplayString Value="" /><MpeSettings><ZoneType Value="0" /><FirstNoteChannel Value="1" /><LastNoteChannel Value="15" /></MpeSettings><MpePitchBendUsesTuning Value="true" /></MidiInputRouting>
+<AudioOutputRouting><Target Value="AudioOut/Main" /><UpperDisplayString Value="Master" /><LowerDisplayString Value="" /><MpeSettings><ZoneType Value="0" /><FirstNoteChannel Value="1" /><LastNoteChannel Value="15" /></MpeSettings><MpePitchBendUsesTuning Value="true" /></AudioOutputRouting>
+<MidiOutputRouting><Target Value="MidiOut/None" /><UpperDisplayString Value="None" /><LowerDisplayString Value="" /><MpeSettings><ZoneType Value="0" /><FirstNoteChannel Value="1" /><LastNoteChannel Value="15" /></MpeSettings><MpePitchBendUsesTuning Value="true" /></MidiOutputRouting>
+<Mixer>
+<LomId Value="0" />
+<LomIdView Value="0" />
+<IsExpanded Value="true" />
+<On><LomId Value="0" /><Manual Value="true" /><AutomationTarget Id="%d"><LockEnvelope Value="0" /></AutomationTarget><MidiCCOnOffThresholds><Min Value="64" /><Max Value="127" /></MidiCCOnOffThresholds></On>
+<ModulationSourceCount Value="0" />
+<ParametersListWrapper LomId="0" />
+<Pointee Id="%d" />
+<LastSelectedTimeableIndex Value="0" />
+<LastSelectedClipEnvelopeIndex Value="0" />
+<IsFolded Value="false" />
+<ShouldShowPresetName Value="false" />
+<UserName Value="" />
+<Annotation Value="" />
+<SourceContext />
+<Speaker><LomId Value="0" /><Manual Value="true" /><AutomationTarget Id="%d"><LockEnvelope Value="0" /></AutomationTarget><MidiCCOnOffThresholds><Min Value="64" /><Max Value="127" /></MidiCCOnOffThresholds></Speaker>
+<Pan><LomId Value="0" /><Manual Value="0" /><MidiControllerRange><Min Value="-1" /><Max Value="1" /></MidiControllerRange><AutomationTarget Id="%d"><LockEnvelope Value="0" /></AutomationTarget><ModulationTarget Id="%d"><LockEnvelope Value="0" /></ModulationTarget></Pan>
+<Volume><LomId Value="0" /><Manual Value="0.7943282127" /><MidiControllerRange><Min Value="0.0003162277571" /><Max Value="1.995262384" /></MidiControllerRange><AutomationTarget Id="%d"><LockEnvelope Value="0" /></AutomationTarget><ModulationTarget Id="%d"><LockEnvelope Value="0" /></ModulationTarget></Volume>
+<ViewStateSesstionTrackWidth Value="93" />
+<CrossFadeState><LomId Value="0" /><Manual Value="1" /><AutomationTarget Id="%d"><LockEnvelope Value="0" /></AutomationTarget><MidiCCOnOffThresholds><Min Value="64" /><Max Value="127" /></MidiCCOnOffThresholds></CrossFadeState>
+</Mixer>
+<MainSequencer>
+<LomId Value="0" />
+<LomIdView Value="0" />
+<IsExpanded Value="true" />
+<On><LomId Value="0" /><Manual Value="true" /><AutomationTarget Id="%d"><LockEnvelope Value="0" /></AutomationTarget><MidiCCOnOffThresholds><Min Value="64" /><Max Value="127" /></MidiCCOnOffThresholds></On>
+<ModulationSourceCount Value="0" />
+<ParametersListWrapper LomId="0" />
+<Pointee Id="%d" />
+<LastSelectedTimeableIndex Value="0" />
+<LastSelectedClipEnvelopeIndex Value="0" />
+<IsFolded Value="false" />
+<ShouldShowPresetName Value="false" />
+<UserName Value="" />
+<Annotation Value="" />
+<SourceContext />
+<ClipSlotList />
+<MonitoringEnum Value="1" />
+<Sample><ArrangerAutomation><Events /></ArrangerAutomation></Sample>
+</MainSequencer>
+<FreezeSequencer>
+<LomId Value="0" />
+<LomIdView Value="0" />
+<IsExpanded Value="true" />
+<On><LomId Value="0" /><Manual Value="true" /><AutomationTarget Id="%d"><LockEnvelope Value="0" /></AutomationTarget><MidiCCOnOffThresholds><Min Value="64" /><Max Value="127" /></MidiCCOnOffThresholds></On>
+<ModulationSourceCount Value="0" />
+<ParametersListWrapper LomId="0" />
+<Pointee Id="%d" />
+<LastSelectedTimeableIndex Value="0" />
+<LastSelectedClipEnvelopeIndex Value="0" />
+<IsFolded Value="false" />
+<ShouldShowPresetName Value="false" />
+<UserName Value="" />
+<Annotation Value="" />
+<SourceContext />
+<ClipSlotList />
+<MonitoringEnum Value="1" />
+<Sample><ArrangerAutomation><Events /></ArrangerAutomation></Sample>
+</FreezeSequencer>
+<DeviceChain>
+<Devices>%s
+</Devices>
+<SignalModulations />
+</DeviceChain>
+</DeviceChain>
+</MidiTrack>
+</Tracks>
+<Transport><PhaseNudgeTempo Value="100" /><LoopOn Value="false" /><LoopStart Value="0" /><LoopLength Value="16" /><LoopIsSongLength Value="false" /><CurrentTime Value="0" /><PunchIn Value="false" /><PunchOut Value="false" /><MetronomeTickDuration Value="0" /><DrawMode Value="false" /></Transport>
+</LiveSet>]], next_pointee, xml_escape(track_name), xml_escape(track_name),
+    id[1], id[2], id[3], id[4], id[5], id[6], id[7], id[8],
+    id[9], id[10], id[11], id[12], device_xml)
+end
+
+--- Write the selected instrument as a Live Set (.als): one MIDI track holding a
+--- Simpler, ready to play. The preset exports put a device on the clipboard;
+--- this puts a whole track in a set, which is what "open it in Live" usually
+--- means when the samples are the point.
+function PakettiAbletonExportLiveSet(als_path)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if #instrument.samples == 0 then
+    return false, "the selected instrument has no samples"
+  end
+  local sample = instrument.samples[1]
+  if not sample.sample_buffer.has_sample_data then
+    return false, "the first sample of the selected instrument is empty"
+  end
+
+  if not als_path:lower():match("%.als$") then als_path = als_path .. ".als" end
+  local dir = pakettiFSPath.dirname(als_path)
+  local base = pakettiFSPath.basename(als_path):gsub("%.als$", "")
+  local samples_dir = pakettiFSPath.join(pakettiFSPath.join(dir, "Samples"), "Imported")
+  if not ensure_dir(samples_dir) then
+    return false, "could not create " .. samples_dir
+  end
+
+  local wav_name = pakettiFSPath.sanitize_filename(base, "sample") .. ".wav"
+  local wav_path = pakettiFSPath.join(samples_dir, wav_name)
+  local ok = pcall(function() return sample.sample_buffer:save_as(wav_path, "wav") end)
+  if not ok or not io.exists(wav_path) then
+    return false, "could not write " .. wav_path
+  end
+
+  local map = sample.sample_mapping
+  local key_min = math.max(0, math.min(127, map.note_range[1]))
+  local key_max = math.max(key_min, math.min(127, map.note_range[2]))
+  local root = math.max(0, math.min(127,
+    (map.base_note or 60) - (tonumber(sample.transpose) or 0)))
+
+  local o = describe_sample(sample, wav_path, "Samples/Imported/" .. wav_name,
+    key_min, key_max, root)
+  o.name = base
+
+  local rate = sample.sample_buffer.sample_rate
+  local markers = sample.slice_markers
+  for i = 1, #markers do
+    o.slices[#o.slices + 1] = (markers[i] - 1) / rate
+  end
+  local playback_mode = (#o.slices > 0) and 2 or 0
+
+  local looping = sustain_loop_from_sample(o, sample)
+
+  -- A set needs unique ids, unlike a preset where id_allocator's constant 0 is
+  -- accepted; ids start at 2 because 0 and 1 read as unset.
+  local counter = 1
+  local next_id = function() counter = counter + 1 return counter end
+  local device = build_simpler(build_sample_part(o, next_id), playback_mode, next_id, nil,
+    looping and "MultiSampler" or "OriginalSimpler")
+
+  -- A few Id="0" placeholders come from the constant device tails shared with the
+  -- preset exports, where Live accepts them. In a set it does not, so they are
+  -- renumbered here rather than in the shared constants, which stay as the .adv
+  -- and .adg exports verified them.
+  device = device:gsub('(<)(AutomationTarget)( Id=")0(")', function(a, b, c, d)
+    return a .. b .. c .. next_id() .. d
+  end)
+  device = device:gsub('(<)(ModulationTarget)( Id=")0(")', function(a, b, c, d)
+    return a .. b .. c .. next_id() .. d
+  end)
+
+  local live_set = build_live_set(device, base, next_id, 0)
+  -- NextPointeeId has to exceed every id in the document, and the count is only
+  -- known once they are all handed out, so it is patched in afterwards.
+  live_set = live_set:gsub('<NextPointeeId Value="0" />',
+    string.format('<NextPointeeId Value="%d" />', counter + 1), 1)
+
+  local xml = ABLETON_HEADER .. live_set .. "\n</Ableton>\n"
+
+  local written, werr = PakettiGzipToFile(als_path, xml, base .. ".als")
+  if not written then return false, werr end
+
+  return true, string.format("Wrote %s (%s, %d slice%s%s)",
+    pakettiFSPath.basename(als_path), wav_name, #o.slices,
+    #o.slices == 1 and "" or "s",
+    looping and ", looping - written as a Sampler" or "")
+end
+
 --- Write the selected instrument as a Drum Rack (.adg).
 --- A sliced instrument becomes one WAV with a pad per slice region, which is the
 --- exact inverse of what Live's "Slice to New MIDI Track" produces. A multi-sample
@@ -1546,6 +1747,16 @@ function PakettiAbletonExportSimplerDialog()
   print("-- PakettiAbleton export: " .. tostring(msg))
 end
 
+function PakettiAbletonExportLiveSetDialog()
+  local path = renoise.app():prompt_for_filename_to_write(
+    "als", "Export Ableton Live Set")
+  if not path or path == "" then return end
+  local ok, msg = PakettiAbletonExportLiveSet(path)
+  if ok then renoise.app():show_status(msg)
+  else renoise.app():show_error("Ableton export failed.\n\n" .. tostring(msg)) end
+  print("-- PakettiAbleton export: " .. tostring(msg))
+end
+
 function PakettiAbletonExportDrumRackDialog()
   local path = renoise.app():prompt_for_filename_to_write(
     "adg", "Export Ableton Drum Rack")
@@ -1753,6 +1964,16 @@ function PakettiAbletonBatchConvertFolder()
   PakettiAbletonBatchConvertFolderPath(folder)
 end
 
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Ableton Live Set (.als)...",
+  invoke=function() PakettiAbletonExportLiveSetDialog() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Ableton Live Set (.als)...",
+  invoke=function() PakettiAbletonExportLiveSetDialog() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Save:Ableton Live Set (.als)...",
+  invoke=function() PakettiAbletonExportLiveSetDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Export Ableton Live Set",
+  invoke=function() PakettiAbletonExportLiveSetDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Export Ableton Live Set",
+  invoke=function(message) if message:is_trigger() then PakettiAbletonExportLiveSetDialog() end end}
 PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Ableton Simpler (.adv)...",
   invoke=function() PakettiAbletonExportSimplerDialog() end}
 PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Ableton Drum Rack (.adg)...",

@@ -213,3 +213,55 @@ osascript -e 'tell application "System Events" to tell process "Live" to return 
 
 Validate that oracle against a deliberately broken control before trusting it. Live's
 `Log.txt` does **not** record preset load failures.
+
+## Live Sets (`.als`) — what a set demands that a preset does not
+
+A preset and a Live Set are not the same document with different wrappers. Two
+things a `.adv` / `.adg` gets away with will stop a `.als` loading, and Live
+names both in its log (`~/Library/Preferences/Ableton/Live 12.x/Log.txt`), which
+is by far the fastest way to debug one.
+
+**1. Ids must be real, unique, and bounded.**
+
+A preset accepts `Id="0"` on every `Pointee`, `AutomationTarget` and
+`ModulationTarget`. A set does not:
+
+```
+error: Failed to load command-line document: The document "..." is corrupt
+and cannot be loaded.  (Invalid Pointee Id.)
+```
+
+`Pointee`, `AutomationTarget` and `ModulationTarget` share one id space. Every
+id must be non-zero, unique across the document, and below `NextPointeeId` —
+which is the **first child of `LiveSet`** and is not optional. Live's own
+`Default MIDI Track.als` uses `NextPointeeId Value="4416"` for a single empty
+track, so there is no need to be frugal.
+
+**2. Live 12 renamed the master bus in routing targets.**
+
+`AudioOut/Master` is Live 10. Live 12 wants `AudioOut/Main`. The old value is
+not rejected as invalid — it is looked up in a map, misses, and takes the whole
+application down before the set finishes loading:
+
+```
+error: FatalError: Uncaught exception
+error: FatalError: [std::out_of_range] map::at:  key not found
+```
+
+The `UpperDisplayString` stays `"Master"`; only the `Target` changed.
+
+A track's four routing blocks — `AudioInputRouting`, `MidiInputRouting`,
+`AudioOutputRouting`, `MidiOutputRouting` — must all be present, and in Live 12
+each carries an `MpeSettings` block and `MpePitchBendUsesTuning`.
+
+**Where to get the truth.** Live ships a one-track set of its own at
+`/Applications/Ableton Live 12 Suite.app/Contents/App-Resources/Core Library/Defaults/Creating Tracks/MIDI Track/Default MIDI Track.als`.
+It is a real, current, minimal `LiveSet` — gunzip it and diff against it rather
+than against a project file, which buries the shape under 650 KB of MasterTrack.
+
+**Success looks like this in the log**, with nothing after it:
+
+```
+info: Default App: Loading command-line document: done.
+```
+

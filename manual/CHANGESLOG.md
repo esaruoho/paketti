@@ -189,6 +189,36 @@ Write to Pattern used the Instrument valuebox, but audition and playback used wh
 
 Every timer in the dialog is now a one-shot. Renoise timers repeat until they are removed, and the playback tick was never removed, so once the progression reached its last chord the tail kept re-firing: the last slot buttons flashed, their notes retriggered as clicks and pops, and the highlight was left stuck. When a progression now finishes on its own, playback stops once, the notes stop once, and no slot is left highlighted.
 
+### 2026-09-03 - Feature: Reading Back The Sliced Formats Paketti Could Only Write
+
+Four formats were one-way streets - Paketti could export them and never open one again. All four now import, and each rebuilds a sliced instrument with its slice markers in place.
+
+An Akai MPC program (.xpm) is read with the WAV that sits beside it, each pad's start and end becoming a slice. An OP-XY preset (.preset.zip) holds one WAV per region, so the regions are joined back into a single sample and sliced at the joins. A Digitakt II preset (.dt2pst) is read straight out of its ZIP, slice positions taken from the binary preset. An Apple Loop (.caf) is handed to Renoise to decode while its beat markers become slices, and its tempo is reported.
+- Menu: `Main Menu:File:Paketti Import:Akai MPC Program (.xpm)...`
+- Menu: `Main Menu:File:Paketti Import:OP-XY Preset (.preset.zip)...`
+- Menu: `Main Menu:File:Paketti Import:Digitakt II Preset (.dt2pst)...`
+- Menu: `Main Menu:File:Paketti Import:Apple Loop (.caf)...`
+- Also under `Main Menu:Tools:Paketti:Instruments:File Formats` and `Instrument Box:Paketti:Load`
+- Keybindings: `Global:Paketti:Import Akai MPC Program`, `Global:Paketti:Import OP-XY Preset`, `Global:Paketti:Import Digitakt II Preset`, `Global:Paketti:Import Apple Loop`
+- MIDI Mappings: `Paketti:Import Akai MPC Program`, `Paketti:Import OP-XY Preset`, `Paketti:Import Digitakt II Preset`, `Paketti:Import Apple Loop`
+
+### 2026-09-03 - Feature: AIFF Slice Markers, Read And Written
+
+Paketti already read and wrote WAV cue markers in both directions. AIFF's equivalent, the MARK chunk, is now handled the same way: an AIFF's markers become slices on import, and an exported AIFF carries one marker per slice. Renoise writes the audio itself and the markers are added to what it wrote, so the sound is unchanged.
+- Menu: `Main Menu:File:Paketti Import:AIFF with Markers (.aif)...`
+- Menu: `Main Menu:File:Paketti Export:AIFF with Slice Markers (.aif)...`
+- Also under `Main Menu:Tools:Paketti:Instruments:File Formats`, and the export under `Sample Editor:Paketti:Save`
+- Keybindings: `Global:Paketti:Import AIFF with Markers`, `Global:Paketti:Export AIFF with Slice Markers`
+- MIDI Mappings: `Paketti:Import AIFF with Markers`, `Paketti:Export AIFF with Slice Markers`
+
+### 2026-09-03 - Feature: Export An Ableton Live Set (.als)
+
+Paketti could write a Simpler preset and a Drum Rack, but not a Live Set. It can now: the selected instrument becomes a Live Set holding one MIDI track with a Simpler on it, sliced, ready to play - so "open this in Live" no longer means dragging a preset onto a track you made yourself. Verified by opening the result in Ableton Live 12.
+- Menu: `Main Menu:File:Paketti Export:Ableton Live Set (.als)...`
+- Also under `Main Menu:Tools:Paketti:Instruments:File Formats` and `Instrument Box:Paketti:Save`
+- Keybinding: `Global:Paketti:Export Ableton Live Set`
+- MIDI Mapping: `Paketti:Export Ableton Live Set`
+
 ### 2026-09-03 - Improvement: The TX16W And RX2 Format Notes Are Actually In The Repo Now
 
 Both reference documents were written into `Docs/`, which this repository ignores, so neither had ever been published. They now sit at the top level beside the other format notes: `typhoon-tx16w-format.txt` and `rex2-format.txt`.

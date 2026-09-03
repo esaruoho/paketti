@@ -1436,6 +1436,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiSamplerExports")
   timed_require("PakettiOP1Export")
   timed_require("PakettiAppleLoopExport")
+  timed_require("PakettiSlicedImport")
   timed_require("PakettiRX2Reader")
   timed_require("PakettiRX2Decode")
   timed_require("PakettiEXS24Parser")
