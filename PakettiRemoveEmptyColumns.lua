@@ -231,6 +231,15 @@ PakettiAddMenuEntry{name="Pattern Editor:Paketti:Compact Columns to the Left", i
 PakettiAddMenuEntry{name="Pattern Editor:Paketti:Compact Columns to the Left (Selected Track)", invoke=function() PakettiCompactColumns(true) end}
 PakettiAddMenuEntry{name="Pattern Matrix:Paketti:Compact Columns to the Left", invoke=function() PakettiCompactColumns(false) end}
 
+-- Sits alongside the existing Hide All Unused Columns entries, which trim from
+-- the right; this one closes the gaps they leave behind.
+PakettiAddMenuEntry{name="Main Menu:View:Paketti:Visible Columns:Compact Columns to the Left", invoke=function() PakettiCompactColumns(false) end}
+PakettiAddMenuEntry{name="Main Menu:View:Paketti:Visible Columns:Compact Columns to the Left (Selected Track)", invoke=function() PakettiCompactColumns(true) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Compact Columns to the Left", invoke=function() PakettiCompactColumns(false) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Compact Columns to the Left (Selected Track)", invoke=function() PakettiCompactColumns(true) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Compact Columns to the Left", invoke=function() PakettiCompactColumns(false) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Compact Columns to the Left (Selected Track)", invoke=function() PakettiCompactColumns(true) end}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Compact Columns to the Left", invoke=function() PakettiCompactColumns(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Compact Columns to the Left (Selected Track)", invoke=function() PakettiCompactColumns(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Compact Columns to the Left", invoke=function() PakettiCompactColumns(false) end}

@@ -14,8 +14,16 @@ Paketti could already hide unused columns three different ways, but none of them
 
 **Compact Columns to the Left** closes the gaps. For every track it finds each note and effect column holding data anywhere in the song, slides those columns left in their original left-to-right order, and then sets the visible column count to what is left. Note column names and note column mute states travel with their columns, because the move uses Renoise's own track-level column swaps rather than copying data by hand.
 
+It lives beside the tools it complements, in `Main Menu:View:Paketti:Visible Columns` next to `Hide All Unused Columns`, as well as under Tools and the Pattern Editor and Pattern Matrix right-click menus.
+
 It never buries anything: a column that holds data but had been hidden gets revealed again, and the status line tells you when that happened. One effect column is always left visible so there is somewhere to type a command - use the existing `Hide All Unused Columns` if you want the last one gone too. Tracks with nothing to do are skipped, and the whole thing is a single undo step.
 
+- Menu: `Main Menu:View:Paketti:Visible Columns:Compact Columns to the Left`
+- Menu: `Main Menu:View:Paketti:Visible Columns:Compact Columns to the Left (Selected Track)`
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Compact Columns to the Left`
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Compact Columns to the Left (Selected Track)`
+- Menu: `Pattern Editor:Paketti:Tracks:Visible Columns:Compact Columns to the Left`
+- Menu: `Pattern Editor:Paketti:Tracks:Visible Columns:Compact Columns to the Left (Selected Track)`
 - Menu: `Main Menu:Tools:Paketti:Pattern Editor:Compact Columns to the Left`
 - Menu: `Main Menu:Tools:Paketti:Pattern Editor:Compact Columns to the Left (Selected Track)`
 - Menu: `Pattern Editor:Paketti:Compact Columns to the Left`
