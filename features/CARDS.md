@@ -19,6 +19,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
+- [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
 
 
@@ -296,6 +297,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - Replicate the current row down the pattern
 - Toggle the Pattern Matrix
+
+
+<a id="selection-reversed-instrument"></a>
+## Reverse-duplicate instrument for pattern selections
+
+`features/selection-reversed-instrument.feature` · [session](selection-reversed-instrument.session.md)
+
+**What it does:** As a Paketti user, I want one Pattern Editor action that makes a reversed copy of the current instrument and points my selected notes at it, So that I can turn a selected phrase into a reversed-instrument variation without manual instrument reassignment.
+
+**Behaviour (4 scenarios):**
+
+- Active pattern selection is retargeted to the reversed duplicate — `@shipped @built @code-verified @runtime-untested`
+- Missing pattern selection is rejected before duplication — `@shipped @built @code-verified @runtime-untested`
+- Command is discoverable from Pattern Editor — `@shipped @built @code-verified @runtime-untested`
+- Existing global duplicate-and-reverse command stays available — `@stock`
+
+**How it does it:** **Key procs:** `PakettiDuplicateReverseInstrumentForSelection` · **Source files:** `PakettiSamples.lua`, `PakettiMenuConfig.lua`
+
+**Grade:** @built ×3 · @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
 
 
 <a id="song-lifecycle-safety"></a>

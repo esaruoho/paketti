@@ -114,6 +114,22 @@ files: [main.lua, PakettiAutocomplete.lua, PakettiShortcutHints.lua]
   by: codex
   from: agent
 
+## Record device toggles as automation {#device-toggle-automation}
+tech: PakettiRequests.lua Device Control NN actions, device Active parameter envelopes and x000/x001 pattern commands
+files: [PakettiRequests.lua, features/device-toggle-automation.feature, features/device-toggle-automation.session.md, features/device-toggle-automation.transcript.md, features/device-toggle-automation.transcript.jsonl]
+
+- [x] Write Enable/Disable Nth device actions into automation when Edit Mode is on {#device-toggle-active-envelope}
+  by: codex
+  from: github issue #593
+
+## Turn selections into reversed instrument copies {#selection-reversed-instrument}
+tech: PakettiSamples.lua reverse duplicate helper, Pattern Editor selection instrument retargeting
+files: [PakettiSamples.lua, PakettiMenuConfig.lua, features/selection-reversed-instrument.feature, features/selection-reversed-instrument.session.md, features/selection-reversed-instrument.transcript.md, features/selection-reversed-instrument.transcript.jsonl]
+
+- [x] Duplicate the selected instrument in reverse and retarget selected notes {#selection-reversed-instrument-shortcut}
+  by: codex
+  from: github issue #808
+
 ## Trade instruments with Ableton Live {#ableton}
 tech: PakettiDeflate.lua pure-Lua inflate/gzip, PakettiAbleton.lua XML reader+writer, hooks in PakettiImport.lua
 files: [PakettiDeflate.lua, PakettiAbleton.lua, PakettiImport.lua]

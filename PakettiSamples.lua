@@ -2598,6 +2598,68 @@ renoise.tool():add_keybinding{name="Global:Paketti:Duplicate and Reverse Instrum
 
 
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate and Reverse Instrument [Trigger]",invoke=function(message) if message:is_trigger() then PakettiDuplicateAndReverseInstrument() end end}
+
+-- REPORT-CARD >> features/selection-reversed-instrument.feature
+function PakettiDuplicateReverseInstrumentForSelection()
+  local song=renoise.song()
+  local pattern_selection = song.selection_in_pattern
+
+  if not pattern_selection then
+    renoise.app():show_status("No selection in the pattern.")
+    return
+  end
+
+  local source_index = song.selected_instrument_index
+  local source_instrument = song.selected_instrument
+  if not source_instrument or #source_instrument.samples == 0 then
+    renoise.app():show_status("No sample in the Instrument, doing nothing.")
+    return
+  end
+
+  local selection = selection_in_pattern_pro()
+  if not selection then
+    renoise.app():show_status("No selection in the pattern.")
+    return
+  end
+
+  PakettiDuplicateAndReverseInstrument()
+
+  local reversed_index = song.selected_instrument_index
+  local reversed_instrument = song.instruments[reversed_index]
+  if reversed_index == source_index or not reversed_instrument or #reversed_instrument.samples == 0 then
+    renoise.app():show_status("Could not create a reversed duplicate instrument.")
+    return
+  end
+
+  local start_line = pattern_selection.start_line
+  local end_line = pattern_selection.end_line
+  local pattern = song.selected_pattern
+  local retargeted_notes = 0
+
+  for _, track_info in ipairs(selection) do
+    local pattern_track = pattern.tracks[track_info.track_index]
+    if pattern_track then
+      for _, column_index in ipairs(track_info.note_columns) do
+        for line_index = start_line, end_line do
+          local note_column = pattern_track:line(line_index).note_columns[column_index]
+          if note_column and not note_column.is_empty and note_column.note_value < 120 then
+            note_column.instrument_value = reversed_index - 1
+            retargeted_notes = retargeted_notes + 1
+          end
+        end
+      end
+    end
+  end
+
+  renoise.app():show_status(string.format(
+    "Duplicated instrument %02X as reversed copy %02X and switched %d selected notes.",
+    source_index - 1,
+    reversed_index - 1,
+    retargeted_notes
+  ))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate and Reverse Instrument for Selection",invoke=function() PakettiDuplicateReverseInstrumentForSelection() end}
 -----
 function pakettiSampleBufferHalfSelector(half)
   local song=renoise.song()

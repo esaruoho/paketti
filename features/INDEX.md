@@ -25,4 +25,5 @@ Derived views — GENERATED, never hand-edit:
 | `music-mouse.feature` | Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise | `music-mouse.session.md` | `37f054b1` `c3465c5d` `ab144dc2` |
 | `parameter-editor-mixer-and-config.feature` | Parameter Editor exposes on the Mixer the parameter you're modifying | `parameter-editor-mixer-and-config.session.md` | `bc06819a` `b4a43b27` `94e4c343` |
 | `pattern-editor-example.feature` | Pattern Editor note manipulation | — | `bc06819a` `b953f2f4` |
+| `selection-reversed-instrument.feature` | Reverse-duplicate selected instrument and retarget selected pattern notes to it | `selection-reversed-instrument.session.md` | worktree |
 | `song-lifecycle-safety.feature` | Song-lifecycle safety for canvas dialogs and song observers | — | `bc06819a` `3d2cd863` `83526e80` |

@@ -2818,6 +2818,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Invert All Su
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Clean Render:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Instruments:Duplicate and Reverse Instrument",invoke=PakettiDuplicateAndReverseInstrument}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Instruments:Duplicate and Reverse Instrument for Selection",invoke=PakettiDuplicateReverseInstrumentForSelection}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Automation:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Automation:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
