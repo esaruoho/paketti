@@ -99,7 +99,7 @@ function PakettiRX2ReadInfo(path)
 
   local bars, beats = 0, 0
 
-  walk_iff(data, 13, #data + 1, function(id, body)
+  walk_iff(data, 13, #data + 1, function(id, body, body_pos)
     if id == "SINF" and #body >= 18 then
       info.channels = body:byte(1)
       local code = body:byte(2)
@@ -161,6 +161,7 @@ function PakettiRX2ReadInfo(path)
       if not info.has_audio_chunk then
         info.has_audio_chunk = true
         info.audio_bytes = #body
+        info.audio_offset = body_pos
       end
     end
   end)

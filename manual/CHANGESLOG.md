@@ -8,6 +8,24 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Feature: RX2 Import Without Any External Decoder
+
+Paketti can now decode REX2 audio itself. `Import RX2 with Paketti's Own Decoder` reads a `.rx2` and produces the instrument — audio and slice markers — with no decoder binary and no Wine, on every platform.
+
+REX2 stores its PCM with a lossless predictive codec that is documented nowhere. Five predictors of increasing order run in parallel, and each sample uses whichever currently has the smallest running error, so the choice costs no bits; the residual is Golomb-coded with an adaptive width, the sign is folded into the low bit, and the second channel is stored as a difference from the first.
+
+Verified sample-for-sample against reference PCM, not by ear: the decoded waveform correlates at **1.000000** with the reference over 2000 samples, and after accounting for the 5/6 headroom gain the reference decoder applies, the largest remaining difference is **0.52 of one LSB** — rounding.
+
+**What this is good for, and what it is not.** The existing decoder is a native binary on macOS and Windows and takes about 55 ms; this takes 1.2 s for a two-second loop and 3.3 s for a five-second one, so it is roughly forty times slower and runs on a ProcessSlicer with progress and a cancel button. It is not a speed improvement. What it gives you is a `.rx2` import that needs nothing installed — which on Linux replaces running a Windows executable under Wine — and slice markers that line up with the audio.
+
+That last point is a real difference. The external decoder renders the loop **time-stretched to a target tempo**, so its audio and its markers agree with each other but not with the frame numbers stored in the file. Paketti's decoder returns the file's own audio, so the container's own slice positions land exactly where they belong.
+
+The existing `.rx2` import is untouched and remains the default.
+
+- Menu: `Main Menu:File:Paketti Import:RX2 with Paketti's Own Decoder (no Wine)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Import RX2 with Paketti's Own Decoder...`
+- Keyboard shortcut: `Global:Paketti:Import RX2 with Paketti Decoder`
+
 ### 2026-09-03 - Feature: REX 1 And ReCycle Documents Import Properly
 
 `.rex` and `.rcy` files now import completely in Lua — audio, slice markers and tempo — with no decoder binary on any platform.

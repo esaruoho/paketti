@@ -84,7 +84,7 @@ frames = loopEnd > loopStart ? loopEnd - loopStart : totalFrames
 bpm    = (ppqLength / 15360) * 60 * sampleRate / frames
 ```
 
-## The audio, and why it is not here
+## The audio codec (DWOP)
 
 `SDAT` holds PCM in a proprietary DPCM scheme ("DWOP"): a bit-packed stream over
 a five-state predictor, with per-channel running averages selecting the predictor
@@ -92,8 +92,16 @@ per frame and an adaptive bit width. Stereo is stored as left plus a difference
 channel. Decoding it is a per-sample state machine — see
 `internal/engine/rex2/dwop.go` in chirashi for a complete implementation.
 
-Paketti reads the container without it, which is enough for slice counts, tempo
-detection, metadata and batch triage. Decoding the audio in Lua remains open.
+Paketti now decodes this directly (`PakettiRX2Decode.lua`). Verified against
+reference PCM at correlation 1.000000, with a largest residual of 0.52 LSB once the
+5/6 headroom gain the reference decoder applies is accounted for.
+
+Two things that decoder does which the raw stream does not: it starts 56 frames in
+and scales by 5/6, and it renders the loop time-stretched to a target tempo. That
+last one means its audio and markers agree with each other but not with the frame
+numbers in the file — 212852 frames in one container against 151200 out of the
+decoder. The raw stream keeps the file's own timeline, so the SLCE positions land
+where they belong.
 
 ## Slice visibility
 
