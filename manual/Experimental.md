@@ -21592,7 +21592,9 @@ Advanced chord progression player with 13 chord types, per-slot settings, strum 
 **MIDI Mapping:** `Paketti:Paketti Chords - Progression Player` 🎹  
 **Menu Entry:** `Main Menu:Tools:Chords - Progression Player...` 📋
 
-Opens the comprehensive chord progression editor and player.
+Opens the comprehensive chord progression editor and player. The progression and all its settings are saved when the dialog closes and restored when it re-opens.
+
+Write to Pattern can also be triggered from outside the dialog: keybinding `Global:Paketti:Paketti Chords Write to Pattern`, MIDI Mapping `Paketti:Paketti Chords Write to Pattern`.
 
 **Core Features:**
 
@@ -21612,6 +21614,11 @@ Opens the comprehensive chord progression editor and player.
    - **Key** - C through B (12 keys)
    - **Base Octave** - 0-8
    - **Interval** - 0.25-64 beats (time between chords)
+   - **Global Strum** (0-16) - sets Strum on all 8 slots at once. MIDI mappable: `Paketti:Paketti Chords Global Strum x[Knob]`
+   - **Global Length** (0.1-64 beats) - sets Length on all 8 slots at once. MIDI mappable: `Paketti:Paketti Chords Global Length x[Knob]`, which sweeps 0.25 to 16 beats in quarter-beat steps
+   - **Auto-Write** - write to the pattern on every change, instead of pressing Ctrl+W
+   - **Auto-Resize** - grow the pattern so the whole progression fits, up to Renoise's 512-line maximum. 8 chords at 4 beats with LPB 4 need 128 lines; without this they are silently dropped past the end of the pattern
+   - **Repeat Content** - when the pattern grows, repeat what the other tracks already held (notes, effect columns and automation) so a 64-line loop keeps playing across the longer pattern
    - **Instrument** - 1-255. Stays in step with Renoise's selected instrument in both directions: pick an instrument in Renoise and the valuebox follows, type a number here and Renoise's selection follows. Audition, playback and Write to Pattern all use this one number, so what you hear is what gets written.
    - **Repeat** - Loop progression infinitely
 

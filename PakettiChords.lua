@@ -47,6 +47,18 @@ PakettiChords_repeat_checkbox = nil
 PakettiChords_info_text = nil
 PakettiChords_play_button = nil
 PakettiChords_stop_button = nil
+PakettiChords_global_strum_value = nil
+PakettiChords_global_length_value = nil
+PakettiChords_autowrite_checkbox = nil
+PakettiChords_autoresize_checkbox = nil
+PakettiChords_repeatcontent_checkbox = nil
+
+-- Set while a global/preset/paste change is rewriting many slots at once, so
+-- auto-write fires once at the end instead of once per slot.
+PakettiChords_bulk_update = false
+-- Debounced save of the progression + dialog settings into preferences.
+PakettiChords_save_timer = nil
+PakettiChords_STATE_VERSION = "v1"
 
 -- Extended chord definitions with 7ths, sus, aug
 PakettiChords_CHORD_TYPES = {
@@ -350,6 +362,7 @@ function PakettiChords_ReleaseDocumentCleanup()
   PakettiChords_ClearAllTimers()  -- has_timer-guarded; nils playback timer + clears note_off_timers
   PakettiChords_DetachInstrumentObserver()
   if PakettiChords_dialog and PakettiChords_dialog.visible then
+    PakettiChords_FlushSave()
     PakettiChords_dialog:close()
   end
   PakettiChords_dialog = nil
@@ -676,6 +689,54 @@ function PakettiChords_Play()
   PakettiChords_PlaybackTick(1, active_progression, key, base_octave, chord_interval, repeat_enabled)
 end
 
+-- Grow a pattern, optionally repeating what was already in it. A 64-line loop
+-- that gets a 512-line chord progression dumped on top of it would otherwise
+-- fall silent after its first 64 lines; with Repeat Content on, every other
+-- track's notes, effect columns and automation are tiled up to the new length.
+-- Returns the length the pattern had before growing.
+function PakettiChords_GrowPatternRepeating(patt, new_lines, repeat_content, skip_track_index)
+  local old_lines = patt.number_of_lines
+  if new_lines <= old_lines then return old_lines end
+  patt.number_of_lines = new_lines
+  if not repeat_content or old_lines < 1 then return old_lines end
+
+  for track_index = 1, #patt.tracks do
+    if track_index ~= skip_track_index then
+      local ptrack = patt:track(track_index)
+      if not ptrack.is_empty then
+        for line_index = old_lines + 1, new_lines do
+          local source_index = ((line_index - 1) % old_lines) + 1
+          ptrack:line(line_index):copy_from(ptrack:line(source_index))
+        end
+      end
+      -- Automation envelopes repeat with the notes, or the tiled bars would play
+      -- with whatever value the envelope happened to end on.
+      local ok, err = pcall(function()
+        for _, automation in ipairs(ptrack.automation) do
+          local points = {}
+          for _, point in ipairs(automation.points) do
+            if point.time <= old_lines then
+              table.insert(points, {time = point.time, value = point.value})
+            end
+          end
+          if #points > 0 then
+            for repetition = 1, math.ceil(new_lines / old_lines) - 1 do
+              for _, point in ipairs(points) do
+                local time = point.time + (repetition * old_lines)
+                if time <= new_lines then automation:add_point_at(time, point.value) end
+              end
+            end
+          end
+        end
+      end)
+      if not ok then
+        print("PakettiChords DEBUG: automation repeat skipped on track " .. track_index .. ": " .. tostring(err))
+      end
+    end
+  end
+  return old_lines
+end
+
 -- Write progression to pattern
 function PakettiChords_WriteToPattern()
   local active_progression = PakettiChords_GetActiveProgression()
@@ -700,14 +761,6 @@ function PakettiChords_WriteToPattern()
   
   local ptrack = patt:track(song.selected_track_index)
   
-  -- CLEAR THE ENTIRE TRACK FIRST - prevent duplicates and havoc
-  print("PakettiChords DEBUG: Clearing entire track before writing pattern")
-  for line_idx = 1, patt.number_of_lines do
-    local line = ptrack:line(line_idx)
-    line:clear()
-  end
-  print(string.format("PakettiChords DEBUG: Cleared %d lines in track", patt.number_of_lines))
-  
   -- Get settings
   local key = PakettiChords_key_popup and (PakettiChords_key_popup.value - 1) or 0
   local base_octave = PakettiChords_base_octave_value and PakettiChords_base_octave_value.value or 4
@@ -717,6 +770,30 @@ function PakettiChords_WriteToPattern()
   
   local lines_per_step = chord_interval * lpb
   local start_line = 1 -- Always start from beginning of pattern
+  
+  -- Auto-resize: the progression only plays in full if the pattern is long
+  -- enough to hold it. 8 chords at 4 beats with LPB 4 need 128 lines, so a
+  -- 64-line pattern silently drops half of them. With the checkbox on the
+  -- pattern grows to fit, up to Renoise's 512-line maximum.
+  local required_lines = math.ceil(#active_progression * lines_per_step)
+  if required_lines < 1 then required_lines = 1 end
+  local resize_note = ""
+  if PakettiChords_autoresize_checkbox and PakettiChords_autoresize_checkbox.value
+    and required_lines > patt.number_of_lines then
+    local repeat_content = PakettiChords_repeatcontent_checkbox and PakettiChords_repeatcontent_checkbox.value
+    local target_lines = math.min(required_lines, renoise.Pattern.MAX_NUMBER_OF_LINES)
+    local old_lines = PakettiChords_GrowPatternRepeating(patt, target_lines, repeat_content, song.selected_track_index)
+    resize_note = string.format(", pattern %d -> %d lines%s", old_lines, patt.number_of_lines,
+      repeat_content and " with content repeated" or "")
+  end
+  
+  -- CLEAR THE ENTIRE TRACK FIRST - prevent duplicates and havoc
+  print("PakettiChords DEBUG: Clearing entire track before writing pattern")
+  for line_idx = 1, patt.number_of_lines do
+    local line = ptrack:line(line_idx)
+    line:clear()
+  end
+  print(string.format("PakettiChords DEBUG: Cleared %d lines in track", patt.number_of_lines))
   
   -- Calculate max columns needed
   local max_cols = 0
@@ -850,13 +927,6 @@ function PakettiChords_WriteToPattern()
     chords_written = chords_written + 1
   end
   
-  -- Show how many chords were written
-  local status_msg = string.format("PakettiChords: Wrote %d/%d chords to pattern", chords_written, #active_progression)
-  if chords_written < #active_progression then
-    status_msg = status_msg .. string.format(" (need %d lines, pattern has %d)", 
-      #active_progression * lines_per_step, patt.number_of_lines)
-  end
-  renoise.app():show_status(status_msg)
   
   -- Intelligent note-off placement
   for _, event in ipairs(note_on_events) do
@@ -882,7 +952,13 @@ function PakettiChords_WriteToPattern()
     end
   end
   
-  renoise.app():show_status("PakettiChords: Wrote progression to pattern (" .. tostring(#active_progression) .. " chords)")
+  local status_msg = string.format("PakettiChords: Wrote %d/%d chords to pattern%s",
+    chords_written, #active_progression, resize_note)
+  if chords_written < #active_progression then
+    status_msg = status_msg .. string.format(" - needs %d lines, pattern has %d (turn on Auto-Resize)",
+      required_lines, patt.number_of_lines)
+  end
+  renoise.app():show_status(status_msg)
 end
 
 -- Copy slot settings
@@ -936,6 +1012,7 @@ function PakettiChords_PasteSlot(slot)
   }
   
   PakettiChords_UpdateUI()
+  PakettiChords_MaybeAutoWrite()
   renoise.app():show_status("PakettiChords: Pasted to slot " .. string.format("%02d", slot))
 end
 
@@ -949,6 +1026,7 @@ function PakettiChords_MoveSlotUp(slot)
   
   PakettiChords_selected_slot = slot - 1
   PakettiChords_UpdateUI()
+  PakettiChords_MaybeAutoWrite()
   renoise.app():show_status("PakettiChords: Moved slot " .. string.format("%02d", slot) .. " up")
 end
 
@@ -962,6 +1040,7 @@ function PakettiChords_MoveSlotDown(slot)
   
   PakettiChords_selected_slot = slot + 1
   PakettiChords_UpdateUI()
+  PakettiChords_MaybeAutoWrite()
   renoise.app():show_status("PakettiChords: Moved slot " .. string.format("%02d", slot) .. " down")
 end
 
@@ -981,6 +1060,7 @@ function PakettiChords_LoadPreset(preset_index)
   end
   
   PakettiChords_UpdateUI()
+  PakettiChords_MaybeAutoWrite()
   renoise.app():show_status("PakettiChords: Loaded preset '" .. preset.name .. "'")
 end
 
@@ -990,6 +1070,7 @@ function PakettiChords_Clear()
   PakettiChords_Initialize()
   PakettiChords_selected_slot = 1
   PakettiChords_UpdateUI()
+  PakettiChords_MaybeAutoWrite()
   renoise.app():show_status("PakettiChords: Cleared progression")
 end
 
@@ -998,6 +1079,7 @@ function PakettiChords_SelectChord(slot, chord_index)
   PakettiChords_progression_sequence[slot].chord_index = chord_index
   PakettiChords_selected_slot = slot
   PakettiChords_UpdateUI()
+  PakettiChords_MaybeAutoWrite()
   
   -- Show chord info
   if PakettiChords_info_text and PakettiChords_key_popup then
@@ -1010,6 +1092,192 @@ end
 function PakettiChords_ClearSlot(slot)
   PakettiChords_progression_sequence[slot] = PakettiChords_CreateDefaultSlotSettings()
   PakettiChords_UpdateUI()
+  PakettiChords_MaybeAutoWrite()
+end
+
+-- Auto-write: with the checkbox on, any change to the progression is written to
+-- the pattern immediately, so tweaking a strum knob is heard in the pattern
+-- without pressing Ctrl+W. Suppressed while a bulk change (global strum/length,
+-- preset load, paste, move) is still rewriting slots - that fires one write at
+-- the end instead of one per slot.
+function PakettiChords_MaybeAutoWrite()
+  if PakettiChords_bulk_update then return end
+  PakettiChords_ScheduleSave()
+  if not PakettiChords_autowrite_checkbox then return end
+  if not PakettiChords_autowrite_checkbox.value then return end
+  if not (PakettiChords_dialog and PakettiChords_dialog.visible) then return end
+  PakettiChords_WriteToPattern()
+end
+
+-- Global Strum: one value across all 8 slots, MIDI mappable.
+function PakettiChords_SetGlobalStrum(value)
+  if value < 0 then value = 0 end
+  if value > 16 then value = 16 end
+  PakettiChords_bulk_update = true
+  for slot = 1, PakettiChords_MAX_SLOTS do
+    PakettiChords_progression_sequence[slot].strum = value
+    if PakettiChords_slot_settings[slot] and PakettiChords_slot_settings[slot].strum then
+      PakettiChords_slot_settings[slot].strum.value = value
+    end
+  end
+  if PakettiChords_global_strum_value and PakettiChords_global_strum_value.value ~= value then
+    PakettiChords_global_strum_value.value = value
+  end
+  PakettiChords_bulk_update = false
+  renoise.app():show_status(string.format("PakettiChords: Global Strum %.2f on all %d slots", value, PakettiChords_MAX_SLOTS))
+  PakettiChords_MaybeAutoWrite()
+end
+
+-- Global Length: one note length (in beats) across all 8 slots, MIDI mappable.
+function PakettiChords_SetGlobalLength(value)
+  if value < 0.1 then value = 0.1 end
+  if value > 64 then value = 64 end
+  PakettiChords_bulk_update = true
+  for slot = 1, PakettiChords_MAX_SLOTS do
+    PakettiChords_progression_sequence[slot].note_duration = value
+    if PakettiChords_slot_settings[slot] and PakettiChords_slot_settings[slot].length then
+      PakettiChords_slot_settings[slot].length.value = value
+    end
+  end
+  if PakettiChords_global_length_value and PakettiChords_global_length_value.value ~= value then
+    PakettiChords_global_length_value.value = value
+  end
+  PakettiChords_bulk_update = false
+  renoise.app():show_status(string.format("PakettiChords: Global Length %.2f beats on all %d slots", value, PakettiChords_MAX_SLOTS))
+  PakettiChords_MaybeAutoWrite()
+end
+
+-- MIDI: 0-127 knob across the strum range.
+function PakettiChords_MidiGlobalStrum(message)
+  if not message:is_abs_value() then return end
+  PakettiChords_SetGlobalStrum(math.floor((message.int_value / 127) * 16 + 0.5))
+end
+
+-- MIDI: 0-127 knob across 0.25-16 beats in quarter-beat steps. The valuebox
+-- still takes anything from 0.1 to 64 when typed.
+function PakettiChords_MidiGlobalLength(message)
+  if not message:is_abs_value() then return end
+  local beats = 0.25 + (message.int_value / 127) * (16 - 0.25)
+  PakettiChords_SetGlobalLength(math.floor(beats * 4 + 0.5) / 4)
+end
+
+-- State persistence -----------------------------------------------------------
+-- The whole dialog (8 slots plus the global settings) is written into the
+-- pakettiChordsState preference as one line, so closing the dialog - or Renoise -
+-- does not lose a progression. Saved debounced on every change and on close.
+
+function PakettiChords_SerializeState()
+  local function num(v) return string.format("%g", v or 0) end
+  local globals = {
+    num(PakettiChords_key_popup and PakettiChords_key_popup.value or 1),
+    num(PakettiChords_base_octave_value and PakettiChords_base_octave_value.value or 4),
+    num(PakettiChords_chord_interval_value and PakettiChords_chord_interval_value.value or 1),
+    num(PakettiChords_repeat_checkbox and (PakettiChords_repeat_checkbox.value and 1 or 0) or 0),
+    num(PakettiChords_autowrite_checkbox and (PakettiChords_autowrite_checkbox.value and 1 or 0) or 0),
+    num(PakettiChords_autoresize_checkbox and (PakettiChords_autoresize_checkbox.value and 1 or 0) or 0),
+    num(PakettiChords_repeatcontent_checkbox and (PakettiChords_repeatcontent_checkbox.value and 1 or 0) or 0),
+    num(PakettiChords_global_strum_value and PakettiChords_global_strum_value.value or 0),
+    num(PakettiChords_global_length_value and PakettiChords_global_length_value.value or 0.9)
+  }
+  local slots = {}
+  for slot = 1, PakettiChords_MAX_SLOTS do
+    local st = PakettiChords_progression_sequence[slot]
+    table.insert(slots, table.concat({
+      num(st.chord_index or 0), num(st.note_duration), num(st.strum), num(st.strum_mode),
+      num(st.strum_order), num(st.velocity), num(st.extra1_index), num(st.extra1_octave),
+      num(st.extra1_duration), num(st.extra2_index), num(st.extra2_octave), num(st.extra2_duration)
+    }, ","))
+  end
+  return PakettiChords_STATE_VERSION .. "|" .. table.concat(globals, ",") .. "|" .. table.concat(slots, ";")
+end
+
+-- Read the saved state into the progression table. Returns the global settings
+-- so the dialog can seed its own views with them.
+function PakettiChords_DeserializeState(text)
+  if not text or text == "" then return nil end
+  local version, globals_text, slots_text = text:match("^(.-)|(.-)|(.*)$")
+  if version ~= PakettiChords_STATE_VERSION then return nil end
+  local function split(str, sep)
+    local out = {}
+    for field in string.gmatch(str, "([^" .. sep .. "]+)") do table.insert(out, tonumber(field)) end
+    return out
+  end
+  local g = split(globals_text, ",")
+  if #g < 9 then return nil end
+  local slot = 1
+  for slot_text in string.gmatch(slots_text, "([^;]+)") do
+    local v = split(slot_text, ",")
+    if slot <= PakettiChords_MAX_SLOTS and #v >= 12 then
+      local st = PakettiChords_progression_sequence[slot]
+      st.chord_index = (v[1] > 0) and v[1] or nil
+      st.note_duration = v[2]
+      st.strum = v[3]
+      st.strum_mode = v[4]
+      st.strum_order = v[5]
+      st.velocity = v[6]
+      st.extra1_index = v[7]
+      st.extra1_octave = v[8]
+      st.extra1_duration = v[9]
+      st.extra2_index = v[10]
+      st.extra2_octave = v[11]
+      st.extra2_duration = v[12]
+    end
+    slot = slot + 1
+  end
+  return {
+    key = g[1], base_octave = g[2], chord_interval = g[3],
+    repeat_enabled = g[4] == 1, autowrite = g[5] == 1, autoresize = g[6] == 1,
+    repeat_content = g[7] == 1, global_strum = g[8], global_length = g[9]
+  }
+end
+
+-- The preference only exists once the tool has been reloaded after the
+-- declaration was added, and a renoise.Document throws on an unknown property,
+-- so ask for it behind a pcall rather than assuming it is there.
+function PakettiChords_StatePreference()
+  local ok, node = pcall(function() return preferences.pakettiChordsState end)
+  if ok then return node end
+  return nil
+end
+
+function PakettiChords_SaveState()
+  local node = PakettiChords_StatePreference()
+  if not node then return end
+  node.value = PakettiChords_SerializeState()
+  preferences:save_as("preferences.xml")
+end
+
+function PakettiChords_LoadState()
+  local node = PakettiChords_StatePreference()
+  if not node then return nil end
+  local ok, result = pcall(PakettiChords_DeserializeState, node.value)
+  if not ok then
+    print("PakettiChords DEBUG: saved state could not be read, starting empty: " .. tostring(result))
+    return nil
+  end
+  return result
+end
+
+-- Coalesce the many small edits of a knob sweep into one preferences write.
+function PakettiChords_ScheduleSave()
+  if not (PakettiChords_dialog and PakettiChords_dialog.visible) then return end
+  if PakettiChords_save_timer and renoise.tool():has_timer(PakettiChords_save_timer) then return end
+  local timer
+  timer = function()
+    if renoise.tool():has_timer(timer) then renoise.tool():remove_timer(timer) end
+    PakettiChords_save_timer = nil
+    PakettiChords_SaveState()
+  end
+  PakettiChords_save_timer = timer
+  renoise.tool():add_timer(timer, 2000)
+end
+
+function PakettiChords_FlushSave()
+  if PakettiChords_save_timer and renoise.tool():has_timer(PakettiChords_save_timer) then
+    renoise.tool():remove_timer(PakettiChords_save_timer)
+  end
+  PakettiChords_save_timer = nil
+  PakettiChords_SaveState()
 end
 
 -- Update UI
@@ -1092,33 +1360,42 @@ end
 -- Build slot settings panel
 function PakettiChords_BuildSlotSettings(slot)
   local settings = PakettiChords_progression_sequence[slot]
+  PakettiChords_slot_settings[slot] = {}
+  
+  local length_valuebox = PakettiChords_vb:valuebox{
+    min = 0.1,
+    max = 64,
+    value = settings.note_duration,
+    width = PakettiChords_VALUEBOX_WIDTH,
+    tooltip = "Note length in beats for this slot. Global Length sets every slot at once.",
+    notifier = function(value)
+      PakettiChords_progression_sequence[slot].note_duration = value
+      PakettiChords_MaybeAutoWrite()
+    end
+  }
+  local strum_valuebox = PakettiChords_vb:valuebox{
+    min = 0,
+    max = 16,
+    value = settings.strum,
+    width = PakettiChords_VALUEBOX_WIDTH,
+    tooltip = "0-16: Rows mode uses row spacing, Delays mode divides 00-FF evenly. Global Strum sets every slot at once.",
+    notifier = function(value)
+      PakettiChords_progression_sequence[slot].strum = value
+      PakettiChords_MaybeAutoWrite()
+    end
+  }
+  PakettiChords_slot_settings[slot].length = length_valuebox
+  PakettiChords_slot_settings[slot].strum = strum_valuebox
   
   local panel = PakettiChords_vb:column{
     -- Duration, Strum, Velocity
     PakettiChords_vb:row{
       PakettiChords_vb:text{text = "Length", width = PakettiChords_LABEL_WIDTH, style = "strong", font = "bold"},
-      PakettiChords_vb:valuebox{
-        min = 0.1,
-        max = 64,
-        value = settings.note_duration,
-        width = PakettiChords_VALUEBOX_WIDTH,
-        notifier = function(value)
-          PakettiChords_progression_sequence[slot].note_duration = value
-        end
-      }
+      length_valuebox
     },
     PakettiChords_vb:row{
       PakettiChords_vb:text{text = "Strum", width = PakettiChords_LABEL_WIDTH, style = "strong", font = "bold", tooltip = "Rows: delay between notes in rows | Delays: split 00-FF delay range"},
-      PakettiChords_vb:valuebox{
-        min = 0,
-        max = 16,
-        value = settings.strum,
-        width = PakettiChords_VALUEBOX_WIDTH,
-        tooltip = "0-16: Rows mode uses row spacing, Delays mode divides 00-FF evenly",
-        notifier = function(value)
-          PakettiChords_progression_sequence[slot].strum = value
-        end
-      }
+      strum_valuebox
     },
     PakettiChords_vb:row{
       PakettiChords_vb:popup{
@@ -1128,6 +1405,7 @@ function PakettiChords_BuildSlotSettings(slot)
         tooltip = "Rows: notes on separate rows | Delays: notes on same row with delay column",
         notifier = function(value)
           PakettiChords_progression_sequence[slot].strum_mode = value
+          PakettiChords_MaybeAutoWrite()
         end
       }
     },
@@ -1141,6 +1419,7 @@ function PakettiChords_BuildSlotSettings(slot)
         tooltip = "Volume: 0-128 (00-80 hex, 128 = full volume). Audition, playback and Write to Pattern all use it identically.",
         notifier = function(value)
           PakettiChords_progression_sequence[slot].velocity = value
+          PakettiChords_MaybeAutoWrite()
         end
       }
     },
@@ -1151,6 +1430,7 @@ function PakettiChords_BuildSlotSettings(slot)
         width = PakettiChords_TOTAL_ROW_WIDTH,
         notifier = function(value)
           PakettiChords_progression_sequence[slot].strum_order = value
+          PakettiChords_MaybeAutoWrite()
         end
       }
     },
@@ -1167,6 +1447,7 @@ function PakettiChords_BuildSlotSettings(slot)
           tooltip = "Which chord note to base EX1 on: 0=Off, 1=Root, 2=2nd, 3=3rd, 4=4th. Plays immediately when chord starts, not affected by strum.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra1_index = value
+            PakettiChords_MaybeAutoWrite()
           end
         }
       },
@@ -1180,6 +1461,7 @@ function PakettiChords_BuildSlotSettings(slot)
           tooltip = "Octave offset for EX1: -2=bass note, -1=one octave down, 0=same octave, +1=one octave up, etc.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra1_octave = value
+            PakettiChords_MaybeAutoWrite()
           end
         }
       },
@@ -1193,6 +1475,7 @@ function PakettiChords_BuildSlotSettings(slot)
           tooltip = "EX1 duration in beats: Independent length, can overlap multiple chords. Example: 8 beats = sustained bass note.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra1_duration = value
+            PakettiChords_MaybeAutoWrite()
           end
         }
       }
@@ -1210,6 +1493,7 @@ function PakettiChords_BuildSlotSettings(slot)
           tooltip = "Which chord note to base EX2 on: 0=Off, 1=Root, 2=2nd, 3=3rd, 4=4th. Plays immediately when chord starts, not affected by strum.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra2_index = value
+            PakettiChords_MaybeAutoWrite()
           end
         }
       },
@@ -1223,6 +1507,7 @@ function PakettiChords_BuildSlotSettings(slot)
           tooltip = "Octave offset for EX2: -2=bass note, -1=one octave down, 0=same octave, +1=one octave up (melody), etc.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra2_octave = value
+            PakettiChords_MaybeAutoWrite()
           end
         }
       },
@@ -1236,6 +1521,7 @@ function PakettiChords_BuildSlotSettings(slot)
           tooltip = "EX2 duration in beats: Independent length. Example: 0.1 = short accent, 2 = sustained melody note.",
           notifier = function(value)
             PakettiChords_progression_sequence[slot].extra2_duration = value
+            PakettiChords_MaybeAutoWrite()
           end
         }
       }
@@ -1393,7 +1679,15 @@ function PakettiChords_CreateDialog()
     PakettiChords_dialog = nil
   end
   
+  -- ViewBuilder notifiers fire while the views are being built. Without this
+  -- guard the Global Strum / Global Length valueboxes would flatten every slot
+  -- with their own saved value the moment the dialog opens.
+  PakettiChords_bulk_update = true
+  
   PakettiChords_vb = renoise.ViewBuilder()
+  
+  -- Restore the progression and settings saved when the dialog was last closed
+  local saved_state = PakettiChords_LoadState()
   
   -- Build all slot columns
   local slot_columns = {}
@@ -1409,23 +1703,69 @@ function PakettiChords_CreateDialog()
   
   PakettiChords_key_popup = PakettiChords_vb:popup{
     items = key_items,
-    value = 1,
-    width = 60
+    value = saved_state and saved_state.key or 1,
+    width = 60,
+    notifier = function() PakettiChords_MaybeAutoWrite() end
   }
   
   -- Settings controls
   PakettiChords_base_octave_value = PakettiChords_vb:valuebox{
     min = 0,
     max = 8,
-    value = 4,
-    width = 60
+    value = saved_state and saved_state.base_octave or 4,
+    width = 60,
+    notifier = function() PakettiChords_MaybeAutoWrite() end
   }
   
   PakettiChords_chord_interval_value = PakettiChords_vb:valuebox{
     min = 0.25,
     max = 64,
-    value = 1,
-    width = 60
+    value = saved_state and saved_state.chord_interval or 1,
+    width = 60,
+    notifier = function() PakettiChords_MaybeAutoWrite() end
+  }
+  
+  -- Global Strum / Global Length: one value across all 8 slots, MIDI mappable
+  PakettiChords_global_strum_value = PakettiChords_vb:valuebox{
+    min = 0,
+    max = 16,
+    value = saved_state and saved_state.global_strum or 0,
+    width = 60,
+    tooltip = "Sets Strum on all 8 slots at once. MIDI mappable: Paketti:Paketti Chords Global Strum x[Knob]",
+    notifier = function(value)
+      if PakettiChords_bulk_update then return end
+      PakettiChords_SetGlobalStrum(value)
+    end
+  }
+  
+  PakettiChords_global_length_value = PakettiChords_vb:valuebox{
+    min = 0.1,
+    max = 64,
+    value = saved_state and saved_state.global_length or 0.9,
+    width = 60,
+    tooltip = "Sets Length (beats) on all 8 slots at once. MIDI mappable: Paketti:Paketti Chords Global Length x[Knob]",
+    notifier = function(value)
+      if PakettiChords_bulk_update then return end
+      PakettiChords_SetGlobalLength(value)
+    end
+  }
+  
+  PakettiChords_autowrite_checkbox = PakettiChords_vb:checkbox{
+    value = saved_state and saved_state.autowrite or false,
+    tooltip = "Write the progression to the pattern on every change, instead of pressing Ctrl+W",
+    notifier = function() PakettiChords_MaybeAutoWrite() end
+  }
+  
+  PakettiChords_autoresize_checkbox = PakettiChords_vb:checkbox{
+    value = saved_state and saved_state.autoresize or false,
+    tooltip = "Grow the pattern so the whole progression fits (up to 512 lines) instead of dropping the chords that do not",
+    notifier = function() PakettiChords_MaybeAutoWrite() end
+  }
+  
+  PakettiChords_repeatcontent_checkbox = PakettiChords_vb:checkbox{
+    value = saved_state and saved_state.repeat_content or false,
+    tooltip = "When the pattern grows, repeat what the other tracks already held - notes, effect columns and automation - so a 64-line loop keeps playing across 512 lines",
+    notifier = function() PakettiChords_MaybeAutoWrite() end
   }
   
   PakettiChords_instrument_number_value = PakettiChords_vb:valuebox{
@@ -1446,7 +1786,8 @@ function PakettiChords_CreateDialog()
   }
   
   PakettiChords_repeat_checkbox = PakettiChords_vb:checkbox{
-    value = false
+    value = saved_state and saved_state.repeat_enabled or false,
+    notifier = function() PakettiChords_ScheduleSave() end
   }
   
   -- Preset selector
@@ -1515,6 +1856,16 @@ function PakettiChords_CreateDialog()
       },
       PakettiChords_vb:space{width = 10},
       PakettiChords_vb:column{
+        PakettiChords_vb:text{text = "Global Strum", style = "strong", font = "bold"},
+        PakettiChords_global_strum_value
+      },
+      PakettiChords_vb:space{width = 10},
+      PakettiChords_vb:column{
+        PakettiChords_vb:text{text = "Global Length", style = "strong", font = "bold"},
+        PakettiChords_global_length_value
+      },
+      PakettiChords_vb:space{width = 10},
+      PakettiChords_vb:column{
         PakettiChords_vb:text{text = "Preset", style = "strong", font = "bold"},
         preset_popup
       }
@@ -1549,10 +1900,20 @@ function PakettiChords_CreateDialog()
       },
       PakettiChords_vb:space{width = 10},
       PakettiChords_repeat_checkbox,
-      PakettiChords_vb:text{text = "Repeat", style = "normal"}
+      PakettiChords_vb:text{text = "Repeat", style = "normal"},
+      PakettiChords_vb:space{width = 10},
+      PakettiChords_autowrite_checkbox,
+      PakettiChords_vb:text{text = "Auto-Write", style = "normal", tooltip = "Write to the pattern on every change"},
+      PakettiChords_vb:space{width = 10},
+      PakettiChords_autoresize_checkbox,
+      PakettiChords_vb:text{text = "Auto-Resize", style = "normal", tooltip = "Grow the pattern so the whole progression fits"},
+      PakettiChords_vb:space{width = 10},
+      PakettiChords_repeatcontent_checkbox,
+      PakettiChords_vb:text{text = "Repeat Content", style = "normal", tooltip = "Tile what the other tracks already held across the grown pattern"}
     }
   }
   
+  PakettiChords_bulk_update = false
   PakettiChords_AttachInstrumentObserver()
   PakettiChords_dialog = renoise.app():show_custom_dialog("Paketti Chords - Progression Player - Original idea from sEptIQ - quick HTML->LUA conversion by esaruoho", content, PakettiChords_KeyHandler)
   PakettiChords_UpdateUI()
@@ -1567,6 +1928,7 @@ end
 function PakettiChords_Toggle()
   if PakettiChords_dialog and PakettiChords_dialog.visible then
     PakettiChords_Stop()
+    PakettiChords_FlushSave()
     PakettiChords_DetachInstrumentObserver()
     PakettiChords_dialog:close()
     PakettiChords_dialog = nil
@@ -1595,5 +1957,9 @@ if PAKETTI_API >= 6.2 then
 
   renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords - Progression Player...", invoke = PakettiChords_Toggle}
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords - Progression Player", invoke = PakettiChords_Toggle}
+  renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Global Strum x[Knob]", invoke = PakettiChords_MidiGlobalStrum}
+  renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Global Length x[Knob]", invoke = PakettiChords_MidiGlobalLength}
+  renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Write to Pattern", invoke = function(message) if message:is_trigger() then PakettiChords_WriteToPattern() end end}
+  renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords Write to Pattern", invoke = PakettiChords_WriteToPattern}
   PakettiAddMenuEntry{name = "Main Menu:Tools:Chords - Progression Player...", invoke = PakettiChords_Toggle}
 end

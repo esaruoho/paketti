@@ -249,6 +249,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiNoteGateTargets = "", -- legacy v1 format (auto-migrated)
   pakettiNoteGateTargetsBySong = "", -- v2: per-song bucketed targets
   pakettiNoteGateSustainPedalEnabled = false,
+  -- Paketti Chords: the whole progression plus the dialog's global settings,
+  -- serialized on one line so closing the dialog does not lose the chords.
+  pakettiChordsState = "",
   pakettiDialogClose="esc",
   pakettiShowShortcutHints = true,
   pakettiObliqueStrategiesOnStartup = true,

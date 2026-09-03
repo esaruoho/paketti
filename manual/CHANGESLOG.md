@@ -8,6 +8,22 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Feature: Chords Progression Player Gets Auto-Write, Global Strum And Length, Auto-Resize And Saved Progressions
+
+Five additions to `Main Menu:Tools:Chords - Progression Player...`.
+
+**Global Strum and Global Length** sit in the top row beside Interval and set Strum, or note Length in beats, on all eight slots at once. Both are MIDI mappable, so a knob can sweep the strum of the whole progression: MIDI Mapping `Paketti:Paketti Chords Global Strum x[Knob]` covers 0-16, and `Paketti:Paketti Chords Global Length x[Knob]` covers 0.25 to 16 beats in quarter-beat steps. The per-slot valueboxes still work on their own and move to follow the global ones.
+
+**Auto-Write** writes the progression to the pattern on every change - chord picks, strum, velocity, presets, paste, slot moves, key, octave, interval - so a knob sweep lands in the pattern as you turn it, with no Ctrl+W.
+
+**Auto-Resize** fixes the case where a progression could not fit. Eight chords at 4 beats with LPB 4 need 128 lines, so writing them into a 64-line pattern silently dropped half of them and the pattern played nothing recognisable. With Auto-Resize on, the pattern grows to hold the whole progression, up to Renoise's 512-line maximum, and the status bar reports the resize. With it off, the status bar now says how many lines the progression actually needs.
+
+**Repeat Content** goes with it: when the pattern grows, whatever the other tracks already held is repeated to fill the new length - notes, effect columns and automation. A 64-line loop that receives a 512-line chord progression keeps playing all the way through instead of falling silent after its first bar.
+
+**The dialog now saves its progression.** All eight slots and every global setting are stored when the dialog closes, and a couple of seconds after any change, so re-opening the player brings back the chords rather than an empty grid.
+
+Write to Pattern is also reachable from outside the dialog now, as keybinding `Global:Paketti:Paketti Chords Write to Pattern` and MIDI Mapping `Paketti:Paketti Chords Write to Pattern`.
+
 ### 2026-09-03 - Fix: Chords Progression Player Auditioned Louder Than It Played
 
 The same Velocity number was scaled three different ways in `Main Menu:Tools:Chords - Progression Player...`. Audition divided it by 80, Play divided it by 127, and Write to Pattern wrote it straight into the volume column, whose full scale is 0x80 - 128. At the default velocity of 80 that meant auditioning at full volume, playing at 63%, and a pattern that matched playback but not the audition, about 4 dB apart. Any velocity above 80 auditioned at full scale regardless of the number.
