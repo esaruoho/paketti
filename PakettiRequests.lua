@@ -7259,14 +7259,13 @@ renoise.tool():add_midi_mapping{name="Paketti:Select Sample x[Knob]",invoke=func
 --
 --
 -- REPORT-CARD >> features/device-toggle-automation.feature
-local function PakettiDeviceBypassActiveParameter(device)
-  for _, parameter in ipairs(device.parameters) do
-    if parameter.name == "Active" then
-      return parameter
-    end
+local function PakettiDeviceBypassActiveParameter(song, device)
+  local parameter = song.selected_automation_parameter
+  if song.selected_automation_device == device and parameter and parameter.name == "Active / Bypassed" then
+    return parameter
   end
 
-  return device.parameters[1]
+  return nil
 end
 
 local function PakettiDeviceBypassAutomationLine(song)
@@ -7305,8 +7304,13 @@ end
 local function PakettiWriteDeviceBypassGraphicalAutomation(song, track_index, device, enabled)
   if not song.transport.edit_mode then return end
 
-  local parameter = PakettiDeviceBypassActiveParameter(device)
-  if not parameter or not parameter.is_automatable then return end
+  local parameter = PakettiDeviceBypassActiveParameter(song, device)
+  if not parameter then
+    return nil, "select this device's Active / Bypassed automation parameter first"
+  end
+  if not parameter.is_automatable then
+    return nil, "Active / Bypassed is not automatable for this device"
+  end
 
   local pattern = song:pattern(song.selected_pattern_index)
   local pattern_track = pattern:track(track_index)
@@ -7354,11 +7358,14 @@ function PakettiDeviceBypass(number,state)
     return
   end
 
-  local recorded_to = PakettiRecordDeviceBypassAutomation(song, song.selected_track_index, number, device, device.is_active)
+  local recorded_to, recording_error = PakettiRecordDeviceBypassAutomation(
+    song, song.selected_track_index, number, device, device.is_active)
 
   local action = device.is_active and "Enabled" or "Disabled"
   local automation = recorded_to and (" and wrote " .. recorded_to) or ""
-  renoise.app():show_status(action .. " Selected Track Device " .. string.format("%02d", number) .. automation)
+  local warning = recording_error and (" (" .. recording_error .. ")") or ""
+  renoise.app():show_status(action .. " Selected Track Device " ..
+    string.format("%02d", number) .. automation .. warning)
 end
 
 ------------

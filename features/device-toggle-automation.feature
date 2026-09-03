@@ -22,6 +22,7 @@
 # WATCH: PakettiDeviceBypass PakettiRecordDeviceBypassAutomation PakettiWriteDeviceBypassPatternCommand PakettiWriteDeviceBypassGraphicalAutomation
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks - newest below)
+#   2026-09-03  direct-commit  touched: PakettiDeviceBypass PakettiRecordDeviceBypassAutomation
 #   2026-09-03  direct-commit  touched: PakettiDeviceBypass PakettiRecordDeviceBypassAutomation PakettiWriteDeviceBypassPatternCommand PakettiWriteDeviceBypassGraphicalAutomation
 # =============================================================================
 

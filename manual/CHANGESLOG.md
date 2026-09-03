@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Fix: Device Control records Active / Bypassed automation, never Mix
+
+Device Control's Graphical Automation mode now uses Renoise's selected `Active / Bypassed` parameter for the device being enabled, disabled or toggled. Renoise does not expose that special parameter through `device.parameters` (where parameter 1 is often `Mix`), so the old fallback silently automated the wrong parameter.
+
+To record a graphical bypass envelope, select the target device's `Active / Bypassed` lane first. If a different device or parameter is selected, Device Control still changes the device live but explains that selection must be made instead of writing an incorrect envelope. Pattern Effects mode is unchanged and continues to write `x000` / `x001`. Keybindings: `Global:Paketti:Device Control 01 (Enable/Disable/Toggle)` through `Global:Paketti:Device Control 34 (Enable/Disable/Toggle)`. MIDI Mappings: `Paketti:Device Control 01 (Enable/Disable/Toggle)` through `Paketti:Device Control 34 (Enable/Disable/Toggle)`.
+
 ### 2026-09-03 - Fix: Launch App Filter Mode reports CLI failures and supports WAV streams
 
 Launch App Filter Mode no longer discards a CLI filter's error output or treats a failed command as merely a missing file. It captures the process exit code and stderr, reports the actual failure in Renoise, and rejects output that is not a WAV before attempting to import it.
