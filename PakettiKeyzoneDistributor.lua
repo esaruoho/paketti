@@ -1198,7 +1198,16 @@ function pakettiKeyzoneDistributorDialog()
       },
       
       -- Enhanced controls (hidden by default)
-      enhanced_controls
+      enhanced_controls,
+
+      -- Round robins: several samples on the SAME key, split across velocity.
+      view_builder:row {
+        view_builder:button {
+          text = "Spread Round Robins by Velocity",
+          width = 240,
+          notifier = function() PakettiSpreadRoundRobinsByVelocity() end
+        }
+      }
     }, keyhandler
   )
 end
@@ -1313,9 +1322,151 @@ function pakettiKeyzoneDistributorFilenameDialog()
   )
 end
 
+--------------------------------------------------------------------------------
+-- Spread Round Robins by Velocity
+--
+-- distribute_velocity_layers above spreads EVERY sample in the instrument
+-- across velocity in one sequence, ignoring where they sit on the keyboard.
+-- That is a velocity multisample. This is the other case: several samples all
+-- mapped to the SAME key, which is a round robin. Each such group gets split
+-- into its own velocity bands, independently of the other groups, so four
+-- snares on C-4 and three hats on F#4 each get their own spread.
+--
+-- VEL->VOL is switched off on every mapping it touches, because for a round
+-- robin velocity is choosing WHICH sample plays, not how loud it is. Leaving
+-- it on makes the low-velocity round robins quiet, which is never what you
+-- want here.
+--------------------------------------------------------------------------------
+
+-- The fixed layout, high to low. Used whenever a group has 8 or fewer samples.
+local PakettiRoundRobinVelocityBands = {
+  {0x71, 0x7F}, {0x61, 0x70}, {0x51, 0x60}, {0x41, 0x50},
+  {0x31, 0x40}, {0x21, 0x30}, {0x11, 0x20}, {0x01, 0x10}
+}
+
+local function PakettiRoundRobinNoteName(note)
+  local names = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
+  note = math.max(0, math.min(119, math.floor(note or 0)))
+  return names[(note % 12) + 1] .. tostring(math.floor(note / 12))
+end
+
+-- Groups samples by identical note range. Unlike a single-note-only test this
+-- also catches round robins mapped across a range of keys, as long as every
+-- member of the group covers exactly the same range.
+local function PakettiRoundRobinCollectGroups(instrument)
+  local groups, order = {}, {}
+  for sample_index, sample in ipairs(instrument.samples) do
+    local mapping = sample.sample_mapping
+    if mapping and mapping.note_range then
+      local low, high = mapping.note_range[1], mapping.note_range[2]
+      if type(low) == "number" and type(high) == "number" then
+        local key = low .. "_" .. high
+        if not groups[key] then
+          groups[key] = {low = low, high = high, entries = {}}
+          order[#order + 1] = key
+        end
+        local entries = groups[key].entries
+        entries[#entries + 1] = {sample_index = sample_index, mapping = mapping}
+      end
+    end
+  end
+  return groups, order
+end
+
+-- Returns {low, high} for member `index` of a group of `count` samples.
+local function PakettiRoundRobinBandFor(index, count)
+  if count <= #PakettiRoundRobinVelocityBands then
+    local band = PakettiRoundRobinVelocityBands[index]
+    local low, high = band[1], band[2]
+    -- With fewer than eight samples the lowest one reaches down to 0, so no
+    -- velocity is left unmapped.
+    if count < #PakettiRoundRobinVelocityBands and index == count then low = 0x00 end
+    return low, high
+  end
+
+  -- More than eight: divide 0..127 evenly rather than refusing to do anything.
+  local span = 128 / count
+  local high = math.floor(127 - (index - 1) * span)
+  local low = (index == count) and 0 or math.floor(127 - index * span) + 1
+  if low > high then low = high end
+  return low, high
+end
+
+function PakettiSpreadRoundRobinsByVelocity()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("Spread Round Robins by Velocity: the selected instrument has no samples.")
+    return
+  end
+
+  local groups, order = PakettiRoundRobinCollectGroups(instrument)
+
+  song:describe_undo("Paketti: Spread Round Robins by Velocity")
+
+  local changed_samples, changed_groups, skipped_read_only = 0, 0, 0
+  local descriptions = {}
+
+  for _, key in ipairs(order) do
+    local group = groups[key]
+    local entries = group.entries
+    if #entries >= 2 then
+      table.sort(entries, function(a, b) return a.sample_index < b.sample_index end)
+
+      local has_read_only = false
+      for _, entry in ipairs(entries) do
+        if entry.mapping.read_only then has_read_only = true break end
+      end
+
+      if has_read_only then
+        -- Slices are read-only mappings; leave them alone rather than throwing.
+        skipped_read_only = skipped_read_only + 1
+      else
+        for index, entry in ipairs(entries) do
+          local low, high = PakettiRoundRobinBandFor(index, #entries)
+          entry.mapping.velocity_range = {low, high}
+          entry.mapping.map_velocity_to_volume = false
+          changed_samples = changed_samples + 1
+        end
+        changed_groups = changed_groups + 1
+        local label = (group.low == group.high)
+          and PakettiRoundRobinNoteName(group.low)
+          or (PakettiRoundRobinNoteName(group.low) .. "-" .. PakettiRoundRobinNoteName(group.high))
+        descriptions[#descriptions + 1] = string.format("%s x%d", label, #entries)
+      end
+    end
+  end
+
+  if changed_groups == 0 then
+    local message = "Spread Round Robins by Velocity: no key has two or more samples on it, nothing to spread."
+    if skipped_read_only > 0 then
+      message = message .. string.format(" Skipped %d group(s) of read-only slice mappings.", skipped_read_only)
+    end
+    renoise.app():show_status(message)
+    return
+  end
+
+  local message = string.format(
+    "Spread Round Robins by Velocity: spread %d sample(s) across %d key(s) - %s. VEL->VOL turned off so velocity picks the sample.",
+    changed_samples, changed_groups, table.concat(descriptions, ", "))
+  if skipped_read_only > 0 then
+    message = message .. string.format(" Skipped %d read-only slice group(s).", skipped_read_only)
+  end
+  print(message)
+  renoise.app():show_status(message)
+end
+
 -- Keybindings and MIDI mappings
 renoise.tool():add_keybinding{name="Global:Paketti:Show Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Keyzone Distributor Dialog...",invoke=function(message) if message:is_trigger() then pakettiKeyzoneDistributorDialog() end end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Filename-Based Keyzone Mapping...",invoke=function() pakettiKeyzoneDistributorFilenameDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Filename-Based Keyzone Mapping...",invoke=function(message) if message:is_trigger() then pakettiKeyzoneDistributorFilenameDialog() end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Spread Round Robins by Velocity",invoke=function() PakettiSpreadRoundRobinsByVelocity() end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Spread Round Robins by Velocity",invoke=function() PakettiSpreadRoundRobinsByVelocity() end}
+renoise.tool():add_midi_mapping{name="Paketti:Spread Round Robins by Velocity",invoke=function(message) if message:is_trigger() then PakettiSpreadRoundRobinsByVelocity() end end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Spread Round Robins by Velocity",invoke=function() PakettiSpreadRoundRobinsByVelocity() end}
+PakettiAddMenuEntry{name="Sample Mappings:Paketti:Spread Round Robins by Velocity",invoke=function() PakettiSpreadRoundRobinsByVelocity() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Spread Round Robins by Velocity",invoke=function() PakettiSpreadRoundRobinsByVelocity() end}
 

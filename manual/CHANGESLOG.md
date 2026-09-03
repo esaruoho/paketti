@@ -8,6 +8,38 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Feature: Spread Round Robins by Velocity, in the Keyzone Distributor
+
+The Keyzone Distributor's existing velocity distribution spreads *every* sample in the instrument across velocity in one sequence, ignoring where they sit on the keyboard. That is a velocity multisample. **Spread Round Robins by Velocity** handles the other case: several samples mapped to the *same* key, which is a round robin.
+
+Each group of samples sharing a key is split into its own velocity bands, independently of every other group - so four snares on C-4 and three hats on F#4 each get their own spread, in one go. Groups of eight or fewer use the fixed layout 71-7F, 61-70, 51-60, 41-50, 31-40, 21-30, 11-20, 01-10 from the top down, and the lowest sample is stretched down to 00 so no velocity is left unmapped. More than eight samples on one key divides 0-127 evenly instead of refusing. Keys holding only one sample are left completely alone.
+
+Crucially it turns **VEL->VOL off** on every mapping it touches, because in a round robin velocity is choosing *which* sample plays, not how loud it is - leaving it on makes your quiet round robins actually quiet, which is never the intent. Read-only slice mappings are skipped rather than throwing.
+
+It also groups round robins mapped across a *range* of keys, not just a single key, as long as every member covers the same range.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Spread Round Robins by Velocity`
+- Menu: `Sample Mappings:Paketti:Spread Round Robins by Velocity`
+- Menu: `Instrument Box:Paketti:Spread Round Robins by Velocity`
+- Keybinding: `Global:Paketti:Spread Round Robins by Velocity`
+- Keybinding: `Sample Keyzones:Paketti:Spread Round Robins by Velocity`
+- MIDI Mapping: `Paketti:Spread Round Robins by Velocity`
+- Also a button at the bottom of the Keyzone Distributor dialog.
+
+### 2026-09-03 - Feature: Find Multi-Instrument Columns
+
+Finds note columns that play more than one instrument and jumps to them. A column holding two or more different instrument numbers is either deliberate or a mess left from pasting, and this finds every one of them. It pairs with **Split Track by Instrument** - the dialog has a button that splits the track you have just been jumped to.
+
+It scans the pattern **sequence** in playback order rather than the pattern list, so hits come out in the order you would hear them, and a pattern used twice in the sequence is reported at each position. The status line names the sequence position, pattern, track, column, row and which instruments are involved.
+
+The shortcuts work without the dialog open: `Find Multi-Instrument Columns Next` and `Previous` jump straight to the next hit, wrapping around at the ends, and scan by themselves the first time you use them or when the song has changed. Inside the dialog, Return is Find Next, Shift+Return is Find Previous, and Escape closes it.
+
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Find Multi-Instrument Columns...` (plus `Next`, `Previous`, `Rescan`)
+- Menu: the same four under `Pattern Editor:Paketti:Tracks:`
+- Keybinding: `Global:Paketti:Find Multi-Instrument Columns...` (plus `Next`, `Previous`, `Rescan`)
+- Keybinding: the same four under `Pattern Editor:Paketti:`
+- MIDI Mapping: `Paketti:Find Multi-Instrument Columns...` (plus `Next`, `Previous`, `Rescan`)
+
 ### 2026-09-03 - Feature: Split Track by Instrument
 
 Takes a track with several instruments jumbled together and gives each instrument its own track. A track playing instruments 00, 03 and 07 becomes three tracks, in ascending instrument order, inserted directly after the source.
