@@ -44,6 +44,12 @@ The three menu entries for `Hide All Unused Columns (Selected Track)` called a f
 - Menu: `Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)`
 - Menu: `Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (Selected Track)`
 
+### 2026-09-03 - Feature: Chords Progression Player Gets A Global Strum Mode, And Shows The Delay Column When It Needs It
+
+Setting Global Strum to 10 and then clicking eight per-slot popups to switch them all to Delays was silly. **Global Mode** sits beside Global Strum in the top row and flips all eight slots between Rows and Delays at once. It is MIDI mappable as `Paketti:Paketti Chords Global Strum Mode x[Toggle]` - a switch, a knob past halfway, or a button press all work - and has keybindings `Global:Paketti:Paketti Chords Global Strum Mode Rows`, `Global:Paketti:Paketti Chords Global Strum Mode Delays` and `Global:Paketti:Paketti Chords Toggle Global Strum Mode`.
+
+Delays mode writes the strum into the delay column, which is no use if that column is hidden - the strum is there but invisible. The **delay column is now shown automatically** on the selected track whenever a slot is switched to Delays, whether from a per-slot popup, from Global Mode, or from writing a Delays-mode progression to the pattern.
+
 ### 2026-09-03 - Feature: Chords Progression Player Can Read A Pattern Back, And Follows The Selected Track
 
 **Receive from Pattern** is the inverse of Write to Pattern, on a button beside it and on Ctrl+R inside the dialog, keybinding `Global:Paketti:Paketti Chords Receive from Pattern` and MIDI Mapping `Paketti:Paketti Chords Receive from Pattern` outside it. It reads the selected track back into the eight slots and works out the rest from what is written: the chord types and the key from the pitches (all twelve keys are tried and the one that explains the most chords wins), Base Octave from the lowest note, Interval from the spacing between chords, Strum and Strum Mode from how far the notes are spread across rows or delay values, Strum Order from which pitch sits in which column, Length from where the note-offs land, Velocity from the volume column, and EX1/EX2 from the columns past the chord itself. Notes that are not one of the 13 chord types are matched to the closest one and the status line says how many were approximated.

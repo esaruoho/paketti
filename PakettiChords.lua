@@ -49,6 +49,7 @@ PakettiChords_play_button = nil
 PakettiChords_stop_button = nil
 PakettiChords_global_strum_value = nil
 PakettiChords_global_length_value = nil
+PakettiChords_global_strum_mode_popup = nil
 PakettiChords_autowrite_checkbox = nil
 PakettiChords_autoresize_checkbox = nil
 PakettiChords_repeatcontent_checkbox = nil
@@ -821,6 +822,14 @@ function PakettiChords_WriteToPattern()
     track.visible_note_columns = math.min(12, max_cols)
   end
   
+  -- Delays-mode strum lives in the delay column, so show it when one is written
+  for _, prog_item in ipairs(active_progression) do
+    if prog_item.settings.strum_mode == 2 then
+      PakettiChords_ShowDelayColumn()
+      break
+    end
+  end
+  
   -- Track note-on events for intelligent note-off placement
   local note_on_events = {}
   local chords_written = 0
@@ -1168,6 +1177,39 @@ function PakettiChords_SetGlobalStrum(value)
   PakettiChords_MaybeAutoWrite()
 end
 
+-- Delays mode puts the strum in the delay column, which is no use if that
+-- column is hidden - the strum is written but invisible. Show it as soon as any
+-- slot is in Delays mode.
+function PakettiChords_ShowDelayColumn()
+  local song = renoise.song()
+  local track = song.selected_track
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then return end
+  if not track.delay_column_visible then
+    track.delay_column_visible = true
+    renoise.app():show_status("PakettiChords: Delay column shown on '" .. track.name .. "' for Delays-mode strum")
+  end
+end
+
+-- Global Strum Mode: Rows or Delays across all 8 slots, MIDI mappable.
+function PakettiChords_SetGlobalStrumMode(mode)
+  if mode ~= 1 and mode ~= 2 then return end
+  PakettiChords_bulk_update = true
+  for slot = 1, PakettiChords_MAX_SLOTS do
+    PakettiChords_progression_sequence[slot].strum_mode = mode
+    if PakettiChords_slot_settings[slot] and PakettiChords_slot_settings[slot].strum_mode then
+      PakettiChords_slot_settings[slot].strum_mode.value = mode
+    end
+  end
+  if PakettiChords_global_strum_mode_popup and PakettiChords_global_strum_mode_popup.value ~= mode then
+    PakettiChords_global_strum_mode_popup.value = mode
+  end
+  PakettiChords_bulk_update = false
+  if mode == 2 then PakettiChords_ShowDelayColumn() end
+  renoise.app():show_status(string.format("PakettiChords: Global Strum Mode %s on all %d slots",
+    PakettiChords_STRUM_MODES[mode], PakettiChords_MAX_SLOTS))
+  PakettiChords_MaybeAutoWrite()
+end
+
 -- Global Length: one note length (in beats) across all 8 slots, MIDI mappable.
 function PakettiChords_SetGlobalLength(value)
   if value < 0.1 then value = 0.1 end
@@ -1201,6 +1243,22 @@ function PakettiChords_MidiGlobalLength(message)
   PakettiChords_SetGlobalLength(math.floor(beats * 4 + 0.5) / 4)
 end
 
+-- MIDI: a switch, a knob past halfway, or a button press flips the mode.
+function PakettiChords_MidiGlobalStrumMode(message)
+  if message:is_switch() then
+    PakettiChords_SetGlobalStrumMode(message.boolean_value and 2 or 1)
+  elseif message:is_abs_value() then
+    PakettiChords_SetGlobalStrumMode(message.int_value >= 64 and 2 or 1)
+  elseif message:is_trigger() then
+    PakettiChords_ToggleGlobalStrumMode()
+  end
+end
+
+function PakettiChords_ToggleGlobalStrumMode()
+  local current = PakettiChords_global_strum_mode_popup and PakettiChords_global_strum_mode_popup.value or 1
+  PakettiChords_SetGlobalStrumMode(current == 2 and 1 or 2)
+end
+
 -- State persistence -----------------------------------------------------------
 -- The whole dialog (8 slots plus the global settings) is written into the
 -- pakettiChordsState preference as one line, so closing the dialog - or Renoise -
@@ -1218,7 +1276,8 @@ function PakettiChords_SerializeState()
     num(PakettiChords_repeatcontent_checkbox and (PakettiChords_repeatcontent_checkbox.value and 1 or 0) or 0),
     num(PakettiChords_global_strum_value and PakettiChords_global_strum_value.value or 0),
     num(PakettiChords_global_length_value and PakettiChords_global_length_value.value or 0.9),
-    num(PakettiChords_autoreceive_checkbox and (PakettiChords_autoreceive_checkbox.value and 1 or 0) or 0)
+    num(PakettiChords_autoreceive_checkbox and (PakettiChords_autoreceive_checkbox.value and 1 or 0) or 0),
+    num(PakettiChords_global_strum_mode_popup and PakettiChords_global_strum_mode_popup.value or 1)
   }
   local slots = {}
   for slot = 1, PakettiChords_MAX_SLOTS do
@@ -1269,7 +1328,8 @@ function PakettiChords_DeserializeState(text)
     key = g[1], base_octave = g[2], chord_interval = g[3],
     repeat_enabled = g[4] == 1, autowrite = g[5] == 1, autoresize = g[6] == 1,
     repeat_content = g[7] == 1, global_strum = g[8], global_length = g[9],
-    autoreceive = (g[10] == nil) or (g[10] == 1)
+    autoreceive = (g[10] == nil) or (g[10] == 1),
+    global_strum_mode = g[11] or 1
   }
 end
 
@@ -1781,6 +1841,7 @@ function PakettiChords_BuildSlotSettings(slot)
         tooltip = "Rows: notes on separate rows | Delays: notes on same row with delay column",
         notifier = function(value)
           PakettiChords_progression_sequence[slot].strum_mode = value
+          if value == 2 and not PakettiChords_bulk_update then PakettiChords_ShowDelayColumn() end
           PakettiChords_MaybeAutoWrite()
         end
       })
@@ -2117,6 +2178,17 @@ function PakettiChords_CreateDialog()
     end
   }
   
+  PakettiChords_global_strum_mode_popup = PakettiChords_vb:popup{
+    items = PakettiChords_STRUM_MODES,
+    value = (saved_state and saved_state.global_strum_mode) or 1,
+    width = 70,
+    tooltip = "Sets Strum Mode on all 8 slots at once. Rows spreads the chord over pattern rows, Delays spreads it inside one row using the delay column. MIDI mappable: Paketti:Paketti Chords Global Strum Mode x[Toggle]",
+    notifier = function(value)
+      if PakettiChords_bulk_update then return end
+      PakettiChords_SetGlobalStrumMode(value)
+    end
+  }
+  
   PakettiChords_global_length_value = PakettiChords_vb:valuebox{
     min = 0.1,
     max = 64,
@@ -2249,6 +2321,11 @@ function PakettiChords_CreateDialog()
       },
       PakettiChords_vb:space{width = 10},
       PakettiChords_vb:column{
+        PakettiChords_vb:text{text = "Global Mode", style = "strong", font = "bold"},
+        PakettiChords_global_strum_mode_popup
+      },
+      PakettiChords_vb:space{width = 10},
+      PakettiChords_vb:column{
         PakettiChords_vb:text{text = "Global Length", style = "strong", font = "bold"},
         PakettiChords_global_length_value
       },
@@ -2359,6 +2436,10 @@ if PAKETTI_API >= 6.2 then
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords - Progression Player", invoke = PakettiChords_Toggle}
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Global Strum x[Knob]", invoke = PakettiChords_MidiGlobalStrum}
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Global Length x[Knob]", invoke = PakettiChords_MidiGlobalLength}
+  renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Global Strum Mode x[Toggle]", invoke = PakettiChords_MidiGlobalStrumMode}
+  renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords Global Strum Mode Rows", invoke = function() PakettiChords_SetGlobalStrumMode(1) end}
+  renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords Global Strum Mode Delays", invoke = function() PakettiChords_SetGlobalStrumMode(2) end}
+  renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords Toggle Global Strum Mode", invoke = PakettiChords_ToggleGlobalStrumMode}
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Write to Pattern", invoke = function(message) if message:is_trigger() then PakettiChords_WriteToPattern() end end}
   renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords Write to Pattern", invoke = PakettiChords_WriteToPattern}
   renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords Receive from Pattern", invoke = function() PakettiChords_ReceiveFromPattern(false) end}

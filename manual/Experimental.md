@@ -21619,6 +21619,7 @@ Write to Pattern and Receive from Pattern can also be triggered from outside the
    - **Base Octave** - 0-8
    - **Interval** - 0.25-64 beats (time between chords)
    - **Global Strum** (0-16) - sets Strum on all 8 slots at once. MIDI mappable: `Paketti:Paketti Chords Global Strum x[Knob]`
+   - **Global Mode** - flips all 8 slots between Rows and Delays at once. MIDI mappable: `Paketti:Paketti Chords Global Strum Mode x[Toggle]`; keybindings `Global:Paketti:Paketti Chords Global Strum Mode Rows`, `... Delays` and `Global:Paketti:Paketti Chords Toggle Global Strum Mode`
    - **Global Length** (0.1-64 beats) - sets Length on all 8 slots at once. MIDI mappable: `Paketti:Paketti Chords Global Length x[Knob]`, which sweeps 0.25 to 16 beats in quarter-beat steps
    - **Auto-Write** - write to the pattern on every change, instead of pressing Ctrl+W
    - **Auto-Resize** - grow the pattern so the whole progression fits, up to Renoise's 512-line maximum. 8 chords at 4 beats with LPB 4 need 128 lines; without this they are silently dropped past the end of the pattern
@@ -21637,7 +21638,7 @@ Write to Pattern and Receive from Pattern can also be triggered from outside the
 
    **Strum Mode:**
    - **Rows** - Notes written to separate pattern rows
-   - **Delays** - Notes written to same row with delay column values
+   - **Delays** - Notes written to same row with delay column values. The track's delay column is shown automatically whenever a slot is in Delays mode, since that is where the strum lives
 
    **Velocity** (0-128) - Volume for all notes in chord, a Renoise volume-column value (00-80 hex, 128 = full volume). Audition, playback and Write to Pattern all use it identically
 
