@@ -511,7 +511,7 @@ Export samples to IFF format
 
 #### Export Song to Yamaha TX16W (setup + performance + voices)
 
-`Main Menu:File:Paketti Import:Export Song to Yamaha TX16W (setup + performance + voices)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats` and `Disk Browser:Paketti`; keybinding `Global:Paketti:Export Song to Yamaha TX16W`).
+`Main Menu:File:Paketti Export:Export Song to Yamaha TX16W (setup + performance + voices)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats` and `Disk Browser:Paketti`; keybinding `Global:Paketti:Export Song to Yamaha TX16W`).
 
 Sends the whole song, not one instrument. Every instrument with samples becomes a voice, and on top of those you get a **performance** (`.P01`) putting each voice on its own MIDI channel, and a **setup** (`.X01`) which rebuilds the entire arrangement on the sampler in one load.
 
@@ -559,7 +559,7 @@ The voice's references are matched to waves by Typhoon's own wave id first and b
 
 #### Export Instrument to Yamaha TX16W (.C01 + .O01 + 720K disk images)
 
-`Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Mappings:Paketti:Save`, `Instrument Box:Paketti:Save` and `Disk Browser:Paketti`; keybinding `Global:Paketti:Export Instrument to Yamaha TX16W`).
+`Main Menu:File:Paketti Export:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Mappings:Paketti:Save`, `Instrument Box:Paketti:Save` and `Disk Browser:Paketti`; keybinding `Global:Paketti:Export Instrument to Yamaha TX16W`).
 
 A dialog opens first with the sample rate, how much RAM your TX16W has, and whether to mix to mono and keep the instrument's own key mapping. It tells you live how much of the sampler's memory the kit will need, and warns before you export if it will not fit - a kit can split across floppies perfectly and still be too big to load, because DWVW only shrinks the copy on the disk while the machine holds the decoded audio. There is a no-dialog version alongside it, `Export Instrument to Yamaha TX16W with Saved Settings...` (keybinding `Global:Paketti:Export Instrument to Yamaha TX16W with Saved Settings`).
 
@@ -587,7 +587,7 @@ Write the images to real floppies, or put them on a Gotek or HxC floppy emulator
 
 #### Export DWVW (Yamaha TX16W / Typhoon .C01)
 
-`Main Menu:File:Paketti Import:Export DWVW Sample (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Navigator:Paketti:Export` and `Sample Mappings:Paketti:Save`; keybinding `Global:Paketti:Export DWVW Sample (.C01)...`).
+`Main Menu:File:Paketti Export:Export DWVW Sample (.C01)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`, `Sample Editor:Paketti:Save`, `Sample Navigator:Paketti:Export` and `Sample Mappings:Paketti:Save`; keybinding `Global:Paketti:Export DWVW Sample (.C01)...`).
 
 Writes the selected sample as a DWVW `.C01` at 33333 Hz, 12-bit, mixed to mono - the Yamaha TX16W's native format. The rate, bit depth and mono setting come from the Batch Convert dialog's settings, so change them there if you want something else. Pick `Keep each sample's own rate` there to export without resampling, which is what you want when sending a TX16W sample back out the way it came in.
 

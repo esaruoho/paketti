@@ -1210,7 +1210,7 @@ end
 --------------------------------------------------------------------------------
 
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
-PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Batch Convert WAV/AIFF to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Batch Convert Folder to DWVW (.C01) with Saved Settings...", invoke = PakettiDWVWBatchConvertFolder}
 

@@ -1874,7 +1874,7 @@ function PakettiTyphoonExportDialog()
     },
     vb:row{
       vb:text{text = "", width = 110},
-      vb:checkbox{id = "tx_mono", value = false},
+      vb:checkbox{id = "tx_voice_mono", value = false},
       vb:text{text = "Monophonic (one note at a time, for leads and basses)"},
     },
     vb:row{
@@ -1904,7 +1904,7 @@ function PakettiTyphoonExportDialog()
             force_mono = vb.views.tx_mono.value,
             use_mapping = vb.views.tx_mapping.value,
             gm_names = vb.views.tx_gm.value,
-            mono_voice = vb.views.tx_mono.value or nil,
+            mono_voice = vb.views.tx_voice_mono.value or nil,
             filter_table = (vb.views.tx_filter.value > 1)
               and (vb.views.tx_filter.value - 1) or nil,
             output = (vb.views.tx_out.value > 1)
@@ -2735,7 +2735,7 @@ end
 -- Registration
 --------------------------------------------------------------------------------
 
-PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Sample Mappings:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
@@ -2746,7 +2746,7 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha
 renoise.tool():add_midi_mapping{name = "Paketti:Export Instrument to Yamaha TX16W", invoke = function(message) if message:is_trigger() then PakettiTyphoonExportDialog() end end}
 
 -- The no-dialog variant, for when the settings are already right.
-PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export Instrument to Yamaha TX16W with Saved Settings...", invoke = function() PakettiTyphoonExportDrumkit() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Instrument to Yamaha TX16W with Saved Settings...", invoke = function() PakettiTyphoonExportDrumkit() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W with Saved Settings...", invoke = function() PakettiTyphoonExportDrumkit() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha TX16W with Saved Settings", invoke = function() PakettiTyphoonExportDrumkit() end}
 
@@ -2754,7 +2754,7 @@ PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:TX16W Modulation Table
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:TX16W Modulation Table...", invoke = function() PakettiTyphoonModMatrixDialog() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:TX16W Modulation Table", invoke = function() PakettiTyphoonModMatrixDialog() end}
 
-PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
 PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Song to Yamaha TX16W", invoke = function() PakettiTyphoonExportSong() end}

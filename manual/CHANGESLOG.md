@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Fix: TX16W/Typhoon Export Dialog Would Not Open
+
+The Yamaha TX16W (Typhoon) export dialog crashed on opening with "a view with the id 'tx_mono' was already registered", because the "Mix to mono" and "Monophonic" checkboxes were both using the same internal id. They are now separate, so the dialog opens again, and the "Monophonic (one note at a time)" setting is written to the exported voice instead of being taken from the "Mix to mono" checkbox.
+- Menu: `Main Menu:File:Paketti Export:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...`
+- The three TX16W export entries and `Export DWVW Sample (.C01)...` also moved out of `Main Menu:File:Paketti Import` into `Main Menu:File:Paketti Export`, where every other export lives.
+
 ### 2026-09-03 - Improvement: Choose Which RX2 Decoder Paketti Uses
 
 The Lua decoder is now a preference rather than a separate menu entry. Turn on **RX2: decode in Lua** in Paketti Preferences, beside the RX2 import toggle, and every way of opening a `.rx2` uses it — the file import hook, drag-and-drop, the menu entries, Expand Loadable and the fuzzy sample search. Off, which is the default, keeps the external decoder.
