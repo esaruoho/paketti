@@ -8,6 +8,24 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Feature: REX 1 And ReCycle Documents Import Properly
+
+`.rex` and `.rcy` files now import completely in Lua — audio, slice markers and tempo — with no decoder binary on any platform.
+
+They turned out not to be the REX2 container at all: a REX 1 or ReCycle document is an AIFF, `FORM ... AIFF` with `COMM` and `SSND`, carrying an `APPL` chunk holding the tempo and slice table. Crucially **their audio is uncompressed PCM**, so none of the REX2 decompression applies. Paketti reads the container, extracts the audio, and places a marker per slice.
+
+This replaces what the old `.rex` import did, which was to strip a fixed 256-frame header and load whatever followed as raw audio.
+
+Slice counts also now match what other tools report. The REX2 slice table is the raw analysis and holds far more boundaries than ReCycle displayed — one break reads 44 raw where Propellerhead's own decoder produces 29. Paketti applies the same visibility rules the format defines, so the count agrees.
+
+One thing worth knowing if you compare against the old decoder: it renders the loop **time-stretched to a target tempo**, so its output has a different frame count and its markers land at different positions than the ones stored in the file. Both are right about their own timeline; they cannot be mixed.
+
+Format notes are in `Docs/rex2-format.txt`.
+
+- Menu: `Main Menu:File:Paketti Import:REX 1 / ReCycle Document (.rex/.rcy)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Import REX 1 / ReCycle (.rex/.rcy)...`
+- Keyboard shortcut: `Global:Paketti:Import REX 1 ReCycle Document`
+
 ### 2026-09-02 - Feature: Read REX2 Files Without Wine
 
 Paketti's `.rx2` import shells out to a Windows decoder under Wine, which blocks Renoise's UI thread and is simply unavailable on many machines. `Inspect REX File` reads the container itself, in Lua, on every platform: tempo, detected tempo, time signature, sample rate, bit depth, channels, loop points, creator metadata, and the whole slice table with each slice's position, length and mute/lock state.
@@ -16,7 +34,7 @@ It does not decode the audio — REX2 stores PCM in a proprietary DPCM scheme, a
 
 Verified against a set of labelled test files, each parsing to exactly what its name claims — 100 and 120 and 240 BPM, 24-bit, 7/8, stereo, 500 slices — and across 300 real `.rx2` files with no failures and no crashes, reading 15,346 slices. Corrupt files and failed web downloads saved as `.rx2` are reported rather than silently mangled.
 
-The container is documented in `rex2-format.txt` in the repository root.
+The container is documented in `Docs/rex2-format.txt`.
 
 - Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Inspect REX File (.rx2/.rex/.rcy)...`
 - Menu: `Main Menu:File:Paketti Import:Inspect REX File (.rx2/.rex/.rcy)...`

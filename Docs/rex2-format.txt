@@ -95,9 +95,52 @@ channel. Decoding it is a per-sample state machine — see
 Paketti reads the container without it, which is enough for slice counts, tempo
 detection, metadata and batch triage. Decoding the audio in Lua remains open.
 
+## Slice visibility
+
+The `SLCE` table is the raw analysis and holds far more boundaries than ReCycle ever
+displayed. A boundary counts as a real slice when it is not muted, and any of: it
+delimits a region (`sample length > 1`), it was locked or selected by hand, or its
+transient strength exceeds a threshold derived from the file's own sensitivity:
+
+```
+sens      = min(analysisSensitivity, 99)
+threshold = 0x7fff - (sens * 0x7fff + 98) / 99
+```
+
+Boundaries at or beyond the loop end are dropped. On one real break this reduces 44
+raw entries to 29 — exactly what the Propellerhead decoder produces, whose list has
+30 lines but repeats one position.
+
+ReCycle documents use a different scale for the same idea: sensitivity runs 0..1000
+and `threshold = 0x7fff - (sens * 0x7fff + 999) / 1000`.
+
+## Positions are in the file's own timeline
+
+Slice positions are frame offsets into the sample as stored. The Propellerhead
+decoder renders the loop **time-stretched to a target tempo**, so its output has a
+different frame count and its markers land elsewhere — on one break, 212852 frames
+in the container against 151200 out of the decoder, every marker scaled by that same
+ratio. Both are correct about their own timeline; they cannot be mixed.
+
 ## Legacy `.rex` and `.rcy`
 
-Older REX 1 and ReCycle documents are **not** this container: they begin
-`FORM ... AIFF`, and need a different parser. A file starting `<!DOCTYPE html>` is
+Older REX 1 and ReCycle documents are **not** this container. They are AIFF files —
+`FORM ... AIFF` with `COMM` and `SSND` — carrying an `APPL` chunk whose application
+signature is `REX ` or `ReCy`, holding the tempo and the slice table.
+
+The important consequence: **their audio is uncompressed big-endian PCM** in `SSND`.
+No DPCM is involved, so these can be read completely without any decoder binary.
+
+```
+REX    magic d1d1d1da, PPQ length at +6, count at +0x0a,
+       12-byte records from +0x3f8: start, length, ppq/16
+ReCy   magic d1daded0, sensitivity at +0x14, count at +0x9e,
+       8-byte records from +0xa0: state/selected byte, 4-byte start, 2-byte points
+```
+
+Tempo is milli-BPM at body offset 14 for `ReCy` and 16 for `REX `. Loop points come
+from `MARK` entries named "Loop start" and "Loop end".
+
+A file starting `<!DOCTYPE html>` is
 a failed web download, worth detecting explicitly since it is a common way to end
 up with a broken "rx2".
