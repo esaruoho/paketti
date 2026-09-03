@@ -2023,6 +2023,96 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Set Section Loop and Schedule Section",invoke=tknaAddLoopAndScheduleSection}
 
 renoise.tool():add_midi_mapping{name="Paketti:Set Section Loop and Schedule Section [Knob]",invoke=function(message) if message:is_trigger() then tknaAddLoopAndScheduleSection() end end}
+
+-- REPORT-CARD >> features/section-loop-immediate-switch.feature
+function tknaSetSectionLoopAndSwitchImmediately(direction)
+  local song=renoise.song()
+  local sequencer = song.sequencer
+  local transport = song.transport
+  local current_sequence_index = song.selected_sequence_index
+  local total_sequences = #sequencer.pattern_sequence
+
+  local sections = {}
+  for i = 1, total_sequences do
+    if sequencer:sequence_is_start_of_section(i) then
+      table.insert(sections, i)
+    end
+  end
+
+  if #sections == 0 or sections[1] ~= 1 then
+    table.insert(sections, 1, 1)
+  end
+
+  local function get_section_range(section_index)
+    local section_start = sections[section_index]
+    local section_end = (section_index < #sections) and (sections[section_index + 1] - 1) or total_sequences
+    return section_start, section_end
+  end
+
+  local function find_section_for_sequence(sequence_index)
+    for i = #sections, 1, -1 do
+      if sequence_index >= sections[i] then
+        return i
+      end
+    end
+    return 1
+  end
+
+  local current_section_index = find_section_for_sequence(current_sequence_index)
+  local current_start, current_end = get_section_range(current_section_index)
+  local loop_range = transport.loop_sequence_range
+  local current_section_is_looping = loop_range and
+    #loop_range == 2 and
+    loop_range[1] == current_start and
+    loop_range[2] == current_end
+
+  local target_section_index = current_section_index
+  if current_section_is_looping then
+    if direction == "next" then
+      target_section_index = current_section_index + 1
+      if target_section_index > #sections then
+        renoise.app():show_status("Already at last section")
+        return
+      end
+    elseif direction == "previous" then
+      target_section_index = current_section_index - 1
+      if target_section_index < 1 then
+        renoise.app():show_status("Already at first section")
+        return
+      end
+    else
+      renoise.app():show_status("Unknown section switch direction")
+      return
+    end
+  end
+
+  local target_start, target_end = get_section_range(target_section_index)
+  transport.loop_sequence_range = {target_start, target_end}
+  song.selected_sequence_index = target_start
+  transport:trigger_sequence(target_start)
+
+  local action_text = current_section_is_looping and ("switched " .. direction) or "started current"
+  renoise.app():show_status(string.format(
+    "Section Loop: %s section %d (seq %d-%d)",
+    action_text,
+    target_section_index,
+    target_start,
+    target_end
+  ))
+end
+
+function tknaSetSectionLoopAndSwitchImmediatelyNext()
+  tknaSetSectionLoopAndSwitchImmediately("next")
+end
+
+function tknaSetSectionLoopAndSwitchImmediatelyPrevious()
+  tknaSetSectionLoopAndSwitchImmediately("previous")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Set Section Loop and Switch Section Immediately (Next)",invoke=tknaSetSectionLoopAndSwitchImmediatelyNext}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Section Loop and Switch Section Immediately (Previous)",invoke=tknaSetSectionLoopAndSwitchImmediatelyPrevious}
+renoise.tool():add_midi_mapping{name="Paketti:Set Section Loop and Switch Section Immediately (Next) [Trigger]",invoke=function(message) if message:is_trigger() then tknaSetSectionLoopAndSwitchImmediatelyNext() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Set Section Loop and Switch Section Immediately (Previous) [Trigger]",invoke=function(message) if message:is_trigger() then tknaSetSectionLoopAndSwitchImmediatelyPrevious() end end}
 ---
 function tknaSetScheduledSequenceToCurrentSequenceAndLoop()
   local song=renoise.song()
@@ -3316,4 +3406,3 @@ for i = 1, 32 do
   PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop by Position:Select, Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectScheduleLoopSectionByPosition(i) end}
   PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop by Position:Select, Add to Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectAddScheduleLoopSectionByPosition(i) end}
 end
-

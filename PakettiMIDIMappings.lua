@@ -217,6 +217,8 @@ local PakettiMidiMappings = {
   "Paketti:Sequence Loop Selection (Next)",
   "Paketti:Sequence Loop Selection (Previous)",
   "Paketti:Set Section Loop and Schedule Section [Knob]",
+  "Paketti:Set Section Loop and Switch Section Immediately (Next) [Trigger]",
+  "Paketti:Set Section Loop and Switch Section Immediately (Previous) [Trigger]",
 }
 
   
@@ -2696,4 +2698,3 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert New Instrument",invoke=func
 renoise.tool():add_midi_mapping{name="Paketti:Delete Current Instrument",invoke=function(message) if message:is_trigger() then PakettiDeleteCurrentInstrument() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Select Next Instrument",invoke=function(message) if message:is_trigger() then PakettiSelectNextInstrument() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Select Previous Instrument",invoke=function(message) if message:is_trigger() then PakettiSelectPreviousInstrument() end end}
-

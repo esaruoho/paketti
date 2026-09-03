@@ -130,6 +130,14 @@ files: [PakettiSamples.lua, PakettiMenuConfig.lua, features/selection-reversed-i
   by: codex
   from: github issue #808
 
+## Switch section loops immediately {#section-loop-immediate-switch}
+tech: PakettiTkna.lua section loop range selection, Renoise transport trigger_sequence
+files: [PakettiTkna.lua, PakettiMenuConfig.lua, features/section-loop-immediate-switch.feature, features/section-loop-immediate-switch.session.md, features/section-loop-immediate-switch.transcript.md, features/section-loop-immediate-switch.transcript.jsonl]
+
+- [x] Add next/previous commands that loop a section and trigger it immediately {#section-loop-immediate-next-previous}
+  by: codex
+  from: github issue #675
+
 ## Trade instruments with Ableton Live {#ableton}
 tech: PakettiDeflate.lua pure-Lua inflate/gzip, PakettiAbleton.lua XML reader+writer, hooks in PakettiImport.lua
 files: [PakettiDeflate.lua, PakettiAbleton.lua, PakettiImport.lua]

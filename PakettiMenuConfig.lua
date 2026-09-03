@@ -4155,6 +4155,8 @@ renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections
 renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti:Sequences/Sections:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Set Section Loop and Schedule Section",invoke=tknaAddLoopAndScheduleSection}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Set Section Loop and Switch Immediately (Next)",invoke=tknaSetSectionLoopAndSwitchImmediatelyNext}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Set Section Loop and Switch Immediately (Previous)",invoke=tknaSetSectionLoopAndSwitchImmediatelyPrevious}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Set Current Sequence as Scheduled and Loop",invoke=tknaSetScheduledSequenceToCurrentSequenceAndLoop}
 renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti:Sequences/Sections:Select Next Section Sequence",invoke=function() navigate_section_sequence("next") end}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select Previous Section Sequence",invoke=function() navigate_section_sequence("previous") end}

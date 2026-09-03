@@ -385,6 +385,14 @@
       <mapping_name>Paketti:Add Current Section to Scheduled Sequences</mapping_name>
     </assignment>
     <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <category_name>Sequencer: Control</category_name>
+      <mapping_name>Paketti:Set Section Loop and Switch Section Immediately (Next) [Trigger]</mapping_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <category_name>Sequencer: Control</category_name>
+      <mapping_name>Paketti:Set Section Loop and Switch Section Immediately (Previous) [Trigger]</mapping_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
       <category_name>Pattern Editor: Uncategorized</category_name>
       <mapping_name>Paketti:Effect Column B00 Reverse Sample Effect On/Off</mapping_name>
     </assignment>

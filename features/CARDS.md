@@ -19,6 +19,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
+- [Section loop switches trigger immediately](#section-loop-immediate-switch) — `section-loop-immediate-switch.feature`
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
 
@@ -297,6 +298,26 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - Replicate the current row down the pattern
 - Toggle the Pattern Matrix
+
+
+<a id="section-loop-immediate-switch"></a>
+## Section loop switches trigger immediately
+
+`features/section-loop-immediate-switch.feature` · [session](section-loop-immediate-switch.session.md)
+
+**What it does:** As a Paketti live performer, I want next/previous section loop commands that switch immediately, So that a footswitch can move a song between section loops without waiting for scheduled playback.
+
+**Behaviour (5 scenarios):**
+
+- Next command starts the current section when it is not already looped — `@shipped @built @code-verified @runtime-untested`
+- Next command advances when the current section is already looped — `@shipped @built @code-verified @runtime-untested`
+- Previous command retreats when the current section is already looped — `@shipped @built @code-verified @runtime-untested`
+- Commands are available from shortcuts, MIDI, and Pattern Sequencer menus — `@shipped @built @code-verified @runtime-untested`
+- Scheduled section command remains separate — `@stock`
+
+**How it does it:** **Key procs:** `tknaSetSectionLoopAndSwitchImmediately`, `tknaSetSectionLoopAndSwitchImmediatelyNext`, `tknaSetSectionLoopAndSwitchImmediatelyPrevious` · **Source files:** `PakettiTkna.lua`, `PakettiMenuConfig.lua`
+
+**Grade:** @built ×4 · @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
 
 
 <a id="selection-reversed-instrument"></a>
