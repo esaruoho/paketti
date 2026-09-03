@@ -172,6 +172,26 @@ function PakettiUpsertParameterEditorConfig(device_path, device_name, param_rows
   return entry, existing_index
 end
 
+function PakettiCreateExecutePreferences()
+  local execute_preferences = {}
+
+  for i = 1, 128 do
+    local slot = string.format("Slot%03d", i)
+    execute_preferences[slot .. "Label"] = renoise.Document.ObservableString("")
+    execute_preferences[slot .. "Command"] = renoise.Document.ObservableString("")
+  end
+
+  -- Legacy 10-slot Launch App preferences. PakettiExecute.lua migrates these
+  -- into the new command slots when an old preferences.xml still contains them.
+  for i = 1, 10 do
+    local slot = string.format("App%02d", i)
+    execute_preferences[slot] = renoise.Document.ObservableString("")
+    execute_preferences[slot .. "Argument"] = renoise.Document.ObservableString("")
+  end
+
+  return execute_preferences
+end
+
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   singlewaveformwriterhex=true,
   singlewaveformwriterbootscene=1,  -- Single Cycle Waveform Writer boot scene: 1=Full, 2=Canvas Only (minimal)
@@ -1044,28 +1064,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   -- Slice Step Sequencer Settings
   pakettiSliceStepSeqShowVelocity = false,
   -- Paketti Execute Settings
-  pakettiExecute = {
-    App01 = renoise.Document.ObservableString(""),
-    App01Argument = renoise.Document.ObservableString(""),
-    App02 = renoise.Document.ObservableString(""),
-    App02Argument = renoise.Document.ObservableString(""),
-    App03 = renoise.Document.ObservableString(""),
-    App03Argument = renoise.Document.ObservableString(""),
-    App04 = renoise.Document.ObservableString(""),
-    App04Argument = renoise.Document.ObservableString(""),
-    App05 = renoise.Document.ObservableString(""),
-    App05Argument = renoise.Document.ObservableString(""),
-    App06 = renoise.Document.ObservableString(""),
-    App06Argument = renoise.Document.ObservableString(""),
-    App07 = renoise.Document.ObservableString(""),
-    App07Argument = renoise.Document.ObservableString(""),
-    App08 = renoise.Document.ObservableString(""),
-    App08Argument = renoise.Document.ObservableString(""),
-    App09 = renoise.Document.ObservableString(""),
-    App09Argument = renoise.Document.ObservableString(""),
-    App10 = renoise.Document.ObservableString(""),
-    App10Argument = renoise.Document.ObservableString("")
-  },
+  pakettiExecute = PakettiCreateExecutePreferences(),
   -- Parameter Editor Settings
   pakettiParameterEditor = {
     PreviousNext = true,

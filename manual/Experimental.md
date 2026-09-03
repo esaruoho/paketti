@@ -14670,69 +14670,75 @@ Opens dialog showing all devices and parameters on current track with checkbox t
 
 ---
 
-# Execute Applications
+# Execute Commands
 
-**Source:** `PakettiExecute.lua` | **Features:** 11
+**Source:** `PakettiExecute.lua` | **Features:** 130
 
-Launch external applications directly from Renoise with 10 configurable quick-launch slots.
+Run configured shell commands directly from Renoise with 128 labeled slots.
 
-## Execute Applications Dialog
+## Execute Commands Dialog
 
-**Keybinding:** `Global:Paketti:Show Execute Applications Dialog` ⌨️
+**Keybinding:** `Global:Paketti:Show Execute Commands Dialog...` ⌨️
 
-Opens application launcher configuration dialog.
+Opens the command-slot configuration dialog.
 
 **Dialog Features:**
 
-### Application Slots (1-10)
-For each slot:
-- **Application Path** - Browse to executable
-- **Arguments** - Optional command-line arguments
-- **Working Directory** - Optional working directory
-- **Test Button** - Test launch before saving
+### Command Slots (001-128)
+Each slot stores:
+- **Label** - Human-readable slot name shown in the dialog and status text
+- **Command** - Shell command passed to `os.execute()`
+- **Run** - Executes the selected slot immediately
+- **Browse** - Inserts a quoted executable or script path into the command field
+
+Use `$s` in a command to export the current Sample Editor selection/range to a temporary WAV and expose it as shell variable `s` before the command runs.
 
 **Configuration:**
-1. Click "Browse" for slot
-2. Select application executable
-3. Optional: Add arguments (e.g., `--fullscreen`)
-4. Optional: Set working directory
-5. Save configuration
-6. Now accessible via keybinding
+1. Select a slot in the popup
+2. Set the label
+3. Type or browse for the shell command
+4. Run from the dialog, keybinding, or MIDI mapping
 
 ### Examples
-**Slot 1:** Audacity
-- Path: `/Applications/Audacity.app`
-- Use: Quick audio editing
+**Slot 001:** Start Pure Data
+- Label: `start pd`
+- Command: `~/make-music/pd/start.pd`
+- Use: Launch a project helper
 
-**Slot 2:** Terminal
-- Path: `/Applications/Utilities/Terminal.app`
-- Args: `--working-directory=/Users/me/samples`
-- Use: Quick shell access to samples folder
+**Slot 002:** Convert selected sample range
+- Label: `selection to opus`
+- Command: `/usr/bin/ffmpeg -i "$s" ~/tmp/$(date +%Y%m%d-%H%M%S).opus`
+- Use: Export the selected sample/range through an external CLI
 
-**Slot 3:** Text Editor
-- Path: `/Applications/Sublime Text.app`
-- Args: `~/Documents/song-notes.txt`
-- Use: Open song notes
+**Slot 003:** Print date
+- Label: `date`
+- Command: `date`
+- Use: Simple shell-command smoke test
 
-## Execute Application Slot (01-10)
+## Execute Command Slot (001-128)
 
-**Keybindings:** 10 keybindings:
-- `Global:Paketti:Execute Application Slot 01` ⌨️
-- `Global:Paketti:Execute Application Slot 02` ⌨️
-- ...through Slot 10
+**Keybindings:** 128 keybindings:
+- `Global:Paketti:Execute Command Slot 001` ⌨️
+- `Global:Paketti:Execute Command Slot 002` ⌨️
+- ...through Slot 128
 
-Launches pre-configured application from slot (1-10).
+**MIDI mappings:** 128 trigger mappings:
+- `Paketti:Execute Command Slot 001 [Trigger]` 🎛️
+- `Paketti:Execute Command Slot 002 [Trigger]` 🎛️
+- ...through Slot 128
+
+Runs the configured command from the selected slot.
 
 **Workflow:**
 1. Configure slots in dialog
 2. Close dialog
-3. Press slot keybinding anytime
-4. Application launches
+3. Press a slot keybinding or trigger a MIDI mapping anytime
+4. Command runs via `os.execute()`
 
 **Use Cases:**
-- Open sample editor (Audacity/RX)
-- Launch visual feedback (oscilloscope app)
-- Open reference player (VLC with reference track)
+- Start or stop external music tools
+- Send the current sample selection/range to a CLI process
+- Launch project scripts or helper commands
 - Launch documentation browser
 - Open project folder in Finder/Explorer
 - Quick access to utilities
