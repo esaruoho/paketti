@@ -823,9 +823,10 @@ function PakettiChords_WriteToPattern()
   end
   
   -- Delays-mode strum lives in the delay column, so show it when one is written
+  local wrote_delay = false
   for _, prog_item in ipairs(active_progression) do
     if prog_item.settings.strum_mode == 2 then
-      PakettiChords_ShowDelayColumn()
+      wrote_delay = true
       break
     end
   end
@@ -887,14 +888,20 @@ function PakettiChords_WriteToPattern()
           ncol.volume_value = settings.velocity -- 0-128 volume-column range
           if delay_value > 0 then
             ncol.delay_value = delay_value
+            wrote_delay = true
           end
           
-          -- Track for intelligent note-off
+          -- Track for intelligent note-off. The note-off carries the same delay
+          -- as its note-on, so a strummed chord releases in the same shape it
+          -- was played and every note gets the length the slot asked for. Without
+          -- it, a Delays-mode note starting at delay 7F was cut short by an
+          -- note-off sitting at the very start of its row.
           local duration_lines = settings.note_duration * lpb
           table.insert(note_on_events, {
             col = col_idx,
             start_line = note_line,
             end_line = note_line + math.floor(duration_lines),
+            delay = delay_value,
             note = note
           })
         end
@@ -966,10 +973,16 @@ function PakettiChords_WriteToPattern()
         local ncol = line:note_column(event.col)
         if ncol.is_empty then
           ncol.note_string = "OFF"
+          if event.delay and event.delay > 0 then
+            ncol.delay_value = event.delay
+            wrote_delay = true
+          end
         end
       end
     end
   end
+  
+  if wrote_delay then PakettiChords_ShowDelayColumn() end
   
   local status_msg = string.format("PakettiChords: Wrote %d/%d chords to pattern%s",
     chords_written, #active_progression, resize_note)
@@ -1415,7 +1428,7 @@ function PakettiChords_CollectPatternEvents()
             delay = ncol.delay_value, volume = ncol.volume_value})
         elseif ncol.note_value == 120 then
           note_offs[column] = note_offs[column] or {}
-          table.insert(note_offs[column], line_index)
+          table.insert(note_offs[column], {line = line_index, delay = ncol.delay_value})
         end
       end
     end
@@ -1558,9 +1571,9 @@ function PakettiChords_AnalysePattern(data, key, lpb)
       -- the gap to that chord. The last chord in a pattern with no OFF says
       -- nothing, and the slot keeps the length it has.
       local note_duration = nil
-      for _, off_line in ipairs(data.note_offs[first.column] or {}) do
-        if off_line > first.line and off_line < next_start then
-          note_duration = (off_line - first.line) / lpb
+      for _, off in ipairs(data.note_offs[first.column] or {}) do
+        if off.line > first.line and off.line < next_start then
+          note_duration = ((off.line - first.line) + (off.delay - first.delay) / 255) / lpb
           break
         end
       end
@@ -1660,9 +1673,9 @@ function PakettiChords_ReceiveFromPattern(silent)
               end
             end
           end
-          for _, off_line in ipairs(chord.note_offs[extra.column] or {}) do
-            if off_line > extra.line then
-              settings[duration_field] = (off_line - extra.line) / lpb
+          for _, off in ipairs(chord.note_offs[extra.column] or {}) do
+            if off.line > extra.line then
+              settings[duration_field] = ((off.line - extra.line) + (off.delay - extra.delay) / 255) / lpb
               break
             end
           end

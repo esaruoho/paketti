@@ -44,6 +44,12 @@ The three menu entries for `Hide All Unused Columns (Selected Track)` called a f
 - Menu: `Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)`
 - Menu: `Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (Selected Track)`
 
+### 2026-09-03 - Fix: Chords Progression Player Wrote Note-Offs Without The Strum's Delay
+
+A strummed chord's note-offs were written at the very start of their row with no delay value, while the notes themselves carried the strum's delay. In Delays mode a note starting at delay 7F was therefore cut short by a note-off three quarters of a row early, every note in the chord got a different length, and the release did not strum in the same shape as the attack. The same was true of the fractional part of a Rows-mode strum.
+
+Each note-off now carries the same delay as the note that it ends, so every note gets exactly the Length its slot asks for. A chord written in Delays mode with Strum 8 now reads `C-4 d00 / E-4 d3F / G-4 d7F` on its first row and `OFF d00 / OFF d3F / OFF d7F` four rows later. The delay column is shown whenever any delay is written, not only when a slot is in Delays mode, and Receive from Pattern reads the delays on both the note and its note-off when working out Length.
+
 ### 2026-09-03 - Feature: Chords Progression Player Gets A Global Strum Mode, And Shows The Delay Column When It Needs It
 
 Setting Global Strum to 10 and then clicking eight per-slot popups to switch them all to Delays was silly. **Global Mode** sits beside Global Strum in the top row and flips all eight slots between Rows and Delays at once. It is MIDI mappable as `Paketti:Paketti Chords Global Strum Mode x[Toggle]` - a switch, a knob past halfway, or a button press all work - and has keybindings `Global:Paketti:Paketti Chords Global Strum Mode Rows`, `Global:Paketti:Paketti Chords Global Strum Mode Delays` and `Global:Paketti:Paketti Chords Toggle Global Strum Mode`.
