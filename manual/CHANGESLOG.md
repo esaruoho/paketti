@@ -8,6 +8,34 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Feature: Compact Columns to the Left
+
+Paketti could already hide unused columns three different ways, but none of them closed gaps. A track with notes in note columns 1 and 4 kept four columns visible with two empty ones stranded in the middle, because every existing tool only looked for the *last* used column and set the visible count to that.
+
+**Compact Columns to the Left** closes the gaps. For every track it finds each note and effect column holding data anywhere in the song, slides those columns left in their original left-to-right order, and then sets the visible column count to what is left. Note column names and note column mute states travel with their columns, because the move uses Renoise's own track-level column swaps rather than copying data by hand.
+
+It never buries anything: a column that holds data but had been hidden gets revealed again, and the status line tells you when that happened. One effect column is always left visible so there is somewhere to type a command - use the existing `Hide All Unused Columns` if you want the last one gone too. Tracks with nothing to do are skipped, and the whole thing is a single undo step.
+
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Compact Columns to the Left`
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Compact Columns to the Left (Selected Track)`
+- Menu: `Pattern Editor:Paketti:Compact Columns to the Left`
+- Menu: `Pattern Editor:Paketti:Compact Columns to the Left (Selected Track)`
+- Menu: `Pattern Matrix:Paketti:Compact Columns to the Left`
+- Keybinding: `Global:Paketti:Compact Columns to the Left`
+- Keybinding: `Global:Paketti:Compact Columns to the Left (Selected Track)`
+- Keybinding: `Pattern Editor:Paketti:Compact Columns to the Left`
+- Keybinding: `Pattern Editor:Paketti:Compact Columns to the Left (Selected Track)`
+- MIDI Mapping: `Paketti:Compact Columns to the Left`
+- MIDI Mapping: `Paketti:Compact Columns to the Left (Selected Track)`
+
+### 2026-09-03 - Fix: Hide All Unused Columns (Selected Track) Did Nothing In Three Menus
+
+The three menu entries for `Hide All Unused Columns (Selected Track)` called a function that was never written, so clicking any of them threw an error instead of hiding anything. They now call the real one. The `(All Tracks)` entries were always fine.
+
+- Menu: `Main Menu:View:Paketti:Visible Columns:Hide All Unused Columns (Selected Track)`
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)`
+- Menu: `Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (Selected Track)`
+
 ### 2026-09-03 - Feature: Chords Progression Player Can Read A Pattern Back, And Follows The Selected Track
 
 **Receive from Pattern** is the inverse of Write to Pattern, on a button beside it and on Ctrl+R inside the dialog, keybinding `Global:Paketti:Paketti Chords Receive from Pattern` and MIDI Mapping `Paketti:Paketti Chords Receive from Pattern` outside it. It reads the selected track back into the eight slots and works out the rest from what is written: the chord types and the key from the pitches (all twelve keys are tried and the one that explains the most chords wins), Base Octave from the lowest note, Interval from the spacing between chords, Strum and Strum Mode from how far the notes are spread across rows or delay values, Strum Order from which pitch sits in which column, Length from where the note-offs land, Velocity from the volume column, and EX1/EX2 from the columns past the chord itself. Notes that are not one of the 13 chord types are matched to the closest one and the status line says how many were approximated.

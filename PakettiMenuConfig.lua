@@ -2933,7 +2933,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Resize all no
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Resize all non-empty Patterns:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumns(false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Write Notes:Write Notes Random",invoke=function() writeNotesMethod("random") end}
@@ -3693,7 +3693,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Transport:BPM&LPB:Ra
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize BPM Now (60-220, Bell Curve)",invoke=pakettiRandomizeBPMNow}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumns(false) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
@@ -3950,7 +3950,7 @@ end
 if preferences.pakettiMenuConfig.MainMenuView.value then
 
 renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumns(false) end}
 renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti:Visible Columns:Uncollapse All Tracks",invoke=function() Uncollapser() end}
 renoise.tool():add_menu_entry{name="Main Menu:View:Paketti:Visible Columns:Collapse All Tracks",invoke=function() Collapser() end}
 renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti:Visible Columns:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}

@@ -1244,6 +1244,8 @@ A Global shortcut for Clone Current Sequence
 Resize all non-empty patterns to 96 rows..  and Resize all non-empty patterns to `current pattern` rows
 **Create Identical Track** - takes the Note Columns / Effect Columns & Visible Columns&copies
 
+**Compact Columns to the Left** (`Main Menu:Tools:Paketti:Pattern Editor:Compact Columns to the Left`, also in the Pattern Editor and Pattern Matrix right-click menus, with `(Selected Track)` variants) - Paketti's `Hide All Unused Columns` only ever trims from the right, so a track with notes in note columns 1 and 4 keeps four columns visible with two empty ones stranded in the middle. This closes the gaps: every note and effect column that holds data anywhere in the song slides left in its original order, and the visible column count drops to what's left. Note column names and mutes move with their columns. A column with data that you'd hidden gets revealed rather than buried, and one effect column is always kept visible so there's somewhere to type a command. One undo step for the whole song.
+
 For a selection in sample editor, you can press a shortcut to "create new instrument & loop". there's "mute or solo selection in pattern",  expand/shrink selection content shortcuts, set selection to selected instrument.. bypass all effects in track, or enable.. show all parameters of all devices in track
 
 Oblique Strategies Dialog / Loader - it will randomly pick one Oblique Strategy from a list on the status whenever you save or load a song or restart Renoise

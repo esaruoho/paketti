@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**13 card conversations** plugged in:
+**17 card conversations** plugged in:
 
 ### `f4a35539-cfbb-4640-96b2-37ef60dffca3`  (2026-07-27 → 2026-08-07)
 - Resume: `claude --resume f4a35539-cfbb-4640-96b2-37ef60dffca3`
@@ -70,3 +70,21 @@
 ### `4b3695b9-8d0d-4878-a41e-6d13d1dca2ad`  (2026-08-31)
 - Resume: `claude --resume 4b3695b9-8d0d-4878-a41e-6d13d1dca2ad`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/4b3695b9-8d0d-4878-a41e-6d13d1dca2ad.jsonl
+
+### `69e12edc-0c17-48ee-98ee-5b88658ab24d`  (2026-08-31)
+- Resume: `claude --resume 69e12edc-0c17-48ee-98ee-5b88658ab24d`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/69e12edc-0c17-48ee-98ee-5b88658ab24d.jsonl
+
+### `ecdf40a8-7b88-40fd-8fae-4948ef022991`  (2026-09-02 → 2026-09-03)
+- Resume: `claude --resume ecdf40a8-7b88-40fd-8fae-4948ef022991`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/ecdf40a8-7b88-40fd-8fae-4948ef022991.jsonl
+- Cards touched (1): song-lifecycle-safety.feature
+
+### `5ef40c6b-af5a-491c-8ca5-3312859c2617`  (2026-09-03)
+- Resume: `claude --resume 5ef40c6b-af5a-491c-8ca5-3312859c2617`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/5ef40c6b-af5a-491c-8ca5-3312859c2617.jsonl
+- Cards touched (1): song-lifecycle-safety.feature
+
+### `8f1050b0-be19-4fa3-aa0e-f4dc6ae2ce50`  (2026-09-03)
+- Resume: `claude --resume 8f1050b0-be19-4fa3-aa0e-f4dc6ae2ce50`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/8f1050b0-be19-4fa3-aa0e-f4dc6ae2ce50.jsonl
