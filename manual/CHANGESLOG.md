@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Improvement: The TX16W And RX2 Format Notes Are Actually In The Repo Now
+
+Both reference documents were written into `Docs/`, which this repository ignores, so neither had ever been published. They now sit at the top level beside the other format notes: `typhoon-tx16w-format.txt` and `rex2-format.txt`.
+
+The TX16W notes gained a section on booting, prompted by a report of "OS not supported" when loading from a Gotek. The TX16W keeps no operating system in ROM and loads one from the floppy at power-on, so a Paketti disk - which is a data disk - cannot be booted from. The Typhoon system image has to be the selected image when the machine powers up; only then does the Paketti disk get loaded from Typhoon's own Disk menu. A machine still running the stock Yamaha OS will never read one, because that OS wants MSX-DOS rather than DOS FAT12.
+
+The section also records what has actually been checked about the disk images, measured against the real Typhoon 2000 floppy: three exported images pass `fsck_msdos` clean, mount natively, carry the same 720K parameter block, and hold 163 of 163 files byte-identical to their sources. No part of it has been read by a real TX16W.
+
 ### 2026-09-03 - Fix: Six Real Faults In The Yamaha TX16W / Typhoon Support
 
 An audit of the TX16W code turned up six things that were quietly wrong, all now fixed.
@@ -73,7 +81,7 @@ Slice counts also now match what other tools report. The REX2 slice table is the
 
 One thing worth knowing if you compare against the old decoder: it renders the loop **time-stretched to a target tempo**, so its output has a different frame count and its markers land at different positions than the ones stored in the file. Both are right about their own timeline; they cannot be mixed.
 
-Format notes are in `Docs/rex2-format.txt`.
+Format notes are in `rex2-format.txt`.
 
 - Menu: `Main Menu:File:Paketti Import:REX 1 / ReCycle Document (.rex/.rcy)...`
 - Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Import REX 1 / ReCycle (.rex/.rcy)...`
@@ -87,7 +95,7 @@ It does not decode the audio — REX2 stores PCM in a proprietary DPCM scheme, a
 
 Verified against a set of labelled test files, each parsing to exactly what its name claims — 100 and 120 and 240 BPM, 24-bit, 7/8, stereo, 500 slices — and across 300 real `.rx2` files with no failures and no crashes, reading 15,346 slices. Corrupt files and failed web downloads saved as `.rx2` are reported rather than silently mangled.
 
-The container is documented in `Docs/rex2-format.txt`.
+The container is documented in `rex2-format.txt`.
 
 - Menu: `Main Menu:Tools:Paketti:Instruments:File Formats:Inspect REX File (.rx2/.rex/.rcy)...`
 - Menu: `Main Menu:File:Paketti Import:Inspect REX File (.rx2/.rex/.rcy)...`

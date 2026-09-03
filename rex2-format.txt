@@ -1,0 +1,154 @@
+# REX2 container format — `.rx2`
+
+Notes on the REX2 file structure, written while adding a pure-Lua reader to
+[Paketti](https://github.com/esaruoho/paketti) (`PakettiRX2Reader.lua`). Covers
+the **container** only — tempo, slices, metadata — not the compressed audio.
+
+Verified against chirashi's labelled fixtures and roughly a thousand real `.rx2`
+files. Structure follows the pure-Go implementation in
+[chirashi](https://github.com/g-lok/chirashi), which reverse-engineered it.
+
+---
+
+## Layout
+
+An IFF tree, **big-endian**, chunks padded to an even offset:
+
+```
+CAT  REX2
+  HEAD   magic 49 0c f1 8d bc, then a version byte (> 0x03 means too new)
+  CREI   creator info
+  GLOB   tempo, slice count, bars/beats, time signature, sensitivities
+  RECY   original tempo, at body offset 8, as milli-BPM
+  CAT    nested containers, holding TRSH / EQ / COMP and the SLCE list
+    SLCE   one per slice
+  SINF   channels, bit depth, sample rate, frames, loop points
+  SDAT   the compressed audio (also seen as DWOP)
+```
+
+Nested `CAT ` chunks carry a four-byte type before their children, so recurse
+from `body + 4`.
+
+## SINF — 18 bytes
+
+```
+0   u8    channels (1 or 2; anything else means 1)
+1   u8    bit depth code: 1 = 8, 3 = 16, 5 = 24, 7 = 32
+2   u32   sample rate
+6   u32   total frames
+10  u32   loop start
+14  u32   loop end
+```
+
+## GLOB — 22 bytes
+
+```
+0   u32   slice count
+4   u16   bars
+6   u8    beats
+7   u8    time signature numerator
+8   u8    time signature denominator
+9   u8    analysis sensitivity
+10  u16   gate sensitivity
+12  u16   processing gain
+16  u32   tempo in MILLI-BPM, valid only within 20000..450000
+```
+
+Musical length is `(bars * timeSigNum + beats) * 15360`, where 15360 is REX's PPQ.
+
+## SLCE — 10 or 11 bytes, one chunk per slice
+
+```
+0   u32   sample start, in frames
+4   u32   sample length
+8   u16   PPQ position
+10  u8    flags, when present: 0x01 muted, 0x02 locked, 0x04 selected
+```
+
+A slice whose `sample length` is 0 or 1 is a marker rather than audio.
+
+## CREI — creator info
+
+A run of length-prefixed strings, each a `u32` byte count followed by the bytes,
+in order: name, copyright, URL, email, free text. Real files from Propellerhead
+read as `Propellerhead Software AB` / `Copyright (c) 2000-2003` /
+`http://www.propellerheads.se` / `maingate@propellerheads.se`.
+
+## Deriving tempo
+
+Two tempos exist and they disagree in normal files. `GLOB` carries the stored
+tempo. The *detected* tempo comes from the loop length:
+
+```
+frames = loopEnd > loopStart ? loopEnd - loopStart : totalFrames
+bpm    = (ppqLength / 15360) * 60 * sampleRate / frames
+```
+
+## The audio codec (DWOP)
+
+`SDAT` holds PCM in a proprietary DPCM scheme ("DWOP"): a bit-packed stream over
+a five-state predictor, with per-channel running averages selecting the predictor
+per frame and an adaptive bit width. Stereo is stored as left plus a difference
+channel. Decoding it is a per-sample state machine — see
+`internal/engine/rex2/dwop.go` in chirashi for a complete implementation.
+
+Paketti now decodes this directly (`PakettiRX2Decode.lua`). Verified against
+reference PCM at correlation 1.000000, with a largest residual of 0.52 LSB once the
+5/6 headroom gain the reference decoder applies is accounted for.
+
+Two things that decoder does which the raw stream does not: it starts 56 frames in
+and scales by 5/6, and it renders the loop time-stretched to a target tempo. That
+last one means its audio and markers agree with each other but not with the frame
+numbers in the file — 212852 frames in one container against 151200 out of the
+decoder. The raw stream keeps the file's own timeline, so the SLCE positions land
+where they belong.
+
+## Slice visibility
+
+The `SLCE` table is the raw analysis and holds far more boundaries than ReCycle ever
+displayed. A boundary counts as a real slice when it is not muted, and any of: it
+delimits a region (`sample length > 1`), it was locked or selected by hand, or its
+transient strength exceeds a threshold derived from the file's own sensitivity:
+
+```
+sens      = min(analysisSensitivity, 99)
+threshold = 0x7fff - (sens * 0x7fff + 98) / 99
+```
+
+Boundaries at or beyond the loop end are dropped. On one real break this reduces 44
+raw entries to 29 — exactly what the Propellerhead decoder produces, whose list has
+30 lines but repeats one position.
+
+ReCycle documents use a different scale for the same idea: sensitivity runs 0..1000
+and `threshold = 0x7fff - (sens * 0x7fff + 999) / 1000`.
+
+## Positions are in the file's own timeline
+
+Slice positions are frame offsets into the sample as stored. The Propellerhead
+decoder renders the loop **time-stretched to a target tempo**, so its output has a
+different frame count and its markers land elsewhere — on one break, 212852 frames
+in the container against 151200 out of the decoder, every marker scaled by that same
+ratio. Both are correct about their own timeline; they cannot be mixed.
+
+## Legacy `.rex` and `.rcy`
+
+Older REX 1 and ReCycle documents are **not** this container. They are AIFF files —
+`FORM ... AIFF` with `COMM` and `SSND` — carrying an `APPL` chunk whose application
+signature is `REX ` or `ReCy`, holding the tempo and the slice table.
+
+The important consequence: **their audio is uncompressed big-endian PCM** in `SSND`.
+No DPCM is involved, so these can be read completely without any decoder binary.
+
+```
+REX    magic d1d1d1da, PPQ length at +6, count at +0x0a,
+       12-byte records from +0x3f8: start, length, ppq/16
+ReCy   magic d1daded0, sensitivity at +0x14, count at +0x9e,
+       8-byte records from +0xa0: state/selected byte, 4-byte start, 2-byte points
+```
+
+Tempo is milli-BPM at body offset 14 for `ReCy` and 16 for `REX `. Loop points come
+from `MARK` entries named "Loop start" and "Loop end".
+
+A file starting `<!DOCTYPE html>` is
+a failed web download, worth detecting explicitly since it is a common way to end
+up with a broken "rx2".
