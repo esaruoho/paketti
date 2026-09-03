@@ -16,7 +16,9 @@ This is not the same as the existing **Explode Notes to New Tracks**, which spli
 
 The new tracks inherit the source track's DSP chain, colour, collapsed state and column visibility, so splitting does not change how anything sounds. Each note carries its volume, panning, delay and sample-effect values across. A note with no instrument number set follows the last instrument seen in that same note column, which is how Renoise plays it back anyway. Track effect commands go to the leftmost instrument playing on that line, or to the last instrument seen above it when the line has no notes. When one instrument plays more than once on the same row, the extra notes land in extra note columns on that instrument's track rather than getting lost.
 
-Automation is not moved - it belongs to the source track. That is why the plain version **keeps** the source track and clears its notes instead of deleting it, so its automation, routing and devices survive and nothing double-triggers. The `(Delete Source Track)` variants remove it outright, and the status line tells you when a deleted track had automation on it.
+It works across every pattern in the song, not just the current one: an instrument that only plays in pattern 7 still gets its notes, and its track stays empty in the patterns where it does not play.
+
+Automation is not moved - it belongs to the source track. That is why the plain version is completely non-destructive: it **keeps** the source track exactly as it was and simply **mutes its note columns**, so nothing double-triggers and nothing is lost. Unmute them and you have the original track back. The `(Delete Source Track)` variants remove it outright, and the status line tells you when a deleted track had automation on it. Renoise can mute note columns but not effect columns, so if the source carries effect commands the status line warns you they will still play.
 
 - Menu: `Main Menu:Tools:Paketti:Pattern Editor:Split Selected Track by Instrument`
 - Menu: `Main Menu:Tools:Paketti:Pattern Editor:Split Selected Track by Instrument (Delete Source Track)`

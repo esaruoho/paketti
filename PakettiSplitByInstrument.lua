@@ -20,9 +20,14 @@ to the leftmost instrument playing on that line, or to the last instrument seen
 above if the line has no notes.
 
 Automation is NOT moved - it belongs to the source track and stays there. That
-is why the default keeps the source track (with its notes cleared) rather than
-deleting it. Use the "Delete Source Track" variants when you know the source
-has no automation you care about.
+is why the default keeps the source track intact and simply MUTES its note
+columns, so nothing is destroyed and nothing double-triggers; unmute them to
+get the original track back. Use the "Delete Source Track" variants when you
+want it gone.
+
+Renoise can mute note columns but not effect columns, so a source track that
+carries effect commands will still play them alongside the copies on the new
+tracks. The status line says so when that happens.
 ============================================================================]]--
 
 local PakettiSBI_MAX_NOTE_COLUMNS = 12
@@ -263,18 +268,41 @@ function PakettiSplitTrackByInstrument(track_index, delete_source)
       devices_failed))
   end
 
+  local source_has_effects = false
   if delete_source then
     song:delete_track_at(track_index)
   else
-    -- Keep the track so its automation, routing and devices survive, but clear
-    -- the notes so nothing double-triggers.
-    for pattern_index = 1, #song.patterns do
-      song.patterns[pattern_index].tracks[track_index]:clear()
+    -- Nothing is destroyed: the notes stay on the source track, its note
+    -- columns are just muted so they do not double-trigger against the new
+    -- tracks. Unmute them to get the original track back.
+    for column_index = 1, source_track.max_note_columns do
+      source_track:set_column_is_muted(column_index, true)
     end
-    song.tracks[track_index].name = source_name .. " (split, emptied)"
+    source_track.name = source_name .. " (split, muted)"
+
+    -- Renoise can mute note columns but not effect columns, so any track
+    -- effect commands on the source still play, on top of the copies now
+    -- living on the new tracks. Worth saying out loud.
+    for pattern_index = 1, #song.patterns do
+      local pattern = song.patterns[pattern_index]
+      local pattern_track = pattern.tracks[track_index]
+      if not pattern_track.is_empty then
+        for line_index = 1, pattern.number_of_lines do
+          local line = pattern_track.lines[line_index]
+          for column_index = 1, source_track.visible_effect_columns do
+            if not line.effect_columns[column_index].is_empty then
+              source_has_effects = true
+              break
+            end
+          end
+          if source_has_effects then break end
+        end
+      end
+      if source_has_effects then break end
+    end
   end
 
-  return #instrument_list, #instrument_list, had_automation
+  return #instrument_list, #instrument_list, had_automation, source_has_effects
 end
 
 function PakettiSplitSelectedTrackByInstrument(delete_source)
@@ -289,7 +317,7 @@ function PakettiSplitSelectedTrackByInstrument(delete_source)
 
   song:describe_undo("Paketti: Split Track by Instrument")
   local name = track.name
-  local created, instruments, had_automation =
+  local created, instruments, had_automation, source_has_effects =
     PakettiSplitTrackByInstrument(track_index, delete_source)
 
   if created == 0 then
@@ -304,7 +332,10 @@ function PakettiSplitSelectedTrackByInstrument(delete_source)
       and " Source track deleted - it had automation, which was deleted with it."
       or " Source track deleted."
   else
-    tail = " Source track kept and emptied, so its automation and devices survive."
+    tail = " Source track kept with its note columns muted, so nothing is lost - unmute them to get it back."
+    if source_has_effects then
+      tail = tail .. " It still has effect commands, which Renoise cannot mute, so those play twice - clear them or use the Delete Source Track version."
+    end
   end
 
   renoise.app():show_status(string.format(
