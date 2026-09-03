@@ -7259,9 +7259,10 @@ renoise.tool():add_midi_mapping{name="Paketti:Select Sample x[Knob]",invoke=func
 --
 --
 -- REPORT-CARD >> features/device-toggle-automation.feature
-local function PakettiDeviceBypassActiveParameter(song, device)
+local function PakettiDeviceBypassActiveParameter(song, device_index)
   local parameter = song.selected_automation_parameter
-  if song.selected_automation_device == device and parameter and parameter.name == "Active / Bypassed" then
+  if song.selected_track_device_index == device_index and
+      parameter and parameter.name == "Active / Bypassed" then
     return parameter
   end
 
@@ -7301,10 +7302,10 @@ local function PakettiWriteDeviceBypassPatternCommand(song, track_index, device_
   return "pattern command"
 end
 
-local function PakettiWriteDeviceBypassGraphicalAutomation(song, track_index, device, enabled)
+local function PakettiWriteDeviceBypassGraphicalAutomation(song, track_index, device_index, enabled)
   if not song.transport.edit_mode then return end
 
-  local parameter = PakettiDeviceBypassActiveParameter(song, device)
+  local parameter = PakettiDeviceBypassActiveParameter(song, device_index)
   if not parameter then
     return nil, "select this device's Active / Bypassed automation parameter first"
   end
@@ -7327,14 +7328,14 @@ local function PakettiWriteDeviceBypassGraphicalAutomation(song, track_index, de
   return "graphical automation"
 end
 
-local function PakettiRecordDeviceBypassAutomation(song, track_index, device_number, device, enabled)
+local function PakettiRecordDeviceBypassAutomation(song, track_index, device_number, device_index, enabled)
   if not song.transport.edit_mode then return nil end
 
   if song.transport.record_parameter_mode == renoise.Transport.RECORD_PARAMETER_MODE_PATTERN then
     return PakettiWriteDeviceBypassPatternCommand(song, track_index, device_number, enabled)
   end
 
-  return PakettiWriteDeviceBypassGraphicalAutomation(song, track_index, device, enabled)
+  return PakettiWriteDeviceBypassGraphicalAutomation(song, track_index, device_index, enabled)
 end
 
 function PakettiDeviceBypass(number,state)
@@ -7359,7 +7360,7 @@ function PakettiDeviceBypass(number,state)
   end
 
   local recorded_to, recording_error = PakettiRecordDeviceBypassAutomation(
-    song, song.selected_track_index, number, device, device.is_active)
+    song, song.selected_track_index, number, device_index, device.is_active)
 
   local action = device.is_active and "Enabled" or "Disabled"
   local automation = recorded_to and (" and wrote " .. recorded_to) or ""
