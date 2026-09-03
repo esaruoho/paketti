@@ -47,6 +47,12 @@ local function le(x, width)          -- little-endian, for FAT structures
   return table.concat(out)
 end
 
+-- Forward declaration: the file writer is defined with the rest of the path
+-- helpers further down, but the filter-table dialog above them needs it. Left
+-- implicit it resolves to an undeclared global, and writing a filter table
+-- fails every time.
+local write_file
+
 local function chunk(id, body)
   return id .. be(#body, 32) .. body .. ((#body % 2 == 1) and "\0" or "")
 end
@@ -230,27 +236,47 @@ end
 -- Renoise gives 0..1; the sampler wants 0..127. Renoise has one decay and one
 -- sustain, so decay2 is left wide open and level2 tracks the sustain.
 function PakettiTyphoonAEGFromInstrument(instrument)
+  -- The stages are named properties on the device (device.attack.value and so
+  -- on), NOT a dev:parameter("Attack") lookup -- there is no such call, so the
+  -- old form always failed and this quietly fell back to the template every
+  -- time. The decay stage is .decay on current Renoise and was .duration on
+  -- older builds, and reading the wrong one throws, so both are tried.
+  -- Identify the device by its name, never by probing a type-specific
+  -- property: reading .attack on a Stepper raises and aborts the export.
   local ok, aeg = pcall(function()
+    local function stage(dev, name, alt)
+      local got, param = pcall(function() return dev[name] end)
+      if (not got or param == nil) and alt then
+        got, param = pcall(function() return dev[alt] end)
+      end
+      if got and param ~= nil then return param.value end
+      return nil
+    end
+    -- Volume first: that is the envelope the sampler's AEG actually is. Any
+    -- other AHDSR -- a cutoff or pitch one -- is only a fallback.
+    local best = nil
     for _, set in ipairs(instrument.sample_modulation_sets) do
       for _, dev in ipairs(set.devices) do
-        if dev.name and dev.name:find("AHDSR") then
-          local function p(name)
-            local okv, v = pcall(function() return dev:parameter(name).value end)
-            return okv and v or nil
-          end
-          local attack  = p("Attack")  or (dev.parameters[1] and dev.parameters[1].value)
-          local decay   = p("Decay")
-          local sustain = p("Sustain")
-          local release = p("Release")
-          if attack and sustain then
-            local function to127(v) return floor(math.max(0, math.min(1, v)) * 127 + 0.5) end
-            return {
-              to127(attack), to127(decay or 0), to127(sustain),
-              127, to127(sustain), to127(release or 0),
-            }
-          end
+        local dname = dev.name or ""
+        if dname:find("AHDSR") then
+          if dname:find("Volume") then best = dev break end
+          best = best or dev
         end
       end
+      if best and (best.name or ""):find("Volume") then break end
+    end
+    if not best then return nil end
+
+    local attack  = stage(best, "attack")
+    local decay   = stage(best, "decay", "duration")
+    local sustain = stage(best, "sustain")
+    local release = stage(best, "release")
+    if attack and sustain then
+      local function to127(v) return floor(math.max(0, math.min(1, v)) * 127 + 0.5) end
+      return {
+        to127(attack), to127(decay or 0), to127(sustain),
+        127, to127(sustain), to127(release or 0),
+      }
     end
     return nil
   end)
@@ -325,7 +351,9 @@ function PakettiTyphoonModMatrix()
       return mods
     end
   end
-  return PakettiTyphoonDefaultMods
+  local copy = {}
+  for i, m in ipairs(PakettiTyphoonDefaultMods) do copy[i] = m end
+  return copy
 end
 
 PakettiTyphoonDefaultMods = {
@@ -538,7 +566,12 @@ function PakettiTyphoonDesignFilterTable(kind)
   return PakettiTyphoonBuildFilterTable(kernels, "freq", axis2)
 end
 
+local filter_table_dialog = nil
+
 function PakettiTyphoonExportFilterTable()
+  if filter_table_dialog and filter_table_dialog.visible then
+    filter_table_dialog:close() ; filter_table_dialog = nil ; return
+  end
   local kinds = {"lowpass", "highpass", "bandpass", "notch"}
   local labels = {"Low pass", "High pass", "Band pass", "Notch"}
   local vb = renoise.ViewBuilder()
@@ -588,6 +621,7 @@ function PakettiTyphoonExportFilterTable()
     },
   }
   dlg = renoise.app():show_custom_dialog("TX16W Filter Table", content, my_keyhandler_func)
+  filter_table_dialog = dlg
 end
 
 --------------------------------------------------------------------------------
@@ -794,8 +828,14 @@ end
 -- kit hits the directory limit long before it fills a disk, so the number of
 -- disks is worked out first and the files are then spread evenly over them -
 -- otherwise the first disk takes 111 files and the last takes 9.
-function PakettiTyphoonPackDisks(files, reserve_entries)
+function PakettiTyphoonPackDisks(files, reserve_entries, reserve_bytes)
   reserve_entries = reserve_entries or 0
+  -- The voice, performance and setup are written after packing, because each
+  -- split has to name the diskette its wave landed on. Their directory entries
+  -- were already held back; hold back their space on disk 1 as well, or a kit
+  -- that packs to exactly 713 clusters fails in the image writer at the very
+  -- last step, after every sample has been encoded.
+  local reserve_clusters = math.ceil(math.max(0, reserve_bytes or 0) / PAKETTI_TYPHOON_CLUSTER)
 
   local order = {}
   local total_clusters = 0
@@ -820,7 +860,7 @@ function PakettiTyphoonPackDisks(files, reserve_entries)
 
   local usable_entries = PAKETTI_TYPHOON_ROOT_ENTRIES - 1   -- keep one for the volume label
   local ndisks = math.max(
-    math.ceil(total_clusters / PAKETTI_TYPHOON_CLUSTERS),
+    math.ceil((total_clusters + reserve_clusters) / PAKETTI_TYPHOON_CLUSTERS),
     math.ceil((#order + reserve_entries) / usable_entries),
     1)
 
@@ -834,7 +874,7 @@ function PakettiTyphoonPackDisks(files, reserve_entries)
     local per_disk = math.ceil((#order + reserve_entries) / n)
     local disks = {}
     for i = 1, n do
-      disks[i] = { files = {}, clusters = 0,
+      disks[i] = { files = {}, clusters = (i == 1) and reserve_clusters or 0,
                    reserve = (i == 1) and reserve_entries or 0 }
     end
     local ok = true
@@ -870,6 +910,14 @@ end
 -- Drumkit -> TX16W pipeline
 --------------------------------------------------------------------------------
 
+-- A setting the caller actually passed wins, even when it is false. Written as
+-- `(v ~= nil) and v or fallback` this silently ignores an unticked checkbox,
+-- which is how "Mix to mono" used to keep obeying the saved preference.
+local function given(v, fallback)
+  if v == nil then return fallback end
+  return v
+end
+
 local function path_sep() return package.config:sub(1, 1) end
 
 local function join(dir, name)
@@ -887,7 +935,7 @@ local function ensure_dir(dir)
   end
 end
 
-local function write_file(path, data)
+function write_file(path, data)
   local f, err = io.open(path, "wb")
   if not f then
     -- Most likely the folder is not there yet: the export can be pointed at a
@@ -1103,7 +1151,9 @@ local function typhoon_export_process(outdir, opts)
     -- floppy when a wave is missing; without it the sampler only knows that
     -- something is absent, not where to send you.
     local labelbase = PakettiDWVWDosName(kitname, {}):match("^[^%.]+"):sub(1, 6)
-    local disks = PakettiTyphoonPackDisks(files, 1)
+    -- Room for the voice file: a Grop header plus roughly 46 bytes a split,
+    -- rounded up generously since guessing low is what costs a whole export.
+    local disks = PakettiTyphoonPackDisks(files, 1, 1024 + #splits * 64)
     local disk_of = {}
     for i, d in ipairs(disks) do
       for _, f in ipairs(d.files) do
@@ -1237,10 +1287,10 @@ function PakettiTyphoonExportDrumkit(outdir, opts)
   local resolved = {
     rate = opts.rate or PakettiDWVWTargetRate(),
     wordsize = opts.wordsize or PakettiDWVWWordSize(),
-    force_mono = (opts.force_mono ~= nil) and opts.force_mono or PakettiDWVWForceMono(),
+    force_mono = given(opts.force_mono, PakettiDWVWForceMono()),
     base_key = opts.base_key or 36,
-    use_mapping = (opts.use_mapping ~= nil) and opts.use_mapping
-                  or PakettiTyphoonHasKeyMapping(renoise.song().selected_instrument),
+    use_mapping = given(opts.use_mapping,
+      PakettiTyphoonHasKeyMapping(renoise.song().selected_instrument)),
     filter_table = opts.filter_table,
     output = opts.output,
     envelope = opts.envelope,
@@ -1319,7 +1369,11 @@ local function typhoon_song_process(outdir, opts)
 
     -- One entry per voice and one for the setup, on top of the waves.
     local labelbase = PakettiDWVWDosName(songname, {}):match("^[^%.]+"):sub(1, 6)
-    local disks = PakettiTyphoonPackDisks(files, #per_instrument + 2)
+    local voice_bytes = 2048
+    for _, pi in ipairs(per_instrument) do
+      voice_bytes = voice_bytes + 1024 + #pi.splits * 64
+    end
+    local disks = PakettiTyphoonPackDisks(files, #per_instrument + 2, voice_bytes)
     local disk_of = {}
     for i, d in ipairs(disks) do
       for _, f in ipairs(d.files) do
@@ -1481,7 +1535,7 @@ function PakettiTyphoonExportSong(outdir, opts)
   local resolved = {
     rate = opts.rate or PakettiDWVWTargetRate(),
     wordsize = opts.wordsize or PakettiDWVWWordSize(),
-    force_mono = (opts.force_mono ~= nil) and opts.force_mono or PakettiDWVWForceMono(),
+    force_mono = given(opts.force_mono, PakettiDWVWForceMono()),
     base_key = opts.base_key or 36,
     use_mapping = (opts.use_mapping ~= false),
     gm_names = opts.gm_names or false,
@@ -2229,7 +2283,17 @@ function PakettiTyphoonParseVoice(data)
         if csize < 0 or p + 8 + csize - 1 > #body then break end
         local cb = body:sub(p + 8, p + 8 + csize - 1)
         if cid == "Parm" then
-          if #cb >= 64 then group.parm = cb end
+          if #cb >= 64 then
+            group.parm = cb
+            -- Bytes 0..3 are the group's bottom key, top key, minimum velocity
+            -- and maximum velocity. Without reading them back, a voice whose
+            -- velocity layers are separate groups imports as every layer
+            -- stacked on the same keys at full velocity.
+            group.low_key  = cb:byte(1)
+            group.high_key = cb:byte(2)
+            group.low_vel  = cb:byte(3)
+            group.high_vel = cb:byte(4)
+          end
         elseif cid == "Mod " then
           group.mods[#group.mods + 1] = cb
         elseif cid == "Splt" then
@@ -2469,6 +2533,12 @@ local function build_instrument_from_voice(voice, vname, by_id, by_name, progres
             break
           end
         end
+        -- A split's range is bounded by the group it sits in, so a group that
+        -- only answers part of the keyboard does not spill over it here.
+        if group.low_key and group.high_key and group.high_key >= group.low_key then
+          lo = math.max(lo, group.low_key)
+          hi = math.max(lo, math.min(hi, group.high_key))
+        end
 
         instrument:insert_sample_at(#instrument.samples + 1)
         local sample = instrument.samples[#instrument.samples]
@@ -2479,6 +2549,17 @@ local function build_instrument_from_voice(voice, vname, by_id, by_name, progres
         -- A single-key split is a drum pad; centre the root on it so it plays
         -- at its recorded pitch rather than transposed.
         if lo == hi then sample.sample_mapping.base_note = lo end
+        -- Velocity lives on the group, not the split. This is what keeps a
+        -- multi-layer voice playing as layers instead of all at once.
+        if group.low_vel and group.high_vel and group.high_vel >= group.low_vel
+           and not (group.low_vel == 0 and group.high_vel == 127) then
+          pcall(function()
+            sample.sample_mapping.velocity_range = {
+              math.max(0, math.min(127, group.low_vel)),
+              math.max(0, math.min(127, group.high_vel)),
+            }
+          end)
+        end
         placed = placed + 1
         coroutine.yield()
       end
@@ -2750,7 +2831,7 @@ PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Instrument to Y
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W with Saved Settings...", invoke = function() PakettiTyphoonExportDrumkit() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha TX16W with Saved Settings", invoke = function() PakettiTyphoonExportDrumkit() end}
 
-PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:TX16W Modulation Table...", invoke = function() PakettiTyphoonModMatrixDialog() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:TX16W Modulation Table...", invoke = function() PakettiTyphoonModMatrixDialog() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:TX16W Modulation Table...", invoke = function() PakettiTyphoonModMatrixDialog() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:TX16W Modulation Table", invoke = function() PakettiTyphoonModMatrixDialog() end}
 
@@ -2759,11 +2840,11 @@ PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Exp
 PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Song to Yamaha TX16W", invoke = function() PakettiTyphoonExportSong() end}
 
-PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Create TX16W Filter Table (.T18)...", invoke = function() PakettiTyphoonExportFilterTable() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Create TX16W Filter Table (.T18)...", invoke = function() PakettiTyphoonExportFilterTable() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Create TX16W Filter Table (.T18)...", invoke = function() PakettiTyphoonExportFilterTable() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create TX16W Filter Table", invoke = function() PakettiTyphoonExportFilterTable() end}
 
-PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
+PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Send Sample over MIDI SDS", invoke = function() PakettiTyphoonSDSDialog() end}

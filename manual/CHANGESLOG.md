@@ -8,6 +8,27 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Fix: Six Real Faults In The Yamaha TX16W / Typhoon Support
+
+An audit of the TX16W code turned up six things that were quietly wrong, all now fixed.
+
+Unticking a checkbox in the export dialog was ignored. "Mix to mono" and "Keep this instrument's key layout" fell back to the saved preference whenever you turned them OFF, so turning mono off still exported mono if the preference said so.
+
+"Follow the instrument's own AHDSR" never did anything. The envelope was read through a call that does not exist in Renoise, so every export silently kept the template's envelope instead. It now reads the instrument's Volume AHDSR, preferring the volume envelope over a cutoff or pitch one.
+
+"Create TX16W Filter Table (.T18)..." could never write its file, and reported a write error every time. It also opened a second window each time you picked it from the menu instead of toggling like every other Paketti dialog.
+
+A kit that filled a 720K disk exactly failed at the very last step, after all the samples had been encoded, because room was left in the disk's directory for the voice file but not for its contents. The voice, performance and setup files now have their space held back too, so a full kit spills onto a second disk instead of failing.
+
+Importing a voice with velocity layers stacked every layer on the same keys at full velocity. The key and velocity range live on the voice's group, and were not being read back. A multi-layer TX16W voice now imports with its layers intact, and a group that answers only part of the keyboard no longer spills past it.
+
+Editing the modulation table could overwrite the built-in factory routing in memory, so "Restore factory routing" restored whatever had been edited.
+
+The TX16W modulation table, filter table and MIDI (SDS) send also moved from `Main Menu:File:Paketti Import` to `Main Menu:File:Paketti Export`.
+- Menu: `Main Menu:File:Paketti Export:TX16W Modulation Table...`
+- Menu: `Main Menu:File:Paketti Export:Create TX16W Filter Table (.T18)...`
+- Menu: `Main Menu:File:Paketti Export:Send Sample to Sampler over MIDI (SDS)...`
+
 ### 2026-09-03 - Fix: TX16W/Typhoon Export Dialog Would Not Open
 
 The Yamaha TX16W (Typhoon) export dialog crashed on opening with "a view with the id 'tx_mono' was already registered", because the "Mix to mono" and "Monophonic" checkboxes were both using the same internal id. They are now separate, so the dialog opens again, and the "Monophonic (one note at a time)" setting is written to the exported voice instead of being taken from the "Mix to mono" checkbox.

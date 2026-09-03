@@ -521,7 +521,7 @@ The manifest lists the MIDI channel and program change number for each instrumen
 
 #### Create TX16W Filter Table (.T18)
 
-`Main Menu:File:Paketti Import:Create TX16W Filter Table (.T18)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`; keybinding `Global:Paketti:Create TX16W Filter Table`).
+`Main Menu:File:Paketti Export:Create TX16W Filter Table (.T18)...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`; keybinding `Global:Paketti:Create TX16W Filter Table`).
 
 Writes a new filter for the sampler. The TX16W holds twenty filter tables and ships with seventeen, so slots 18, 19 and 20 are free - nobody has made a new one for it since 2000.
 
@@ -533,7 +533,7 @@ The file's structure is verified - feeding a factory table's own coefficients ba
 
 #### TX16W Modulation Table
 
-`Main Menu:File:Paketti Import:TX16W Modulation Table...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`; keybinding `Global:Paketti:TX16W Modulation Table`).
+`Main Menu:File:Paketti Export:TX16W Modulation Table...` (also under `Main Menu:Tools:Paketti:Instruments:File Formats`; keybinding `Global:Paketti:TX16W Modulation Table`).
 
 Sets the eight-entry modulation table that gets written into every voice you export, so the routing is already there when the kit loads instead of being typed in on the sampler's own screen for each voice. Each entry is a source, a destination, an amount and a Hold flag which freezes the source's value at key down. The two amount boxes are semitones and cents when the destination is Pitch.
 
