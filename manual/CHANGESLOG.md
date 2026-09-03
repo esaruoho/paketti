@@ -125,6 +125,16 @@ The three menu entries for `Hide All Unused Columns (Selected Track)` called a f
 - Menu: `Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)`
 - Menu: `Pattern Editor:Paketti:Tracks:Visible Columns:Hide All Unused Columns (Selected Track)`
 
+### 2026-09-03 - Feature: Selected Track Device MIDI Mappings Now Write Automation Too
+
+The `Paketti:Selected Track Dev ...` MIDI mappings moved the live device parameter and made it visible in the mixer, but left no automation behind, so a knob sweep was gone the moment you moved the knob again. They now record into the parameter's automation envelope as well, creating it if it does not exist yet, following the same rule the rest of Paketti's MIDI automation writing uses: only while Edit Mode is on, at the playhead when Follow Pattern is on during playback, and at the edit cursor otherwise. With Edit Mode off nothing is recorded and the knobs behave exactly as before.
+
+This covers every device those mappings reach: Compressor (Threshold, Ratio, Release, Makeup), EQ 10 (all 10 Gain, Frequency and Bandwidth mappings), Comb Filter 2, RingMod 2, Delay, Analog Filter, XY Pad, Doofer macros, mpReverb 2, Phaser 2 and LofiMat 2. Closes GitHub issue #610.
+
+### 2026-09-03 - Fix: Repeater Automation MIDI Mappings Threw Instead Of Writing
+
+`Paketti:Set Repeater Mode (Automation) x[Knob]` and its siblings compared two Renoise track objects with `==` to work out which track to write to. Renoise track objects have no equality operator and throw `unknown property or function '__eq'` when compared, which aborted the writer before it reached the envelope, so the Repeater automation mappings recorded nothing at all. They compare by identity now and write as intended.
+
 ### 2026-09-03 - Fix: Chords Progression Player Wrote Note-Offs Without The Strum's Delay
 
 A strummed chord's note-offs were written at the very start of their row with no delay value, while the notes themselves carried the strum's delay. In Delays mode a note starting at delay 7F was therefore cut short by a note-off three quarters of a row early, every note in the chord got a different length, and the release did not strum in the same shape as the attack. The same was true of the fractional part of a Rows-mode strum.

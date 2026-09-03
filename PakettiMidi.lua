@@ -2374,9 +2374,11 @@ function PakettiWriteRepeaterAutomation(param_index, normalized_value, track)
   end
   
   -- Get the track index for automation
+  -- rawequal, not ==: Renoise Track objects have no __eq and comparing them
+  -- throws 'unknown property or function __eq', which aborted this whole writer.
   local track_index = nil
   for i, t in ipairs(song.tracks) do
-    if t == track then
+    if rawequal(t, track) then
       track_index = i
       break
     end
@@ -2727,9 +2729,11 @@ function PakettiWriteDeviceParameterAutomation(param, track)
   if not param or not param.is_automatable then return end
   if param.value_max == param.value_min then return end
 
+  -- Renoise Track objects have no __eq, so comparing two of them with == throws
+  -- and takes the caller down with it. rawequal compares identity without it.
   local track_index = nil
   for index, candidate in ipairs(song.tracks) do
-    if candidate == track then
+    if rawequal(candidate, track) then
       track_index = index
       break
     end
