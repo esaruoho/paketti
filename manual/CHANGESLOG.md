@@ -8,6 +8,24 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Feature: Split Track by Instrument
+
+Takes a track with several instruments jumbled together and gives each instrument its own track. A track playing instruments 00, 03 and 07 becomes three tracks, in ascending instrument order, inserted directly after the source.
+
+This is not the same as the existing **Explode Notes to New Tracks**, which splits on pitch - one track per note, which is what you want for a drum kit. This splits on instrument instead.
+
+The new tracks inherit the source track's DSP chain, colour, collapsed state and column visibility, so splitting does not change how anything sounds. Each note carries its volume, panning, delay and sample-effect values across. A note with no instrument number set follows the last instrument seen in that same note column, which is how Renoise plays it back anyway. Track effect commands go to the leftmost instrument playing on that line, or to the last instrument seen above it when the line has no notes. When one instrument plays more than once on the same row, the extra notes land in extra note columns on that instrument's track rather than getting lost.
+
+Automation is not moved - it belongs to the source track. That is why the plain version **keeps** the source track and clears its notes instead of deleting it, so its automation, routing and devices survive and nothing double-triggers. The `(Delete Source Track)` variants remove it outright, and the status line tells you when a deleted track had automation on it.
+
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Split Selected Track by Instrument`
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Split Selected Track by Instrument (Delete Source Track)`
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Split All Tracks by Instrument`
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Split All Tracks by Instrument (Delete Source Tracks)`
+- Menu: the same four under `Pattern Editor:Paketti:Tracks:` and `Mixer:Paketti:`
+- Keybinding: `Global:Paketti:Split Selected Track by Instrument` (and the other three)
+- MIDI Mapping: `Paketti:Split Selected Track by Instrument` (and the other three)
+
 ### 2026-09-03 - Feature: Compact Columns to the Left
 
 Paketti could already hide unused columns three different ways, but none of them closed gaps. A track with notes in note columns 1 and 4 kept four columns visible with two empty ones stranded in the middle, because every existing tool only looked for the *last* used column and set the visible count to that.
