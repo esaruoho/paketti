@@ -2715,6 +2715,48 @@ if PAKETTI_API >= 6.1 then
 end
 
 
+-- Write a device parameter's current value into its automation envelope, using
+-- the same rule as the other Paketti MIDI automation writers (see
+-- MidiSelectedAutomationParameter and PakettiWriteRepeaterAutomation): only when
+-- Edit Mode is on, at the playhead while following playback and at the cursor
+-- otherwise. Without this the "Selected Track Dev ..." knobs moved the live
+-- parameter but left no automation behind - GitHub issue #610.
+function PakettiWriteDeviceParameterAutomation(param, track)
+  local song = renoise.song()
+  if not song.transport.edit_mode then return end
+  if not param or not param.is_automatable then return end
+  if param.value_max == param.value_min then return end
+
+  local track_index = nil
+  for index, candidate in ipairs(song.tracks) do
+    if candidate == track then
+      track_index = index
+      break
+    end
+  end
+  if not track_index then return end
+
+  local pattern_track = song:pattern(song.selected_pattern_index):track(track_index)
+  local envelope = pattern_track:find_automation(param)
+  if not envelope then
+    envelope = pattern_track:create_automation(param)
+  end
+
+  local line
+  if song.transport.playing and song.transport.follow_player then
+    line = song.transport.playback_pos.line
+  else
+    line = song.selected_line_index
+  end
+  local pattern_lines = song:pattern(song.selected_pattern_index).number_of_lines
+  if line < 1 then line = 1 end
+  if line > pattern_lines then line = pattern_lines end
+
+  -- Automation envelopes are normalised 0.0-1.0 regardless of the parameter range
+  local normalized = (param.value - param.value_min) / (param.value_max - param.value_min)
+  envelope:add_point_at(line, math.max(0.0, math.min(1.0, normalized)))
+end
+
 -- Function to map MIDI value to parameter range
 local function scale_midi_to_param(midi_value, param)
   return param.value_min + ((param.value_max - param.value_min) * (midi_value / 127))
@@ -2772,7 +2814,14 @@ local function modify_device_param(device_path, param_identifier, midi_message)
         -- Make parameter visible in mixer
         param.show_in_mixer = true
         
-        renoise.app():show_status(param.name .. " of " .. device.name .. " modified (now visible in mixer)")
+        -- Record it as automation too, when Edit Mode is on
+        PakettiWriteDeviceParameterAutomation(param, track)
+        
+        local status = param.name .. " of " .. device.name .. " modified (now visible in mixer)"
+        if renoise.song().transport.edit_mode and param.is_automatable then
+          status = status .. " and written to automation"
+        end
+        renoise.app():show_status(status)
       else
         renoise.app():show_status("Parameter not found in " .. device.name)
         return
@@ -2839,7 +2888,14 @@ local function modify_device_param(device_path, param_identifier, midi_message)
         -- Make parameter visible in mixer
         param.show_in_mixer = true
         
-        renoise.app():show_status("Loaded " .. new_device.name .. " and modified " .. param.name .. " (now visible in mixer)")
+        -- Record it as automation too, when Edit Mode is on
+        PakettiWriteDeviceParameterAutomation(param, track)
+        
+        local status = "Loaded " .. new_device.name .. " and modified " .. param.name .. " (now visible in mixer)"
+        if renoise.song().transport.edit_mode and param.is_automatable then
+          status = status .. " and written to automation"
+        end
+        renoise.app():show_status(status)
       else
         renoise.app():show_status("Parameter not found in newly loaded " .. new_device.name)
       end

@@ -565,3 +565,120 @@ function PakettiZipWrite(path, entries)
   f:close()
   return true
 end
+
+--------------------------------------------------------------------------------
+-- PakettiZipRead — read a ZIP container
+--
+-- The counterpart to PakettiZipWrite. Reads through the central directory,
+-- which is the only place a ZIP's entry list is authoritative: local headers
+-- may carry zeroed sizes with the real ones trailing the data, and scanning for
+-- "PK\3\4" finds those markers inside stored payloads too.
+--
+-- Handles method 0 (stored) and method 8 (deflate) -- the only two that occur
+-- in the preset containers this reads: OP-XY .preset.zip, Digitakt II .dt2pst,
+-- and Renoise's own .xrni.
+--
+-- Returns an array of { name = "path/in/zip", data = "..." } in directory
+-- order, plus a lookup by name, or nil and a message.
+--------------------------------------------------------------------------------
+
+local function unzip_u16(s, p)
+  local a, b = s:byte(p, p + 1)
+  if not b then return nil end
+  return a + b * 256
+end
+
+local function unzip_u32(s, p)
+  local a, b, c, d = s:byte(p, p + 3)
+  if not d then return nil end
+  return a + b * 256 + c * 65536 + d * 16777216
+end
+
+--- data is the whole file. on_progress, when given, is called with each entry
+--- name as it is decompressed; pass a yielding function under a ProcessSlicer.
+function PakettiZipReadData(data, on_progress)
+  if type(data) ~= "string" or #data < 22 then
+    return nil, "zip: not a zip file (too short)"
+  end
+
+  -- Find the end-of-central-directory record. It sits at the very end unless
+  -- there is a trailing comment, so search backwards over the 64 KB a comment
+  -- can occupy rather than assuming the last 22 bytes.
+  local eocd = nil
+  local first = math.max(1, #data - 65557)
+  for p = #data - 21, first, -1 do
+    if data:sub(p, p + 3) == "PK\5\6" then eocd = p break end
+  end
+  if not eocd then return nil, "zip: no end-of-central-directory record" end
+
+  local count = unzip_u16(data, eocd + 10)
+  local cd_at = unzip_u32(data, eocd + 16)
+  if not count or not cd_at then return nil, "zip: damaged end record" end
+  if cd_at + 1 > #data then return nil, "zip: central directory past end of file" end
+
+  local entries, by_name = {}, {}
+  local p = cd_at + 1
+  for _ = 1, count do
+    if data:sub(p, p + 3) ~= "PK\1\2" then break end
+    local method   = unzip_u16(data, p + 10)
+    local csize    = unzip_u32(data, p + 20)
+    local usize    = unzip_u32(data, p + 24)
+    local name_len = unzip_u16(data, p + 28)
+    local extra_len= unzip_u16(data, p + 30)
+    local cmt_len  = unzip_u16(data, p + 32)
+    local local_at = unzip_u32(data, p + 42)
+    if not local_at then return nil, "zip: damaged directory entry" end
+    local name = data:sub(p + 46, p + 45 + name_len)
+
+    -- Skip directory markers: they carry no payload.
+    if name:sub(-1) ~= "/" then
+      local lp = local_at + 1
+      if data:sub(lp, lp + 3) ~= "PK\3\4" then
+        return nil, "zip: entry '" .. name .. "' does not start with a local header"
+      end
+      -- The local header's own name and extra lengths are what locate the
+      -- payload; the central copy of extra_len is often a different size.
+      local lname_len  = unzip_u16(data, lp + 26)
+      local lextra_len = unzip_u16(data, lp + 28)
+      local at = lp + 30 + lname_len + lextra_len
+      local raw = data:sub(at, at + csize - 1)
+
+      local content, err
+      if method == 0 then
+        content = raw
+      elseif method == 8 then
+        if on_progress then on_progress(name) end
+        content, err = PakettiInflate(raw, 1)
+        if not content then
+          return nil, "zip: '" .. name .. "' would not decompress: " .. tostring(err)
+        end
+      else
+        return nil, string.format("zip: '%s' uses compression method %d, which is not supported", name, method)
+      end
+
+      if usize > 0 and #content ~= usize then
+        return nil, string.format("zip: '%s' unpacked to %d bytes, the directory says %d",
+          name, #content, usize)
+      end
+
+      local entry = { name = name, data = content }
+      entries[#entries + 1] = entry
+      by_name[name] = entry
+    end
+
+    p = p + 46 + name_len + extra_len + cmt_len
+  end
+
+  if #entries == 0 then return nil, "zip: no files in the container" end
+  return entries, by_name
+end
+
+--- Same, reading the file from disk.
+function PakettiZipRead(path, on_progress)
+  local f = io.open(path, "rb")
+  if not f then return nil, "zip: cannot open " .. tostring(path) end
+  local data = f:read("*a")
+  f:close()
+  if not data or #data == 0 then return nil, "zip: " .. tostring(path) .. " is empty" end
+  return PakettiZipReadData(data, on_progress)
+end
