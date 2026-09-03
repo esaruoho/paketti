@@ -1095,6 +1095,36 @@ function PakettiChords_ClearSlot(slot)
   PakettiChords_MaybeAutoWrite()
 end
 
+-- Each per-slot control is registered under its settings field name, so
+-- Receive from Pattern (and presets, paste, moves) can push new values back
+-- into the dialog rather than only into the table behind it.
+function PakettiChords_RegisterSlotView(slot, name, view)
+  PakettiChords_slot_settings[slot][name] = view
+  return view
+end
+
+-- Push the progression table into the per-slot controls. Setting a view's value
+-- fires its notifier, so this runs behind the bulk guard: one write at the end
+-- rather than one per control.
+function PakettiChords_SyncSlotViews()
+  local was_bulk = PakettiChords_bulk_update
+  PakettiChords_bulk_update = true
+  for slot = 1, PakettiChords_MAX_SLOTS do
+    local views = PakettiChords_slot_settings[slot]
+    local settings = PakettiChords_progression_sequence[slot]
+    if views and settings then
+      for name, view in pairs(views) do
+        local value = settings[name]
+        if value ~= nil and view.value ~= value then
+          view.value = value
+        end
+      end
+    end
+  end
+  PakettiChords_bulk_update = was_bulk
+  PakettiChords_UpdateUI()
+end
+
 -- Auto-write: with the checkbox on, any change to the progression is written to
 -- the pattern immediately, so tweaking a strum knob is heard in the pattern
 -- without pressing Ctrl+W. Suppressed while a bulk change (global strum/length,
@@ -1135,8 +1165,8 @@ function PakettiChords_SetGlobalLength(value)
   PakettiChords_bulk_update = true
   for slot = 1, PakettiChords_MAX_SLOTS do
     PakettiChords_progression_sequence[slot].note_duration = value
-    if PakettiChords_slot_settings[slot] and PakettiChords_slot_settings[slot].length then
-      PakettiChords_slot_settings[slot].length.value = value
+    if PakettiChords_slot_settings[slot] and PakettiChords_slot_settings[slot].note_duration then
+      PakettiChords_slot_settings[slot].note_duration.value = value
     end
   end
   if PakettiChords_global_length_value and PakettiChords_global_length_value.value ~= value then
@@ -1362,7 +1392,7 @@ function PakettiChords_BuildSlotSettings(slot)
   local settings = PakettiChords_progression_sequence[slot]
   PakettiChords_slot_settings[slot] = {}
   
-  local length_valuebox = PakettiChords_vb:valuebox{
+  local length_valuebox = PakettiChords_RegisterSlotView(slot, "note_duration", PakettiChords_vb:valuebox{
     min = 0.1,
     max = 64,
     value = settings.note_duration,
@@ -1372,8 +1402,8 @@ function PakettiChords_BuildSlotSettings(slot)
       PakettiChords_progression_sequence[slot].note_duration = value
       PakettiChords_MaybeAutoWrite()
     end
-  }
-  local strum_valuebox = PakettiChords_vb:valuebox{
+  })
+  local strum_valuebox = PakettiChords_RegisterSlotView(slot, "strum", PakettiChords_vb:valuebox{
     min = 0,
     max = 16,
     value = settings.strum,
@@ -1383,10 +1413,7 @@ function PakettiChords_BuildSlotSettings(slot)
       PakettiChords_progression_sequence[slot].strum = value
       PakettiChords_MaybeAutoWrite()
     end
-  }
-  PakettiChords_slot_settings[slot].length = length_valuebox
-  PakettiChords_slot_settings[slot].strum = strum_valuebox
-  
+  })
   local panel = PakettiChords_vb:column{
     -- Duration, Strum, Velocity
     PakettiChords_vb:row{
@@ -1398,7 +1425,7 @@ function PakettiChords_BuildSlotSettings(slot)
       strum_valuebox
     },
     PakettiChords_vb:row{
-      PakettiChords_vb:popup{
+      PakettiChords_RegisterSlotView(slot, "strum_mode", PakettiChords_vb:popup{
         items = PakettiChords_STRUM_MODES,
         value = settings.strum_mode,
         width = PakettiChords_TOTAL_ROW_WIDTH,
@@ -1407,11 +1434,11 @@ function PakettiChords_BuildSlotSettings(slot)
           PakettiChords_progression_sequence[slot].strum_mode = value
           PakettiChords_MaybeAutoWrite()
         end
-      }
+      })
     },
     PakettiChords_vb:row{
       PakettiChords_vb:text{text = "Velocity", width = PakettiChords_LABEL_WIDTH, style = "strong", font = "bold", tooltip = "Volume: 0-128 (00-80 hex in Renoise, 128 = full volume)"},
-      PakettiChords_vb:valuebox{
+      PakettiChords_RegisterSlotView(slot, "velocity", PakettiChords_vb:valuebox{
         min = 0,
         max = 128,
         value = settings.velocity,
@@ -1421,10 +1448,10 @@ function PakettiChords_BuildSlotSettings(slot)
           PakettiChords_progression_sequence[slot].velocity = value
           PakettiChords_MaybeAutoWrite()
         end
-      }
+      })
     },
     PakettiChords_vb:row{
-      PakettiChords_vb:popup{
+      PakettiChords_RegisterSlotView(slot, "strum_order", PakettiChords_vb:popup{
         items = PakettiChords_STRUM_ORDERS,
         value = settings.strum_order,
         width = PakettiChords_TOTAL_ROW_WIDTH,
@@ -1432,14 +1459,14 @@ function PakettiChords_BuildSlotSettings(slot)
           PakettiChords_progression_sequence[slot].strum_order = value
           PakettiChords_MaybeAutoWrite()
         end
-      }
+      })
     },
     -- Extra Note 1: Index, Octave Offset, Duration
     PakettiChords_vb:text{text = "EX1", width = PakettiChords_TOTAL_ROW_WIDTH, style = "strong", tooltip = "Extra Note 1: Additional note based on chord notes, triggers immediately (not affected by strum), has independent duration"},
     PakettiChords_vb:column{
       PakettiChords_vb:row{
         PakettiChords_vb:text{text = "Index", width = 52, style = "strong", font = "bold", tooltip = "Which chord note to use: 0=Off, 1=1st note (root), 2=2nd note, 3=3rd note, 4=4th note (if exists)"},
-        PakettiChords_vb:valuebox{
+        PakettiChords_RegisterSlotView(slot, "extra1_index", PakettiChords_vb:valuebox{
           min = 0,
           max = 4,
           value = settings.extra1_index,
@@ -1449,11 +1476,11 @@ function PakettiChords_BuildSlotSettings(slot)
             PakettiChords_progression_sequence[slot].extra1_index = value
             PakettiChords_MaybeAutoWrite()
           end
-        }
+        })
       },
       PakettiChords_vb:row{
         PakettiChords_vb:text{text = "Octave", width = 52, style = "strong", font = "bold", tooltip = "Transpose EX1 by octaves: -2 = two octaves down (bass), 0 = same octave, +1 = one octave up"},
-        PakettiChords_vb:valuebox{
+        PakettiChords_RegisterSlotView(slot, "extra1_octave", PakettiChords_vb:valuebox{
           min = -4,
           max = 4,
           value = settings.extra1_octave,
@@ -1463,11 +1490,11 @@ function PakettiChords_BuildSlotSettings(slot)
             PakettiChords_progression_sequence[slot].extra1_octave = value
             PakettiChords_MaybeAutoWrite()
           end
-        }
+        })
       },
       PakettiChords_vb:row{
         PakettiChords_vb:text{text = "Length", width = 52, style = "strong", font = "bold", tooltip = "Independent duration for EX1 in beats: Can be shorter or longer than main chord notes"},
-        PakettiChords_vb:valuebox{
+        PakettiChords_RegisterSlotView(slot, "extra1_duration", PakettiChords_vb:valuebox{
           min = 0.1,
           max = 64,
           value = settings.extra1_duration,
@@ -1477,7 +1504,7 @@ function PakettiChords_BuildSlotSettings(slot)
             PakettiChords_progression_sequence[slot].extra1_duration = value
             PakettiChords_MaybeAutoWrite()
           end
-        }
+        })
       }
     },
     -- Extra Note 2: Index, Octave Offset, Duration
@@ -1485,7 +1512,7 @@ function PakettiChords_BuildSlotSettings(slot)
     PakettiChords_vb:column{
       PakettiChords_vb:row{
         PakettiChords_vb:text{text = "Index", width = 52, style = "strong", font = "bold", tooltip = "Which chord note to use: 0=Off, 1=1st note (root), 2=2nd note, 3=3rd note, 4=4th note (if exists)"},
-        PakettiChords_vb:valuebox{
+        PakettiChords_RegisterSlotView(slot, "extra2_index", PakettiChords_vb:valuebox{
           min = 0,
           max = 4,
           value = settings.extra2_index,
@@ -1495,11 +1522,11 @@ function PakettiChords_BuildSlotSettings(slot)
             PakettiChords_progression_sequence[slot].extra2_index = value
             PakettiChords_MaybeAutoWrite()
           end
-        }
+        })
       },
       PakettiChords_vb:row{
         PakettiChords_vb:text{text = "Octave", width = 52, style = "strong", font = "bold", tooltip = "Transpose EX2 by octaves: -2 = two octaves down (bass), 0 = same octave, +1 = one octave up (melody accent)"},
-        PakettiChords_vb:valuebox{
+        PakettiChords_RegisterSlotView(slot, "extra2_octave", PakettiChords_vb:valuebox{
           min = -4,
           max = 4,
           value = settings.extra2_octave,
@@ -1509,11 +1536,11 @@ function PakettiChords_BuildSlotSettings(slot)
             PakettiChords_progression_sequence[slot].extra2_octave = value
             PakettiChords_MaybeAutoWrite()
           end
-        }
+        })
       },
       PakettiChords_vb:row{
         PakettiChords_vb:text{text = "Length", width = 52, style = "strong", font = "bold", tooltip = "Independent duration for EX2 in beats: Can be shorter (staccato) or longer than main chord notes"},
-        PakettiChords_vb:valuebox{
+        PakettiChords_RegisterSlotView(slot, "extra2_duration", PakettiChords_vb:valuebox{
           min = 0.1,
           max = 64,
           value = settings.extra2_duration,
@@ -1523,7 +1550,7 @@ function PakettiChords_BuildSlotSettings(slot)
             PakettiChords_progression_sequence[slot].extra2_duration = value
             PakettiChords_MaybeAutoWrite()
           end
-        }
+        })
       }
     }
   }
