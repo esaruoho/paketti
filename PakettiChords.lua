@@ -24,6 +24,9 @@ PakettiChords_DEBUG = false
 -- Renoise in TWeakRefOwner::SOnWeakReferencableDying during pattern-pool
 -- teardown. See features/song-lifecycle-safety.feature.
 PakettiChords_release_doc_observer = nil
+-- Keeps the Instrument valuebox in step with Renoise's selected instrument.
+PakettiChords_instrument_observer = nil
+PakettiChords_instrument_sync_guard = false
 
 -- UI Width Constants
 PakettiChords_LABEL_WIDTH = 50
@@ -200,7 +203,7 @@ function PakettiChords_StopAllNotes()
   
   local song = renoise.song()
   local track_index = song.selected_track_index
-  local instrument_index = song.selected_instrument_index
+  local instrument_index = PakettiChords_GetInstrumentIndex()
   
   -- Remove duplicates
   local unique_notes = {}
@@ -245,6 +248,64 @@ function PakettiChords_ClearAllTimers()
   print(string.format("PakettiChords DEBUG: ClearAllTimers() successfully removed %d/%d timers", cleared_count, total_timers))
 end
 
+-- Schedule a timer that runs exactly once.
+-- Renoise timers REPEAT until removed, so every timer here removes itself before
+-- running its body. A repeating playback tick re-fired the tail of the
+-- progression: the last slot buttons flashed and their notes retriggered as
+-- clicks and pops after the progression had already finished.
+function PakettiChords_AddOneShotTimer(body, interval_ms)
+  local wrapper
+  wrapper = function()
+    if renoise.tool():has_timer(wrapper) then
+      renoise.tool():remove_timer(wrapper)
+    end
+    body()
+  end
+  table.insert(PakettiChords_note_off_timers, wrapper)
+  renoise.tool():add_timer(wrapper, math.max(1, interval_ms))
+  return wrapper
+end
+
+-- The instrument the dialog plays and writes: the Instrument valuebox, which is
+-- kept in sync with Renoise's selected instrument while the dialog is open.
+-- Audition and Write to Pattern MUST read the same value - reading
+-- selected_instrument_index for audition while writing the (stale) valuebox is
+-- what made the pattern trigger the wrong instrument.
+function PakettiChords_GetInstrumentIndex()
+  local song = renoise.song()
+  local index = song.selected_instrument_index
+  if PakettiChords_instrument_number_value then
+    index = PakettiChords_instrument_number_value.value
+  end
+  if index < 1 then index = 1 end
+  if index > #song.instruments then index = #song.instruments end
+  return index
+end
+
+-- Follow Renoise's instrument selection while the dialog is open.
+function PakettiChords_AttachInstrumentObserver()
+  PakettiChords_DetachInstrumentObserver()
+  PakettiChords_instrument_observer = function()
+    if PakettiChords_instrument_sync_guard then return end
+    if not PakettiChords_instrument_number_value then return end
+    PakettiChords_instrument_sync_guard = true
+    PakettiChords_instrument_number_value.value = renoise.song().selected_instrument_index
+    PakettiChords_instrument_sync_guard = false
+  end
+  renoise.song().selected_instrument_observable:add_notifier(PakettiChords_instrument_observer)
+end
+
+function PakettiChords_DetachInstrumentObserver()
+  if PakettiChords_instrument_observer then
+    local ok, observable = pcall(function() return renoise.song().selected_instrument_observable end)
+    if ok and observable:has_notifier(PakettiChords_instrument_observer) then
+      observable:remove_notifier(PakettiChords_instrument_observer)
+    end
+  end
+  PakettiChords_instrument_observer = nil
+  PakettiChords_instrument_sync_guard = false
+end
+
 -- Stop playback
 function PakettiChords_Stop()
   if not PakettiChords_is_playing and not PakettiChords_is_auditioning then 
@@ -274,6 +335,7 @@ function PakettiChords_ReleaseDocumentCleanup()
   PakettiChords_is_playing = false
   PakettiChords_is_auditioning = false
   PakettiChords_ClearAllTimers()  -- has_timer-guarded; nils playback timer + clears note_off_timers
+  PakettiChords_DetachInstrumentObserver()
   if PakettiChords_dialog and PakettiChords_dialog.visible then
     PakettiChords_dialog:close()
   end
@@ -316,7 +378,7 @@ function PakettiChords_AuditionSlot(slot)
   
   local song = renoise.song()
   local track_index = song.selected_track_index
-  local instrument_index = song.selected_instrument_index
+  local instrument_index = PakettiChords_GetInstrumentIndex()
   
   -- Calculate and play chord
   local base_notes = PakettiChords_CalculateChordNotes(key, settings.chord_index, base_octave)
@@ -334,12 +396,10 @@ function PakettiChords_AuditionSlot(slot)
     local delay = (i - 1) * strum_delay_ms
     
     if delay > 0 then
-      local timer_func = function()
+      PakettiChords_AddOneShotTimer(function()
         song:trigger_instrument_note_on(instrument_index, track_index, {note}, settings.velocity / 80.0)
         table.insert(PakettiChords_active_notes, note)
-      end
-      renoise.tool():add_timer(timer_func, delay)
-      table.insert(PakettiChords_note_off_timers, timer_func)
+      end, delay)
     else
       song:trigger_instrument_note_on(instrument_index, track_index, {note}, settings.velocity / 80.0)
       table.insert(PakettiChords_active_notes, note)
@@ -348,12 +408,10 @@ function PakettiChords_AuditionSlot(slot)
   
   -- Schedule note off
   local duration_ms = settings.note_duration * beat_ms * 1.5 -- Longer for audition
-  local timer_func = function()
+  PakettiChords_AddOneShotTimer(function()
     PakettiChords_StopAllNotes()
     PakettiChords_is_auditioning = false
-  end
-  renoise.tool():add_timer(timer_func, duration_ms)
-  table.insert(PakettiChords_note_off_timers, timer_func)
+  end, duration_ms)
   
   -- Show chord info
   if PakettiChords_info_text then
@@ -369,7 +427,7 @@ function PakettiChords_PlayChordWithStrum(notes, slot_settings, next_chord_inter
   
   local song = renoise.song()
   local track_index = song.selected_track_index
-  local instrument_index = song.selected_instrument_index
+  local instrument_index = PakettiChords_GetInstrumentIndex()
   local bpm = song.transport.bpm
   local lpb = song.transport.lpb
   
@@ -406,15 +464,13 @@ function PakettiChords_PlayChordWithStrum(notes, slot_settings, next_chord_inter
     end
     
     if delay > 0 then
-      local timer_func = function()
+      PakettiChords_AddOneShotTimer(function()
         if PakettiChords_is_playing then
           print(string.format("PakettiChords DEBUG: Triggering strummed note %d at delay %.2fms", note, delay))
           song:trigger_instrument_note_on(instrument_index, track_index, {note}, velocity_norm)
           table.insert(PakettiChords_active_notes, note)
         end
-      end
-      renoise.tool():add_timer(timer_func, delay)
-      table.insert(PakettiChords_note_off_timers, timer_func)
+      end, delay)
     else
       print(string.format("PakettiChords DEBUG: Triggering note %d immediately", note))
       song:trigger_instrument_note_on(instrument_index, track_index, {note}, velocity_norm)
@@ -429,21 +485,18 @@ function PakettiChords_PlayChordWithStrum(notes, slot_settings, next_chord_inter
   print(string.format("PakettiChords DEBUG: Scheduling note-off in %.2fms (next chord in %.2fms)", 
     note_off_time, next_chord_interval_ms))
   
-  local timer_func = function()
-    if PakettiChords_is_playing or true then -- Always turn off notes, even if stopped
-      print("PakettiChords DEBUG: Executing note-off timer, stopping all notes")
-      PakettiChords_StopAllNotes()
-    end
-  end
-  renoise.tool():add_timer(timer_func, note_off_time)
-  table.insert(PakettiChords_note_off_timers, timer_func)
+  PakettiChords_AddOneShotTimer(function()
+    -- Always turn off notes, even if stopped
+    print("PakettiChords DEBUG: Executing note-off timer, stopping all notes")
+    PakettiChords_StopAllNotes()
+  end, note_off_time)
 end
 
 -- Play extra notes for a slot
 function PakettiChords_PlayExtraNotes(base_notes, slot_settings, next_chord_interval_ms)
   local song = renoise.song()
   local track_index = song.selected_track_index
-  local instrument_index = song.selected_instrument_index
+  local instrument_index = PakettiChords_GetInstrumentIndex()
   local bpm = song.transport.bpm
   local beat_ms = 60000 / bpm
   local velocity_norm = slot_settings.velocity / 127.0
@@ -458,12 +511,10 @@ function PakettiChords_PlayExtraNotes(base_notes, slot_settings, next_chord_inte
       
       -- Use the minimum of extra1_duration or time until next chord
       local duration_ms = math.min(slot_settings.extra1_duration * beat_ms, next_chord_interval_ms - 10)
-      local timer_func = function()
+      PakettiChords_AddOneShotTimer(function()
         print(string.format("PakettiChords DEBUG: Turning off EX1 note %d", extra_note))
         song:trigger_instrument_note_off(instrument_index, track_index, {extra_note})
-      end
-      renoise.tool():add_timer(timer_func, duration_ms)
-      table.insert(PakettiChords_note_off_timers, timer_func)
+      end, duration_ms)
     end
   end
   
@@ -477,12 +528,10 @@ function PakettiChords_PlayExtraNotes(base_notes, slot_settings, next_chord_inte
       
       -- Use the minimum of extra2_duration or time until next chord
       local duration_ms = math.min(slot_settings.extra2_duration * beat_ms, next_chord_interval_ms - 10)
-      local timer_func = function()
+      PakettiChords_AddOneShotTimer(function()
         print(string.format("PakettiChords DEBUG: Turning off EX2 note %d", extra_note))
         song:trigger_instrument_note_off(instrument_index, track_index, {extra_note})
-      end
-      renoise.tool():add_timer(timer_func, duration_ms)
-      table.insert(PakettiChords_note_off_timers, timer_func)
+      end, duration_ms)
     end
   end
 end
@@ -524,6 +573,10 @@ function PakettiChords_PlaybackTick(current_index, active_progression, key, base
     else
       print("PakettiChords DEBUG: Reached end, repeat disabled, stopping playback")
       PakettiChords_Stop()
+      -- The progression ended on its own: leave no slot highlighted, so the
+      -- purple selection does not read as a stuck playhead on the last chord.
+      PakettiChords_selected_slot = nil
+      PakettiChords_UpdateUI()
       return
     end
   end
@@ -561,14 +614,9 @@ function PakettiChords_PlaybackTick(current_index, active_progression, key, base
   
   -- Schedule next chord
   print(string.format("PakettiChords DEBUG: Scheduling next chord in %.2fms (%.2f beats)", interval_ms, chord_interval))
-  local timer_func = function()
+  PakettiChords_playback_timer = PakettiChords_AddOneShotTimer(function()
     PakettiChords_PlaybackTick(current_index + 1, active_progression, key, base_octave, chord_interval, repeat_enabled)
-  end
-  
-  -- CRITICAL: Add to timers array BEFORE scheduling, so it can be cleared if needed
-  table.insert(PakettiChords_note_off_timers, timer_func)
-  PakettiChords_playback_timer = timer_func
-  renoise.tool():add_timer(timer_func, interval_ms)
+  end, interval_ms)
   
   print(string.format("PakettiChords DEBUG: Now tracking %d total timers", #PakettiChords_note_off_timers))
 end
@@ -651,7 +699,7 @@ function PakettiChords_WriteToPattern()
   local key = PakettiChords_key_popup and (PakettiChords_key_popup.value - 1) or 0
   local base_octave = PakettiChords_base_octave_value and PakettiChords_base_octave_value.value or 4
   local chord_interval = PakettiChords_chord_interval_value and PakettiChords_chord_interval_value.value or 4
-  local instrument_number = PakettiChords_instrument_number_value and (PakettiChords_instrument_number_value.value - 1) or 0
+  local instrument_number = PakettiChords_GetInstrumentIndex() - 1
   local lpb = song.transport.lpb
   
   local lines_per_step = chord_interval * lpb
@@ -1371,7 +1419,17 @@ function PakettiChords_CreateDialog()
     min = 1,
     max = 255,
     value = renoise.song().selected_instrument_index,
-    width = 60
+    width = 60,
+    tooltip = "Instrument used for audition, playback and Write to Pattern. Follows the selected instrument.",
+    notifier = function(value)
+      if PakettiChords_instrument_sync_guard then return end
+      local song = renoise.song()
+      if value >= 1 and value <= #song.instruments then
+        PakettiChords_instrument_sync_guard = true
+        song.selected_instrument_index = value
+        PakettiChords_instrument_sync_guard = false
+      end
+    end
   }
   
   PakettiChords_repeat_checkbox = PakettiChords_vb:checkbox{
@@ -1482,6 +1540,7 @@ function PakettiChords_CreateDialog()
     }
   }
   
+  PakettiChords_AttachInstrumentObserver()
   PakettiChords_dialog = renoise.app():show_custom_dialog("Paketti Chords - Progression Player - Original idea from sEptIQ - quick HTML->LUA conversion by esaruoho", content, PakettiChords_KeyHandler)
   PakettiChords_UpdateUI()
   
@@ -1495,6 +1554,7 @@ end
 function PakettiChords_Toggle()
   if PakettiChords_dialog and PakettiChords_dialog.visible then
     PakettiChords_Stop()
+    PakettiChords_DetachInstrumentObserver()
     PakettiChords_dialog:close()
     PakettiChords_dialog = nil
   else

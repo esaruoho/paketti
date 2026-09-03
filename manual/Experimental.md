@@ -21605,13 +21605,14 @@ Opens the comprehensive chord progression editor and player.
 2. **8 Progression Slots:**
    - Each slot stores: chord type, duration, strum, velocity, extra notes
    - Visual feedback: Purple (selected), Blue (has chord), Orange (playing), Gray (empty)
+   - When a progression plays to its end (Repeat off), the highlight clears entirely - no slot is left purple or orange
    - Per-slot controls: Up/Down movement, Copy/Paste, Clear, Audition
 
 3. **Global Settings:**
    - **Key** - C through B (12 keys)
    - **Base Octave** - 0-8
    - **Interval** - 0.25-64 beats (time between chords)
-   - **Instrument** - 1-255
+   - **Instrument** - 1-255. Stays in step with Renoise's selected instrument in both directions: pick an instrument in Renoise and the valuebox follows, type a number here and Renoise's selection follows. Audition, playback and Write to Pattern all use this one number, so what you hear is what gets written.
    - **Repeat** - Loop progression infinitely
 
 4. **Per-Slot Settings:**

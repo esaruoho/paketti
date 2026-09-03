@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Fix: Chords Progression Player Wrote The Wrong Instrument And Stuttered At The End
+
+Two faults in `Main Menu:Tools:Chords - Progression Player...` (keybinding `Global:Paketti:Paketti Chords - Progression Player...`, MIDI mapping `Paketti:Paketti Chords - Progression Player`).
+
+Write to Pattern used the Instrument valuebox, but audition and playback used whatever instrument was selected in Renoise. The valuebox was only filled in once, when the dialog opened, so selecting a different instrument afterwards made the two disagree: you would hear instrument 01 while the pattern got written with instrument 00, and nothing played back. The valuebox is now the single source of truth for audition, playback and Write to Pattern, and it stays in step with Renoise's selected instrument in both directions - select in Renoise and the box follows, type in the box and Renoise's selection follows.
+
+Every timer in the dialog is now a one-shot. Renoise timers repeat until they are removed, and the playback tick was never removed, so once the progression reached its last chord the tail kept re-firing: the last slot buttons flashed, their notes retriggered as clicks and pops, and the highlight was left stuck. When a progression now finishes on its own, playback stops once, the notes stop once, and no slot is left highlighted.
+
 ### 2026-09-03 - Improvement: The TX16W And RX2 Format Notes Are Actually In The Repo Now
 
 Both reference documents were written into `Docs/`, which this repository ignores, so neither had ever been published. They now sit at the top level beside the other format notes: `typhoon-tx16w-format.txt` and `rex2-format.txt`.
