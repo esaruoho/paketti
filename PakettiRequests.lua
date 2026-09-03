@@ -7258,18 +7258,107 @@ end
 renoise.tool():add_midi_mapping{name="Paketti:Select Sample x[Knob]",invoke=function(message) if message:is_abs_value() then SampleSelectorMIDI(message.int_value) end end}
 --
 --
-function PakettiDeviceBypass(number,state)
-local number = number +1
-if state == "toggle" then
-if renoise.song().selected_track.devices[number].is_active 
-then  renoise.song().selected_track.devices[number].is_active = false
-return 
-else renoise.song().selected_track.devices[number].is_active = true return 
-end
-end
-if state == "enable" then renoise.song().selected_track.devices[number].is_active=true end
-if state == "disable" then renoise.song().selected_track.devices[number].is_active=false end
+-- REPORT-CARD >> features/device-toggle-automation.feature
+local function PakettiDeviceBypassActiveParameter(device)
+  for _, parameter in ipairs(device.parameters) do
+    if parameter.name == "Active" then
+      return parameter
+    end
+  end
 
+  return device.parameters[1]
+end
+
+local function PakettiDeviceBypassAutomationLine(song)
+  if song.transport.playing and song.transport.follow_player then
+    return song.transport.playback_pos.line
+  end
+
+  return song.selected_line_index
+end
+
+local function PakettiDeviceBypassCommandDigit(number)
+  local digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  return digits:sub(number + 1, number + 1)
+end
+
+local function PakettiWriteDeviceBypassPatternCommand(song, track_index, device_number, enabled)
+  local track = song.tracks[track_index]
+  if track.visible_effect_columns < 1 then
+    track.visible_effect_columns = 1
+  end
+
+  local line = PakettiDeviceBypassAutomationLine(song)
+  local pattern = song:pattern(song.selected_pattern_index)
+  if line < 1 then line = 1 end
+  if line > pattern.number_of_lines then line = pattern.number_of_lines end
+
+  local command_digit = PakettiDeviceBypassCommandDigit(device_number)
+  if command_digit == "" then return nil end
+
+  local effect_column = pattern:track(track_index):line(line).effect_columns[1]
+  effect_column.number_string = command_digit .. "0"
+  effect_column.amount_string = enabled and "01" or "00"
+  return "pattern command"
+end
+
+local function PakettiWriteDeviceBypassGraphicalAutomation(song, track_index, device, enabled)
+  if not song.transport.edit_mode then return end
+
+  local parameter = PakettiDeviceBypassActiveParameter(device)
+  if not parameter or not parameter.is_automatable then return end
+
+  local pattern = song:pattern(song.selected_pattern_index)
+  local pattern_track = pattern:track(track_index)
+  local envelope = pattern_track:find_automation(parameter)
+  if not envelope then
+    envelope = pattern_track:create_automation(parameter)
+  end
+
+  local line = PakettiDeviceBypassAutomationLine(song)
+  if line < 1 then line = 1 end
+  if line > pattern.number_of_lines then line = pattern.number_of_lines end
+
+  envelope:add_point_at(line, enabled and 1.0 or 0.0)
+  return "graphical automation"
+end
+
+local function PakettiRecordDeviceBypassAutomation(song, track_index, device_number, device, enabled)
+  if not song.transport.edit_mode then return nil end
+
+  if song.transport.record_parameter_mode == renoise.Transport.RECORD_PARAMETER_MODE_PATTERN then
+    return PakettiWriteDeviceBypassPatternCommand(song, track_index, device_number, enabled)
+  end
+
+  return PakettiWriteDeviceBypassGraphicalAutomation(song, track_index, device, enabled)
+end
+
+function PakettiDeviceBypass(number,state)
+  local song = renoise.song()
+  local track = song.selected_track
+  local device_index = number + 1
+  local device = track.devices[device_index]
+
+  if not device then
+    renoise.app():show_status("Selected Track Device " .. string.format("%02d", number) .. " does not exist")
+    return
+  end
+
+  if state == "toggle" then
+    device.is_active = not device.is_active
+  elseif state == "enable" then
+    device.is_active = true
+  elseif state == "disable" then
+    device.is_active = false
+  else
+    return
+  end
+
+  local recorded_to = PakettiRecordDeviceBypassAutomation(song, song.selected_track_index, number, device, device.is_active)
+
+  local action = device.is_active and "Enabled" or "Disabled"
+  local automation = recorded_to and (" and wrote " .. recorded_to) or ""
+  renoise.app():show_status(action .. " Selected Track Device " .. string.format("%02d", number) .. automation)
 end
 
 ------------

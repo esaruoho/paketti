@@ -8,6 +8,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
+- [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
 - [Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open](#groovebox-8120-default-instrument-slots) — `groovebox-8120-default-instrument-slots.feature`
 - [Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8)](#groovebox-8120-grid-controllers) — `groovebox-8120-grid-controllers.feature`
 - [Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select)](#groovebox-8120-lpd8) — `groovebox-8120-lpd8.feature`
@@ -54,6 +55,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Never destroy the original on an ambiguous swap — `@designed`
 
 **Grade:** @designed ×9
+
+
+<a id="device-toggle-automation"></a>
+## Device Control actions record bypass automation
+
+`features/device-toggle-automation.feature` · [session](device-toggle-automation.session.md)
+
+**What it does:** As a Paketti user, I want Device Control NN enable/disable/toggle actions to record automation, So that hardware or shortcut-driven device bypass moves become part of the pattern.
+
+**Behaviour (4 scenarios):**
+
+- Pattern Effects mode writes x000 or x001 — `@shipped @built @code-verified @runtime-untested`
+- Graphical Automation mode writes the Active envelope — `@shipped @built @code-verified @runtime-untested`
+- Follow-player decides cursor versus playhead line — `@shipped @built @code-verified @runtime-untested`
+- Edit Mode off keeps Device Control as a live toggle only — `@stock`
+
+**How it does it:** **Key procs:** `PakettiDeviceBypass`, `PakettiRecordDeviceBypassAutomation`, `PakettiWriteDeviceBypassPatternCommand`, `PakettiWriteDeviceBypassGraphicalAutomation` · **Source files:** `PakettiRequests.lua`
+
+**Grade:** @built ×3 · @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
 
 
 <a id="groovebox-8120-default-instrument-slots"></a>

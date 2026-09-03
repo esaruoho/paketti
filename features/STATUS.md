@@ -15,6 +15,7 @@
 | 2026-06-11-groovebox-controller-follow-and-menu | 9 | ✓ | — | ✗ | @built @code-verified @hw-untested @logic-verified @superseded |
 | 2026-06-11-ui-fixes-and-menu-config | 8 | ✓ | ✓ | — | @built @code-verified @logic-verified @runtime-verified |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
+| device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | groovebox-8120-default-instrument-slots | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
 | groovebox-8120-grid-controllers | 12 | ✓ | — | ✓ | @built @code-verified @hw-verified |
 | groovebox-8120-lpd8 | 6 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
@@ -27,8 +28,8 @@
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 
 ## Tally (computed)
-- Cards: 13
-- Build-verified: 11
+- Cards: 14
+- Build-verified: 12
 - Runtime-verified: 3 full + 0 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

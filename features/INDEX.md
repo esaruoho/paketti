@@ -14,6 +14,7 @@ Derived views — GENERATED, never hand-edit:
 | `2026-06-11-groovebox-controller-follow-and-menu.feature` | AKAI controller debug/demo entries moved out of the Groovebox menu | `2026-06-11-groovebox-controller-follow-and-menu.session.md` | `37f054b1` `aae34805` `5483d3e3` |
 | `2026-06-11-ui-fixes-and-menu-config.feature` | Groovebox 8120 Kit loader status column alignment | `2026-06-11-ui-fixes-and-menu-config.session.md` | `47e81a77` `bc06819a` `2a1bce7a` |
 | `device-hotswap-missing-to-actual.feature` | Device hotswap — missing plugins → actually-installed equivalents | — | `bc06819a` `2300b421` |
+| `device-toggle-automation.feature` | Device Control NN enable/disable/toggle records bypass automation | `device-toggle-automation.session.md` | worktree |
 | `groovebox-8120-default-instrument-slots.feature` | Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open | — | `bc06819a` `d045e817` |
 | `groovebox-8120-grid-controllers.feature` | Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8) | — | `bc06819a` `a3636675` `7d3dd71f` |
 | `groovebox-8120-lpd8.feature` | Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select) | — | `bc06819a` `a3636675` `7d3dd71f` |
