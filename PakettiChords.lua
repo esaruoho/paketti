@@ -52,6 +52,9 @@ PakettiChords_global_length_value = nil
 PakettiChords_autowrite_checkbox = nil
 PakettiChords_autoresize_checkbox = nil
 PakettiChords_repeatcontent_checkbox = nil
+PakettiChords_autoreceive_checkbox = nil
+-- Re-reads the chords whenever the selected track changes.
+PakettiChords_track_observer = nil
 
 -- Set while a global/preset/paste change is rewriting many slots at once, so
 -- auto-write fires once at the end instead of once per slot.
@@ -145,7 +148,13 @@ end
 function PakettiChords_NoteValueToString(note_value)
   local octave = math.floor(note_value / 12)
   local note_name = PakettiChords_GetNoteName(note_value)
-  return note_name .. "-" .. tostring(octave)
+  -- Renoise note strings are always three characters: "C-4" for a natural,
+  -- "C#4" for a sharp. Handing it "A#-3" throws and aborts the whole write,
+  -- which is what happened in any key whose chords contain a black note.
+  if #note_name == 1 then
+    return note_name .. "-" .. tostring(octave)
+  end
+  return note_name .. tostring(octave)
 end
 
 -- Helper: Calculate chord notes based on key and chord index
@@ -361,6 +370,7 @@ function PakettiChords_ReleaseDocumentCleanup()
   PakettiChords_is_auditioning = false
   PakettiChords_ClearAllTimers()  -- has_timer-guarded; nils playback timer + clears note_off_timers
   PakettiChords_DetachInstrumentObserver()
+  PakettiChords_DetachTrackObserver()
   if PakettiChords_dialog and PakettiChords_dialog.visible then
     PakettiChords_FlushSave()
     PakettiChords_dialog:close()
@@ -1207,7 +1217,8 @@ function PakettiChords_SerializeState()
     num(PakettiChords_autoresize_checkbox and (PakettiChords_autoresize_checkbox.value and 1 or 0) or 0),
     num(PakettiChords_repeatcontent_checkbox and (PakettiChords_repeatcontent_checkbox.value and 1 or 0) or 0),
     num(PakettiChords_global_strum_value and PakettiChords_global_strum_value.value or 0),
-    num(PakettiChords_global_length_value and PakettiChords_global_length_value.value or 0.9)
+    num(PakettiChords_global_length_value and PakettiChords_global_length_value.value or 0.9),
+    num(PakettiChords_autoreceive_checkbox and (PakettiChords_autoreceive_checkbox.value and 1 or 0) or 0)
   }
   local slots = {}
   for slot = 1, PakettiChords_MAX_SLOTS do
@@ -1257,7 +1268,8 @@ function PakettiChords_DeserializeState(text)
   return {
     key = g[1], base_octave = g[2], chord_interval = g[3],
     repeat_enabled = g[4] == 1, autowrite = g[5] == 1, autoresize = g[6] == 1,
-    repeat_content = g[7] == 1, global_strum = g[8], global_length = g[9]
+    repeat_content = g[7] == 1, global_strum = g[8], global_length = g[9],
+    autoreceive = (g[10] == nil) or (g[10] == 1)
   }
 end
 
@@ -1308,6 +1320,343 @@ function PakettiChords_FlushSave()
   end
   PakettiChords_save_timer = nil
   PakettiChords_SaveState()
+end
+
+-- Receive from Pattern ---------------------------------------------------------
+-- The inverse of Write to Pattern. Reads the selected track back into the eight
+-- slots: chord types and key from the pitches, Interval from the chord spacing,
+-- Strum and Strum Mode from how far the notes are spread across rows or delay
+-- values, Strum Order from which pitch sits in which column, Length from where
+-- the note-offs land, Velocity from the volume column, and EX1/EX2 from the
+-- columns past the chord itself. A progression written by the dialog reads back
+-- as the same progression.
+
+-- Chord notes go in columns 1..n and the extra notes after them, so a note in
+-- column 1 starts a new chord.
+function PakettiChords_CollectPatternEvents()
+  local song = renoise.song()
+  local track = song.selected_track
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    return nil, "Not a sequencer track"
+  end
+  local patt = song:pattern(song.selected_pattern_index)
+  if not patt then return nil, "No pattern selected" end
+  local ptrack = patt:track(song.selected_track_index)
+  local columns = math.max(1, track.visible_note_columns)
+
+  local notes, note_offs = {}, {}
+  for line_index = 1, patt.number_of_lines do
+    local line = ptrack:line(line_index)
+    for column = 1, columns do
+      local ncol = line:note_column(column)
+      if not ncol.is_empty then
+        if ncol.note_value < 120 then
+          table.insert(notes, {line = line_index, column = column, note = ncol.note_value,
+            delay = ncol.delay_value, volume = ncol.volume_value})
+        elseif ncol.note_value == 120 then
+          note_offs[column] = note_offs[column] or {}
+          table.insert(note_offs[column], line_index)
+        end
+      end
+    end
+  end
+  if #notes == 0 then return nil, "No notes found in this track" end
+  return {notes = notes, note_offs = note_offs, lines = patt.number_of_lines}
+end
+
+-- Which chord types have exactly these intervals above their lowest note.
+function PakettiChords_MatchChordTypes(intervals)
+  local wanted = table.concat(intervals, ",")
+  local matches = {}
+  for chord_index, chord_type in ipairs(PakettiChords_CHORD_TYPES) do
+    if table.concat(chord_type.intervals, ",") == wanted then
+      table.insert(matches, chord_index)
+    end
+  end
+  return matches
+end
+
+-- How many of a chord type's intervals this note set shares - used to pick the
+-- closest type when the notes are not one of the 13 the dialog can write.
+function PakettiChords_ChordTypeScore(chord_index, intervals)
+  local present = {}
+  for _, interval in ipairs(intervals) do present[interval] = true end
+  local score = 0
+  for _, interval in ipairs(PakettiChords_CHORD_TYPES[chord_index].intervals) do
+    if present[interval] then score = score + 1 end
+  end
+  return score - math.abs(#PakettiChords_CHORD_TYPES[chord_index].intervals - #intervals)
+end
+
+-- The pitch class a given key and chord index root on, mirroring the write path.
+function PakettiChords_RootForChord(key, chord_index)
+  local degree = chord_index > 7 and (chord_index - 7) or chord_index
+  return (key + PakettiChords_MAJOR_INTERVALS[degree]) % 12
+end
+
+-- Split one chord's columns into the chord itself and the extra notes after it,
+-- returning the matched chord type. Four-note chords are tried first so a
+-- seventh is not read as a triad plus an extra note.
+function PakettiChords_IdentifyChord(columns, key)
+  local best = nil
+  for chord_note_count = math.min(4, #columns), 3, -1 do
+    local pitches = {}
+    for i = 1, chord_note_count do table.insert(pitches, columns[i].note) end
+    table.sort(pitches)
+    local lowest = pitches[1]
+    local intervals = {}
+    for _, pitch in ipairs(pitches) do table.insert(intervals, pitch - lowest) end
+    local root = lowest % 12
+    for _, chord_index in ipairs(PakettiChords_MatchChordTypes(intervals)) do
+      if PakettiChords_RootForChord(key, chord_index) == root then
+        return {chord_index = chord_index, note_count = chord_note_count,
+          lowest = lowest, exact = true}
+      end
+    end
+    -- Remember the closest type in case nothing matches this key exactly
+    for chord_index = 1, #PakettiChords_CHORD_TYPES do
+      local score = PakettiChords_ChordTypeScore(chord_index, intervals)
+      local root_distance = math.min((root - PakettiChords_RootForChord(key, chord_index)) % 12,
+        (PakettiChords_RootForChord(key, chord_index) - root) % 12)
+      if not best or score > best.score or (score == best.score and root_distance < best.root_distance) then
+        best = {chord_index = chord_index, note_count = chord_note_count, lowest = lowest,
+          exact = false, score = score, root_distance = root_distance}
+      end
+    end
+  end
+  return best
+end
+
+-- Group the note-ons into chords and read every per-slot setting out of them.
+function PakettiChords_AnalysePattern(data, key, lpb)
+  local starts = {}
+  for _, note in ipairs(data.notes) do
+    if note.column == 1 then table.insert(starts, note.line) end
+  end
+  table.sort(starts)
+  if #starts == 0 then return nil end
+
+  local chords, exact_count = {}, 0
+  for index = 1, math.min(#starts, PakettiChords_MAX_SLOTS) do
+    local start_line = starts[index]
+    local next_start = starts[index + 1] or (data.lines + 1)
+    local columns = {}
+    for _, note in ipairs(data.notes) do
+      if note.line >= start_line and note.line < next_start then
+        columns[note.column] = note
+      end
+    end
+    -- Compact into column order
+    local ordered = {}
+    for column = 1, 12 do
+      if columns[column] then table.insert(ordered, columns[column]) end
+    end
+
+    local identified = PakettiChords_IdentifyChord(ordered, key)
+    if identified then
+      if identified.exact then exact_count = exact_count + 1 end
+      local chord_columns = {}
+      for i = 1, identified.note_count do table.insert(chord_columns, ordered[i]) end
+
+      -- Strum and strum mode from how the chord is spread
+      local first, last = chord_columns[1], chord_columns[#chord_columns]
+      local strum, strum_mode = 0, nil
+      if #chord_columns > 1 then
+        if last.line == first.line then
+          -- One row, spread by delay = Delays mode. One row and no delay says
+          -- nothing about the mode, so the slot keeps the mode it has.
+          if last.delay > first.delay then
+            strum_mode = 2
+            strum = 16 * (last.delay - first.delay) / 255
+          end
+        else
+          strum_mode = 1
+          strum = ((last.line - first.line) + (last.delay - first.delay) / 255) / (#chord_columns - 1)
+        end
+      end
+      -- The write path floors the delay into 1/255 of a row, so an exact strum
+      -- cannot come back. Snap to the nearest quarter when we are within that
+      -- rounding error of one, which recovers every strum a knob can set.
+      local quarter = math.floor(strum * 4 + 0.5) / 4
+      if math.abs(strum - quarter) <= 0.07 then
+        strum = quarter
+      else
+        strum = math.floor(strum * 100 + 0.5) / 100
+      end
+      strum = math.max(0, math.min(16, strum))
+
+      -- Strum order from which pitch sits in which column
+      local ascending, descending = true, true
+      for i = 2, #chord_columns do
+        if chord_columns[i].note < chord_columns[i - 1].note then ascending = false end
+        if chord_columns[i].note > chord_columns[i - 1].note then descending = false end
+      end
+      local strum_order = ascending and 1 or (descending and 2 or 3)
+
+      -- Length from this chord's own note-off. A note that runs straight into
+      -- the next chord gets no OFF written at all, in which case its length is
+      -- the gap to that chord. The last chord in a pattern with no OFF says
+      -- nothing, and the slot keeps the length it has.
+      local note_duration = nil
+      for _, off_line in ipairs(data.note_offs[first.column] or {}) do
+        if off_line > first.line and off_line < next_start then
+          note_duration = (off_line - first.line) / lpb
+          break
+        end
+      end
+      if not note_duration and starts[index + 1] then
+        note_duration = (next_start - first.line) / lpb
+      end
+
+      local velocity = first.volume
+      if velocity == nil or velocity > 128 then velocity = 128 end
+
+      table.insert(chords, {
+        chord_index = identified.chord_index,
+        base_octave = math.floor(identified.lowest / 12),
+        start_line = start_line,
+        strum = strum,
+        strum_mode = strum_mode,
+        strum_order = strum_order,
+        velocity = velocity,
+        note_duration = note_duration,
+        extras = {ordered[identified.note_count + 1], ordered[identified.note_count + 2]},
+        note_offs = data.note_offs
+      })
+    end
+  end
+  return chords, exact_count
+end
+
+-- Read the selected track into the slots. Pass true for a silent pass (the
+-- track-change auto-update), which leaves the progression alone when the new
+-- track has nothing to read.
+function PakettiChords_ReceiveFromPattern(silent)
+  local data, err = PakettiChords_CollectPatternEvents()
+  if not data then
+    if not silent then renoise.app():show_status("PakettiChords: " .. err) end
+    return false
+  end
+
+  local song = renoise.song()
+  local lpb = song.transport.lpb
+  local current_key = PakettiChords_key_popup and (PakettiChords_key_popup.value - 1) or 0
+
+  -- Try every key and keep the one that explains the most chords, preferring the
+  -- key already set when two do equally well.
+  local best_key, best_score, best_chords = current_key, -1, nil
+  for candidate = 0, 11 do
+    local key = (current_key + candidate) % 12
+    local chords, exact_count = PakettiChords_AnalysePattern(data, key, lpb)
+    if chords and exact_count > best_score then
+      best_key, best_score, best_chords = key, exact_count, chords
+    end
+  end
+  if not best_chords or #best_chords == 0 then
+    if not silent then renoise.app():show_status("PakettiChords: Could not read any chords from this track") end
+    return false
+  end
+
+  PakettiChords_bulk_update = true
+
+  -- Interval from the spacing between chords
+  local interval = nil
+  if #best_chords > 1 then
+    interval = (best_chords[2].start_line - best_chords[1].start_line) / lpb
+  end
+
+  for slot = 1, PakettiChords_MAX_SLOTS do
+    local chord = best_chords[slot]
+    local settings = PakettiChords_progression_sequence[slot]
+    if chord then
+      settings.chord_index = chord.chord_index
+      settings.strum = chord.strum
+      if chord.strum_mode then settings.strum_mode = chord.strum_mode end
+      settings.strum_order = chord.strum_order
+      settings.velocity = chord.velocity
+      if chord.note_duration then settings.note_duration = chord.note_duration end
+
+      -- EX1 / EX2: which chord note they are built from, and how far off
+      local chord_type = PakettiChords_CHORD_TYPES[chord.chord_index]
+      local root = PakettiChords_RootForChord(best_key, chord.chord_index)
+      local base_notes = {}
+      for _, chord_interval in ipairs(chord_type.intervals) do
+        table.insert(base_notes, root + chord_interval + (chord.base_octave * 12))
+      end
+      for extra_number = 1, 2 do
+        local extra = chord.extras[extra_number]
+        local index_field = "extra" .. extra_number .. "_index"
+        local octave_field = "extra" .. extra_number .. "_octave"
+        local duration_field = "extra" .. extra_number .. "_duration"
+        settings[index_field] = 0
+        if extra then
+          for base_index, base_note in ipairs(base_notes) do
+            local difference = extra.note - base_note
+            if difference % 12 == 0 then
+              local octave = difference / 12
+              if settings[index_field] == 0 or math.abs(octave) < math.abs(settings[octave_field]) then
+                settings[index_field] = base_index
+                settings[octave_field] = octave
+              end
+            end
+          end
+          for _, off_line in ipairs(chord.note_offs[extra.column] or {}) do
+            if off_line > extra.line then
+              settings[duration_field] = (off_line - extra.line) / lpb
+              break
+            end
+          end
+        end
+      end
+    else
+      settings.chord_index = nil
+    end
+  end
+
+  if PakettiChords_key_popup then PakettiChords_key_popup.value = best_key + 1 end
+  if PakettiChords_base_octave_value and best_chords[1] then
+    local octave = math.max(0, math.min(8, best_chords[1].base_octave))
+    PakettiChords_base_octave_value.value = octave
+  end
+  if interval and PakettiChords_chord_interval_value and interval >= 0.25 and interval <= 64 then
+    PakettiChords_chord_interval_value.value = interval
+  end
+
+  PakettiChords_bulk_update = false
+  PakettiChords_SyncSlotViews()
+  PakettiChords_ScheduleSave()
+
+  local approximated = #best_chords - best_score
+  local status = string.format("PakettiChords: Received %d chords from '%s' in key %s",
+    #best_chords, song.selected_track.name, PakettiChords_NOTE_NAMES[best_key + 1])
+  if approximated > 0 then
+    status = status .. string.format(" (%d approximated - not one of the 13 chord types)", approximated)
+  end
+  renoise.app():show_status(status)
+  return true
+end
+
+-- Auto-Receive: follow the selected track, so moving to another track loads that
+-- track's chords. An empty track is left alone rather than wiping the slots.
+function PakettiChords_AttachTrackObserver()
+  PakettiChords_DetachTrackObserver()
+  PakettiChords_track_observer = function()
+    if not PakettiChords_autoreceive_checkbox then return end
+    if not PakettiChords_autoreceive_checkbox.value then return end
+    if not (PakettiChords_dialog and PakettiChords_dialog.visible) then return end
+    PakettiChords_ReceiveFromPattern(true)
+  end
+  renoise.song().selected_track_index_observable:add_notifier(PakettiChords_track_observer)
+end
+
+function PakettiChords_DetachTrackObserver()
+  if PakettiChords_track_observer then
+    local ok, observable = pcall(function() return renoise.song().selected_track_index_observable end)
+    if ok and observable:has_notifier(PakettiChords_track_observer) then
+      observable:remove_notifier(PakettiChords_track_observer)
+    end
+  end
+  PakettiChords_track_observer = nil
 end
 
 -- Update UI
@@ -1678,6 +2027,9 @@ function PakettiChords_KeyHandler(dialog, key)
   elseif key and key.modifiers == "control" and key.name == "w" then
     PakettiChords_WriteToPattern()
     return nil
+  elseif key and key.modifiers == "control" and key.name == "r" then
+    PakettiChords_ReceiveFromPattern(false)
+    return nil
   elseif key and key.modifiers == "shift" and key.name == "up" then
     if PakettiChords_selected_slot then
       PakettiChords_MoveSlotUp(PakettiChords_selected_slot)
@@ -1787,6 +2139,15 @@ function PakettiChords_CreateDialog()
     value = saved_state and saved_state.autoresize or false,
     tooltip = "Grow the pattern so the whole progression fits (up to 512 lines) instead of dropping the chords that do not",
     notifier = function() PakettiChords_MaybeAutoWrite() end
+  }
+  
+  PakettiChords_autoreceive_checkbox = PakettiChords_vb:checkbox{
+    value = (saved_state == nil) or saved_state.autoreceive,
+    tooltip = "Read the chords out of each track as you select it. A track with no notes is left alone rather than clearing the slots.",
+    notifier = function(value)
+      PakettiChords_ScheduleSave()
+      if value then PakettiChords_ReceiveFromPattern(true) end
+    end
   }
   
   PakettiChords_repeatcontent_checkbox = PakettiChords_vb:checkbox{
@@ -1919,6 +2280,13 @@ function PakettiChords_CreateDialog()
         width = 150,
         notifier = PakettiChords_WriteToPattern
       },
+      PakettiChords_vb:space{width = 5},
+      PakettiChords_vb:button{
+        text = "Receive from Pattern (Ctrl+R)",
+        width = 170,
+        tooltip = "Read the selected track back into the slots: chords, key, interval, strum, strum mode, order, length, velocity and extra notes",
+        notifier = function() PakettiChords_ReceiveFromPattern(false) end
+      },
       PakettiChords_vb:space{width = 10},
       PakettiChords_vb:button{
         text = "Clear All",
@@ -1936,12 +2304,16 @@ function PakettiChords_CreateDialog()
       PakettiChords_vb:text{text = "Auto-Resize", style = "normal", tooltip = "Grow the pattern so the whole progression fits"},
       PakettiChords_vb:space{width = 10},
       PakettiChords_repeatcontent_checkbox,
-      PakettiChords_vb:text{text = "Repeat Content", style = "normal", tooltip = "Tile what the other tracks already held across the grown pattern"}
+      PakettiChords_vb:text{text = "Repeat Content", style = "normal", tooltip = "Tile what the other tracks already held across the grown pattern"},
+      PakettiChords_vb:space{width = 10},
+      PakettiChords_autoreceive_checkbox,
+      PakettiChords_vb:text{text = "Auto-Receive", style = "normal", tooltip = "Re-read the chords whenever you select a different track"}
     }
   }
   
   PakettiChords_bulk_update = false
   PakettiChords_AttachInstrumentObserver()
+  PakettiChords_AttachTrackObserver()
   PakettiChords_dialog = renoise.app():show_custom_dialog("Paketti Chords - Progression Player - Original idea from sEptIQ - quick HTML->LUA conversion by esaruoho", content, PakettiChords_KeyHandler)
   PakettiChords_UpdateUI()
   
@@ -1957,6 +2329,7 @@ function PakettiChords_Toggle()
     PakettiChords_Stop()
     PakettiChords_FlushSave()
     PakettiChords_DetachInstrumentObserver()
+    PakettiChords_DetachTrackObserver()
     PakettiChords_dialog:close()
     PakettiChords_dialog = nil
   else
@@ -1988,5 +2361,7 @@ if PAKETTI_API >= 6.2 then
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Global Length x[Knob]", invoke = PakettiChords_MidiGlobalLength}
   renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Write to Pattern", invoke = function(message) if message:is_trigger() then PakettiChords_WriteToPattern() end end}
   renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords Write to Pattern", invoke = PakettiChords_WriteToPattern}
+  renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Chords Receive from Pattern", invoke = function() PakettiChords_ReceiveFromPattern(false) end}
+  renoise.tool():add_midi_mapping{name = "Paketti:Paketti Chords Receive from Pattern", invoke = function(message) if message:is_trigger() then PakettiChords_ReceiveFromPattern(false) end end}
   PakettiAddMenuEntry{name = "Main Menu:Tools:Chords - Progression Player...", invoke = PakettiChords_Toggle}
 end

@@ -21594,7 +21594,11 @@ Advanced chord progression player with 13 chord types, per-slot settings, strum 
 
 Opens the comprehensive chord progression editor and player. The progression and all its settings are saved when the dialog closes and restored when it re-opens.
 
-Write to Pattern can also be triggered from outside the dialog: keybinding `Global:Paketti:Paketti Chords Write to Pattern`, MIDI Mapping `Paketti:Paketti Chords Write to Pattern`.
+**Receive from Pattern** (button, or Ctrl+R) is the inverse of Write to Pattern: it reads the selected track back into the eight slots, working out the chord types, key, Base Octave, Interval, Strum, Strum Mode, Strum Order, Length, Velocity and the extra notes from what is written there. Notes that are not one of the 13 chord types are matched to the closest one, and the status line says how many were approximated.
+
+What a pattern does not record is left alone rather than guessed: a note that runs into the next chord has no note-off, so its Length reads back as the gap to that chord; the last chord with no note-off keeps the length the slot had; a chord with no strum keeps the slot's Strum Mode; and a single extra note always reads back as EX1, since EX1 and EX2 share the same column when only one is on.
+
+Write to Pattern and Receive from Pattern can also be triggered from outside the dialog: keybindings `Global:Paketti:Paketti Chords Write to Pattern` and `Global:Paketti:Paketti Chords Receive from Pattern`, MIDI Mappings `Paketti:Paketti Chords Write to Pattern` and `Paketti:Paketti Chords Receive from Pattern`.
 
 **Core Features:**
 
@@ -21619,6 +21623,7 @@ Write to Pattern can also be triggered from outside the dialog: keybinding `Glob
    - **Auto-Write** - write to the pattern on every change, instead of pressing Ctrl+W
    - **Auto-Resize** - grow the pattern so the whole progression fits, up to Renoise's 512-line maximum. 8 chords at 4 beats with LPB 4 need 128 lines; without this they are silently dropped past the end of the pattern
    - **Repeat Content** - when the pattern grows, repeat what the other tracks already held (notes, effect columns and automation) so a 64-line loop keeps playing across the longer pattern
+   - **Auto-Receive** - read the chords out of each track as you select it. A track with no notes is left alone rather than clearing the slots
    - **Instrument** - 1-255. Stays in step with Renoise's selected instrument in both directions: pick an instrument in Renoise and the valuebox follows, type a number here and Renoise's selection follows. Audition, playback and Write to Pattern all use this one number, so what you hear is what gets written.
    - **Repeat** - Loop progression infinitely
 

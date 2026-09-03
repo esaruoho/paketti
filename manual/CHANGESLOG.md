@@ -8,6 +8,18 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Feature: Chords Progression Player Can Read A Pattern Back, And Follows The Selected Track
+
+**Receive from Pattern** is the inverse of Write to Pattern, on a button beside it and on Ctrl+R inside the dialog, keybinding `Global:Paketti:Paketti Chords Receive from Pattern` and MIDI Mapping `Paketti:Paketti Chords Receive from Pattern` outside it. It reads the selected track back into the eight slots and works out the rest from what is written: the chord types and the key from the pitches (all twelve keys are tried and the one that explains the most chords wins), Base Octave from the lowest note, Interval from the spacing between chords, Strum and Strum Mode from how far the notes are spread across rows or delay values, Strum Order from which pitch sits in which column, Length from where the note-offs land, Velocity from the volume column, and EX1/EX2 from the columns past the chord itself. Notes that are not one of the 13 chord types are matched to the closest one and the status line says how many were approximated.
+
+**Auto-Receive** does that automatically as you move around: select a different track and its chords appear in the slots. A track with no notes is left alone rather than clearing the progression, so moving through empty tracks costs you nothing.
+
+Some things a pattern simply does not record, and the dialog is honest about them rather than inventing a value. A note that runs into the next chord has no note-off written, so its Length reads back as the gap to that chord - which is what the pattern actually plays. The last chord in a pattern with no note-off keeps whatever length the slot had. A chord with no strum is the same in Rows mode and Delays mode, so the slot keeps its current mode. And a single extra note always reads back as EX1, because EX1 and EX2 write into the same column when only one of them is on.
+
+### 2026-09-03 - Fix: Chords Progression Player Crashed Writing Any Key With A Black Note In It
+
+Renoise note strings are always three characters - `C-4` for a natural, `C#4` for a sharp - and the player was building `A#-3`, which throws and aborts the write. Any progression whose chords contained a sharp failed to write at all. It writes them now.
+
 ### 2026-09-03 - Feature: Chords Progression Player Gets Auto-Write, Global Strum And Length, Auto-Resize And Saved Progressions
 
 Five additions to `Main Menu:Tools:Chords - Progression Player...`.
