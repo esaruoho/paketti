@@ -222,24 +222,65 @@ function getSlotIndexForAppPath(app_path)
     return nil
 end
 
--- Build the CLI command string by substituting $infile / $outfile placeholders
+local function filterQuotePath(path)
+    if os.platform() == "WINDOWS" then
+        return '"' .. path:gsub('"', '""') .. '"'
+    end
+    return "'" .. path:gsub("'", "'\\''") .. "'"
+end
+
+local function filterReadError(path)
+    local f = io.open(path, "rb")
+    if not f then return "" end
+    local message = f:read(2048) or ""
+    f:close()
+    return message:gsub("%s+$", "")
+end
+
+local function filterIsWaveFile(path)
+    local f = io.open(path, "rb")
+    if not f then return false end
+    local header = f:read(12)
+    f:close()
+    return header and header:sub(1, 4) == "RIFF" and header:sub(9, 12) == "WAVE"
+end
+
+local function filterCleanup(ctx)
+    if ctx.infile_path then os.remove(ctx.infile_path) end
+    if ctx.outfile_path then os.remove(ctx.outfile_path) end
+    if ctx.stderr_path then os.remove(ctx.stderr_path) end
+end
+
+-- Build the CLI command string by substituting $infile / $outfile placeholders.
 local function filterBuildCommand(slot_index, infile_path, outfile_path)
     local app_path = preferences.AppSelection["AppSelection" .. slot_index].value
     local args_template = preferences.AppSelection["FilterArgs" .. slot_index].value
+    local use_stdin = preferences.AppSelection["FilterUseStdin" .. slot_index].value
+    local use_stdout = preferences.AppSelection["FilterUseStdout" .. slot_index].value
 
     if args_template == nil or args_template == "" then
-        -- No args template: just run "app_path infile outfile"
-        return '"' .. app_path .. '" "' .. infile_path .. '" "' .. outfile_path .. '"'
+        if use_stdout then
+            return filterQuotePath(app_path) .. (use_stdin and "" or " " .. filterQuotePath(infile_path))
+        end
+        return filterQuotePath(app_path) .. " " .. filterQuotePath(infile_path) .. " " .. filterQuotePath(outfile_path)
+    end
+
+    local has_outfile = args_template:find("$outfile", 1, true) ~= nil
+    if use_stdout and has_outfile then
+        return nil, "Choose either $outfile or stdout, not both."
+    end
+    if not use_stdout and not has_outfile then
+        return nil, "Args must contain $outfile unless stdout is enabled."
     end
 
     -- Substitute placeholders
     local cmd = args_template
-    cmd = cmd:gsub("%$infile", '"' .. infile_path .. '"')
-    cmd = cmd:gsub("%$outfile", '"' .. outfile_path .. '"')
+    cmd = cmd:gsub("%$infile", filterQuotePath(infile_path))
+    cmd = cmd:gsub("%$outfile", filterQuotePath(outfile_path))
 
     -- If the template doesn't contain the app path, prepend it
     if not cmd:find(app_path, 1, true) then
-        cmd = '"' .. app_path .. '" ' .. cmd
+        cmd = filterQuotePath(app_path) .. " " .. cmd
     end
 
     return cmd
@@ -249,20 +290,17 @@ end
 local function filterLoadResult(ctx)
     local outfile = ctx.outfile_path
     local song = renoise.song()
-    if not song then return end
-
-    -- Check that output file exists and has data
-    local f = io.open(outfile, "rb")
-    if not f then
-        renoise.app():show_status("Filter processing failed: no output file produced.")
+    if not song then
+        filterCleanup(ctx)
         return
     end
-    local size = f:seek("end")
-    f:close()
-    if size < 46 then
-        -- Too small to be a valid WAV
-        renoise.app():show_status("Filter processing failed: output file is empty or invalid.")
-        os.remove(outfile)
+
+    -- Check that output file exists and has data
+    if not filterIsWaveFile(outfile) then
+        local detail = filterReadError(ctx.stderr_path)
+        filterCleanup(ctx)
+        renoise.app():show_status("Filter processing failed: no valid output WAV produced." ..
+            (detail ~= "" and " " .. detail or ""))
         return
     end
 
@@ -285,7 +323,7 @@ local function filterLoadResult(ctx)
         local new_instr = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
         if not new_instr then
             renoise.app():show_status("Filter processing failed: could not create new instrument (255 max).")
-            os.remove(outfile)
+            filterCleanup(ctx)
             return
         end
         local new_sample = new_instr:insert_sample_at(1)
@@ -301,11 +339,7 @@ local function filterLoadResult(ctx)
         renoise.app():show_status("Filter output loaded as new instrument: " .. new_instr.name)
     end
 
-    -- Clean up temp files
-    os.remove(outfile)
-    if ctx.infile_path then
-        os.remove(ctx.infile_path)
-    end
+    filterCleanup(ctx)
 end
 
 -- Timer callback: poll for the done-marker file
@@ -320,6 +354,7 @@ local function filterProcessPoll()
     -- Check if marker file exists (command finished)
     local f = io.open(marker_file, "r")
     if f then
+        local exit_code = tonumber(f:read("*l"))
         f:close()
         -- Remove marker file
         os.remove(marker_file)
@@ -331,7 +366,15 @@ local function filterProcessPoll()
             renoise.tool():remove_timer(poll_fn)
         end
 
-        -- Load the result
+        if exit_code ~= 0 then
+            local detail = filterReadError(ctx.stderr_path)
+            filterCleanup(ctx)
+            renoise.app():show_status("Filter processing failed (exit " ..
+                tostring(exit_code or "unknown") .. ")." ..
+                (detail ~= "" and " " .. detail or ""))
+            return
+        end
+
         filterLoadResult(ctx)
     end
 end
@@ -346,9 +389,12 @@ local function filterExecuteAsync(command, context)
     -- Create a unique marker file path
     local marker_path = os.tmpname() .. "_paketti_filter_done"
     context.marker_path = marker_path
+    context.stderr_path = os.tmpname() .. "_paketti_filter_error.txt"
 
     local os_name = os.platform()
     local bg_command
+    local use_stdin = preferences.AppSelection["FilterUseStdin" .. context.slot_index].value
+    local use_stdout = preferences.AppSelection["FilterUseStdout" .. context.slot_index].value
 
     if os_name == "WINDOWS" then
         -- Write a batch file that runs the command then creates the marker
@@ -356,15 +402,21 @@ local function filterExecuteAsync(command, context)
         local bf = io.open(batch_path, "w")
         if bf then
             bf:write('@echo off\r\n')
-            bf:write(command .. '\r\n')
-            bf:write('echo done > "' .. marker_path .. '"\r\n')
+            bf:write(command)
+            if use_stdin then bf:write(" < " .. filterQuotePath(context.infile_path)) end
+            if use_stdout then bf:write(" > " .. filterQuotePath(context.outfile_path)) end
+            bf:write(" 2> " .. filterQuotePath(context.stderr_path) .. "\r\n")
+            bf:write('echo %ERRORLEVEL% > "' .. marker_path .. '"\r\n')
             bf:write('del "%~f0"\r\n')
             bf:close()
-            bg_command = 'start "" /B cmd /c "' .. batch_path .. '"'
+            bg_command = 'start "" /B cmd /c call "' .. batch_path .. '"'
         end
     else
-        -- macOS / Linux: subshell in background
-        bg_command = '(' .. command .. ' > /dev/null 2>&1; touch "' .. marker_path .. '") &'
+        local stdin_redirect = use_stdin and (" < " .. filterQuotePath(context.infile_path)) or ""
+        local stdout_redirect = use_stdout and (" > " .. filterQuotePath(context.outfile_path)) or ""
+        bg_command = "((" .. command .. ")" .. stdin_redirect .. stdout_redirect ..
+            " 2> " .. filterQuotePath(context.stderr_path) ..
+            "; printf '%s\\n' \"$?\" > " .. filterQuotePath(marker_path) .. ") &"
     end
 
     if not bg_command then
@@ -415,7 +467,12 @@ function filterSendSample(slot_index)
     local outfile_path = os.tmpname() .. "_paketti_filter_out.wav"
 
     -- Build the command
-    local command = filterBuildCommand(slot_index, infile_path, outfile_path)
+    local command, err = filterBuildCommand(slot_index, infile_path, outfile_path)
+    if not command then
+        os.remove(infile_path)
+        renoise.app():show_status("Filter configuration error: " .. err)
+        return
+    end
 
     -- Execute asynchronously
     filterExecuteAsync(command, {
@@ -506,7 +563,12 @@ function filterSendSampleRange(slot_index)
     local outfile_path = os.tmpname() .. "_paketti_filter_out.wav"
 
     -- Build and execute
-    local command = filterBuildCommand(slot_index, infile_path, outfile_path)
+    local command, err = filterBuildCommand(slot_index, infile_path, outfile_path)
+    if not command then
+        os.remove(infile_path)
+        renoise.app():show_status("Filter configuration error: " .. err)
+        return
+    end
     filterExecuteAsync(command, {
         slot_index = slot_index,
         infile_path = infile_path,
@@ -579,22 +641,20 @@ local function createAppSlotUI(index)
         },
         vb:checkbox{
             value=preferences.AppSelection[filter_stdin_key].value,
-            active=false,
             notifier=function(v)
                 preferences.AppSelection[filter_stdin_key].value = v
                 preferences:save_as("preferences.xml")
             end
         },
-        vb:text{text="stdin (v2)", style="disabled", width=55},
+        vb:text{text="stdin", width=35},
         vb:checkbox{
             value=preferences.AppSelection[filter_stdout_key].value,
-            active=false,
             notifier=function(v)
                 preferences.AppSelection[filter_stdout_key].value = v
                 preferences:save_as("preferences.xml")
             end
         },
-        vb:text{text="stdout (v2)", style="disabled", width=60}
+        vb:text{text="stdout", width=45}
     }
 
     return app_row, filter_row
@@ -635,7 +695,7 @@ local function create_dialog_content(closeLA_dialog)
                 preferences:save_as("preferences.xml")
             end
         },
-        vb:text{text="($infile = input wav, $outfile = output wav)", style="disabled"}
+        vb:text{text="$infile/$outfile are WAV paths; stdin/stdout stream WAV data", style="disabled"}
     }
 
     -- Assemble the full dialog column

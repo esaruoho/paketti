@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Fix: Launch App Filter Mode reports CLI failures and supports WAV streams
+
+Launch App Filter Mode no longer discards a CLI filter's error output or treats a failed command as merely a missing file. It captures the process exit code and stderr, reports the actual failure in Renoise, and rejects output that is not a WAV before attempting to import it.
+
+The per-slot `stdin` and `stdout` controls now work: stdin supplies the temporary input WAV to the process and stdout captures a WAV stream as the output. `$infile` and `$outfile` remain supported, with an explicit configuration message when an argument template does not route output or attempts to use both `$outfile` and stdout. This makes shell filters such as sox, ffmpeg, and scripts diagnosable rather than silently failing. No menu, keybinding, or MIDI mapping names changed.
+
 ### 2026-09-03 - Feature: Spread Round Robins by Velocity, in the Keyzone Distributor
 
 The Keyzone Distributor's existing velocity distribution spreads *every* sample in the instrument across velocity in one sequence, ignoring where they sit on the keyboard. That is a velocity multisample. **Spread Round Robins by Velocity** handles the other case: several samples mapped to the *same* key, which is a round robin.
