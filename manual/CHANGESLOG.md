@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-03 - Fix: Chords Progression Player Auditioned Louder Than It Played
+
+The same Velocity number was scaled three different ways in `Main Menu:Tools:Chords - Progression Player...`. Audition divided it by 80, Play divided it by 127, and Write to Pattern wrote it straight into the volume column, whose full scale is 0x80 - 128. At the default velocity of 80 that meant auditioning at full volume, playing at 63%, and a pattern that matched playback but not the audition, about 4 dB apart. Any velocity above 80 auditioned at full scale regardless of the number.
+
+Velocity is now one thing everywhere: a Renoise volume-column value, converted once as velocity/128 for audition, playback and extra notes, which is exactly what Write to Pattern puts in the volume column. The per-slot Velocity valuebox now goes to 128 rather than 127, so 0x80 - full volume - is actually reachable, and its tooltip says so.
+
 ### 2026-09-03 - Fix: Chords Progression Player Wrote The Wrong Instrument And Stuttered At The End
 
 Two faults in `Main Menu:Tools:Chords - Progression Player...` (keybinding `Global:Paketti:Paketti Chords - Progression Player...`, MIDI mapping `Paketti:Paketti Chords - Progression Player`).

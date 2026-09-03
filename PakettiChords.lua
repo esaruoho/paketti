@@ -106,7 +106,7 @@ function PakettiChords_CreateDefaultSlotSettings()
     strum = 0,
     strum_mode = 1, -- 1=Rows, 2=Delays
     strum_order = 1, -- 1=Up, 2=Down, 3=Random
-    velocity = 80, -- 0-127 (0x00-0x7F, displayed as 00-80 hex in Renoise)
+    velocity = 80, -- 0-128, the Renoise volume-column range (0x00-0x80)
     extra1_index = 0,
     extra1_octave = -2,
     extra1_duration = 8,
@@ -266,6 +266,19 @@ function PakettiChords_AddOneShotTimer(body, interval_ms)
   return wrapper
 end
 
+-- One conversion for every path that makes sound. The Velocity number is a
+-- Renoise volume-column value (0-128, 0x00-0x80), which is what Write to
+-- Pattern puts in the volume column, so the gain handed to
+-- trigger_instrument_note_on is velocity/128. Audition used to divide by 80 and
+-- playback by 127, so the same chord auditioned about 4 dB louder than it
+-- played, and any velocity above 80 auditioned at full scale.
+function PakettiChords_VelocityToGain(velocity)
+  local gain = velocity / 128.0
+  if gain < 0 then gain = 0 end
+  if gain > 1 then gain = 1 end
+  return gain
+end
+
 -- The instrument the dialog plays and writes: the Instrument valuebox, which is
 -- kept in sync with Renoise's selected instrument while the dialog is open.
 -- Audition and Write to Pattern MUST read the same value - reading
@@ -397,11 +410,11 @@ function PakettiChords_AuditionSlot(slot)
     
     if delay > 0 then
       PakettiChords_AddOneShotTimer(function()
-        song:trigger_instrument_note_on(instrument_index, track_index, {note}, settings.velocity / 80.0)
+        song:trigger_instrument_note_on(instrument_index, track_index, {note}, PakettiChords_VelocityToGain(settings.velocity))
         table.insert(PakettiChords_active_notes, note)
       end, delay)
     else
-      song:trigger_instrument_note_on(instrument_index, track_index, {note}, settings.velocity / 80.0)
+      song:trigger_instrument_note_on(instrument_index, track_index, {note}, PakettiChords_VelocityToGain(settings.velocity))
       table.insert(PakettiChords_active_notes, note)
     end
   end
@@ -435,8 +448,8 @@ function PakettiChords_PlayChordWithStrum(notes, slot_settings, next_chord_inter
   local beat_ms = 60000 / bpm
   local lpb_ms = beat_ms / lpb
   
-  -- Convert velocity (0-127) to 0.0-1.0 for Renoise
-  local velocity_norm = slot_settings.velocity / 127.0
+  -- Convert velocity (0-128, the Renoise volume-column range) to 0.0-1.0
+  local velocity_norm = PakettiChords_VelocityToGain(slot_settings.velocity)
   
   local strum_mode = slot_settings.strum_mode or 1
   local strum_mode_str = (strum_mode == 2) and "Delays" or "Rows"
@@ -499,7 +512,7 @@ function PakettiChords_PlayExtraNotes(base_notes, slot_settings, next_chord_inte
   local instrument_index = PakettiChords_GetInstrumentIndex()
   local bpm = song.transport.bpm
   local beat_ms = 60000 / bpm
-  local velocity_norm = slot_settings.velocity / 127.0
+  local velocity_norm = PakettiChords_VelocityToGain(slot_settings.velocity)
   
   -- Extra note 1
   if slot_settings.extra1_index > 0 and slot_settings.extra1_index <= #base_notes then
@@ -775,7 +788,7 @@ function PakettiChords_WriteToPattern()
           local ncol = line:note_column(col_idx)
           ncol.note_string = PakettiChords_NoteValueToString(note)
           ncol.instrument_value = instrument_number
-          ncol.volume_value = settings.velocity -- 0-127 range
+          ncol.volume_value = settings.velocity -- 0-128 volume-column range
           if delay_value > 0 then
             ncol.delay_value = delay_value
           end
@@ -801,7 +814,7 @@ function PakettiChords_WriteToPattern()
         local ncol = line:note_column(col_idx)
         ncol.note_string = PakettiChords_NoteValueToString(extra_note)
         ncol.instrument_value = instrument_number
-        ncol.volume_value = settings.velocity -- 0-127 range
+        ncol.volume_value = settings.velocity -- 0-128 volume-column range
         
         local duration_lines = settings.extra1_duration * lpb
         table.insert(note_on_events, {
@@ -821,7 +834,7 @@ function PakettiChords_WriteToPattern()
         local ncol = line:note_column(col_idx)
         ncol.note_string = PakettiChords_NoteValueToString(extra_note)
         ncol.instrument_value = instrument_number
-        ncol.volume_value = settings.velocity -- 0-127 range
+        ncol.volume_value = settings.velocity -- 0-128 volume-column range
         
         local duration_lines = settings.extra2_duration * lpb
         table.insert(note_on_events, {
@@ -1119,13 +1132,13 @@ function PakettiChords_BuildSlotSettings(slot)
       }
     },
     PakettiChords_vb:row{
-      PakettiChords_vb:text{text = "Velocity", width = PakettiChords_LABEL_WIDTH, style = "strong", font = "bold", tooltip = "Volume: 0-127 (displays as 00-80 hex in Renoise)"},
+      PakettiChords_vb:text{text = "Velocity", width = PakettiChords_LABEL_WIDTH, style = "strong", font = "bold", tooltip = "Volume: 0-128 (00-80 hex in Renoise, 128 = full volume)"},
       PakettiChords_vb:valuebox{
         min = 0,
-        max = 127,
+        max = 128,
         value = settings.velocity,
         width = PakettiChords_VALUEBOX_WIDTH,
-        tooltip = "Volume: 0-127 (00-7F hex)",
+        tooltip = "Volume: 0-128 (00-80 hex, 128 = full volume). Audition, playback and Write to Pattern all use it identically.",
         notifier = function(value)
           PakettiChords_progression_sequence[slot].velocity = value
         end

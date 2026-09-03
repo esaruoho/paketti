@@ -21627,7 +21627,7 @@ Opens the comprehensive chord progression editor and player.
    - **Rows** - Notes written to separate pattern rows
    - **Delays** - Notes written to same row with delay column values
 
-   **Velocity** (0-127) - Volume for all notes in chord (displays as 00-80 hex in Renoise)
+   **Velocity** (0-128) - Volume for all notes in chord, a Renoise volume-column value (00-80 hex, 128 = full volume). Audition, playback and Write to Pattern all use it identically
 
    **Strum Order:**
    - **Up** - Ascending (low to high)
