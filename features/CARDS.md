@@ -20,10 +20,12 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
+- [Pattern and song row jumps](#pattern-song-jumps) — `pattern-song-jumps.feature`
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
 - [Section loop switches trigger immediately](#section-loop-immediate-switch) — `section-loop-immediate-switch.feature`
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
+- [Subcolumn-only pattern inversion](#subcolumn-only-invert) — `subcolumn-only-invert.feature`
 
 
 <a id="TEMPLATE"></a>
@@ -324,6 +326,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Toggle the Pattern Matrix
 
 
+<a id="pattern-song-jumps"></a>
+## Pattern and song row jumps
+
+`features/pattern-song-jumps.feature` · [session](pattern-song-jumps.session.md)
+
+**What it does:** As a Renoise user, I want bounded jump commands with a fast way back, So that navigation is reversible while composing.
+
+**Behaviour (4 scenarios):**
+
+- Reverse the last explicit pattern row jump — `@shipped @code-verified @runtime-untested`
+- Reverse the last explicit song row jump — `@shipped @code-verified @runtime-untested`
+- Jump to pattern fractions from Pattern Editor and Global contexts — `@shipped @code-verified @runtime-untested`
+- Existing fixed row jumps remain available — `@stock`
+
+**How it does it:** **Key procs:** `PakettiJumpRows`, `PakettiJumpRowsInSong`, `PakettiJumpBackByLastPatternJump`, `PakettiJumpBackByLastSongJump`, `PakettiJumpToPatternFraction`, `PakettiJumpToPreviousPosition` · **Source files:** `PakettiRequests.lua`, `PakettiPatternEditor.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+
+
 <a id="repeater-control"></a>
 ## Repeater control from keys and MIDI
 
@@ -397,6 +418,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - ParameterEditor must survive New Song / Load Song with its canvas open — `@built`
 
 **Grade:** @built ×2 · @hw-verified ×1
+
+
+<a id="subcolumn-only-invert"></a>
+## Subcolumn-only pattern inversion
+
+`features/subcolumn-only-invert.feature` · [session](subcolumn-only-invert.session.md)
+
+**What it does:** As a Pattern Editor user, I want to invert one note subcolumn at a time, So that volume, pan, delay, or sample-FX edits do not disturb the others.
+
+**Behaviour (3 scenarios):**
+
+- Invert only the requested note subcolumn — `@shipped @code-verified @runtime-untested`
+- Reach the specific invert commands from the Pattern Editor menu — `@shipped @code-verified @runtime-untested`
+- Existing broad inversion commands remain available — `@stock`
+
+**How it does it:** **Key procs:** `invert_content_subcolumn` · **Source files:** `PakettiRequests.lua`, `PakettiMenuConfig.lua`
+
+**Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
 
 
 ---

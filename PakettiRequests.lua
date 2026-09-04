@@ -9114,12 +9114,33 @@ function ShowHideSelectedTrack(slot)
   end
 end
 
---
+-- REPORT-CARD >> features/pattern-song-jumps.feature
+local paketti_last_pattern_row_jump = nil
+local paketti_last_song_row_jump = nil
+
+local function paketti_record_row_jump(scope, amount, direction)
+  local state = {
+    amount = amount,
+    direction = direction
+  }
+
+  if scope == "pattern" then
+    paketti_last_pattern_row_jump = state
+  elseif scope == "song" then
+    paketti_last_song_row_jump = state
+  end
+end
+
+local function paketti_opposite_jump_direction(direction)
+  return direction == "forward" and "backward" or "forward"
+end
+
 function PakettiJumpRows(jump_amount, direction)
   local song=renoise.song()
   local current_pattern = song.selected_pattern
   local num_lines = current_pattern.number_of_lines
   local signed_amount = direction == "forward" and jump_amount or -jump_amount
+  paketti_record_row_jump("pattern", jump_amount, direction)
   
   if song.transport.playing and song.transport.follow_player then
     local current_pos = song.transport.playback_pos
@@ -9137,6 +9158,18 @@ function PakettiJumpRows(jump_amount, direction)
     song.selected_line_index = new_index
     renoise.app():show_status("Jumped " .. direction .. " " .. jump_amount .. " rows to line " .. new_index)
   end
+end
+
+function PakettiJumpBackByLastPatternJump()
+  if not paketti_last_pattern_row_jump then
+    renoise.app():show_status("No previous pattern row jump stored")
+    return
+  end
+
+  local amount = paketti_last_pattern_row_jump.amount
+  local direction = paketti_opposite_jump_direction(paketti_last_pattern_row_jump.direction)
+  PakettiJumpRows(amount, direction)
+  renoise.app():show_status("Reversed last pattern jump: " .. direction .. " " .. amount .. " rows")
 end
 
 function PakettiJumpRowsRandom(direction)
@@ -9207,13 +9240,27 @@ local function get_current_cumulative_position()
   return cumulative_rows + line_index
 end
 
+local function get_cumulative_position_from_songpos(song_pos)
+  local song=renoise.song()
+  local cumulative_rows = 0
+
+  for i = 1, song_pos.sequence - 1 do
+    cumulative_rows = cumulative_rows + song.patterns[song.sequencer.pattern_sequence[i]].number_of_lines
+  end
+
+  return cumulative_rows + song_pos.line
+end
+
 -- Jump across patterns in the song
 function PakettiJumpRowsInSong(jump_amount, direction)
   local song=renoise.song()
   local current_position = get_current_cumulative_position()
+  if song.transport.playing and song.transport.follow_player then
+    current_position = get_cumulative_position_from_songpos(song.transport.playback_pos)
+  end
   local total_rows = get_total_song_rows()
-  local signed_amount = direction == "forward" and jump_amount or -jump_amount
   local target_position = direction == "forward" and math.min(current_position + jump_amount, total_rows) or math.max(current_position - jump_amount, 1)
+  paketti_record_row_jump("song", jump_amount, direction)
 
   local target_sequence, target_row = get_pattern_and_row_from_cumulative_position(target_position)
   
@@ -9228,6 +9275,18 @@ function PakettiJumpRowsInSong(jump_amount, direction)
     song.selected_line_index = target_row
   end
   renoise.app():show_status("Jumped " .. direction .. " within song by " .. jump_amount .. " rows to sequence " .. target_sequence .. ", row " .. target_row)
+end
+
+function PakettiJumpBackByLastSongJump()
+  if not paketti_last_song_row_jump then
+    renoise.app():show_status("No previous song row jump stored")
+    return
+  end
+
+  local amount = paketti_last_song_row_jump.amount
+  local direction = paketti_opposite_jump_direction(paketti_last_song_row_jump.direction)
+  PakettiJumpRowsInSong(amount, direction)
+  renoise.app():show_status("Reversed last song jump: " .. direction .. " " .. amount .. " rows")
 end
 
 -- Random jump within song
@@ -9263,6 +9322,11 @@ renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Song by R
 renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by Random",invoke=function() PakettiJumpRowsRandomInSong("backward") end}
 renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Song by Random",invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsRandomInSong("forward") end end}
 renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Song by Random",invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsRandomInSong("backward") end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Jump Back by Last Pattern Row Jump",invoke=PakettiJumpBackByLastPatternJump}
+renoise.tool():add_keybinding{name="Global:Paketti:Jump Back by Last Song Row Jump",invoke=PakettiJumpBackByLastSongJump}
+renoise.tool():add_midi_mapping{name="Paketti:Jump Back by Last Pattern Row Jump",invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpBackByLastPatternJump() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump Back by Last Song Row Jump",invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpBackByLastSongJump() end end}
 
 function PopulateGainersOnEachTrack(placement)
   local song=renoise.song()
@@ -9625,6 +9689,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert All Subcolumns
 ---------------------------------------------------------------------------
 -- Invert specific subcolumns only (#693)
 ---------------------------------------------------------------------------
+-- REPORT-CARD >> features/subcolumn-only-invert.feature
 function invert_content_subcolumn(subcolumn)
   local song = renoise.song()
   local pattern = song.selected_pattern

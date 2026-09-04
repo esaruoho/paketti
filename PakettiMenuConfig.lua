@@ -2813,6 +2813,10 @@ if preferences.pakettiMenuConfig.PatternEditor.value then
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Columns:Invert Note Column Subcolumns",invoke=function() invert_content("notecolumns") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:Invert Effect Column Subcolumns",invoke=function() invert_content("effectcolumns") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Invert All Subcolumns",invoke=function() invert_content("all") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Invert Volume Only",invoke=function() invert_content_subcolumn("volume") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Invert Panning Only",invoke=function() invert_content_subcolumn("panning") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Invert Delay Only",invoke=function() invert_content_subcolumn("delay") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Invert Sample FX Only",invoke=function() invert_content_subcolumn("samplefx") end}
 
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
 

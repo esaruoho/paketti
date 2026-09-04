@@ -25,8 +25,10 @@ Derived views — GENERATED, never hand-edit:
 | `mlx-renoise-bridge.feature` | Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens) | — | `4bc8daab` `26c583a5` `bc06819a` |
 | `music-mouse.feature` | Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise | `music-mouse.session.md` | `37f054b1` `c3465c5d` `ab144dc2` |
 | `parameter-editor-mixer-and-config.feature` | Parameter Editor exposes on the Mixer the parameter you're modifying | `parameter-editor-mixer-and-config.session.md` | `bc06819a` `b4a43b27` `94e4c343` |
+| `pattern-song-jumps.feature` | Pattern fraction jumps and reversible last row-jump commands for pattern/song navigation | `pattern-song-jumps.session.md` | worktree |
 | `pattern-editor-example.feature` | Pattern Editor note manipulation | — | `bc06819a` `b953f2f4` |
 | `repeater-control.feature` | Repeater selected-track/master keybindings and MIDI controls | `repeater-control.session.md` | worktree |
 | `selection-reversed-instrument.feature` | Reverse-duplicate selected instrument and retarget selected pattern notes to it | `selection-reversed-instrument.session.md` | worktree |
 | `section-loop-immediate-switch.feature` | Section-loop next/previous commands that switch immediately instead of scheduling | `section-loop-immediate-switch.session.md` | worktree |
 | `song-lifecycle-safety.feature` | Song-lifecycle safety for canvas dialogs and song observers | — | `bc06819a` `3d2cd863` `83526e80` |
+| `subcolumn-only-invert.feature` | Volume/panning/delay/sample-FX-only note subcolumn inversion | `subcolumn-only-invert.session.md` | worktree |

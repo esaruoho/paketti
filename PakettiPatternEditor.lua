@@ -11359,6 +11359,7 @@ end
 -- Jump to 1/8, 2/8, 3/8 ... 8/8 of the current pattern length.
 -- Also provides configurable fraction counts (2, 4, 8, 16).
 ---------------------------------------------------------------------------
+-- REPORT-CARD >> features/pattern-song-jumps.feature
 local paketti_previous_cursor_position = nil
 
 function PakettiSaveCursorPosition()
@@ -11390,6 +11391,7 @@ for _, total in ipairs({2, 4, 8, 16}) do
     local frac_label = string.format("%02d", frac)
     local name_suffix = frac_label .. "/" .. string.format("%02d", total)
     renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Jump to Pattern Fraction " .. name_suffix, invoke=function() PakettiJumpToPatternFraction(frac, total) end}
+    renoise.tool():add_keybinding{name="Global:Paketti:Jump to Pattern Fraction " .. name_suffix, invoke=function() PakettiJumpToPatternFraction(frac, total) end}
     renoise.tool():add_midi_mapping{name="Paketti:Jump to Pattern Fraction " .. name_suffix, invoke=function(message) if message:is_trigger() then PakettiJumpToPatternFraction(frac, total) end end}
   end
 end
