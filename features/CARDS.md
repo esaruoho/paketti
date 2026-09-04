@@ -9,11 +9,13 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
 - [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
+- [EQ10 keyboard controls](#eq10-keyboard-controls) — `eq10-keyboard-controls.feature`
 - [Execute configurable shell commands](#execute-command-slots) — `execute-command-slots.feature`
 - [Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open](#groovebox-8120-default-instrument-slots) — `groovebox-8120-default-instrument-slots.feature`
 - [Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8)](#groovebox-8120-grid-controllers) — `groovebox-8120-grid-controllers.feature`
 - [Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select)](#groovebox-8120-lpd8) — `groovebox-8120-lpd8.feature`
 - [Groovebox 8120 Record button records into a Pakettified instrument](#groovebox-8120-record-pakettified-instrument) — `groovebox-8120-record-pakettified-instrument.feature`
+- [Issue follow-up utilities](#issue-followup-utilities) — `issue-followup-utilities.feature`
 - [Master Low-Cut 200Hz punch toggle](#master-low-cut-200hz) — `master-low-cut-200hz.feature`
 - [Paketti × Claude MCP + probe bridges (Renoise ↔ Claude)](#mcp-claude-bridge) — `mcp-claude-bridge.feature`
 - [Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens)](#mlx-renoise-bridge) — `mlx-renoise-bridge.feature`
@@ -21,13 +23,16 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
 - [Pattern and song row jumps](#pattern-song-jumps) — `pattern-song-jumps.feature`
+- [Pattern transform shortcuts](#pattern-transform-shortcuts) — `pattern-transform-shortcuts.feature`
 - [Quick edit navigation commands](#quick-edit-navigation) — `quick-edit-navigation.feature`
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
 - [Sample slice selection range](#sample-slice-selection) — `sample-slice-selection.feature`
 - [Section loop switches trigger immediately](#section-loop-immediate-switch) — `section-loop-immediate-switch.feature`
+- [Section loop and MIDI capture](#section-loop-midi-capture) — `section-loop-midi-capture.feature`
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
 - [Subcolumn-only pattern inversion](#subcolumn-only-invert) — `subcolumn-only-invert.feature`
+- [TX16W IMG exports use Cyclone-compatible item identity](#tx16w-cyclone-images) — `tx16w-cyclone-images.feature`
 
 
 <a id="TEMPLATE"></a>
@@ -82,6 +87,23 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiDeviceBypass`, `PakettiRecordDeviceBypassAutomation`, `PakettiWriteDeviceBypassPatternCommand`, `PakettiWriteDeviceBypassGraphicalAutomation` · **Source files:** `PakettiRequests.lua`
 
 **Grade:** @built ×3 · @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+
+
+<a id="eq10-keyboard-controls"></a>
+## EQ10 keyboard controls
+
+`features/eq10-keyboard-controls.feature` · [session](eq10-keyboard-controls.session.md)
+
+**What it does:** As a Paketti user, I want quick keyboard control of EQ10 bands, So that I can shape gains without reaching for each GUI control.
+
+**Behaviour (2 scenarios):**
+
+- Shift-number shortcuts raise individual EQ10 bands — `@shipped @code-verified @runtime-untested`
+- Shift-QWERTY shortcuts lower individual EQ10 bands — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `adjust_eq10_band_gain`, `pakettiEQ10XYDialog` · **Source files:** `PakettiExperimental_Verify.lua`
+
+**Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2
 
 
 <a id="execute-command-slots"></a>
@@ -179,6 +201,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Second Record press injects the sample into the Paketti chassis — `@built`
 
 **Grade:** @built ×2
+
+
+<a id="issue-followup-utilities"></a>
+## Issue follow-up utilities
+
+`features/issue-followup-utilities.feature` · [session](issue-followup-utilities.session.md)
+
+**What it does:** As a Paketti user, I want small workflow gaps closed, So that delay editing, automation editing, menu visibility, and eSpeak batch output behave predictably.
+
+**Behaviour (4 scenarios):**
+
+- Phrase delay nudging makes delay columns visible — `@shipped @code-verified @runtime-untested`
+- Reverse selected automation — `@shipped @code-verified @runtime-untested`
+- eSpeak can be hidden through Paketti Menu Config — `@shipped @code-verified @runtime-untested`
+- Generate one eSpeak output per text line — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiPhraseEditorNudgeWithDelay`, `PakettiPhraseEditorNudgeByDelay`, `PakettiAutomationCurvesReverseSelection`, `PakettieSpeakGenerateLines` · **Source files:** `PakettiPhraseEditor.lua`, `PakettiAutomationCurves.lua`, `PakettiMenuConfig.lua`, `Paketti0G01_Loader.lua`, `PakettieSpeak.lua`
+
+**Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4
 
 
 <a id="master-low-cut-200hz"></a>
@@ -347,6 +388,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
 
 
+<a id="pattern-transform-shortcuts"></a>
+## Pattern transform shortcuts
+
+`features/pattern-transform-shortcuts.feature` · [session](pattern-transform-shortcuts.session.md)
+
+**What it does:** As a Paketti user, I want small Pattern Editor transforms exposed consistently, So that interpolation, timing expansion, and note transpose operations can be performed from menus, shortcuts, or MIDI without opening a custom workflow.
+
+**Behaviour (3 scenarios):**
+
+- Exponential interpolation is visible from the Pattern Editor menu — `@shipped @code-verified @runtime-untested`
+- Expand the current pattern from LPB1-style spacing to LPB4-style spacing — `@shipped @code-verified @runtime-untested`
+- Transpose selected notes or the current row from shortcuts and MIDI — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `interpolate_current_subcolumn_exponential`, `PakettiExpandPatternLPB1ToLPB4`, `PakettiTransposeNotesInSelectionOrRow` · **Source files:** `PakettiRequests.lua`, `PakettiMenuConfig.lua`, `PakettiPatternEditor.lua`, `PakettiMidi.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3
+
+
 <a id="quick-edit-navigation"></a>
 ## Quick edit navigation commands
 
@@ -424,6 +483,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @built ×4 · @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
 
 
+<a id="section-loop-midi-capture"></a>
+## Section loop and MIDI capture
+
+`features/section-loop-midi-capture.feature` · [session](section-loop-midi-capture.session.md)
+
+**What it does:** As a live Paketti user, I want section loop actions to advance predictably and static MIDI values to be recordable, So that footswitches and controllers work without manual corrective steps.
+
+**Behaviour (3 scenarios):**
+
+- Schedule the current section and advance on repeated triggers — `@shipped @code-verified @runtime-untested`
+- Switch immediately between sections — `@shipped @code-verified @runtime-untested`
+- Capture a static selected-device parameter value — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `tknaAddLoopAndScheduleSection`, `tknaSetSectionLoopAndSwitchImmediately`, `MidiSelectedAutomationParameter`, `PakettiCaptureSelectedDeviceAutomationParameter` · **Source files:** `PakettiTkna.lua`, `PakettiMidi.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3
+
+
 <a id="selection-reversed-instrument"></a>
 ## Reverse-duplicate instrument for pattern selections
 
@@ -475,6 +552,29 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `invert_content_subcolumn` · **Source files:** `PakettiRequests.lua`, `PakettiMenuConfig.lua`
 
 **Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+
+
+<a id="tx16w-cyclone-images"></a>
+## TX16W IMG exports use Cyclone-compatible item identity
+
+`features/tx16w-cyclone-images.feature` · [session](tx16w-cyclone-images.session.md)
+
+**What it does:** As a Paketti user, I want exported Yamaha TX16W IMG disks to present the same disk and item identity as known-good Cyclone images, So that Typhoon/Cyclone sees the disk contents as loadable Typhoon items.
+
+**Behaviour (8 scenarios):**
+
+- Exported IMG uses the Typhoon/Cyclone short BPB identity — `@shipped @built @code-verified @runtime-verified`
+- Exported Typhoon items use the observed creator signature — `@shipped @built @code-verified @runtime-verified`
+- Exported Typhoon item ids avoid arbitrary hash values — `@shipped @built @code-verified @runtime-verified`
+- Exported IMG keeps the known-good 720K floppy geometry — `@shipped @built @code-verified @runtime-verified`
+- File placement and root-directory labels still use the existing FAT writer — `@stock`
+- Cyclone loads a VInf-fixed Paketti-exported disk through Typhoon Load* — `@shipped @runtime-verified`
+- RX2 break slices export as an audible Cyclone proof image — `@shipped @built @runtime-verified`
+- Drum-pad exports keep slice pitch fixed while trigger keys advance — `@shipped @built @code-verified @runtime-verified`
+
+**How it does it:** **Key procs:** `PakettiTyphoonBuildDiskImage`, `PakettiTyphoonNewStamp`, `PakettiTyphoonNewWaveId`, `typhoon_export_wave_root` · **Source files:** `PakettiTyphoon.lua`, `PakettiRX2Decode.lua`
+
+**Grade:** @built ×6 · @code-verified ×5 · @runtime-verified ×7 · @shipped ×7 · @stock ×1
 
 
 ---

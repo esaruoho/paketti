@@ -669,6 +669,65 @@ function PakettiAutomationCurvesProcessPoints(process_func)
   automation.points = new_points
 end
 
+-- Reverse automation point order inside the current automation selection.
+-- Points outside the selection retain their original times and values.
+-- REPORT-CARD >> features/issue-followup-utilities.feature
+function PakettiAutomationCurvesReverseSelection()
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local parameter = song.selected_automation_parameter
+  local pattern_track = song.selected_pattern_track
+  if not pattern or not parameter or not pattern_track then
+    renoise.app():show_status("No automation parameter selected")
+    return
+  end
+  local automation = pattern_track:find_automation(parameter)
+  if not automation then
+    renoise.app():show_status("No automation envelope found for the selected parameter")
+    return
+  end
+
+  local selection = automation.selection_range
+  local start_line = selection and selection[1] or 1
+  local end_line = selection and selection[2] or (pattern.number_of_lines + 1)
+  if start_line == end_line then
+    renoise.app():show_status("Automation selection is empty")
+    return
+  end
+
+  local selected_points = {}
+  local other_points = {}
+  for _, point in ipairs(automation.points) do
+    if point.time >= start_line and point.time <= end_line then
+      selected_points[#selected_points + 1] = point
+    else
+      other_points[#other_points + 1] = point
+    end
+  end
+
+  if #selected_points < 2 then
+    renoise.app():show_status("Need at least two automation points to reverse")
+    return
+  end
+
+  local reversed_points = {}
+  for _, point in ipairs(selected_points) do
+    reversed_points[#reversed_points + 1] = {
+      time = start_line + end_line - point.time,
+      value = point.value,
+      scaling = point.scaling
+    }
+  end
+  for _, point in ipairs(other_points) do
+    reversed_points[#reversed_points + 1] = point
+  end
+  table.sort(reversed_points, function(a, b) return a.time < b.time end)
+
+  song:describe_undo("Paketti: Reverse Selected Automation")
+  automation.points = reversed_points
+  renoise.app():show_status(string.format("Reversed %d automation points", #selected_points))
+end
+
 function PakettiAutomationCurvesFadeIn()
   local rs = renoise.song()
   rs:describe_undo("Paketti: Automation Fade In")
@@ -1896,6 +1955,11 @@ renoise.tool():add_keybinding{
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Automation Curves Quantize",
   invoke = function() PakettiAutomationCurvesQuantize(0.125) end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Reverse Selected Automation",
+  invoke = PakettiAutomationCurvesReverseSelection
 }
 
 ------------------------------------------------------------------------

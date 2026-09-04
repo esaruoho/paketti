@@ -51,6 +51,26 @@ end
 -- Global dialog reference for EQ10 XY toggle behavior
 local dialog = nil
 
+-- REPORT-CARD >> features/eq10-keyboard-controls.feature
+local function adjust_eq10_band_gain(device, band_index, amount)
+  local parameter = device and device.parameters[band_index]
+  if not parameter then
+    return false
+  end
+
+  parameter.value = math.max(parameter.value_min, math.min(parameter.value_max, parameter.value + amount))
+  renoise.app():show_status(string.format("EQ10 band %d gain: %.1f dB", band_index, parameter.value))
+  return true
+end
+
+local function eq10_shortcut_band(key_name, key_row)
+  local band = key_row[key_name]
+  if band then
+    return band
+  end
+  return nil
+end
+
 -- Function to create the EQ10 dialog
 function pakettiEQ10XYDialog()
   -- Check if dialog is already open and close it
@@ -118,10 +138,32 @@ function pakettiEQ10XYDialog()
   end
   
   content:add_child(row_content)
-  local keyhandler = create_keyhandler_for_dialog(
+  local gain_up = {
+    ["1"] = 1, ["2"] = 2, ["3"] = 3, ["4"] = 4, ["5"] = 5,
+    ["6"] = 6, ["7"] = 7, ["8"] = 8, ["9"] = 9, ["0"] = 10
+  }
+  local gain_down = {
+    q = 1, w = 2, e = 3, r = 4, t = 5,
+    y = 6, u = 7, i = 8, o = 9, p = 10
+  }
+  local fallback_keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
   )
+  local keyhandler = function(dialog_ref, key)
+    if key.modifiers == "shift" then
+      local up_band = eq10_shortcut_band(key.name, gain_up)
+      local down_band = eq10_shortcut_band(key.name, gain_down)
+      if up_band then
+        adjust_eq10_band_gain(eq10_device, up_band, 1)
+        return
+      elseif down_band then
+        adjust_eq10_band_gain(eq10_device, down_band, -1)
+        return
+      end
+    end
+    return fallback_keyhandler(dialog_ref, key)
+  end
   dialog = renoise.app():show_custom_dialog("EQ10 XY Control",content,keyhandler)
 end
 

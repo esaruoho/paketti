@@ -744,7 +744,23 @@ local eSpeakselection=   vb:row{
       }
     }
 
-local settingsControls=      vb:row{
+ local eSpeakGenerateLines = vb:horizontal_aligner{
+      mode = "center",
+      vb:button{
+        text="Generate Instruments per Line",
+        width=button_width,
+        height=24,
+        notifier=function() PakettieSpeakGenerateLines("instruments") end
+      },
+      vb:button{
+        text="Generate Drum Kit per Line",
+        width=button_width,
+        height=24,
+        notifier=function() PakettieSpeakGenerateLines("drumkit") end
+      }
+    }
+
+ local settingsControls=      vb:row{
         vb:text{text="Language:",width=80},
         vb:popup{
           id = "PakettieSpeak_language",
@@ -1091,6 +1107,7 @@ local lastbuttons=    vb:horizontal_aligner{
     start_pos,
     eSpeakselection,
     eSpeakGenerateSelection,
+    eSpeakGenerateLines,
     settingsColumn,
     clearallsamples,
     addrendertocurrentinstrument,
@@ -1457,6 +1474,86 @@ function PakettieSpeakCreateSample(custom_text)
   process:start()
 end
 
+-- Render every non-empty text line sequentially, keeping eSpeak jobs serialized.
+-- In drum-kit mode, each line becomes a one-key sample in a single instrument.
+-- REPORT-CARD >> features/issue-followup-utilities.feature
+function PakettieSpeakGenerateLines(mode)
+  local text = vb.views.PakettieSpeak_text_field and vb.views.PakettieSpeak_text_field.text or eSpeak.text.value
+  local lines = PakettieSpeakGetLines(text)
+  local render_lines = {}
+  for _, line in ipairs(lines) do
+    if line and line:match("%S") then render_lines[#render_lines + 1] = line end
+  end
+  if #render_lines == 0 then
+    renoise.app():show_status("No non-empty text lines to render")
+    return
+  end
+
+  local is_drumkit = mode == "drumkit"
+  local slicer
+  local progress_dialog
+  local progress_vb
+  slicer = ProcessSlicer(function()
+    local song = renoise.song()
+    local target_instrument
+    if is_drumkit then
+      if not safeInsertInstrumentAt(song, #song.instruments + 1) then error("Could not create eSpeak drum kit") end
+      song.selected_instrument_index = #song.instruments
+      target_instrument = song.selected_instrument
+      target_instrument.name = "eSpeak Drum Kit"
+    end
+
+    local executable = PakettieSpeakRevertPath(eSpeak.executable)
+    local function shell_quote(value)
+      return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
+    end
+
+    for line_index, line in ipairs(render_lines) do
+      if slicer:was_cancelled() then return end
+      if progress_dialog and progress_dialog.visible then
+        progress_vb.views.progress_text.text = string.format("Rendering line %d/%d...", line_index, #render_lines)
+      end
+
+      local path = pakettiGetTempFilePath(".wav")
+      local command = shell_quote(executable)
+      command = command .. " -a " .. eSpeak.amplitude.value
+      command = command .. " -v " .. LANGUAGE_SHORTS[eSpeak.language.value]
+      if eSpeak.voice.value ~= 1 then command = command .. "+" .. VOICES[eSpeak.voice.value] end
+      command = command .. " -b 1 -m -p " .. eSpeak.pitch.value
+      command = command .. " -s " .. eSpeak.speed.value .. " -g " .. eSpeak.word_gap.value
+      command = command .. " -k " .. eSpeak.capitals.value
+      command = command .. " -w " .. shell_quote(path) .. " " .. shell_quote(line)
+      local exit_code = os.execute(command)
+      if exit_code ~= 0 and exit_code ~= true then error("eSpeak failed on line " .. tostring(line_index)) end
+      if not PakettieSpeakFileExists(path) then error("eSpeak produced no WAV for line " .. tostring(line_index)) end
+      coroutine.yield()
+
+      local instrument = target_instrument
+      if not is_drumkit then
+        if not safeInsertInstrumentAt(song, #song.instruments + 1) then error("Could not create instrument") end
+        song.selected_instrument_index = #song.instruments
+        instrument = song.selected_instrument
+        instrument.name = string.format("eSpeak %02d", line_index)
+      end
+      local sample = instrument:insert_sample_at(#instrument.samples + 1)
+      sample.name = string.format("eSpeak %02d", line_index)
+      song.selected_sample_index = #instrument.samples
+      if not sample.sample_buffer:load_from(path) then error("Could not load generated WAV") end
+      if is_drumkit then
+        local note = math.min(119, 36 + line_index - 1)
+        sample.sample_mapping.base_note = note
+        sample.sample_mapping.note_range = {note, note}
+        sample.sample_mapping.velocity_range = {0, 127}
+      end
+      os.remove(path)
+      coroutine.yield()
+    end
+    renoise.app():show_status(string.format("Generated %d eSpeak %s", #render_lines, is_drumkit and "drum-kit samples" or "instruments"))
+  end)
+  progress_dialog, progress_vb = slicer:create_dialog(is_drumkit and "Generating eSpeak Drum Kit" or "Generating eSpeak Instruments")
+  slicer:start()
+end
+
 -- Check if file exists
 function PakettieSpeakFileExists(path)
   -- Handle userdata (observable) objects
@@ -1659,4 +1756,3 @@ function txt_loadfile(filename)
 end
 
 -- NOTE: TXT file import hook registration moved to PakettiImport.lua for centralized management
-

@@ -1664,6 +1664,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Paketti Switch bet
 renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Paketti Jump to Column (Next) (Note/FX)",invoke=function() cycle_column("next") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Navigation:Paketti Jump to Column (Previous) (Note/FX)",invoke=function() cycle_column("prev") end}
 
+-- REPORT-CARD >> features/pattern-transform-shortcuts.feature
 -- Pattern Resizer by dblue. some minor modifications.
 function resize_pattern(pattern, new_length, patternresize)
   
@@ -1894,6 +1895,28 @@ resize_pattern(pattern, pattern.number_of_lines * 0.5,1 ) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Pattern Expand + Resize (dBlue)",invoke=function()
 local pattern = renoise.song().selected_pattern
 resize_pattern(pattern, pattern.number_of_lines * 2,1) end}
+
+function PakettiExpandPatternLPB1ToLPB4()
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local old_length = pattern.number_of_lines
+  local new_length = old_length * 4
+
+  if new_length > 512 then
+    renoise.app():show_status("Cannot expand pattern by 4x: target length would exceed 512 rows")
+    return
+  end
+
+  song:describe_undo("Expand pattern to LPB4")
+  resize_pattern(pattern, new_length, 1)
+  song.transport.lpb = 4
+  song.selected_line_index = math.min(song.selected_line_index * 4 - 3, pattern.number_of_lines)
+  renoise.app():show_status(string.format("Expanded pattern %d -> %d rows and set LPB to 4", old_length, pattern.number_of_lines))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Pattern Expand LPB1 16 Rows to LPB4 64 Rows",invoke=PakettiExpandPatternLPB1ToLPB4}
+renoise.tool():add_keybinding{name="Global:Paketti:Pattern Expand LPB1 16 Rows to LPB4 64 Rows",invoke=PakettiExpandPatternLPB1ToLPB4}
+renoise.tool():add_midi_mapping{name="Paketti:Pattern Expand LPB1 16 Rows to LPB4 64 Rows",invoke=function(message) if message:is_trigger() then PakettiExpandPatternLPB1ToLPB4() end end}
 -------------------
 function bend(amount)
   local counter = nil 

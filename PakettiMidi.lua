@@ -1892,59 +1892,92 @@ end
 ---------
 local previous_value = nil
 
-function transpose_notes_by_midi_knob(message)
+-- REPORT-CARD >> features/pattern-transform-shortcuts.feature
+function PakettiTransposeNotesInSelectionOrRow(transpose_amount)
   local song=renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local notes_changed = 0
 
-  -- Extract the MIDI value from the message
-  local value = message.int_value
-
-  -- Determine the change in MIDI value
-  local change = 0
-  if previous_value then
-    change = value - previous_value
-  end
-  previous_value = value
-
-  -- No change detected, return
-  if change == 0 then
-    return
-  end
-
-  -- Determine the direction of transpose
-  local transpose_amount = 0
-  if change > 0 then
-    transpose_amount = 1
-  elseif change < 0 then
-    transpose_amount = -1
-  end
-
-  -- Transpose the notes based on the selection or the selected note column
   if song.selection_in_pattern then
     local selection = song.selection_in_pattern
     for track_idx = selection.start_track, selection.end_track do
+      local track = song.tracks[track_idx]
+      if track and track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local visible_note_columns = track.visible_note_columns
+        local start_column = 1
+        local end_column = visible_note_columns
+
+        if track_idx == selection.start_track then
+          start_column = math.max(start_column, selection.start_column)
+        end
+        if track_idx == selection.end_track then
+          end_column = math.min(end_column, selection.end_column)
+        end
+
       for line_idx = selection.start_line, selection.end_line do
-        local line = song:pattern(song.selected_pattern_index):track(track_idx):line(line_idx)
-        for col_idx = selection.start_column, selection.end_column do
+          local line = pattern:track(track_idx):line(line_idx)
+          for col_idx = start_column, end_column do
           local note_col = line:note_column(col_idx)
-          if note_col and not note_col.is_empty then
+            if note_col and not note_col.is_empty and note_col.note_value < 120 then
             note_col.note_value = math.max(0, math.min(note_col.note_value + transpose_amount, 119))
+              notes_changed = notes_changed + 1
+            end
           end
         end
       end
     end
   else
+    if song.selected_note_column_index == 0 then
+      renoise.app():show_status("No note column selected for transpose")
+      return
+    end
+
     local line = song.selected_line
     local note_col = line:note_column(song.selected_note_column_index)
     if note_col and not note_col.is_empty and note_col.note_value < 120 then
       note_col.note_value = math.max(0, math.min(note_col.note_value + transpose_amount, 119))
+      notes_changed = 1
     end
   end
 
-  -- Ensure focus returns to the pattern editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app():show_status(string.format("Transposed %d note(s) by %+d", notes_changed, transpose_amount))
+end
+
+function transpose_notes_by_midi_knob(message)
+  local transpose_amount = 0
+
+  if message:is_rel_value() then
+    if message.int_value > 0 then
+      transpose_amount = 1
+    elseif message.int_value < 0 then
+      transpose_amount = -1
+    end
+  else
+    local value = message.int_value
+    if previous_value then
+      local change = value - previous_value
+      if change > 0 then
+        transpose_amount = 1
+      elseif change < 0 then
+        transpose_amount = -1
+      end
+    end
+    previous_value = value
+  end
+
+  if transpose_amount ~= 0 then
+    PakettiTransposeNotesInSelectionOrRow(transpose_amount)
+  end
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Transpose Notes in Selection/Row x[Knob]",invoke=transpose_notes_by_midi_knob}
+renoise.tool():add_midi_mapping{name="Paketti:Transpose Notes in Selection/Row Up (+1)",invoke=function(message) if message:is_trigger() then PakettiTransposeNotesInSelectionOrRow(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Transpose Notes in Selection/Row Down (-1)",invoke=function(message) if message:is_trigger() then PakettiTransposeNotesInSelectionOrRow(-1) end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Transpose Notes in Selection/Row Up (+1)",invoke=function() PakettiTransposeNotesInSelectionOrRow(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Transpose Notes in Selection/Row Down (-1)",invoke=function() PakettiTransposeNotesInSelectionOrRow(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Transpose Notes in Selection/Row Up (+1)",invoke=function() PakettiTransposeNotesInSelectionOrRow(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Transpose Notes in Selection/Row Down (-1)",invoke=function() PakettiTransposeNotesInSelectionOrRow(-1) end}
 -----------------
 renoise.tool():add_midi_mapping{name="Paketti:Change Selected Instrument (Next) x[Knob]",
 invoke=function(message) if message:is_trigger() then
@@ -2042,6 +2075,36 @@ function MidiSelectedAutomationParameter(number, message)
   end
 end
 
+-- Capture the selected device parameter's existing value without requiring a
+-- MIDI movement event. This is useful when a controller is already sitting at
+-- the desired value and the automation lane needs an initial point.
+-- REPORT-CARD >> features/section-loop-midi-capture.feature
+function PakettiCaptureSelectedDeviceAutomationParameter(number)
+  local song = renoise.song()
+  local selected_device = song.selected_device
+  local parameter = selected_device and selected_device.parameters[number]
+  if not parameter then
+    renoise.app():show_status("No selected device parameter at index " .. tostring(number))
+    return
+  end
+  if not parameter.is_automatable then
+    renoise.app():show_status("Selected parameter is not automatable")
+    return
+  end
+
+  local track = song:pattern(song.selected_pattern_index):track(song.selected_track_index)
+  local envelope = track:find_automation(parameter)
+  if not envelope then envelope = track:create_automation(parameter) end
+
+  local line_to_write = song.selected_line_index
+  if song.transport.playing and song.transport.follow_player then
+    line_to_write = song.transport.playback_pos.line
+  end
+  envelope:add_point_at(line_to_write, parameter.value)
+  renoise.app():show_status(string.format(
+    "Captured %s at line %d (%.3f)", parameter.name, line_to_write, parameter.value))
+end
+
 -- Generate MIDI mappings for automation parameters 001-128
 for i = 1, 128 do
   renoise.tool():add_midi_mapping{name=string.format("Paketti:Selected Device Automation Parameter %03d", i),
@@ -2050,6 +2113,11 @@ for i = 1, 128 do
       local normalized_message = message.int_value / 127
       -- Change device parameter or record to automation based on the logic
       MidiSelectedAutomationParameter(i, normalized_message)
+    end
+  }
+  renoise.tool():add_midi_mapping{name=string.format("Paketti:Capture Selected Device Automation Parameter %03d", i),
+    invoke=function(message)
+      if message:is_trigger() then PakettiCaptureSelectedDeviceAutomationParameter(i) end
     end
   }
 end

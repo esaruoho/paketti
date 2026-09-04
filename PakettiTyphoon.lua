@@ -67,27 +67,28 @@ end
 -- does not matter - only that waves and the voice referencing them agree.
 
 local id_counter = 0
+local PAKETTI_TYPHOON_CREATOR_STAMP = "\180\168\248\040\168\198\209\134"
 
 function PakettiTyphoonNewStamp()
-  local t = os.time()
-  local parts = {}
-  for i = 1, 12 do
-    parts[i] = string.char((floor(t / 2 ^ ((i - 1) % 24)) + i * 37 + 91) % 256)
-  end
-  return table.concat(parts)
+  local t = os.time() % 65536
+  local hi = floor(t / 256)
+  local lo = t % 256
+  return PAKETTI_TYPHOON_CREATOR_STAMP .. string.char(248, 234, hi, lo)
 end
 
 function PakettiTyphoonNewWaveId(stamp, name, seed)
-  -- A stable, well-spread 4 bytes. Uniqueness within one kit is what matters,
-  -- and the name plus a counter guarantees that.
+  -- Typhoon/Cyclone object identity is not an arbitrary hash. Known-good
+  -- Cyclone images use a fixed 8-byte creator signature in the stamp, and item
+  -- ids sit near the stamp's trailing 4-byte setup id in a descending sequence.
+  -- Low/random ids can be rejected as "Item requires another OS version".
   id_counter = id_counter + 1
-  local h = 2166136261
-  local s = tostring(name) .. "/" .. tostring(seed or id_counter) .. "/" .. tostring(stamp)
-  for i = 1, #s do
-    h = (h + s:byte(i) * 16777619) % 4294967296
-    h = (h * 31 + 7) % 4294967296
+  local base = 0xC8C8C8C8
+  if type(stamp) == "string" and #stamp >= 12 then
+    base = 0
+    for i = 9, 12 do base = base * 256 + stamp:byte(i) end
   end
-  return be(h, 32)
+  local id = (base - id_counter * 0x01010101) % 4294967296
+  return be(id, 32)
 end
 
 -- The APPL chunk a Typhoon wave carries, tying a .C01 to its id.
@@ -736,6 +737,7 @@ end
 -- files: array of { name = "KICK.C01", data = <string> }
 -- Returns the raw 737280-byte image.
 function PakettiTyphoonBuildDiskImage(files, label, yield_every)
+  -- REPORT-CARD >> features/tx16w-cyclone-images.feature
   local total_clusters = 0
   for _, f in ipairs(files) do
     total_clusters = total_clusters + math.max(1, math.ceil(#f.data / PAKETTI_TYPHOON_CLUSTER))
@@ -750,18 +752,17 @@ function PakettiTyphoonBuildDiskImage(files, label, yield_every)
       entries_needed, PAKETTI_TYPHOON_ROOT_ENTRIES))
   end
 
-  -- Boot sector with the 720K BIOS parameter block.
-  local vol_id = math.random(0, 65535) * 65536 + math.random(0, 65535)
-  local boot = "\235\060\144" .. "PAKETTI "                     -- jump + OEM name
+  -- Boot sector with the 720K BIOS parameter block. Real Typhoon/Cyclone
+  -- images use the short DOS 3.x BPB shape and OEM id "Y LM T8W"; do the same
+  -- instead of writing an extended BPB, because Typhoon may key off that header
+  -- before it ever walks the FAT.
+  local boot = "\235\040\144" .. "Y LM T8W"                     -- jump + OEM name
     .. le(PAKETTI_TYPHOON_SECTOR, 16) .. string.char(2)         -- bytes/sector, sectors/cluster
     .. le(PAKETTI_TYPHOON_RESERVED, 16) .. string.char(PAKETTI_TYPHOON_FATS)
     .. le(PAKETTI_TYPHOON_ROOT_ENTRIES, 16) .. le(PAKETTI_TYPHOON_SECTORS, 16)
     .. string.char(249)                                         -- media descriptor 0xF9 = 720K
     .. le(PAKETTI_TYPHOON_FAT_SECTORS, 16) .. le(9, 16) .. le(2, 16)
     .. le(0, 32) .. le(0, 32)                                   -- hidden, large total
-    .. string.char(0, 0, 41) .. le(vol_id, 32)
-    .. dos_name_field((label or "TYPHOON") .. " "):sub(1, 11)
-    .. "FAT12   "
   boot = boot .. string.rep("\0", 510 - #boot) .. "\085\170"
 
   -- Allocate clusters and build the FAT.
@@ -991,6 +992,23 @@ end
 
 local typhoon_slicer = nil
 
+local function typhoon_export_wave_notes(smp, opts, key)
+  local map = smp and smp.sample_mapping
+  if not map then
+    local root = math.max(0, math.min(119, (opts.base_key or key or 60) - 12))
+    return root, 0, 127
+  end
+  local range = map.note_range or {0, 119}
+  local single_key = range[1] and range[2] and range[1] == range[2]
+  if (not opts.use_mapping) or single_key or map.map_key_to_pitch == false then
+    local root = math.max(0, math.min(119, (opts.base_key or key or map.base_note or 60) - 12))
+    return root, 0, 127
+  end
+  return math.max(0, math.min(119, map.base_note or key or 60)),
+         math.max(0, math.min(127, range[1] or 0)),
+         math.max(0, math.min(127, range[2] or 127))
+end
+
 -- Turns the selected instrument into a .O01 voice plus one .C01 per sample,
 -- then lays them out on as many 720K disk images as they need.
 -- Encodes one instrument into its .C01 waves plus the group list a voice is
@@ -1034,6 +1052,12 @@ local function encode_instrument(instrument, opts, stamp, used, progress, cancel
     local dosname = PakettiDWVWDosName(basename, used)
     local waveid = PakettiTyphoonNewWaveId(stamp, dosname, n)
 
+    -- One sample per key. Renoise's own mapping is used when it is distinct,
+    -- otherwise the samples are laid out in order from the base key.
+    local key = opts.base_key + n - 1
+    if opts.use_mapping then key = smp.sample_mapping.note_range[1] end
+    key = math.max(0, math.min(127, key))
+
     local channels, frames, nch = PakettiDWVWBufferToChannels(
       buffer, rate, opts.force_mono, opts.wordsize, 8192,
       PakettiDWVWLoopLimit(smp, buffer))
@@ -1041,16 +1065,13 @@ local function encode_instrument(instrument, opts, stamp, used, progress, cancel
     total_points = total_points + frames * nch
 
     local meta = PakettiDWVWSampleMeta(smp, buffer, frames)
+    meta.base_note, meta.low_note, meta.high_note = typhoon_export_wave_notes(smp, opts, key)
     meta.appl = PakettiTyphoonWaveAppl(stamp, waveid)
     local data = PakettiDWVWBuildFile(channels, frames, rate, opts.wordsize, 8192, meta)
 
     files[#files + 1] = { name = dosname, data = data }
-    -- One sample per key. Renoise's own mapping is used when it is distinct,
-    -- otherwise the samples are laid out in order from the base key.
-    local key = opts.base_key + n - 1
-    if opts.use_mapping then key = smp.sample_mapping.note_range[1] end
     local vr = smp.sample_mapping.velocity_range
-    splits[#splits + 1] = { key = math.max(0, math.min(127, key)),
+    splits[#splits + 1] = { key = key,
                             name = dosname:match("^[^%.]+"), id = waveid,
                             file = dosname,
                             low_vel = vr[1], high_vel = vr[2],

@@ -69,27 +69,30 @@ If the machine is running the **stock Yamaha OS** rather than Typhoon, no
 Paketti disk will ever read: the Yamaha OS wants MSX-DOS, not DOS FAT12.
 Typhoon is a prerequisite, not an option.
 
-### What tells the two kinds of disk apart
+### Cyclone-compatible data-disk boot sector
 
-Measured against the real `TYPHOON 2000.IMA` from the NuEdge distribution:
+Measured against Sonic Charge's known-good Cyclone data images `PROPHET5.img`
+and `SYMPHONI.img`:
 
-| Boot sector field | Typhoon system disk | A Paketti data disk |
+| Boot sector field | Typhoon/Cyclone-compatible disk | A Paketti data disk |
 |---|---|---|
-| OEM ID (offset 3) | `Y LM T8W` | `PAKETTI ` |
-| Extended boot signature (38) | `0x00` — short DOS 3.x BPB | `0x29` — extended BPB |
-| Volume label / FS type in boot sector | absent (that space is boot code) | `FAT12` + the label |
-| Boot code (62–509) | 360 bytes of x86 | all zero |
-| `0x55AA` at 510 | **absent** | present |
-| File attributes | `0x01` read-only, `0x05` for `.SYS` | `0x20` archive |
+| OEM ID (offset 3) | `Y LM T8W` | `Y LM T8W` |
+| Extended boot signature (38) | `0x00` — short DOS 3.x BPB | `0x00` — short DOS 3.x BPB |
+| Volume label / FS type in boot sector | absent (that space is boot code or zero padding) | absent; the volume label lives in the root directory |
+| Boot code (62–509) | optional x86 message code | zero padding |
+| `0x55AA` at 510 | present on tested Cyclone images | present |
+| File attributes | `0x20` archive on tested Cyclone data disks | `0x20` archive |
 
-The system disk's x86 boot code is only for PCs — run on one it prints "This is
-a TX16W diskette / Insert a DOS diskette and press any key". So the TX16W's own
-loader does not execute it, and the OEM ID is the only plausible thing it keys
-off. That is measured, not confirmed: no TX16W has been available to test it.
+The x86 boot code on tested Cyclone data images is only for PCs — run on one it
+prints "This is a TX16W diskette / Insert a DOS diskette and press any key".
+The TX16W's own loader does not execute it, so Paketti keeps the compatible
+short BPB and OEM ID but leaves the boot-code area zero-filled. That is
+measured, not confirmed on hardware: no TX16W has been available to test it.
 
 ### What has actually been verified about the images
 
-Three exported images (`TR808_FACTORY_DISK1`, `BIG_DR_DISK1`, `BIG_DR_DISK2`):
+Three earlier exported images (`TR808_FACTORY_DISK1`, `BIG_DR_DISK1`,
+`BIG_DR_DISK2`) were verified before the boot-sector compatibility change:
 
 - `fsck_msdos` passes clean on all three, as it does on the real Typhoon disk.
 - All three mount natively on macOS with no repair prompt.
@@ -136,6 +139,19 @@ Grop  ..   one per group
     Parm  2    first key of the split; absent on the first split
     Wave  20   reference chunk
 ```
+
+Known-good Cyclone images (`PROPHET5.img`, `SYMPHONI.img`) share the same first
+8 bytes in every `VInf` stamp:
+
+```
+b4 a8 f8 28 a8 c6 d1 86
+```
+
+The remaining 4 bytes of the stamp vary per disk/set, and every item id is a
+nearby ordered 4-byte value. A Paketti export that used an arbitrary synthetic
+12-byte stamp and hashed item ids reached Cyclone/Typhoon but was rejected with
+"Item requires another OS version", so Paketti now writes the observed creator
+signature and Typhoon-like descending ids.
 
 ### `.P##` performance — `FORM TYPP`
 
@@ -327,6 +343,17 @@ filenames may not. Typhoon 2000 displays spaces as underscores.
 velocity range, and either a single wave or a run of splits. Splits are defined
 by their *first key* only — consecutive, and the first split has no split point.
 The largest split count in the surveyed corpus is 42.
+
+**Drum-pad pitch root.** For one-shot drumkit exports, the voice split key and the
+wave root must not both advance. The split key chooses which pad triggers which
+wave; the `.C01` wave's AIFF `INST` base note must stay fixed and calibrated.
+The broken RX2 proof wrote wave roots `36..59` for pads C-2 upward, and Cyclone
+played later pads chromatically higher. The first correction kept every wave
+root at `36`, which removed the chromatic lift but left the whole kit sounding
+an octave low in Cyclone. The current correction writes drum-pad wave roots one
+octave below the pad base key (`24` for a C-2 kit) and leaves the voice split
+keys to step through the pads. Drum-pad `.C01` note bounds are widened to
+`0..127`, matching the wide bounds seen in known-good Cyclone wave files.
 
 ## Group parameters (`Parm`, 64 bytes) — bytes 0–3 decoded
 

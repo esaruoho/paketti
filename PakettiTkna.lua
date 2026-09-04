@@ -1979,6 +1979,7 @@ function tknaAddLoopAndScheduleSection()
   local current_sequence_index = song.selected_sequence_index
   local total_sequences = #sequencer.pattern_sequence
 
+  -- REPORT-CARD >> features/section-loop-midi-capture.feature
   -- Helper function to find all sections
   local function findSections()
     local sections = {}
@@ -2005,19 +2006,34 @@ function tknaAddLoopAndScheduleSection()
   local sections = findSections()
   local current_section_index, current_section_start, current_section_end = findSectionIndex(sections, current_sequence_index)
 
-  -- Set the loop and schedule sequence to the current section if it exists
-  if current_section_index then
-    -- Set loop sequence range
-    transport.loop_sequence_range = {current_section_start, current_section_end}
-    
-    -- Set scheduled sequence
-    transport:set_scheduled_sequence(current_section_start)
-
-    -- Show status message
-    renoise.app():show_status("Loop added to current section and scheduled to play from the first sequence.")
-  else
+  if not current_section_index then
     renoise.app():show_status("Current sequence is not inside any section.")
+    return
   end
+
+  local loop_range = transport.loop_sequence_range
+  local current_section_is_looping = loop_range and #loop_range == 2 and
+    loop_range[1] == current_section_start and loop_range[2] == current_section_end
+  local target_section_index = current_section_index
+  if current_section_is_looping then
+    target_section_index = current_section_index + 1
+    if target_section_index > #sections then
+      renoise.app():show_status("Already at last section")
+      return
+    end
+  else
+    target_section_index = current_section_index
+  end
+
+  local target_start = sections[target_section_index]
+  local target_end = (target_section_index < #sections) and
+    (sections[target_section_index + 1] - 1) or total_sequences
+  transport.loop_sequence_range = {target_start, target_end}
+  transport:add_scheduled_sequence(target_start)
+  song.selected_sequence_index = target_start
+  renoise.app():show_status(string.format(
+    "Section %d looped and sequence %d added to the schedule.",
+    target_section_index, target_start))
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Section Loop and Schedule Section",invoke=tknaAddLoopAndScheduleSection}

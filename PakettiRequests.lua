@@ -8656,6 +8656,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Interpolate Current Subcolumn Valu
 -- Exponential Interpolation (#531)
 -- Same as linear interpolation but uses t^2 curve (slow start, fast end)
 ---------------------------------------------------------------------------
+-- REPORT-CARD >> features/pattern-transform-shortcuts.feature
 
 function volume_interpolation_exponential()
   local song = renoise.song()

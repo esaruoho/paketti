@@ -15,6 +15,8 @@ Derived views — GENERATED, never hand-edit:
 | `2026-06-11-ui-fixes-and-menu-config.feature` | Groovebox 8120 Kit loader status column alignment | `2026-06-11-ui-fixes-and-menu-config.session.md` | `47e81a77` `bc06819a` `2a1bce7a` |
 | `device-hotswap-missing-to-actual.feature` | Device hotswap — missing plugins → actually-installed equivalents | — | `bc06819a` `2300b421` |
 | `device-toggle-automation.feature` | Device Control NN enable/disable/toggle records bypass automation | `device-toggle-automation.session.md` | worktree |
+| `eq10-keyboard-controls.feature` | Shift+number/QWERTY gain controls for the EQ10 dialog | `eq10-keyboard-controls.session.md` | worktree |
+| `issue-followup-utilities.feature` | Phrase delay visibility, automation reversal, eSpeak menu gating, and per-line output | `issue-followup-utilities.session.md` | worktree |
 | `execute-command-slots.feature` | 128 labeled os.execute command slots with shortcut, MIDI, and $s sample-range support | `execute-command-slots.session.md` | pending |
 | `groovebox-8120-default-instrument-slots.feature` | Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open | — | `bc06819a` `d045e817` |
 | `groovebox-8120-grid-controllers.feature` | Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8) | — | `bc06819a` `a3636675` `7d3dd71f` |
@@ -26,11 +28,14 @@ Derived views — GENERATED, never hand-edit:
 | `music-mouse.feature` | Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise | `music-mouse.session.md` | `37f054b1` `c3465c5d` `ab144dc2` |
 | `parameter-editor-mixer-and-config.feature` | Parameter Editor exposes on the Mixer the parameter you're modifying | `parameter-editor-mixer-and-config.session.md` | `bc06819a` `b4a43b27` `94e4c343` |
 | `pattern-song-jumps.feature` | Pattern fraction jumps and reversible last row-jump commands for pattern/song navigation | `pattern-song-jumps.session.md` | worktree |
+| `pattern-transform-shortcuts.feature` | Exponential interpolation menus, LPB1-to-LPB4 pattern expansion, and selection-or-row note transpose controls | `pattern-transform-shortcuts.session.md` | worktree |
 | `pattern-editor-example.feature` | Pattern Editor note manipulation | — | `bc06819a` `b953f2f4` |
 | `quick-edit-navigation.feature` | Repeated chunk selection, delay increment MIDI mappings, and triplet quantize | `quick-edit-navigation.session.md` | worktree |
 | `repeater-control.feature` | Repeater selected-track/master keybindings and MIDI controls | `repeater-control.session.md` | worktree |
 | `sample-slice-selection.feature` | Select the current sample slice's exact buffer range | `sample-slice-selection.session.md` | worktree |
+| `section-loop-midi-capture.feature` | Section loop scheduling/immediate switching and static MIDI automation capture | `section-loop-midi-capture.session.md` | worktree |
 | `selection-reversed-instrument.feature` | Reverse-duplicate selected instrument and retarget selected pattern notes to it | `selection-reversed-instrument.session.md` | worktree |
 | `section-loop-immediate-switch.feature` | Section-loop next/previous commands that switch immediately instead of scheduling | `section-loop-immediate-switch.session.md` | worktree |
 | `song-lifecycle-safety.feature` | Song-lifecycle safety for canvas dialogs and song observers | — | `bc06819a` `3d2cd863` `83526e80` |
 | `subcolumn-only-invert.feature` | Volume/panning/delay/sample-FX-only note subcolumn inversion | `subcolumn-only-invert.session.md` | worktree |
+| `tx16w-cyclone-images.feature` | TX16W IMG exports use Cyclone-compatible boot sectors | `tx16w-cyclone-images.session.md` | worktree |

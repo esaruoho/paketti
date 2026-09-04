@@ -1003,6 +1003,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     PatternSequencer = true,
     PhraseEditor = true,
     PakettiGadgets = true,
+    eSpeak = true,
     TrackDSPChain = true,
     TrackDSPDevice = true,
     DSPDeviceAutomation = true,
@@ -3626,6 +3627,7 @@ end
 -- the next Renoise restart (which the registration gate honors regardless).
 PakettiMenuConfigCategoryList = {
   {label = "Global Paketti Gadgets",              key = "PakettiGadgets"},
+  {label = "eSpeak",                              key = "eSpeak"},
   {label = "Track Automation",                    key = "Automation",             apply = "PakettiMenuApplyAutomationMenus"},
   {label = "Disk Browser Files",                  key = "DiskBrowserFiles",        apply = "PakettiMenuApplyDiskBrowserFilesMenus"},
   {label = "DSP Chain",                           key = "TrackDSPChain"},

@@ -1909,7 +1909,11 @@ function PakettiPhraseEditorNudgeWithDelay(direction)
     end
   end
   
+  -- REPORT-CARD >> features/issue-followup-utilities.feature
   phrase.delay_column_visible = true
+  if song.selected_track and song.selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    song.selected_track.delay_column_visible = true
+  end
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
   renoise.app():show_status("Nudge " .. direction .. " with delay applied in phrase.")
 end
@@ -2080,7 +2084,11 @@ function PakettiPhraseEditorNudgeByDelay(steps)
   local something_was_nudged = false
   local is_single_cell = (selection_info.start_line == selection_info.end_line)
   
+  -- REPORT-CARD >> features/issue-followup-utilities.feature
   phrase.delay_column_visible = true
+  if song.selected_track and song.selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    song.selected_track.delay_column_visible = true
+  end
   
   for _, col_idx in ipairs(selection_info.note_columns) do
     if steps > 0 then

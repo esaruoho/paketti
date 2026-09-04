@@ -19,6 +19,13 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:.WT:Import Wavetable
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:.WT:Export Wavetable...", invoke = paketti_export_wavetable}
 end
 
+if preferences.pakettiMenuConfig.eSpeak.value then
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:eSpeak:Paketti eSpeak Text-to-Speech Dialog...",invoke=function() pakettieSpeakDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:eSpeak:Generate Sample",invoke=function() PakettieSpeakCreateSample() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:eSpeak:Generate Instruments per Line",invoke=function() PakettieSpeakGenerateLines("instruments") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:eSpeak:Generate Drum Kit per Line",invoke=function() PakettieSpeakGenerateLines("drumkit") end}
+end
+
 if preferences.pakettiMenuConfig.InstrumentBox.value then
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Wavetable Control...", invoke = show_wavetable_dialog}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Import Wavetable...", invoke = paketti_import_wavetable}
@@ -54,6 +61,23 @@ if preferences.pakettiMenuConfig.Automation.value then
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Set All Automation Envelopes to Points", invoke=PakettiAutomationGlobalSetToPoints}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Lines", invoke=PakettiAutomationGlobalSetToLines}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Set All Automation Envelopes to Curves", invoke=PakettiAutomationGlobalSetToCurves}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Reverse Selected Automation", invoke=PakettiAutomationCurvesReverseSelection}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti:Capture Selected Device Parameter Value", invoke=function()
+  local song = renoise.song()
+  local selected_device = song.selected_device
+  local parameter = song.selected_automation_parameter
+  if not selected_device or not parameter then
+    renoise.app():show_status("Select a device and automation parameter first")
+    return
+  end
+  for index, candidate in ipairs(selected_device.parameters) do
+    if candidate == parameter then
+      PakettiCaptureSelectedDeviceAutomationParameter(index)
+      return
+    end
+  end
+  renoise.app():show_status("Selected automation parameter is not on the selected device")
+end}
 end
 
 if preferences.pakettiMenuConfig.PatternMatrix.value then
@@ -2800,6 +2824,8 @@ if preferences.pakettiMenuConfig.PatternEditor.value then
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Note Columns:Roll the Dice on Notes in Selection",invoke=function() randomize_notes_in_selection() end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Reverse Notes in Selection",invoke=PakettiReverseNotesInSelection}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Transpose Notes in Selection/Row Up (+1)",invoke=function() PakettiTransposeNotesInSelectionOrRow(1) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Transpose Notes in Selection/Row Down (-1)",invoke=function() PakettiTransposeNotesInSelectionOrRow(-1) end}
 
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
@@ -2895,7 +2921,14 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Rename Curre
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Interpolate Column Values (Delay)",invoke=function() delay_interpolation() end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Interpolate Column Values (Panning)",invoke=function() panning_interpolation() end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Interpolate Column Values (Sample FX)",invoke=function() samplefx_interpolation() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Interpolate Current Subcolumn Values Exponential",invoke=function() interpolate_current_subcolumn_exponential() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Interpolate Column Values Exponential (Volume)",invoke=function() volume_interpolation_exponential() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Interpolate Column Values Exponential (Delay)",invoke=function() delay_interpolation_exponential() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Interpolate Column Values Exponential (Panning)",invoke=function() panning_interpolation_exponential() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Interpolate Column Values Exponential (Sample FX)",invoke=function() samplefx_interpolation_exponential() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Interpolate Column Values Exponential (Effect Column)",invoke=function() effect_column_interpolation_exponential() end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Quantize Selection to Triplets",invoke=function() PakettiQuantizeSelectionToTriplets() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Pattern Expand LPB1 16 Rows to LPB4 64 Rows",invoke=function() PakettiExpandPatternLPB1ToLPB4() end}
 
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Double LPB",invoke=function() PakettiLPBDouble() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Halve LPB",invoke=function() PakettiLPBHalve() end}
