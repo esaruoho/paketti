@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-04 - Fix: Single Cycle Waveform Writer Re-reads Harmonics When You Return to an Instrument
+
+Switching the selected instrument under an open Single Cycle Waveform Writer now re-reads that instrument's own harmonic drawbar settings from its instrument and sample names. Setting harmonics on instrument 3, different harmonics on instrument 4, passing through an empty instrument 5 and coming back to 3 previously left the drawbars at zero; they now show instrument 3's harmonics again. In a Wavetable A&B instrument both slots are read, so sample slot 1 restores Wave A's drawbars and sample slot 2 restores Wave B's, and switching Edit A / Edit B shows the drawbars that actually built each wave. Menu entry, keybinding, and MIDI mapping names are unchanged.
+
 ### 2026-09-04 - Fix: Single Cycle Waveform Writer Harmonics No Longer Leak Between Instruments
 
 Harmonic drawbar state is now tied to the instrument it was drawn for. Previously, drawing harmonics on one instrument, closing the Single Cycle Waveform Writer, reopening it on a different instrument and dragging a drawbar pulled the first instrument's waveform and harmonics into the second one - the drawbar mode flag, the per-wave A/B drawbar memories and the captured fundamental all survived the dialog close. Closing the dialog now clears all of it, a fresh open starts from nothing and restores only the levels encoded in the newly selected instrument's own name, and harmonic generation re-captures its fundamental from the wave actually on the canvas if the state ever belongs to a different instrument or wave size. Menu entry, keybinding, and MIDI mapping names are unchanged.

@@ -7347,6 +7347,7 @@ local function update_dialog_on_selection_change()
       if PCMWriterSelectedInstrumentHasSampleData() then
         PCMWriterLoadCurrentSample({passive = true})
         pcm_context_instrument_index = new_instrument_index
+        PCMWriterAdoptHarmonicStateForSelection()
       else
         PCMWriterClearEditorBuffers()
         PCMWriterResetLivePickupTracking()
@@ -7480,6 +7481,7 @@ local function update_dialog_on_track_change()
         -- sample instruments it intentionally mirrors the sample into A and B.
         PCMWriterLoadCurrentSample({passive = true})
         pcm_context_instrument_index = song.selected_instrument_index
+        PCMWriterAdoptHarmonicStateForSelection()
       else
         PCMWriterClearEditorBuffers()
         PCMWriterResetLivePickupTracking()
@@ -7509,6 +7511,7 @@ local function update_dialog_on_track_change()
           live_pickup_sample = song.selected_sample
           live_pickup_sample_index = song.selected_sample_index
           PCMWriterLoadCurrentSample({passive = true})  -- 12st_WT path loads sample1->A and sample2->B
+          PCMWriterAdoptHarmonicStateForSelection()
         end
       end
     else
@@ -10125,8 +10128,14 @@ function PCMWriterShowPcmDialog()
   
   -- Try to restore harmonic levels from existing instrument/sample names (if in live pickup mode)
   if live_pickup_mode then
-    local restored = PCMWriterRestoreHarmonicLevels()
+    local restored
+    if PCMWriterDetect12stWTSetup() then
+      restored = PCMWriterRestorePerWaveHarmonicLevels()
+    else
+      restored = PCMWriterRestoreHarmonicLevels()
+    end
     if restored then
+      PCMWriterClaimHarmonicOwner()
       print("HARMONIC: Restored harmonic levels from existing names on dialog open")
       -- Update harmonic canvas if it exists
       if harmonic_canvas then
@@ -10641,6 +10650,68 @@ function PCMWriterRestoreHarmonicLevels()
   
   print("HARMONIC: No harmonic levels found in instrument or sample names")
   return false
+end
+
+-- In a Wavetable A&B (12st_WT) instrument each sample slot carries its OWN
+-- harmonics in its name: slot 1 is Wave A, slot 2 is Wave B. Restore both
+-- per-wave memories from those names so switching A/B after coming back to the
+-- instrument shows the drawbars that actually built each wave.
+function PCMWriterRestorePerWaveHarmonicLevels()
+  local song = renoise.song()
+  local inst = song and song.selected_instrument
+  if not inst or #inst.samples < 2 then return false end
+
+  local any = false
+  -- PCMWriterParseHarmonicLevels writes into harmonic_levels, so parse each
+  -- slot in turn and copy the result out into that wave's memory.
+  if PCMWriterParseHarmonicLevels(inst:sample(1).name) then
+    for i = 1, 11 do harmonic_levels_a[i] = harmonic_levels[i] end
+    any = true
+  else
+    for i = 1, 11 do harmonic_levels_a[i] = 0.0 end
+  end
+  if PCMWriterParseHarmonicLevels(inst:sample(2).name) then
+    for i = 1, 11 do harmonic_levels_b[i] = harmonic_levels[i] end
+    any = true
+  else
+    for i = 1, 11 do harmonic_levels_b[i] = 0.0 end
+  end
+
+  -- The active drawbars follow whichever wave is being edited right now.
+  PCMWriterLoadHarmonicLevelsFor(current_wave_edit)
+  return any
+end
+
+-- Re-baseline ALL harmonic state onto whatever instrument is selected now:
+-- forget the previous instrument's state entirely, then read this instrument's
+-- own harmonics back out of its instrument/sample names. Called whenever the
+-- selected instrument changes under an open dialog, so leaving instrument 3 for
+-- 4 and coming back to 3 shows instrument 3's drawbars again instead of zeros.
+function PCMWriterAdoptHarmonicStateForSelection()
+  PCMWriterResetHarmonicEditState()
+
+  local restored = false
+  if live_pickup_mode then
+    if PCMWriterDetect12stWTSetup() then
+      restored = PCMWriterRestorePerWaveHarmonicLevels()
+    else
+      restored = PCMWriterRestoreHarmonicLevels()
+    end
+    if restored then
+      PCMWriterClaimHarmonicOwner()
+      print("HARMONIC: Adopted harmonic levels from the newly selected instrument")
+    end
+  end
+
+  -- Keep the Amplitude slider in step with the value the reset just restored.
+  -- Its notifier only regenerates while harmonic mode is on, and the reset
+  -- turned that off, so this cannot retrigger a wave rewrite.
+  if vb and vb.views and vb.views.harmonic_amplitude_slider then
+    vb.views.harmonic_amplitude_slider.value = harmonic_amplitude
+  end
+  if harmonic_canvas then harmonic_canvas:update() end
+  if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
+  return restored
 end
 
 -- Capture the current wave verbatim as the pristine fundamental to augment.
