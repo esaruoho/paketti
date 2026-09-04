@@ -7671,8 +7671,112 @@ function PCMWriterDetachLFODeviceNotifiers()
   print("DEBUG: LFO device parameter notifiers detached")
 end
 
+-- External sample-edit watcher (Live Pickup Mode)
+--
+-- Renoise has NO observable that fires when a sample buffer's CONTENT changes
+-- (sample_buffer_observable only fires on buffer create/delete - verified live on
+-- 3.5.4). So when something outside this dialog rewrites the sample the editor is
+-- picked up on - Paketti Normalize, a fade, a Renoise sample-editor process - the
+-- canvas kept showing the OLD waveform until the user switched sample slots.
+--
+-- Fix: poll on idle. Every PCM_EXTERNAL_WATCH_INTERVAL seconds, compare a sparse
+-- set of frames in the sample buffer(s) against what the editor believes it wrote
+-- there. Every editor edit calls PCMWriterUpdateLiveSample() immediately, so
+-- editor-originated writes always MATCH and never trigger a reload; only a
+-- foreign write mismatches, and that reloads the editor from the sample.
+local pcm_external_watch_next_check = 0
+local PCM_EXTERNAL_WATCH_INTERVAL = 0.25
+local PCM_EXTERNAL_WATCH_TOLERANCE = 0.0002  -- ~6x the 16-bit round-trip error
+
+-- true when the buffer still holds what `wave` says it should
+local function PCMWriterBufferMatchesWave(buffer, wave, size)
+  if not buffer or not buffer.has_sample_data then return true end
+  if buffer.number_of_frames ~= size then return false end
+  local step = math.max(1, math.floor(size / 64))
+  local i = 1
+  while i <= size do
+    local stored = wave[i]
+    if stored == nil then return true end
+    local expected = (stored - 32768) / 32768
+    if expected < -1 then expected = -1 elseif expected > 1 then expected = 1 end
+    if math.abs(buffer:sample_data(1, i) - expected) > PCM_EXTERNAL_WATCH_TOLERANCE then
+      return false
+    end
+    i = i + step
+  end
+  -- always probe the final frame (a tail-only edit would otherwise slip through)
+  local last = wave[size]
+  if last ~= nil then
+    local expected = (last - 32768) / 32768
+    if expected < -1 then expected = -1 elseif expected > 1 then expected = 1 end
+    if math.abs(buffer:sample_data(1, size) - expected) > PCM_EXTERNAL_WATCH_TOLERANCE then
+      return false
+    end
+  end
+  return true
+end
+
+function PCMWriterCheckForExternalSampleEdits()
+  if not live_pickup_mode then return end
+  if not pcm_dialog or not pcm_dialog.visible then return end
+  if pcm_context_refreshing or pcm_writer_creating_samples then return end
+  -- never yank the buffer out from under an in-progress gesture
+  if is_drawing or selection_dragging or pcm_panel_drag_param or pcm_panel_harm_dragging then return end
+
+  local now = os.clock()
+  if now < pcm_external_watch_next_check then return end
+  pcm_external_watch_next_check = now + PCM_EXTERNAL_WATCH_INTERVAL
+
+  local song = renoise.song()
+  if not song or not song.selected_instrument then return end
+  if live_pickup_instrument_index > 0 and song.selected_instrument_index ~= live_pickup_instrument_index then
+    return
+  end
+
+  local changed = false
+  local ok = pcall(function()
+    local inst = song.selected_instrument
+    if PCMWriterDetect12stWTSetup() then
+      -- Wave A lives in sample slot 1, Wave B in sample slot 2
+      if #inst.samples >= 2 then
+        if not PCMWriterBufferMatchesWave(inst:sample(1).sample_buffer, wave_data_a, wave_size) then changed = true end
+        if not changed and not PCMWriterBufferMatchesWave(inst:sample(2).sample_buffer, wave_data_b, wave_size) then changed = true end
+      end
+    else
+      -- Single-sample pickup: the editor writes the CROSSFADED wave (wave_data)
+      local idx = song.selected_sample_index
+      if idx >= 1 and idx <= #inst.samples then
+        if not PCMWriterBufferMatchesWave(inst:sample(idx).sample_buffer, wave_data, wave_size) then changed = true end
+      end
+    end
+  end)
+  if not ok or not changed then return end
+
+  pcm_context_refreshing = true
+  local reloaded, err = pcall(function()
+    print("-- PCM Writer: sample changed outside the editor - reloading canvas from sample")
+    PCMWriterLoadCurrentSample({passive = true})
+    if harmonic_drawbar_mode then
+      PCMWriterEstablishHarmonicBase()
+      if harmonic_canvas then harmonic_canvas:update() end
+    end
+    if waveform_canvas then waveform_canvas:update() end
+    if pcm_param_panel_canvas then pcm_param_panel_canvas:update() end
+    PCMWriterUpdateHexDisplay()
+    renoise.app():show_status("PCM Writer: reloaded waveform - sample was changed outside the editor")
+  end)
+  pcm_context_refreshing = false
+  -- the reload rewrote both wave buffers from the samples, so re-baseline
+  pcm_external_watch_next_check = os.clock() + PCM_EXTERNAL_WATCH_INTERVAL
+  if not reloaded then print("PCM Debug: external-edit reload error: " .. tostring(err)) end
+end
+
 -- Tool idle notifier to clean up sample notifier when dialog is closed by other means
 function cleanup_on_dialog_close()
+  if pcm_dialog and pcm_dialog.visible then
+    -- dialog still open: use this idle tick to notice foreign edits to the sample
+    PCMWriterCheckForExternalSampleEdits()
+  end
   if not pcm_dialog or not pcm_dialog.visible then
     cleanup_sample_notifier()
     PCMWriterDetachLFODeviceNotifiers()
@@ -8634,7 +8738,9 @@ function PCMWriterRenderParamPanel(ctx)
       else
         vtxt = string.format("%.2f", lfo.parameters[p.pindex].value)
       end
-      PakettiCanvasFontDrawText(ctx, vtxt, p.x + p.w - 46, p.y + p.h / 2 - 5, 8)
+      local text_size = 8
+      local text_width = (#vtxt - 1) * text_size * 1.4 + text_size
+      PakettiCanvasFontDrawText(ctx, vtxt, p.x + p.w - text_width - 4, p.y + p.h / 2 - 5, text_size)
     end
     if not lfo and not L.compact then
       ctx.stroke_color = {200, 160, 120, 255}

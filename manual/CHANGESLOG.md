@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-04 - Fix: Single Cycle Waveform Writer Picks Up Outside Sample Edits
+
+With Live Pickup active (after Write A&B, or when editing a wavetable instrument), the Single Cycle Waveform Writer canvas now refreshes when the sample is changed by something other than the editor - Paketti Normalize, a fade, or any Renoise sample-editor process. Previously the canvas kept drawing the old waveform until you switched sample slots. The editor checks the picked-up sample four times a second and reloads only when the sample no longer matches what the canvas drew, so your own drawing is never interrupted, and Wave A (sample slot 1) and Wave B (sample slot 2) are both watched. Menu entry, keybinding, and MIDI mapping names are unchanged.
+
+### 2026-09-04 - Fix: Single Cycle Waveform Writer Canvas Speed Readout
+
+The Canvas Only Wavetable A&B panel now right-aligns its Amp, Offset, and Speed values from their actual canvas-font width, so values such as `64.00` remain entirely inside the parameter bar. Menu entry, keybinding, and MIDI mapping names are unchanged.
+
 ### 2026-09-04 - Feature: Repeater Controls for Selected Track and Master
 
 GitHub issue #538 asked for Repeater control by key and MIDI. Paketti now has a shared Repeater control layer that can target either the selected track or the master track, find the first native Repeater, or insert one when the action needs a device.
