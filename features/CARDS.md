@@ -21,7 +21,9 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
 - [Pattern and song row jumps](#pattern-song-jumps) — `pattern-song-jumps.feature`
+- [Quick edit navigation commands](#quick-edit-navigation) — `quick-edit-navigation.feature`
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
+- [Sample slice selection range](#sample-slice-selection) — `sample-slice-selection.feature`
 - [Section loop switches trigger immediately](#section-loop-immediate-switch) — `section-loop-immediate-switch.feature`
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
@@ -345,6 +347,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
 
 
+<a id="quick-edit-navigation"></a>
+## Quick edit navigation commands
+
+`features/quick-edit-navigation.feature` · [session](quick-edit-navigation.session.md)
+
+**What it does:** As a Paketti user, I want repeated shortcuts to move editing state without modal setup, So that common tracker edits are fast and reversible enough to test live.
+
+**Behaviour (4 scenarios):**
+
+- Repeat Select Chunk to advance inside that chunk — `@shipped @code-verified @runtime-untested`
+- Increment delay values from MIDI without overwriting them — `@shipped @code-verified @runtime-untested`
+- Quantize selected notes onto triplet timing — `@shipped @code-verified @runtime-untested`
+- Existing direct chunk and delay controls remain available — `@stock`
+
+**How it does it:** **Key procs:** `select_chunk`, `PakettiDelayColumnModifier`, `PakettiQuantizeSelectionToTriplets` · **Source files:** `PakettiInstrumentBox.lua`, `PakettiPatternEditor.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+
+
 <a id="repeater-control"></a>
 ## Repeater control from keys and MIDI
 
@@ -363,6 +384,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiFindOrInsertRepeater`, `PakettiRepeaterSetActive`, `PakettiRepeaterToggleActive`, `PakettiRepeaterSetMode`, `PakettiRepeaterSetDivision`, `PakettiRepeaterAddActionKeybindings`, `PakettiRepeaterAddActionMidiMappings`, `PakettiRepeaterAddPresetMidiMappings` · **Source files:** `PakettiMidi.lua`
 
 **Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
+
+
+<a id="sample-slice-selection"></a>
+## Sample slice selection range
+
+`features/sample-slice-selection.feature` · [session](sample-slice-selection.session.md)
+
+**What it does:** As a Sample Editor user, I want one command that selects the current slice boundaries, So that loop and beat-sync work can start from the exact slice range.
+
+**Behaviour (3 scenarios):**
+
+- Select the current slice range — `@shipped @code-verified @runtime-untested`
+- Expose the slice range command — `@shipped @code-verified @runtime-untested`
+- Existing slice marker deletion remains separate — `@stock`
+
+**How it does it:** **Key procs:** `PakettiSelectCurrentSliceRange` · **Source files:** `PakettiSlice.lua`, `PakettiMenuConfig.lua`
+
+**Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
 
 
 <a id="section-loop-immediate-switch"></a>

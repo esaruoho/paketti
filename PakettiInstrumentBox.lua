@@ -932,12 +932,30 @@ function select_previous_chunk()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Function to directly select a specific chunk, limited to FE as the maximum chunk
+-- REPORT-CARD >> features/quick-edit-navigation.feature
+local function instrument_is_in_chunk(instrument_index, chunk_start_index)
+  return instrument_index >= chunk_start_index and instrument_index <= math.min(chunk_start_index + 15, 255)
+end
+
+-- Function to directly select a specific chunk, limited to FE as the maximum chunk.
+-- Repeating the same chunk command advances through that 16-instrument block.
 local function select_chunk(chunk_index)
-  local target_index = chunk_index + 1
+  local song = renoise.song()
+  local chunk_start_index = chunk_index + 1
+  local chunk_end_index = math.min(chunk_start_index + 15, 255)
+  local target_index = chunk_start_index
+
+  if instrument_is_in_chunk(song.selected_instrument_index, chunk_start_index) then
+    target_index = song.selected_instrument_index + 1
+    if target_index > chunk_end_index then
+      target_index = chunk_start_index
+    end
+  end
+
   ensure_instruments_count(target_index)
-  renoise.song().selected_instrument_index = target_index
+  song.selected_instrument_index = target_index
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app():show_status(string.format("Selected instrument %02X in chunk %02X", target_index - 1, chunk_index))
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Select Next Chunk (00..F0)",invoke=select_next_chunk }

@@ -27,7 +27,9 @@ Derived views — GENERATED, never hand-edit:
 | `parameter-editor-mixer-and-config.feature` | Parameter Editor exposes on the Mixer the parameter you're modifying | `parameter-editor-mixer-and-config.session.md` | `bc06819a` `b4a43b27` `94e4c343` |
 | `pattern-song-jumps.feature` | Pattern fraction jumps and reversible last row-jump commands for pattern/song navigation | `pattern-song-jumps.session.md` | worktree |
 | `pattern-editor-example.feature` | Pattern Editor note manipulation | — | `bc06819a` `b953f2f4` |
+| `quick-edit-navigation.feature` | Repeated chunk selection, delay increment MIDI mappings, and triplet quantize | `quick-edit-navigation.session.md` | worktree |
 | `repeater-control.feature` | Repeater selected-track/master keybindings and MIDI controls | `repeater-control.session.md` | worktree |
+| `sample-slice-selection.feature` | Select the current sample slice's exact buffer range | `sample-slice-selection.session.md` | worktree |
 | `selection-reversed-instrument.feature` | Reverse-duplicate selected instrument and retarget selected pattern notes to it | `selection-reversed-instrument.session.md` | worktree |
 | `section-loop-immediate-switch.feature` | Section-loop next/previous commands that switch immediately instead of scheduling | `section-loop-immediate-switch.session.md` | worktree |
 | `song-lifecycle-safety.feature` | Song-lifecycle safety for canvas dialogs and song observers | — | `bc06819a` `3d2cd863` `83526e80` |

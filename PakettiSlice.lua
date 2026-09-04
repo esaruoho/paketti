@@ -78,6 +78,58 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete Slice Markers i
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_midi_mapping{name="Paketti:Delete Slice Markers in Selection",invoke=function(message) if message:is_trigger() then pakettiDeleteSliceMarkersInSelection() end end}
 
+-- REPORT-CARD >> features/sample-slice-selection.feature
+function PakettiSelectCurrentSliceRange()
+  local song = renoise.song()
+  local sample = song.selected_sample
+
+  if not sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+
+  local buffer = sample.sample_buffer
+  if not buffer or not buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no sample data")
+    return
+  end
+
+  local slice_markers = sample.slice_markers
+  if not slice_markers or #slice_markers == 0 then
+    renoise.app():show_status("Selected sample has no slice markers")
+    return
+  end
+
+  local slice_index = sample.slice_number
+  if not slice_index or slice_index < 1 or slice_index > #slice_markers then
+    local cursor_frame = buffer.selection_start
+    if not cursor_frame or cursor_frame < 1 then
+      cursor_frame = 1
+    end
+
+    slice_index = 1
+    for i = 1, #slice_markers do
+      local start_frame = slice_markers[i]
+      local end_frame = (i < #slice_markers) and (slice_markers[i + 1] - 1) or buffer.number_of_frames
+      if cursor_frame >= start_frame and cursor_frame <= end_frame then
+        slice_index = i
+        break
+      end
+    end
+  end
+
+  local selection_start = slice_markers[slice_index]
+  local selection_end = (slice_index < #slice_markers) and (slice_markers[slice_index + 1] - 1) or buffer.number_of_frames
+
+  buffer.selection_range = {selection_start, selection_end}
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app():show_status(string.format("Selected slice %02d range: %d-%d", slice_index, selection_start, selection_end))
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Current Slice Range",invoke=PakettiSelectCurrentSliceRange}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Current Slice Range",invoke=PakettiSelectCurrentSliceRange}
+renoise.tool():add_midi_mapping{name="Paketti:Select Current Slice Range",invoke=function(message) if message:is_trigger() then PakettiSelectCurrentSliceRange() end end}
+
 
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 

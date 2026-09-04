@@ -2187,6 +2187,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Wipe&Slice 
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Wipe&Slice:Wipe Slices",invoke=function() wipeslices() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Double Slices",invoke=function() doubleslices() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Halve Slices",invoke=function() halveslices() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Select Current Slice Range",invoke=function() PakettiSelectCurrentSliceRange() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Flood Fill Slices with Current Selection",invoke=function() pakettiSlicesFromSelection() end}
@@ -2894,6 +2895,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Rename Curre
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Interpolate Column Values (Delay)",invoke=function() delay_interpolation() end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Interpolate Column Values (Panning)",invoke=function() panning_interpolation() end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Interpolate Column Values (Sample FX)",invoke=function() samplefx_interpolation() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Quantize Selection to Triplets",invoke=function() PakettiQuantizeSelectionToTriplets() end}
 
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Double LPB",invoke=function() PakettiLPBDouble() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM&LPB:Halve LPB",invoke=function() PakettiLPBHalve() end}

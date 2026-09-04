@@ -4791,6 +4791,7 @@ end
 end
 ------------
 -- Function to adjust the delay column within the selected area or current note column
+-- REPORT-CARD >> features/quick-edit-navigation.feature
 function PakettiDelayColumnModifier(amount)
   -- Get the current song
   local song=renoise.song()
@@ -4868,6 +4869,142 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delay Column Increase
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delay Column Decrease Selection/Row (-1)",invoke=function() PakettiDelayColumnModifier(-1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delay Column Increase Selection/Row (+10)",invoke=function() PakettiDelayColumnModifier(10) end}
 renoise.tool():add_keybinding{name= "Pattern Editor:Paketti:Delay Column Decrease Selection/Row (-10)",invoke=function() PakettiDelayColumnModifier(-10) end}
+renoise.tool():add_midi_mapping{name="Paketti:Delay Column Increment Selection/Row (+1)",invoke=function(message) if message:is_trigger() then PakettiDelayColumnModifier(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Delay Column Decrement Selection/Row (-1)",invoke=function(message) if message:is_trigger() then PakettiDelayColumnModifier(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Delay Column Increment Selection/Row (+10)",invoke=function(message) if message:is_trigger() then PakettiDelayColumnModifier(10) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Delay Column Decrement Selection/Row (-10)",invoke=function(message) if message:is_trigger() then PakettiDelayColumnModifier(-10) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Delay Column Increment Selection/Row x[Knob]",invoke=function(message)
+  if message:is_rel_value() and message.int_value ~= 0 then
+    PakettiDelayColumnModifier(message.int_value)
+  end
+end}
+
+local function PakettiTripletQuantizeClamp(value, min_value, max_value)
+  return math.max(min_value, math.min(max_value, value))
+end
+
+local function PakettiTripletQuantizeCopyNoteColumn(note_column)
+  return {
+    note_value = note_column.note_value,
+    instrument_value = note_column.instrument_value,
+    volume_value = note_column.volume_value,
+    panning_value = note_column.panning_value,
+    delay_value = note_column.delay_value,
+    effect_number_value = note_column.effect_number_value,
+    effect_amount_value = note_column.effect_amount_value
+  }
+end
+
+local function PakettiTripletQuantizePasteNoteColumn(note_column, data)
+  note_column.note_value = data.note_value
+  note_column.instrument_value = data.instrument_value
+  note_column.volume_value = data.volume_value
+  note_column.panning_value = data.panning_value
+  note_column.delay_value = data.delay_value
+  note_column.effect_number_value = data.effect_number_value
+  note_column.effect_amount_value = data.effect_amount_value
+end
+
+local function PakettiTripletQuantizeDestination(line_index, delay_value, pattern_lines, lpb)
+  local source_ticks = (line_index - 1) * 256 + delay_value
+  local beat_ticks = lpb * 256
+  local beat_start_ticks = math.floor(source_ticks / beat_ticks) * beat_ticks
+  local offset_ticks = source_ticks - beat_start_ticks
+  local triplet_ticks = beat_ticks / 3
+  local quantized_offset = math.floor((offset_ticks / triplet_ticks) + 0.5) * triplet_ticks
+  local target_ticks = math.floor(beat_start_ticks + quantized_offset + 0.5)
+  local max_ticks = (pattern_lines - 1) * 256 + 255
+
+  target_ticks = PakettiTripletQuantizeClamp(target_ticks, 0, max_ticks)
+
+  return math.floor(target_ticks / 256) + 1, target_ticks % 256
+end
+
+function PakettiQuantizeSelectionToTriplets()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  local pattern = song.selected_pattern
+  local lpb = math.max(1, song.transport.lpb)
+  local start_track = selection and selection.start_track or song.selected_track_index
+  local end_track = selection and selection.end_track or song.selected_track_index
+  local start_line = selection and selection.start_line or 1
+  local end_line = selection and selection.end_line or pattern.number_of_lines
+  local moved = 0
+  local skipped = 0
+  local events = {}
+
+  song:describe_undo("Quantize selected notes to triplets")
+
+  for track_index = start_track, end_track do
+    local track = song:track(track_index)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      local visible_note_columns = track.visible_note_columns
+      local start_column = (selection and track_index == start_track) and selection.start_column or 1
+      local end_column = (selection and track_index == end_track) and selection.end_column or visible_note_columns
+      if start_column > visible_note_columns then
+        start_column = 1
+        end_column = 0
+      else
+        start_column = PakettiTripletQuantizeClamp(start_column, 1, visible_note_columns)
+        end_column = PakettiTripletQuantizeClamp(end_column, 1, visible_note_columns)
+      end
+
+      for line_index = start_line, end_line do
+        local pattern_track = pattern:track(track_index)
+        local line = pattern_track:line(line_index)
+        for column_index = start_column, end_column do
+          local note_column = line:note_column(column_index)
+          if note_column and not note_column.is_empty then
+            local target_line, target_delay = PakettiTripletQuantizeDestination(line_index, note_column.delay_value, pattern.number_of_lines, lpb)
+            table.insert(events, {
+              track_index = track_index,
+              source_line = line_index,
+              source_column = column_index,
+              target_line = target_line,
+              target_delay = target_delay,
+              data = PakettiTripletQuantizeCopyNoteColumn(note_column)
+            })
+            note_column:clear()
+          end
+        end
+      end
+    end
+  end
+
+  for _, event in ipairs(events) do
+    local pattern_track = pattern:track(event.track_index)
+    local target_line = pattern_track:line(event.target_line)
+    local destination = target_line:note_column(event.source_column)
+
+    if not destination.is_empty then
+      destination = nil
+      local visible_note_columns = song:track(event.track_index).visible_note_columns
+      for column_index = 1, visible_note_columns do
+        local candidate = target_line:note_column(column_index)
+        if candidate.is_empty then
+          destination = candidate
+          break
+        end
+      end
+    end
+
+    if destination then
+      event.data.delay_value = event.target_delay
+      PakettiTripletQuantizePasteNoteColumn(destination, event.data)
+      moved = moved + 1
+    else
+      local source_column = pattern_track:line(event.source_line):note_column(event.source_column)
+      PakettiTripletQuantizePasteNoteColumn(source_column, event.data)
+      skipped = skipped + 1
+    end
+  end
+
+  renoise.app():show_status(string.format("Quantized %d note(s) to triplets%s", moved, skipped > 0 and (", skipped " .. skipped .. " collision(s)") or ""))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Quantize Selection to Triplets",invoke=PakettiQuantizeSelectionToTriplets}
+renoise.tool():add_keybinding{name="Global:Paketti:Quantize Selection to Triplets",invoke=PakettiQuantizeSelectionToTriplets}
+renoise.tool():add_midi_mapping{name="Paketti:Quantize Selection to Triplets",invoke=function(message) if message:is_trigger() then PakettiQuantizeSelectionToTriplets() end end}
 
 ------
 function ExposeAndSelectColumn(number)
