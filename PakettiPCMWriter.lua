@@ -1157,11 +1157,21 @@ local function PCMWriterResetDialogContextTracking()
   pcm_context_instrument_index = -1
 end
 
+-- Drop EVERY piece of harmonic-drawbar state. This must clear the per-wave
+-- memories and the captured fundamental too: leaving harmonic_levels_a/_b or
+-- harmonic_base_wave behind let one instrument's fundamental leak into the next
+-- one (close the dialog on instrument 3, reopen on instrument 4, drag a drawbar,
+-- and instrument 3's waveform appeared in instrument 4).
 local function PCMWriterResetHarmonicEditState()
   harmonic_drawbar_mode = false
   harmonic_base_wave = nil
+  harmonic_amplitude = 1.0
+  harmonic_owner_instrument_index = -1
+  harmonic_owner_wave_size = -1
   for i = 1, 11 do
     harmonic_levels[i] = 0.0
+    harmonic_levels_a[i] = 0.0
+    harmonic_levels_b[i] = 0.0
   end
 end
 
@@ -7781,6 +7791,10 @@ function cleanup_on_dialog_close()
     cleanup_sample_notifier()
     PCMWriterDetachLFODeviceNotifiers()
     PCMWriterResetDialogContextTracking()
+    -- A closed dialog carries nothing forward: harmonic drawbars, per-wave
+    -- levels and the captured fundamental all belonged to the instrument that
+    -- was open, and reopening on another instrument must start clean.
+    PCMWriterResetHarmonicEditState()
     pcm_dialog = nil
     if renoise.tool().app_idle_observable:has_notifier(cleanup_on_dialog_close) then
       renoise.tool().app_idle_observable:remove_notifier(cleanup_on_dialog_close)
@@ -7811,6 +7825,7 @@ function PCMWriterReleaseDocumentCleanup()
   pcm_dialog = nil
   waveform_canvas = nil
   PCMWriterResetDialogContextTracking()
+  PCMWriterResetHarmonicEditState()
   -- Detach this release-doc observer itself (idempotent; safe to run twice)
   if pcmwriter_release_doc_observer and renoise.tool().app_release_document_observable:has_notifier(pcmwriter_release_doc_observer) then
     renoise.tool().app_release_document_observable:remove_notifier(pcmwriter_release_doc_observer)
@@ -8824,6 +8839,7 @@ function PCMWriterShowPcmDialog()
     pcm_dialog:close()
     pcm_dialog = nil
     PCMWriterResetDialogContextTracking()
+    PCMWriterResetHarmonicEditState()
     return
   end
 
@@ -8831,6 +8847,10 @@ function PCMWriterShowPcmDialog()
   local selected_instrument_is_empty = not PCMWriterSelectedInstrumentHasSampleData()
   if fresh_open then
     pcm_context_instrument_index = renoise.song().selected_instrument_index
+    -- Fresh open (NOT an internal rebuild, which leaves pcm_dialog non-nil):
+    -- start with no harmonic state at all. Levels for this instrument are
+    -- restored from its own instrument/sample name further down.
+    PCMWriterResetHarmonicEditState()
   end
   
   -- Initialize AKWF dropdown data
@@ -10391,6 +10411,11 @@ harmonic_canvas = nil
 -- previously re-read from the live (already-augmented) wave each call, which
 -- both overwrote the fundamental on entry (H1=1.0) and compounded on each drag.
 harmonic_base_wave = nil
+-- Which instrument (and wave size) the harmonic state above actually belongs to.
+-- Harmonic state is meaningless against a different instrument, so any harmonic
+-- work re-baselines when these no longer match the selection.
+harmonic_owner_instrument_index = -1
+harmonic_owner_wave_size = -1
 harmonic_mouse_down = false
 harmonic_last_mouse_x = -1
 harmonic_last_mouse_y = -1
@@ -10400,6 +10425,22 @@ for i = 1, 11 do
   harmonic_levels[i] = 0.0
   harmonic_levels_a[i] = 0.0
   harmonic_levels_b[i] = 0.0
+end
+
+-- Stamp the harmonic state as belonging to the currently selected instrument.
+function PCMWriterClaimHarmonicOwner()
+  local song = renoise.song()
+  harmonic_owner_instrument_index = song and song.selected_instrument_index or -1
+  harmonic_owner_wave_size = wave_size
+end
+
+-- True when the harmonic state still belongs to what is selected right now.
+function PCMWriterHarmonicOwnerIsCurrent()
+  local song = renoise.song()
+  if not song then return false end
+  if harmonic_owner_instrument_index ~= song.selected_instrument_index then return false end
+  if harmonic_owner_wave_size ~= wave_size then return false end
+  return true
 end
 
 -- Save the current drawbar levels into the given wave's per-wave memory.
@@ -10446,6 +10487,7 @@ function PCMWriterEnterHarmonicDrawbarMode()
   -- Establish the pristine fundamental (reconstruct it if the wave already
   -- carries restored harmonics, else capture the current wave verbatim), then
   -- augment. With zero harmonics + amplitude 1.0 this reproduces the wave as-is.
+  PCMWriterClaimHarmonicOwner()
   PCMWriterEstablishHarmonicBase()
   PCMWriterGenerateHarmonics()
   
@@ -10667,7 +10709,16 @@ function PCMWriterGenerateHarmonics()
   -- preserved and harmonics never compound. Fall back to capturing the current
   -- wave if no base has been established yet.
   local current_wave_data = PCMWriterGetCurrentWaveData()
-  if not harmonic_base_wave then
+  -- Seatbelt: never augment one instrument's wave with a fundamental captured
+  -- from a different instrument (or at a different wave size). If the state no
+  -- longer belongs to what is selected, recapture the base from the wave that is
+  -- actually on the canvas right now and re-stamp the owner.
+  if not PCMWriterHarmonicOwnerIsCurrent() then
+    print("HARMONIC: state belonged to another instrument/size - recapturing base from the current wave")
+    harmonic_base_wave = nil
+    PCMWriterClaimHarmonicOwner()
+  end
+  if not harmonic_base_wave or #harmonic_base_wave ~= wave_size then
     PCMWriterCaptureHarmonicBase()
   end
   local original_data = harmonic_base_wave

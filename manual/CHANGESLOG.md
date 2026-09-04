@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-04 - Fix: Single Cycle Waveform Writer Harmonics No Longer Leak Between Instruments
+
+Harmonic drawbar state is now tied to the instrument it was drawn for. Previously, drawing harmonics on one instrument, closing the Single Cycle Waveform Writer, reopening it on a different instrument and dragging a drawbar pulled the first instrument's waveform and harmonics into the second one - the drawbar mode flag, the per-wave A/B drawbar memories and the captured fundamental all survived the dialog close. Closing the dialog now clears all of it, a fresh open starts from nothing and restores only the levels encoded in the newly selected instrument's own name, and harmonic generation re-captures its fundamental from the wave actually on the canvas if the state ever belongs to a different instrument or wave size. Menu entry, keybinding, and MIDI mapping names are unchanged.
+
 ### 2026-09-04 - Fix: Single Cycle Waveform Writer Picks Up Outside Sample Edits
 
 With Live Pickup active (after Write A&B, or when editing a wavetable instrument), the Single Cycle Waveform Writer canvas now refreshes when the sample is changed by something other than the editor - Paketti Normalize, a fade, or any Renoise sample-editor process. Previously the canvas kept drawing the old waveform until you switched sample slots. The editor checks the picked-up sample four times a second and reloads only when the sample no longer matches what the canvas drew, so your own drawing is never interrupted, and Wave A (sample slot 1) and Wave B (sample slot 2) are both watched. Menu entry, keybinding, and MIDI mapping names are unchanged.
