@@ -122,10 +122,6 @@ files: [PakettiRequests.lua, features/device-toggle-automation.feature, features
   by: codex
   from: github issue #593
 
-- [x] Write device-enable automation through Renoise's selected Active/Bypassed parameter {#device-toggle-selected-active}
-  by: copilot
-  from: github issue #593
-
 ## Turn selections into reversed instrument copies {#selection-reversed-instrument}
 tech: PakettiSamples.lua reverse duplicate helper, Pattern Editor selection instrument retargeting
 files: [PakettiSamples.lua, PakettiMenuConfig.lua, features/selection-reversed-instrument.feature, features/selection-reversed-instrument.session.md, features/selection-reversed-instrument.transcript.md, features/selection-reversed-instrument.transcript.jsonl]
@@ -141,78 +137,6 @@ files: [PakettiTkna.lua, PakettiMenuConfig.lua, features/section-loop-immediate-
 - [x] Add next/previous commands that loop a section and trigger it immediately {#section-loop-immediate-next-previous}
   by: codex
   from: github issue #675
-
-## Run configured shell commands {#execute-command-slots}
-tech: PakettiExecute.lua command slots, Paketti0G01_Loader.lua preference schema, sample selection temp export
-files: [PakettiExecute.lua, Paketti0G01_Loader.lua, PakettiMenuConfig.lua, features/execute-command-slots.feature, features/execute-command-slots.session.md, features/execute-command-slots.transcript.md, features/execute-command-slots.transcript.jsonl]
-
-- [~] Add 128 labeled os.execute slots with selected-sample placeholder support {#execute-command-slots-placeholder}
-  by: codex
-  from: github issue #676
-
-## Run audio filters safely {#launch-app-filters}
-tech: PakettiLaunchApp.lua temp WAV pipeline, shell redirection, asynchronous exit-status and stderr reporting
-files: [PakettiLaunchApp.lua, manual/CHANGESLOG.md]
-
-- [x] Make Launch App filter commands report failures and support stdin/stdout WAV streams {#launch-app-filter-streams}
-  by: copilot
-  from: github issue #890
-
-## Read and write REX loops without a decoder binary {#rex}
-tech: PakettiRX2Reader.lua container, PakettiRX2Decode.lua + PakettiRX2Encode.lua DWOP codec
-files: [PakettiRX2Reader.lua, PakettiRX2Decode.lua, PakettiRX2Encode.lua, PakettiRX2Loader.lua]
-links: [fileformats]
-
-- [x] Read a REX file's slices and tempo without running anything external {#rex-container}
-  by: claude
-  from: agent
-- [x] Open REX 1 and ReCycle documents too {#rex-legacy}
-  by: claude
-  from: agent
-- [x] Decode REX2 audio in Lua, so no decoder needs installing {#rex-decode}
-  by: claude
-  from: agent
-- [x] Choose which decoder Paketti uses {#rex-decoder-preference}
-  by: claude
-  from: agent
-- [x] Save a sliced instrument as a REX2 loop {#rex-encode}
-  tech: bit-identical to ReCycle across 120 real files; the prefix length has to be searched rather than inverted, and the stream ends with one extra zero word
-  by: claude
-  from: agent
-- [ ] Check REX2 mono output against a real mono file {#rex-encode-mono}
-  tech: all 240 .rx2 to hand are stereo; mono round-trips losslessly through Paketti's own decoder but has never been compared with ReCycle's bytes
-  from: agent
-
-## Swap sliced kits with other samplers {#fileformats}
-tech: PakettiSlicedImport.lua readers, PakettiSamplerExports/OPXYExport/DT2Export/AppleLoopExport writers, PakettiDeflate.lua zip
-files: [PakettiSlicedImport.lua, PakettiSamplerExports.lua, PakettiOPXYExport.lua, PakettiDT2Export.lua, PakettiAppleLoopExport.lua, PakettiSFZExport.lua, PakettiOP1Export.lua]
-links: [ableton, rex]
-
-- [x] Write kits out to MPC, Decent Sampler, Elektron, OP-XY, Digitakt II, OP-1, SFZ and Apple Loops {#sampler-exports}
-  by: claude
-  from: agent
-- [x] Read an ordinary ZIP, so preset containers can be opened {#zip-read}
-  tech: PakettiZipRead reads through the central directory, not by scanning for PK\3\4; stored and deflated members
-  by: claude
-  from: agent
-- [x] Open MPC, OP-XY, Digitakt II and Apple Loop kits back up {#sliced-import}
-  by: claude
-  from: agent
-- [x] Use an AIFF's own markers as slices, and write them back out {#aiff-markers}
-  by: claude
-  from: agent
-- [ ] Offer the mono downmix choices, not just a plain sum {#mono-modes}
-  tech: chirashi's --mono-mode has difference and dual-detect besides sum/left/right
-  from: roadmap
-- [ ] Put the tempo in front of an exported filename {#bpm-prefix}
-  tech: chirashi --bpm-prefix; resolve metadata, then a filename pattern, then an override
-  from: roadmap
-- [ ] Let an export choose its bit depth {#export-bit-depth}
-  tech: 8/16/24 as a shared export option; only the Octatrack exporter reasons about bit depth today, and only to warn
-  from: roadmap
-- [ ] Cap slices at a chosen number and spill the rest into more files {#slice-limit}
-  tech: done per-format today (PTI's 48, TX16W disk packing); chirashi has it as one --slice-limit flag over every output
-  from: roadmap
 
 ## Trade instruments with Ableton Live {#ableton}
 tech: PakettiDeflate.lua pure-Lua inflate/gzip, PakettiAbleton.lua XML reader+writer, hooks in PakettiImport.lua
@@ -239,16 +163,6 @@ links: [fileformats]
   from: agent
 - [ ] Import the audio clips in a Live Set that has no sampler device {#ableton-audio-clips}
   from: agent
-- [x] Save an instrument as a Live Set with a track ready to play {#ableton-liveset-export}
-  tech: a set needs non-zero unique Pointee/AutomationTarget/ModulationTarget ids under a required NextPointeeId, unlike a preset where Id="0" passes; and Live 12 routes to AudioOut/Main, where Live 10's AudioOut/Master crashes it with std::out_of_range before the set loads
-  by: claude
-  from: agent
-- [ ] Put a Drum Rack in the exported Live Set when the instrument is a kit {#ableton-liveset-drumrack}
-  tech: the set always writes a Simpler today; PakettiAbletonExportDrumRack already builds the XML, so it is mostly wiring that builder in place of build_simpler
-  from: agent
-- [ ] Turn a whole Renoise song into a Live Set, not just one instrument {#ableton-song-export}
-  tech: needs a MIDI note writer (Paketti has none - it reads MThd, never writes one), one MidiTrack per Renoise track, tempo in MasterTrack/Mixer/Tempo, and the pattern sequence as arrangement or session clips
-  from: roadmap
 - [x] Send a looping sample out to Live {#ableton-export-loops}
   tech: Simpler loops live in Player/LoopModulators, which Live refuses from a written preset; Sampler loops live in MultiSamplePart/SustainLoop and are accepted, so a looping sample exports as a MultiSampler
   by: claude
@@ -259,9 +173,6 @@ links: [fileformats]
   from: agent
 
 ## decisions
-
-- Launch App filter commands require an output route: `$outfile` in the arguments or enabled stdout capture. The runner must preserve the command exit code and stderr so a failed CLI program is reported instead of being indistinguishable from a missing output WAV.
-- Renoise exposes Active / Bypassed as a selected automation parameter but not in `AudioDevice.parameters`; Device Control graphical recording verifies the target with numeric `selected_track_device_index`, never userdata equality, rather than falling back to parameter 1 (Mix).
 
 - Ableton FileRef is resolved through RelativePathType, not the absolute Path: 1 means
   relative to the preset file, 5 a Live Pack, 6 the User Library, 7 Live's own resources,

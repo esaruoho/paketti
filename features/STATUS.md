@@ -16,6 +16,7 @@
 | 2026-06-11-ui-fixes-and-menu-config | 8 | ✓ | ✓ | — | @built @code-verified @logic-verified @runtime-verified |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
+| execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | groovebox-8120-default-instrument-slots | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
 | groovebox-8120-grid-controllers | 12 | ✓ | — | ✓ | @built @code-verified @hw-verified |
 | groovebox-8120-lpd8 | 6 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
@@ -25,13 +26,14 @@
 | mlx-renoise-bridge | 10 | ✓ | — | ✓ | @built @code-verified @designed @hw-verified |
 | music-mouse | 36 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @stock @user-verified |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
+| repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | section-loop-immediate-switch | 5 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | selection-reversed-instrument | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 
 ## Tally (computed)
-- Cards: 16
-- Build-verified: 14
+- Cards: 18
+- Build-verified: 16
 - Runtime-verified: 3 full + 0 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

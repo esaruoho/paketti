@@ -2306,11 +2306,8 @@ function PakettiFindOrInsertRepeater(track)
   if not track then
     track = renoise.song().selected_track
   end
-  
-  -- Check if track can have devices (not master, send, or group tracks without devices)
-  if track.type == renoise.Track.TRACK_TYPE_MASTER or 
-     track.type == renoise.Track.TRACK_TYPE_SEND then
-    renoise.app():show_status("Cannot add Repeater to this track type")
+  if not track or not track.devices then
+    renoise.app():show_status("Cannot add Repeater: no device track")
     return nil
   end
   
@@ -2322,11 +2319,175 @@ function PakettiFindOrInsertRepeater(track)
   end
   
   -- If no device is found, insert a new Repeater
-  track:insert_device_at("Audio/Effects/Native/Repeater", #track.devices + 1)
+  local ok, err = pcall(function()
+    track:insert_device_at("Audio/Effects/Native/Repeater", #track.devices + 1)
+  end)
+  if not ok then
+    renoise.app():show_status("Cannot add Repeater to this track")
+    print("PakettiFindOrInsertRepeater: " .. tostring(err))
+    return nil
+  end
   local device = track.devices[#track.devices]
-  device.parameters[2].show_in_mixer = true
+  if device.parameters[2] then
+    device.parameters[2].show_in_mixer = true
+  end
   print("Repeater device added for automation")
   return device
+end
+
+local PakettiRepeaterDivisions = {
+  "1 / 1", "1 / 2", "1 / 4", "1 / 8",
+  "1 / 16", "1 / 32", "1 / 64", "1 / 128"
+}
+
+local PakettiRepeaterModeNames = {
+  [1] = "Free",
+  [2] = "Even",
+  [3] = "Triplet",
+  [4] = "Dotted"
+}
+
+local PakettiRepeaterModeOrder = {2, 3, 4}
+
+local function PakettiRepeaterGetMasterTrack()
+  local song = renoise.song()
+  local ok, master_track = pcall(function() return song.master_track end)
+  if ok and master_track then return master_track end
+  return song.tracks[song.sequencer_track_count + 1]
+end
+
+local function PakettiRepeaterGetTargetTrack(target)
+  if target == "master" then
+    return PakettiRepeaterGetMasterTrack(), "Master"
+  end
+  return renoise.song().selected_track, "Selected Track"
+end
+
+local function PakettiRepeaterFindDevice(track)
+  if not track or not track.devices then return nil end
+  for _, device in ipairs(track.devices) do
+    if device.display_name == "Repeater" then
+      return device
+    end
+  end
+  return nil
+end
+
+local function PakettiRepeaterModeName(mode)
+  return PakettiRepeaterModeNames[mode] or ("Mode " .. tostring(mode))
+end
+
+local function PakettiRepeaterCurrentDivisionIndex(device)
+  if not device or not device.parameters[2] then return 4 end
+  local current = device.parameters[2].value_string
+  for index, division in ipairs(PakettiRepeaterDivisions) do
+    if current == division then return index end
+  end
+  return 4
+end
+
+function PakettiRepeaterSetActive(target, active)
+  local track, label = PakettiRepeaterGetTargetTrack(target)
+  local device = active and PakettiFindOrInsertRepeater(track) or PakettiRepeaterFindDevice(track)
+  if not device then
+    renoise.app():show_status("No Repeater on " .. label)
+    return
+  end
+  device.is_active = active
+  renoise.app():show_status(label .. " Repeater " .. (active and "enabled" or "bypassed"))
+end
+
+function PakettiRepeaterToggleActive(target)
+  local track, label = PakettiRepeaterGetTargetTrack(target)
+  local device = PakettiFindOrInsertRepeater(track)
+  if not device then return end
+  device.is_active = not device.is_active
+  renoise.app():show_status(label .. " Repeater " .. (device.is_active and "enabled" or "bypassed"))
+end
+
+function PakettiRepeaterSetMode(target, mode)
+  local track, label = PakettiRepeaterGetTargetTrack(target)
+  local device = PakettiFindOrInsertRepeater(track)
+  if not device or not device.parameters[1] then return end
+  device.parameters[1].value = mode
+  device.is_active = true
+  renoise.app():show_status(label .. " Repeater mode: " .. PakettiRepeaterModeName(mode))
+end
+
+function PakettiRepeaterSwitchMode(target)
+  local track = PakettiRepeaterGetTargetTrack(target)
+  local device = PakettiFindOrInsertRepeater(track)
+  if not device or not device.parameters[1] then return end
+  local current = math.floor(device.parameters[1].value + 0.5)
+  local next_mode = PakettiRepeaterModeOrder[1]
+  for index, mode in ipairs(PakettiRepeaterModeOrder) do
+    if current == mode then
+      next_mode = PakettiRepeaterModeOrder[(index % #PakettiRepeaterModeOrder) + 1]
+      break
+    end
+  end
+  PakettiRepeaterSetMode(target, next_mode)
+end
+
+function PakettiRepeaterSetDivision(target, division_index, mode, toggle_same)
+  local track, label = PakettiRepeaterGetTargetTrack(target)
+  local device = PakettiFindOrInsertRepeater(track)
+  if not device or not device.parameters[1] or not device.parameters[2] then return end
+  local division = PakettiRepeaterDivisions[division_index]
+  if not division then return end
+  local current_mode = math.floor(device.parameters[1].value + 0.5)
+  if toggle_same and device.is_active and current_mode == mode and device.parameters[2].value_string == division then
+    device.is_active = false
+    renoise.app():show_status(label .. " Repeater bypassed")
+    return
+  end
+  device.parameters[1].value = mode
+  device.parameters[2].value_string = division
+  device.parameters[2].show_in_mixer = true
+  device.is_active = true
+  renoise.app():show_status(label .. " Repeater: " .. division .. " " .. PakettiRepeaterModeName(mode))
+end
+
+function PakettiRepeaterStepDivision(target, amount)
+  local track = PakettiRepeaterGetTargetTrack(target)
+  local device = PakettiFindOrInsertRepeater(track)
+  if not device or not device.parameters[1] then return end
+  local next_index = math.max(1, math.min(#PakettiRepeaterDivisions, PakettiRepeaterCurrentDivisionIndex(device) + amount))
+  local mode = math.floor(device.parameters[1].value + 0.5)
+  if mode < 2 or mode > 4 then mode = 2 end
+  PakettiRepeaterSetDivision(target, next_index, mode, false)
+end
+
+function PakettiRepeaterToggleSyncMode(target)
+  local track, label = PakettiRepeaterGetTargetTrack(target)
+  local device = PakettiFindOrInsertRepeater(track)
+  local sync_param = device and device.parameters[3]
+  if not sync_param then
+    renoise.app():show_status("Repeater Sync Mode parameter not found")
+    return
+  end
+  local midpoint = (sync_param.value_min + sync_param.value_max) / 2
+  if sync_param.value <= midpoint then
+    sync_param.value = sync_param.value_max
+  else
+    sync_param.value = sync_param.value_min
+  end
+  renoise.app():show_status(label .. " Repeater sync: " .. sync_param.value_string)
+end
+
+function PakettiRepeaterSetFreeDivisorFromMidi(target, int_value)
+  local index = math.floor((math.max(0, math.min(127, int_value)) / 128) * #PakettiRepeaterDivisions) + 1
+  index = math.max(1, math.min(#PakettiRepeaterDivisions, index))
+  PakettiRepeaterSetDivision(target, index, 1, false)
+end
+
+local function PakettiRepeaterHandleHold(message, target, division_index, mode)
+  if not message:is_abs_value() then return end
+  if message.int_value > 0 then
+    PakettiRepeaterSetDivision(target, division_index, mode, false)
+  else
+    PakettiRepeaterSetActive(target, false)
+  end
 end
 
 -- Core function to write MIDI value to Repeater parameter automation envelope
@@ -2531,6 +2692,99 @@ for track = 1, 8 do
   renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Active (Automation) Track " .. track .. " x[Knob] (2nd)",
     invoke=function(message) PakettiHandleTrackRepeaterAutomation(message, track, "active") end}
 end
+
+------------------------------------------------------------------------
+-- Repeater Direct Key/MIDI Controls (GitHub issue #538)
+------------------------------------------------------------------------
+-- REPORT-CARD >> features/repeater-control.feature
+
+local function PakettiRepeaterAddActionKeybindings(target, prefix)
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Toggle Enable/Bypass",
+    invoke=function() PakettiRepeaterToggleActive(target) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Enable",
+    invoke=function() PakettiRepeaterSetActive(target, true) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Bypass",
+    invoke=function() PakettiRepeaterSetActive(target, false) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Mode Even",
+    invoke=function() PakettiRepeaterSetMode(target, 2) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Mode Triplet",
+    invoke=function() PakettiRepeaterSetMode(target, 3) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Mode Dotted",
+    invoke=function() PakettiRepeaterSetMode(target, 4) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Switch Even/Triplet/Dotted",
+    invoke=function() PakettiRepeaterSwitchMode(target) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Halve Divisor",
+    invoke=function() PakettiRepeaterStepDivision(target, -1) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Double Divisor",
+    invoke=function() PakettiRepeaterStepDivision(target, 1) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:" .. prefix .. " Toggle Sync Repeats/Lines",
+    invoke=function() PakettiRepeaterToggleSyncMode(target) end}
+end
+
+local function PakettiRepeaterAddActionMidiMappings(target, prefix)
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Toggle Enable/Bypass x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterToggleActive(target) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Enable x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterSetActive(target, true) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Bypass x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterSetActive(target, false) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Mode Even x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterSetMode(target, 2) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Mode Triplet x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterSetMode(target, 3) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Mode Dotted x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterSetMode(target, 4) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Switch Even/Triplet/Dotted x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterSwitchMode(target) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Halve Divisor x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterStepDivision(target, -1) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Double Divisor x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterStepDivision(target, 1) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Toggle Sync Repeats/Lines x[Button]",
+    invoke=function(message) if message:is_trigger() then PakettiRepeaterToggleSyncMode(target) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " Free Divisor x[Knob]",
+    invoke=function(message)
+      if message:is_abs_value() then
+        PakettiRepeaterSetFreeDivisorFromMidi(target, message.int_value)
+      end
+    end}
+end
+
+local function PakettiRepeaterAddPresetMidiMappings(target, prefix)
+  for division_index, division in ipairs(PakettiRepeaterDivisions) do
+    for _, mode in ipairs(PakettiRepeaterModeOrder) do
+      local label = division .. " " .. PakettiRepeaterModeName(mode)
+      renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " " .. label .. " x[Button]",
+        invoke=function(message)
+          if message:is_trigger() then
+            PakettiRepeaterSetDivision(target, division_index, mode, true)
+          end
+        end}
+      renoise.tool():add_midi_mapping{name="Paketti:" .. prefix .. " " .. label .. " Hold x[Button]",
+        invoke=function(message)
+          PakettiRepeaterHandleHold(message, target, division_index, mode)
+        end}
+    end
+  end
+end
+
+local function PakettiRepeaterAddMasterPresetKeybindings()
+  for division_index, division in ipairs(PakettiRepeaterDivisions) do
+    for _, mode in ipairs(PakettiRepeaterModeOrder) do
+      local label = division .. " " .. PakettiRepeaterModeName(mode)
+      renoise.tool():add_keybinding{name="Global:Paketti:Repeater Master " .. label,
+        invoke=function() PakettiRepeaterSetDivision("master", division_index, mode, true) end}
+    end
+  end
+end
+
+PakettiRepeaterAddActionKeybindings(nil, "Repeater")
+PakettiRepeaterAddActionKeybindings("master", "Repeater Master")
+PakettiRepeaterAddActionMidiMappings(nil, "Repeater")
+PakettiRepeaterAddActionMidiMappings("master", "Repeater Master")
+PakettiRepeaterAddPresetMidiMappings(nil, "Repeater")
+PakettiRepeaterAddPresetMidiMappings("master", "Repeater Master")
+PakettiRepeaterAddMasterPresetKeybindings()
 
 -- Function to deactivate the Repeater without making any other parameter changes
 -- track_name_change: if true, changes the track name

@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-04 - Feature: Repeater Controls for Selected Track and Master
+
+GitHub issue #538 asked for Repeater control by key and MIDI. Paketti now has a shared Repeater control layer that can target either the selected track or the master track, find the first native Repeater, or insert one when the action needs a device.
+
+New actions cover Toggle Enable/Bypass, Enable, Bypass, Mode Even, Mode Triplet, Mode Dotted, Switch Even/Triplet/Dotted, Halve Divisor, Double Divisor, Toggle Sync Repeats/Lines, and master-track divisor preset keybindings. New MIDI mappings add selected-track and master-track action buttons, per-divisor preset buttons, Hold buttons where press activates and release bypasses, and Free Divisor knobs that switch the Repeater to Free mode before mapping the knob across 1/1 through 1/128.
+
 ### 2026-09-03 - Fix: Device Control records Active / Bypassed automation, never Mix
 
 Device Control's Graphical Automation mode now uses Renoise's selected `Active / Bypassed` parameter for the device being enabled, disabled or toggled. Renoise does not expose that special parameter through `device.parameters` (where parameter 1 is often `Mix`), so the old fallback silently automated the wrong parameter. The target is checked through the numeric `selected_track_device_index`; Renoise userdata must never be compared directly because it invokes an unsupported `__eq` metamethod.

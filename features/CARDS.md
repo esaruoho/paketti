@@ -9,6 +9,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
 - [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
+- [Execute configurable shell commands](#execute-command-slots) — `execute-command-slots.feature`
 - [Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open](#groovebox-8120-default-instrument-slots) — `groovebox-8120-default-instrument-slots.feature`
 - [Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8)](#groovebox-8120-grid-controllers) — `groovebox-8120-grid-controllers.feature`
 - [Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select)](#groovebox-8120-lpd8) — `groovebox-8120-lpd8.feature`
@@ -19,6 +20,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
+- [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
 - [Section loop switches trigger immediately](#section-loop-immediate-switch) — `section-loop-immediate-switch.feature`
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
@@ -76,6 +78,28 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiDeviceBypass`, `PakettiRecordDeviceBypassAutomation`, `PakettiWriteDeviceBypassPatternCommand`, `PakettiWriteDeviceBypassGraphicalAutomation` · **Source files:** `PakettiRequests.lua`
 
 **Grade:** @built ×3 · @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+
+
+<a id="execute-command-slots"></a>
+## Execute configurable shell commands
+
+`features/execute-command-slots.feature` · [session](execute-command-slots.session.md)
+
+**What it does:** As a Paketti user, I want labeled shell-command slots, So that keybindings and MIDI controls can launch scripts or external tools.
+
+**Behaviour (7 scenarios):**
+
+- 128 labeled command slots persist independently — `@shipped @built @code-verified @runtime-untested`
+- Dialog edits and runs the selected slot — `@shipped @built @code-verified @runtime-untested`
+- Shortcut and MIDI mappings trigger every slot — `@shipped @built @code-verified @runtime-untested`
+- Selected sample range is exported through the $s placeholder — `@shipped @built @code-verified @runtime-untested`
+- Existing ten-slot launch-app preferences remain migratable — `@shipped @built @code-verified @runtime-untested`
+- User-facing menu and manual expose the feature — `@shipped @built @code-verified @runtime-untested`
+- Other external-application and sample workflows remain separate — `@stock`
+
+**How it does it:** **Key procs:** `PakettiCreateExecutePreferences`, `PakettiExecuteRunCommand`, `PakettiExecuteRunSlot`, `PakettiExecuteShowDialog`, `export_selected_range`, `command_with_selected_sample` · **Source files:** `Paketti0G01_Loader.lua`, `PakettiExecute.lua`, `PakettiMenuConfig.lua`, `manual/Experimental.md`
+
+**Grade:** @built ×6 · @code-verified ×6 · @runtime-untested ×6 · @shipped ×6 · @stock ×1
 
 
 <a id="groovebox-8120-default-instrument-slots"></a>
@@ -298,6 +322,26 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - Replicate the current row down the pattern
 - Toggle the Pattern Matrix
+
+
+<a id="repeater-control"></a>
+## Repeater control from keys and MIDI
+
+`features/repeater-control.feature` · [session](repeater-control.session.md)
+
+**What it does:** As a live performer, I want Repeater controls available from keybindings and MIDI, So that repeat effects can be punched in without opening the device chain.
+
+**Behaviour (5 scenarios):**
+
+- Selected-track Repeater actions can enable, bypass, toggle, set mode, step divisor, and toggle sync mode — `@shipped @code-verified @runtime-untested`
+- Master-track Repeater actions target the master track instead of the selected track — `@shipped @code-verified @runtime-untested`
+- Per-division MIDI buttons stamp or hold Repeater presets — `@shipped @code-verified @runtime-untested`
+- Free Divisor MIDI knob switches Repeater to Free mode before changing divisor — `@shipped @code-verified @runtime-untested`
+- Existing Set Repeater Value knob mappings keep their selected-track behavior — `@stock`
+
+**How it does it:** **Key procs:** `PakettiFindOrInsertRepeater`, `PakettiRepeaterSetActive`, `PakettiRepeaterToggleActive`, `PakettiRepeaterSetMode`, `PakettiRepeaterSetDivision`, `PakettiRepeaterAddActionKeybindings`, `PakettiRepeaterAddActionMidiMappings`, `PakettiRepeaterAddPresetMidiMappings` · **Source files:** `PakettiMidi.lua`
+
+**Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
 
 
 <a id="section-loop-immediate-switch"></a>

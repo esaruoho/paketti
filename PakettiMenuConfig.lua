@@ -459,6 +459,7 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Ran
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear Delay Column (Selection)", invoke = PakettiFillClearDelaySelection}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear Delay Column (Track)", invoke = PakettiFillClearDelayTrack}
 
+-- FEATURE-CARD >> features/execute-command-slots.feature
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Execute Commands...",invoke = PakettiExecuteShowDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Auto Control Disk Browser on Song Load",invoke = pakettiAutoHideDiskBrowserToggle,selected = pakettiAutoHideDiskBrowserIsEnabled}
 end

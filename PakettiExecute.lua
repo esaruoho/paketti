@@ -1,4 +1,5 @@
 -- PakettiExecute.lua
+-- FEATURE-CARD >> features/execute-command-slots.feature
 -- Configurable os.execute() command slots for keybindings and MIDI mappings.
 
 local vb = renoise.ViewBuilder()
@@ -379,10 +380,6 @@ function PakettiExecuteShowDialog()
         end
       }
     },
-    vb:text{
-      text = "$s exports the current sample selection/range as a temporary WAV and exposes it to the shell command as variable s.",
-      width = 720
-    }
   }
 
   dialog = renoise.app():show_custom_dialog("Paketti Execute Commands", dialog_content, my_keyhandler_func)

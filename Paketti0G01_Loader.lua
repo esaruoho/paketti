@@ -172,6 +172,7 @@ function PakettiUpsertParameterEditorConfig(device_path, device_name, param_rows
   return entry, existing_index
 end
 
+-- FEATURE-CARD >> features/execute-command-slots.feature
 function PakettiCreateExecutePreferences()
   local execute_preferences = {}
 
