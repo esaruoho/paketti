@@ -344,16 +344,21 @@ velocity range, and either a single wave or a run of splits. Splits are defined
 by their *first key* only — consecutive, and the first split has no split point.
 The largest split count in the surveyed corpus is 42.
 
-**Drum-pad pitch root.** For one-shot drumkit exports, the voice split key and the
-wave root must not both advance. The split key chooses which pad triggers which
-wave; the `.C01` wave's AIFF `INST` base note must stay fixed and calibrated.
+**Drum-pad pitch root.** For one-shot drumkit exports, the wave metadata must
+preserve each sample's actual trigger key. The split key chooses which pad
+triggers which wave, and the `.C01` wave's AIFF `INST` base note must match that
+per-sample key; the key must win over the kit default.
 The broken RX2 proof wrote wave roots `36..59` for pads C-2 upward, and Cyclone
 played later pads chromatically higher. The first correction kept every wave
 root at `36`, which removed the chromatic lift but left the whole kit sounding
-an octave low in Cyclone. The current correction writes drum-pad wave roots one
-octave below the pad base key (`24` for a C-2 kit) and leaves the voice split
-keys to step through the pads. Drum-pad `.C01` note bounds are widened to
-`0..127`, matching the wide bounds seen in known-good Cyclone wave files.
+an octave low in Cyclone. The current correction restores per-sample wave roots
+(`36..59` for pads C-2 upward) and leaves the voice split keys to step through
+the pads. Drum-pad `.C01` note bounds are widened to `0..127`, matching the
+wide bounds seen in known-good Cyclone wave files.
+
+The drumkit export also writes a `.P01` performance beside the `.O01`. It puts
+the kit voice on MIDI channel 10 and includes a program-0 entry, so loading the
+performance selects the playable break voice.
 
 ## Group parameters (`Parm`, 64 bytes) — bytes 0–3 decoded
 

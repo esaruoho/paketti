@@ -561,7 +561,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user, I want exported Yamaha TX16W IMG disks to present the same disk and item identity as known-good Cyclone images, So that Typhoon/Cyclone sees the disk contents as loadable Typhoon items.
 
-**Behaviour (8 scenarios):**
+**Behaviour (9 scenarios):**
 
 - Exported IMG uses the Typhoon/Cyclone short BPB identity — `@shipped @built @code-verified @runtime-verified`
 - Exported Typhoon items use the observed creator signature — `@shipped @built @code-verified @runtime-verified`
@@ -570,11 +570,12 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - File placement and root-directory labels still use the existing FAT writer — `@stock`
 - Cyclone loads a VInf-fixed Paketti-exported disk through Typhoon Load* — `@shipped @runtime-verified`
 - RX2 break slices export as an audible Cyclone proof image — `@shipped @built @runtime-verified`
-- Drum-pad exports keep slice pitch fixed while trigger keys advance — `@shipped @built @code-verified @runtime-verified`
+- Drum-pad exports preserve each slice's chromatic root — `@shipped @built @code-verified @runtime-verified`
+- Drumkit exports include a loadable performance — `@shipped @built @code-verified @runtime-verified`
 
 **How it does it:** **Key procs:** `PakettiTyphoonBuildDiskImage`, `PakettiTyphoonNewStamp`, `PakettiTyphoonNewWaveId`, `typhoon_export_wave_notes` · **Source files:** `PakettiTyphoon.lua`, `PakettiRX2Decode.lua`
 
-**Grade:** @built ×6 · @code-verified ×5 · @runtime-verified ×7 · @shipped ×7 · @stock ×1
+**Grade:** @built ×7 · @code-verified ×6 · @runtime-verified ×8 · @shipped ×8 · @stock ×1
 
 
 ---
