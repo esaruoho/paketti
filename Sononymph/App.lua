@@ -201,6 +201,20 @@ function App:toggle_live_transfer()
 end
 
 ---------------------------------------------------------------------------------------------------
+-- persist the preferences to disk.
+-- setting a value on the document is not enough - without this the AppPath /
+-- ConfigPath the user just configured is forgotten on the next Renoise start.
+
+function App:save_preferences()
+  local ok,err = pcall(function()
+    self.preferences:save_as("preferences.xml")
+  end)
+  if not ok then
+    LOG("Sononymph: could not save preferences:",err)
+  end
+end
+
+---------------------------------------------------------------------------------------------------
 -- check paths and update "paths_are_valid" with result
 
 function App:check_paths()
@@ -216,6 +230,29 @@ function App:check_paths()
   
   local path = self.preferences.SononymphPathToConfig.value
   local success,err = App.check_path(path)
+  if not success then 
+    -- The stored query.json is gone. This is what happens every time Sononym is
+    -- updated, because the config lives in a version-named folder:
+    -- .../Sononym/1.6.2/query.json becomes .../Sononym/1.6.14/query.json
+    -- Adopt the newest detected version instead of just reporting "invalid paths".
+    if not self._healing_config_path then
+      self._healing_config_path = true
+      local versions = App.find_sononym_versions()
+      local newest = versions and versions[1]
+      if newest and (newest.path ~= path) then
+        LOG("check_paths: stored ConfigPath is gone ("..tostring(path)
+          ..") - switching to detected Sononym "..newest.version..": "..newest.path)
+        self.preferences.SononymphPathToConfig.value = cFilesystem.unixslashes(newest.path)
+        self:save_preferences()
+        path = self.preferences.SononymphPathToConfig.value
+        success,err = App.check_path(path)
+        if success then
+          renoise.app():show_status("Sononymph: ConfigPath updated to Sononym "..newest.version)
+        end
+      end
+      self._healing_config_path = false
+    end
+  end
   if not success then 
     self.invalid_path_observable.value = path
     self.paths_are_valid_observable.value = false
@@ -340,6 +377,7 @@ function App:set_path_to_exe(file_path)
 
   file_path = cFilesystem.unixslashes(file_path)
   self.preferences.SononymphPathToExe.value = file_path
+  self:save_preferences()
   local success,err = App.check_path(file_path)
   if not success then 
     self:stop_monitoring()
@@ -371,6 +409,7 @@ function App:set_path_to_config(file_path)
 
   file_path = cFilesystem.unixslashes(file_path)
   self.preferences.SononymphPathToConfig.value = file_path  
+  self:save_preferences()
   local success,err = App.check_path(file_path)
   if not success then 
     self:stop_monitoring()
@@ -786,16 +825,17 @@ function App:do_search()
     return false,"Unable to Launch Search: " .. err 
   end
    
-local path_to_exe=cFilesystem.unixslashes(self.preferences.SononymphPathToExe.value)
-local tmp_path=cFilesystem.unixslashes(tmp_path)
-
-
   local path_to_exe = cFilesystem.unixslashes(self.preferences.SononymphPathToExe.value)
-  local cmd = string.format('"%s" %s',path_to_exe,cFilesystem.unixslashes(tmp_path))
-print (cmd)
-  local code = os.execute(cmd .. " &")
+  tmp_path = cFilesystem.unixslashes(tmp_path)
 
-return true
+  -- quote both arguments: the temp folder and/or the user folder can contain spaces.
+  -- the file argument must use native separators or Sononym's crawler reports
+  -- "Unable to resolve location" on Windows.
+  local cmd = string.format('"%s" "%s"',path_to_exe,App.native_path(tmp_path))
+  LOG("do_search:",cmd)
+  os.execute(cmd .. " &")
+
+  return true
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -816,7 +856,8 @@ function App:do_browse()
   end
   
   local path_to_exe = cFilesystem.unixslashes(self.preferences.SononymphPathToExe.value)
-  local browse_path = cFilesystem.unixslashes(folder_path)
+  -- native separators: Sononym's crawler cannot resolve "C:/..." on Windows
+  local browse_path = App.native_path(cFilesystem.unixslashes(folder_path))
   
   -- Launch Sononym with the folder path to enter browse mode
   local cmd = string.format('"%s" "%s"', path_to_exe, browse_path)
@@ -1283,6 +1324,23 @@ function App.parse_config(path)
     locationPath = locationPath,
   }
   
+end
+
+---------------------------------------------------------------------------------------------------
+-- Convert a path to the separator style the host OS expects.
+-- We keep paths internally in unix style (cFilesystem.unixslashes), but Sononym's
+-- crawler on Windows cannot resolve "C:/Users/.../file.flac" and answers with
+-- "Indexing error - Unable to resolve location". So any path we hand to the
+-- Sononym executable as an argument has to be converted back to backslashes.
+-- @param file_path (string)
+-- @return string
+
+function App.native_path(file_path)
+  if not file_path then return file_path end
+  if (os.platform() == "WINDOWS") then
+    return (string.gsub(file_path,"/","\\"))
+  end
+  return file_path
 end
 
 ---------------------------------------------------------------------------------------------------

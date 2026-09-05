@@ -8,6 +8,23 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-05 - Fix: Sononym Search Works Again on Windows, and Sononymph Survives a Sononym Update
+
+Three Sononymph problems, all reported from Windows.
+
+Sending a sample from Renoise to Sononym for a similarity search failed with Sononym's own `Indexing error - Reason: Unable to resolve location`. Sononymph was handing Sononym the temporary sample file with forward slashes (`C:/Users/.../Renoise_TmpFile.flac`), which Sononym's crawler cannot resolve on Windows. The file and folder arguments are now converted to the separators the host system actually uses, so the search starts. The same fix applies to Browse Folder in Sononym. Both arguments are also quoted now, so a user folder or temp folder containing a space no longer breaks the launch.
+
+Sononym keeps its configuration in a folder named after its version, so `.../Sononym/1.6.2/query.json` becomes `.../Sononym/1.6.14/query.json` the moment Sononym updates itself. Sononymph was left pointing at a file that no longer existed and simply reported `invalid paths`, with no hint that a Sononym update was the cause. It now notices that the stored configuration file is gone, picks up the newest Sononym version it can find, and tells you in the status bar which version it switched to.
+
+The AppPath and ConfigPath you configure are now written to disk when you set them. Previously they were only held in memory, so a path set through Detect or Browse could be forgotten by the next Renoise start.
+
+- Menu: `Main Menu:Tools:Paketti Gadgets:Sononymph Dialog...`
+- Menu: `Main Menu:Tools:Paketti:Samples:Sononymph:Search Selected Sample in Sononym`
+- Menu: `Sample Editor:Paketti:Sononymph:Search Selected Sample in Sononym`
+- Menu: `Instrument Box:Paketti:Sononymph:Search Selected Sample in Sononym`
+- Keybinding: `Global:Sononymph:Search Selected Sample in Sononym`
+- Keybinding: `Global:Sononymph:Open Sononymph Dialog...`
+
 ### 2026-09-05 - Feature: Paketti Warns You When the Renoise 3.1 Build Is Installed on a Newer Renoise
 
 Installing the Renoise 3.1 build of Paketti into Renoise 3.2 or newer is the worst kind of wrong: it loads, the menus all appear, and then anything that depends on the newer scripting API quietly misbehaves. From the outside that is indistinguishable from Paketti simply being full of bugs, and at least one person has concluded exactly that and said so publicly.
