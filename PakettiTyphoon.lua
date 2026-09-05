@@ -995,13 +995,13 @@ local typhoon_slicer = nil
 local function typhoon_export_wave_notes(smp, opts, key)
   local map = smp and smp.sample_mapping
   if not map then
-    local root = math.max(0, math.min(119, (opts.base_key or key or 60) - 12))
+    local root = math.max(0, math.min(119, key or opts.base_key or 60))
     return root, 0, 127
   end
   local range = map.note_range or {0, 119}
   local single_key = range[1] and range[2] and range[1] == range[2]
   if (not opts.use_mapping) or single_key or map.map_key_to_pitch == false then
-    local root = math.max(0, math.min(119, (opts.base_key or key or map.base_note or 60) - 12))
+    local root = math.max(0, math.min(119, key or opts.base_key or map.base_note or 60))
     return root, 0, 127
   end
   return math.max(0, math.min(119, map.base_note or key or 60)),
@@ -1189,8 +1189,8 @@ local function typhoon_export_process(outdir, opts)
     local voice_groups = build_voice_groups(instrument, splits, opts)
 
     local voicename = PakettiDWVWDosName(kitname, used, "O")
-    local voice = PakettiTyphoonBuildVoice(voice_groups, stamp,
-      PakettiTyphoonNewWaveId(stamp, voicename, 0))
+    local voiceid = PakettiTyphoonNewWaveId(stamp, voicename, 0)
+    local voice = PakettiTyphoonBuildVoice(voice_groups, stamp, voiceid)
     if #voice_groups > 1 then
       print(string.format("PakettiTyphoon: %d velocity layer(s) -> %d group(s)",
         #voice_groups, #voice_groups))
@@ -1198,6 +1198,20 @@ local function typhoon_export_process(outdir, opts)
 
     -- The voice goes on disk 1, where the sampler will look for it first.
     table.insert(disks[1].files, 1, { name = voicename, data = voice })
+
+    -- A drumkit export is also a one-voice performance: put it on the
+    -- TX16W's percussion channel so loading the .P01 selects the kit without
+    -- requiring the user to load the .O01 and assign the MIDI channel by hand.
+    local perfname = PakettiDWVWDosName(kitname, used, "P")
+    local perfid = PakettiTyphoonNewWaveId(stamp, perfname, 200)
+    local perf = PakettiTyphoonBuildPerformance({
+      { name = voicename:match("^[^%.]+"), id = voiceid,
+        disk = labelbase .. "1", channel = 9, transpose = 0, volume = 96 },
+    }, stamp, perfid, {
+      { program = 0, name = voicename:match("^[^%.]+"),
+        id = voiceid, disk = labelbase .. "1" },
+    })
+    table.insert(disks[1].files, 2, { name = perfname, data = perf })
 
     -- What actually fits in the machine. DWVW shrinks the floppy copy only, so
     -- a kit can span disks correctly and still be too big to load.
@@ -1217,7 +1231,8 @@ local function typhoon_export_process(outdir, opts)
         format_mb(total_points), format_mb(installed),
         ram_warning and "   *** TOO BIG ***" or ""),
       "",
-      "Insert the disks in this order. The voice is on disk 1; the sampler",
+      "Insert the disks in this order. The voice and performance are on disk 1;",
+      "load the .P01 to select the kit on MIDI channel 10, or load the .O01 directly.",
       "asks for the others by name as it needs them.",
       "",
     }
@@ -1250,12 +1265,13 @@ local function typhoon_export_process(outdir, opts)
       local loose = join(outdir, "files")
       ensure_dir(loose)
       write_file(join(loose, voicename), voice)
+      write_file(join(loose, perfname), perf)
       for _, f in ipairs(files) do write_file(join(loose, f.name), f.data) end
     end
 
     local msg = string.format(
-      "Paketti TX16W: %s - %d samples, voice %s, %d disk image(s) in %s%s%s",
-      kitname, #files, voicename, #disks, outdir,
+      "Paketti TX16W: %s - %d samples, voice %s, performance %s, %d disk image(s) in %s%s%s",
+      kitname, #files, voicename, perfname, #disks, outdir,
       (#disks > 1) and " (the voice is on disk 1; the sampler will ask for the others)" or "",
       (oversize > 0) and string.format(", %d too long for the sampler", oversize) or "")
     if ram_warning then

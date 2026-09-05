@@ -24,6 +24,7 @@
 # WATCH: PakettiTyphoonBuildDiskImage PakettiTyphoonNewStamp PakettiTyphoonNewWaveId typhoon_export_wave_notes
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks - newest below)
+#   2026-09-05  direct-commit  touched: PakettiTyphoonNewWaveId
 #   2026-09-04  direct-commit  touched: typhoon_export_wave_notes
 # =============================================================================
 
@@ -87,10 +88,19 @@ Feature: TX16W IMG exports use Cyclone-compatible item identity
     And the matching Renoise preview render `/Users/esaruoho/Downloads/tx16w/rx2-funk-proof/RX2_FUNK_PROOF.wav` has non-silent audio
 
   @shipped @built @code-verified @runtime-verified
-  Scenario: Drum-pad exports keep slice pitch fixed while trigger keys advance
-    # cite: PakettiTyphoon.lua typhoon_export_wave_notes (~line 994) - single-key drum pads and sequential drumkit exports use a calibrated fixed DWVW/AIFF INST root and wide wave bounds while the voice split carries the trigger key ; commit worktree
+  Scenario: Drum-pad exports preserve each slice's chromatic root
+    # cite: PakettiTyphoon.lua typhoon_export_wave_notes (~line 994) - per-sample key wins over the kit default for DWVW/AIFF INST root metadata, while wide wave bounds remain for one-shot pad mapping ; commit worktree
     Given a drumkit maps one one-shot sample per MIDI key
     When Paketti exports each sample as a Typhoon `.C01` wave
-    Then the wave `INST` base note stays one octave below the drumkit base key
+    Then the wave `INST` base note matches that sample's trigger key
+    And the wave `INST` note bounds stay `0..127`
     And the voice `Splt` keys still advance one key per sample
-    And Cyclone plays later slices at the same musical octave instead of transposing them by trigger-key position
+    And Cyclone retains the intended chromatic pitch relationship between slices
+
+  @shipped @built @code-verified @runtime-verified
+  Scenario: Drumkit exports include a loadable performance
+    # cite: PakettiTyphoon.lua typhoon_export_process (~line 1205) - emits a linked `.P01` with the kit voice on MIDI channel 10 and program 0 ; commit worktree
+    Given Paketti exports a drumkit as a Typhoon image set
+    When the export finishes
+    Then disk 1 contains the kit `.O01` and matching `.P01`
+    And the `.P01` references the exact voice id and assigns MIDI channel 10

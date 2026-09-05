@@ -38,7 +38,7 @@
 | selection-reversed-instrument | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 | subcolumn-only-invert | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
-| tx16w-cyclone-images | 8 | ✓ | ✓ | — | @built @code-verified @runtime-verified @shipped @stock |
+| tx16w-cyclone-images | 9 | ✓ | ✓ | — | @built @code-verified @runtime-verified @shipped @stock |
 
 ## Tally (computed)
 - Cards: 27
