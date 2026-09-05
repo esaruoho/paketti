@@ -8,9 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-09-05 - Improvement: Release Notes Spell Out Which Paketti Build Matches Your Renoise
+### 2026-09-05 - Improvement: Release Notes Lead With a Clickable Download for Your Renoise Version
 
-Every GitHub release now leads with a "Which file do I download?" section instead of a one-line compatibility note. For Renoise v3.1, download the Paketti31 xrnx. For Renoise v3.5 and newer, download Paketti v3.54. Renoise 3.2 to 3.4 also takes the v3.54 build. Both exact filenames are printed with the release's own timestamp so there is no guessing which asset is which, and the notes warn in a callout not to install the wrong build on a newer Renoise. The two builds still install side by side, since Paketti 3.1 registers under its own tool Id.
+Every GitHub release now opens with a "Which file do I download?" section instead of a one-line compatibility note, and each build is a direct download link you can click straight from the release description - no scrolling to the Assets list and picking the right filename out of a pile of attachments. For Renoise v3.5 and newer, download Paketti v3.54; Renoise 3.2 to 3.4 takes that same build. For Renoise v3.1, download the Paketti31 xrnx. A callout warns not to install the wrong build on a newer Renoise. The two builds still install side by side, since Paketti 3.1 registers under its own tool Id. The links are built from the release's own tag, so they always point at that release's files rather than at whatever happens to be newest.
 
 ### 2026-09-05 - Fix: Slices to Pattern and Slices to Phrase No Longer Error on Heavily Sliced Instruments
 
