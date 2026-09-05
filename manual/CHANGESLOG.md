@@ -8,6 +8,19 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-05 - Feature: Paketti Warns You When the Renoise 3.1 Build Is Installed on a Newer Renoise
+
+Installing the Renoise 3.1 build of Paketti into Renoise 3.2 or newer is the worst kind of wrong: it loads, the menus all appear, and then anything that depends on the newer scripting API quietly misbehaves. From the outside that is indistinguishable from Paketti simply being full of bugs, and at least one person has concluded exactly that and said so publicly.
+
+Paketti now detects the mismatch itself and says so. A couple of seconds after Renoise finishes starting, the 3.1 build on a newer Renoise raises a dialog naming the Renoise version you are actually on, explaining that the wrong build is installed and that the bugs are the mismatch rather than Paketti, and listing the three steps to fix it: download Paketti v3.54, uninstall Paketti 3.1 in `Tools > Tool Browser`, install v3.54. An `Open Downloads Page` button goes straight to the releases page. The correct build on any supported Renoise shows nothing at all and arms no timer, so it costs nothing.
+
+The build identifies itself two independent ways so the check cannot quietly stop working: the release workflow stamps the build flavor into the file while it assembles the 3.1 package, and the tool also reads the `Id` and `ApiVersion` out of its own installed `manifest.xml`, falling back to its install folder name. Either signal is enough. The workflow fails the build outright if the line it stamps ever goes missing.
+
+You can run the check on demand at any time.
+- Menu: `Main Menu:Tools:Paketti:!Preferences:Check Renoise Version Compatibility`
+
+Also corrected in the manual: the legacy build's filename was documented as `Paketti_V3.54_Renoise3.1_TIMESTAMP.xrnx`, which was never what the release actually contained. It is `org.lackluster.Paketti31_V3.1_Renoise3.1_TIMESTAMP.xrnx`.
+
 ### 2026-09-05 - Improvement: Release Notes Lead With a Clickable Download for Your Renoise Version
 
 Every GitHub release now opens with a "Which file do I download?" section instead of a one-line compatibility note, and each build is a direct download link you can click straight from the release description - no scrolling to the Assets list and picking the right filename out of a pile of attachments. For Renoise v3.5 and newer, download Paketti v3.54; Renoise 3.2 to 3.4 takes that same build. For Renoise v3.1, download the Paketti31 xrnx. A callout warns not to install the wrong build on a newer Renoise. The two builds still install side by side, since Paketti 3.1 registers under its own tool Id. The links are built from the release's own tag, so they always point at that release's files rather than at whatever happens to be newest.

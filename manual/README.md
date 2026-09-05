@@ -159,12 +159,14 @@ Yours, Esa Ruoho.
 
 Paketti works on Renoise 3.2 and newer. Features scale up with your Renoise version — you'll never see buttons or menus for things your version can't do.
 
-Paketti ships two builds with every release, both available on the [Releases page](https://github.com/esaruoho/paketti/releases):
+Paketti ships two builds with every release, both available on the [Releases page](https://github.com/esaruoho/paketti/releases), where each one is a direct download link at the top of the release notes:
 
-- **`Paketti_V3.54_TIMESTAMP.xrnx`** — for Renoise 3.2, 3.3, 3.4, and 3.5
-- **`Paketti_V3.54_Renoise3.1_TIMESTAMP.xrnx`** — for Renoise 3.1.x
+- **`org.lackluster.Paketti_V3.54_TIMESTAMP.xrnx`** — for Renoise 3.2, 3.3, 3.4, and 3.5+
+- **`org.lackluster.Paketti31_V3.1_Renoise3.1_TIMESTAMP.xrnx`** — for Renoise 3.1.x only
 
-Download the one that matches your Renoise version.
+Download the one that matches your Renoise version. **Do not run the Renoise 3.1 build on Renoise 3.2 or newer.** It will load and look like it works, but anything relying on the newer scripting API misbehaves, which looks exactly like Paketti being buggy. If you do install it on a newer Renoise, Paketti now notices and tells you so on startup, with a button that opens the downloads page — uninstall the 3.1 build in `Tools > Tool Browser` before installing v3.54. You can re-check at any time via `Main Menu > Tools > Paketti > !Preferences > Check Renoise Version Compatibility`.
+
+The two builds use different tool Ids, so they can sit in the Tools folder at the same time — which also means installing v3.54 does **not** remove an old 3.1 install. Uninstall it explicitly.
 
 **Renoise 3.5.0+ — Full Experience**
 

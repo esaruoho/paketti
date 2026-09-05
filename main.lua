@@ -1095,6 +1095,10 @@ timed_require("rx")
 timed_require("base64float")
 timed_require("PakettiDeflate")
 timed_require("Paketti0G01_Loader")
+-- Loaded right after the preferences/menu layer so its warning is among the
+-- first things a user sees. Warns when the Renoise 3.1 build (Paketti31) has
+-- been installed into Renoise 3.2+, where it half-works and reads as bugs.
+timed_require("PakettiVersionGuard")
 timed_require("PakettiShortcutHints")
 
 -- ============================================================================

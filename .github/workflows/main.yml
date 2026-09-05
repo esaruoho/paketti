@@ -215,6 +215,27 @@ jobs:
           find . -type f -name "*.lua" -exec sed -i "s/,\s*style\s*=\s*'[^']*'//g" {} +
           find . -type f -name "*.lua" -exec sed -i "s/style\s*=\s*'[^']*'\s*,\s*//g" {} +
 
+      # Stamp the build flavor into PakettiVersionGuard.lua so the installed
+      # tool can tell the user, at runtime, that they put the Renoise 3.1 build
+      # into a newer Renoise. This is the signal that needs no file IO; the
+      # guard also cross-checks manifest.xml. The grep is a hard gate: if the
+      # stamped line is ever renamed or reformatted, the build fails loudly
+      # instead of silently shipping a legacy .xrnx that thinks it is v3.54.
+      - name: Stamp build flavor as 3.1 in PakettiVersionGuard.lua
+        run: |
+          STAMP='local PAKETTI_BUILD_FLAVOR = "3.54"'
+          if ! grep -qF "$STAMP" PakettiVersionGuard.lua; then
+            echo "::error file=PakettiVersionGuard.lua::Expected stamp line not found: $STAMP"
+            echo "The package-api5 job rewrites this line to mark the legacy build."
+            echo "If you renamed or reformatted it, update this workflow step too."
+            exit 1
+          fi
+          sed -i 's/^local PAKETTI_BUILD_FLAVOR = "3\.54"$/local PAKETTI_BUILD_FLAVOR = "3.1"/' PakettiVersionGuard.lua
+          grep -qF 'local PAKETTI_BUILD_FLAVOR = "3.1"' PakettiVersionGuard.lua \
+            || { echo "::error::Build flavor stamp did not apply"; exit 1; }
+          echo "Stamped legacy build flavor:"
+          grep -n 'PAKETTI_BUILD_FLAVOR' PakettiVersionGuard.lua
+
       # Change manifest for side-by-side installation with the API 6 build.
       # Different Id allows both versions to coexist in Renoise's Tools folder.
       - name: Set manifest to API 5 (Paketti 3.1)
