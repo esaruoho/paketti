@@ -36,7 +36,7 @@ The build identifies itself two independent ways so the check cannot quietly sto
 You can run the check on demand at any time.
 - Menu: `Main Menu:Tools:Paketti:!Preferences:Check Renoise Version Compatibility`
 
-Also corrected in the manual: the legacy build's filename was documented as `Paketti_V3.54_Renoise3.1_TIMESTAMP.xrnx`, which was never what the release actually contained. It is `org.lackluster.Paketti31_V3.1_Renoise3.1_TIMESTAMP.xrnx`.
+The manual's install instructions were corrected in the same pass, since they were part of how people ended up here. The legacy build's filename was documented as `Paketti_V3.54_Renoise3.1_TIMESTAMP.xrnx`, which was never what any release actually contained - it is `org.lackluster.Paketti31_V3.1_Renoise3.1_TIMESTAMP.xrnx`. The Version Compatibility section opened by saying Paketti works on Renoise 3.2 and newer, then described a Renoise 3.1 build twenty lines further down; it now says 3.1 and newer. The "Renoise 3.0.x and older - Not Supported" heading had no text under it at all and now explains itself. And Getting Started told you to download the newest version without ever saying which of the two builds to take - it now leads with a table matching your Renoise version to a filename, and links back to the full compatibility section.
 
 ### 2026-09-05 - Improvement: Release Notes Lead With a Clickable Download for Your Renoise Version
 

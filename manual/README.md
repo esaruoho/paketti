@@ -157,7 +157,7 @@ Yours, Esa Ruoho.
 
 # VersionCompatibility
 
-Paketti works on Renoise 3.2 and newer. Features scale up with your Renoise version — you'll never see buttons or menus for things your version can't do.
+Paketti works on Renoise 3.1 and newer. Features scale up with your Renoise version — you'll never see buttons or menus for things your version can't do.
 
 Paketti ships two builds with every release, both available on the [Releases page](https://github.com/esaruoho/paketti/releases), where each one is a direct download link at the top of the release notes:
 
@@ -186,11 +186,22 @@ The Renoise 3.1 build includes all core Paketti features — pattern editor tool
 
 **Renoise 3.0.x and older — Not Supported**
 
+Renoise 3.0 and earlier use a scripting API that Paketti no longer targets, and neither build will install on them. Upgrading Renoise is the only path.
+
 # GettingStarted
 
-Download the newest version from [here](http://github.com/esaruoho/paketti/releases) - there's pretty much daily updates. Auto-updates would be neat, right? I've not yet set them up - it's not a case of just pushing to GitHub and rolling a new build - instead I'd need to do a bit more script magic to push them directly to the Renoise Tools page. This is a TODO.
+Download the newest version from [the Releases page](https://github.com/esaruoho/paketti/releases) - there's pretty much daily updates. Auto-updates would be neat, right? I've not yet set them up - it's not a case of just pushing to GitHub and rolling a new build - instead I'd need to do a bit more script magic to push them directly to the Renoise Tools page. This is a TODO.
 
-Drag the tool to your Renoise, or, if you already have Renoise installed, try double-clicking on the Paketti XRNX file that you got from http://github.com/esaruoho/paketti/releases.
+**Pick the build that matches your Renoise.** Every release has two, and the release notes put a direct download link for each one right at the top:
+
+| Your Renoise | Download |
+|---|---|
+| 3.2, 3.3, 3.4, 3.5 and newer | `org.lackluster.Paketti_V3.54_TIMESTAMP.xrnx` |
+| 3.1.x only | `org.lackluster.Paketti31_V3.1_Renoise3.1_TIMESTAMP.xrnx` |
+
+Getting this wrong is the single most common cause of "Paketti is broken" reports. See [VersionCompatibility](#versioncompatibility) above.
+
+Drag the tool to your Renoise, or, if you already have Renoise installed, try double-clicking on the Paketti XRNX file that you got from [the Releases page](https://github.com/esaruoho/paketti/releases).
 
 After a while, Paketti will finish installing.
 
