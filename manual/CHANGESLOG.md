@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-05 - Fix: Slices to Pattern and Slices to Phrase No Longer Error on Heavily Sliced Instruments
+
+Running Slices to Pattern, Slices to Pattern (Evenly), Slices to Pattern (Beat Sync Only), Slices to Phrase or Slices to Phrases (Per Slice) on an instrument with a very large number of slices stopped with `std::logic_error: 'invalid sample_mapping index'` and wrote nothing.
+
+Renoise's keyzone holds 120 notes (C-0 to B-9). When a sample is sliced, the parent sample takes the first note and each slice takes the next one up, so at most 119 slices can ever be given a trigger note. Past that, Renoise keeps creating slice samples but stops creating keyzone mappings, and Paketti was still asking for a mapping for every slice sample it found. The same mismatch appeared on any sliced instrument that had extra non-slice samples added to it afterwards.
+
+All five commands now look up each slice's trigger note through a bounds-checked path that falls back to a safe note instead of stopping, and they write only the slices Renoise can actually trigger. When an instrument has more slices than the keyzone can map, the status bar says so and names how many were used, rather than filling the pattern with notes that play nothing. Instruments within the limit behave exactly as before.
+
+This affects Renoise 3.1 through 3.5 identically.
+
 ### 2026-09-04 - Fix: Single Cycle Waveform Writer Re-reads Harmonics When You Return to an Instrument
 
 Switching the selected instrument under an open Single Cycle Waveform Writer now re-reads that instrument's own harmonic drawbar settings from its instrument and sample names. Setting harmonics on instrument 3, different harmonics on instrument 4, passing through an empty instrument 5 and coming back to 3 previously left the drawbars at zero; they now show instrument 3's harmonics again. In a Wavetable A&B instrument both slots are read, so sample slot 1 restores Wave A's drawbars and sample slot 2 restores Wave B's, and switching Edit A / Edit B shows the drawbars that actually built each wave. Menu entry, keybinding, and MIDI mapping names are unchanged.

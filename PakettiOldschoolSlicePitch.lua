@@ -10,6 +10,61 @@
 -- See features/song-lifecycle-safety.feature.
 local pakettiOldschoolSlicePitch_release_doc_observer = nil
 
+-- Renoise lays slices onto the 120-note keyzone (notes 0..119): the parent
+-- sample takes note 0 and slice N takes note N. So a sliced instrument can
+-- never have more than 120 note-on mappings, no matter how many slice samples
+-- it holds, and an instrument can also carry extra non-slice samples that were
+-- appended afterwards. Either way #instrument.samples can exceed
+-- #instrument.sample_mappings[1], and indexing past the end makes Renoise
+-- throw: "invalid sample_mapping index 'N'. valid values are (1 to M)."
+-- That throw aborts the whole caller, so every mapping lookup goes through the
+-- two helpers below. Layer index 1 == LAYER_NOTE_ON on every API version
+-- Paketti supports (3.1 through 3.5).
+local PAKETTI_SLICE_LAYER_NOTE_ON = 1
+
+-- How many note-on mappings this instrument actually has (0 if unreadable).
+local function pakettiSliceMappingCount(instrument)
+  if not instrument then return 0 end
+  local count = 0
+  pcall(function()
+    count = #instrument.sample_mappings[PAKETTI_SLICE_LAYER_NOTE_ON]
+  end)
+  return count
+end
+
+-- The keyzone trigger note for a given sample index, or `fallback` when that
+-- sample has no mapping. Never throws.
+local function pakettiSliceTriggerNote(instrument, sample_index, fallback)
+  fallback = fallback or 48 -- C-4
+  if not instrument or not sample_index then return fallback end
+  if sample_index < 1 or sample_index > pakettiSliceMappingCount(instrument) then
+    return fallback
+  end
+  local note = fallback
+  local ok = pcall(function()
+    local mapping = instrument:sample_mapping(PAKETTI_SLICE_LAYER_NOTE_ON, sample_index)
+    if mapping and mapping.note_range then
+      note = mapping.note_range[1]
+    end
+  end)
+  if not ok then return fallback end
+  return note
+end
+
+-- Clamp a wanted slice count to what the keyzone can actually trigger. Slices
+-- past the mapping cap have no note and cannot be played, so writing them into
+-- a pattern or phrase would only produce bogus fallback notes.
+local function pakettiClampSliceCountToMappings(instrument, wanted)
+  local mappable = pakettiSliceMappingCount(instrument) - 1 -- minus the parent
+  if mappable > 0 and wanted > mappable then
+    renoise.app():show_status(string.format(
+      "Instrument has %d slices but Renoise can only map %d to the keyzone - using the first %d.",
+      wanted, mappable, mappable))
+    return mappable
+  end
+  return wanted
+end
+
 function detectGapsInSample()
   local song = renoise.song()
   local instrument = song.selected_instrument
@@ -817,7 +872,7 @@ function pakettiSlicesToPattern(start_from_first_row, use_detected_bpm)
   print("Debug: Cleared pattern lines from", start_line, "to", end_line)
   
   -- ENHANCED: Process slices with smart column finding and direct sample mapping
-  local slice_count = #slice_markers - 1 -- Don't count final end marker
+  local slice_count = pakettiClampSliceCountToMappings(instrument, #slice_markers - 1) -- Don't count final end marker
   local note_instrument = song.selected_instrument_index - 1
   local note_panning = 255 -- Full center
   local note_volume = 255   -- Full volume
@@ -866,11 +921,7 @@ function pakettiSlicesToPattern(start_from_first_row, use_detected_bpm)
           
           if column <= 12 then
             -- DIRECT SAMPLE MAPPING: Get actual note from sample mapping
-            local slice_note = 60  -- Default fallback
-            local sample_mapping = instrument:sample_mapping(1, slice_sample_index)
-            if sample_mapping and sample_mapping.note_range then
-              slice_note = sample_mapping.note_range[1]
-            end
+            local slice_note = pakettiSliceTriggerNote(instrument, slice_sample_index, 60)
             
             -- Set note data
             note.instrument_value = note_instrument
@@ -934,12 +985,8 @@ function pakettiSlicesToPattern(start_from_first_row, use_detected_bpm)
           
           if column <= 12 then
             -- DIRECT SAMPLE MAPPING: Get actual note from sample mapping
-            local slice_note = 60  -- Default fallback
             local slice_sample_index = i + 1  -- Slices start at index 2
-            local sample_mapping = instrument:sample_mapping(1, slice_sample_index)
-            if sample_mapping and sample_mapping.note_range then
-              slice_note = sample_mapping.note_range[1]
-            end
+            local slice_note = pakettiSliceTriggerNote(instrument, slice_sample_index, 60)
             
             -- Set note data
             note.instrument_value = note_instrument
@@ -1051,8 +1098,9 @@ function pakettiSlicesToPatternEvenly(start_from_first_row)
   print("Debug: num_samples:", num_samples, "actual_slice_count:", actual_slice_count)
   print("Debug: Processing", actual_slice_count, "slices with even distribution")
   
-  -- Use the actual number of slice samples available
-  slice_count = actual_slice_count
+  -- Use the actual number of slice samples available, but never more than the
+  -- keyzone can map - see pakettiSliceTriggerNote above.
+  slice_count = pakettiClampSliceCountToMappings(instrument, actual_slice_count)
   
   -- Calculate the available pattern range
   local available_lines = end_line - start_line + 1
@@ -1088,12 +1136,8 @@ function pakettiSlicesToPatternEvenly(start_from_first_row)
       
       if column <= 12 then
         -- DIRECT SAMPLE MAPPING: Get actual note from sample mapping
-        local slice_note = 60  -- Default fallback
         local slice_sample_index = i + 1  -- Slices start at index 2
-        local sample_mapping = instrument:sample_mapping(1, slice_sample_index)
-        if sample_mapping and sample_mapping.note_range then
-          slice_note = sample_mapping.note_range[1]
-        end
+        local slice_note = pakettiSliceTriggerNote(instrument, slice_sample_index, 60)
         
         -- Set note data
         note.instrument_value = note_instrument
@@ -1138,7 +1182,7 @@ function pakettiSlicesToPatternBeatsyncOnly()
     return
   end
   
-  local num_slices = #samples[1].slice_markers
+  local num_slices = pakettiClampSliceCountToMappings(instrument, #samples[1].slice_markers)
   if num_slices < 1 then
     renoise.app():show_status("Selected instrument does not contain any slices.")
     return
@@ -1206,7 +1250,7 @@ function pakettiSlicesToPatternBeatsyncOnly()
     
     if column <= 12 then
       note.instrument_value = note_instrument
-      note.note_value = instrument:sample_mapping(1, i+1).note_range[1]
+      note.note_value = pakettiSliceTriggerNote(instrument, i + 1, 48)
       note.volume_value = note_volume
       note.panning_value = note_panning
       note.delay_value = delay
@@ -1277,7 +1321,7 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm, in_place)
     table.insert(slice_markers, sample_frames)
   end
   
-  local slice_count = #slice_markers - 1 -- Don't count final end marker
+  local slice_count = pakettiClampSliceCountToMappings(instrument, #slice_markers - 1) -- Don't count final end marker
 
   local new_instrument
   if in_place then
@@ -1314,13 +1358,8 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm, in_place)
   -- Mirrors PakettiOldschoolSlicePitch.lua:977 in pakettiSlicesToPattern.
   local slice_keyzone_notes = {}
   for i = 1, slice_count do
-    local fallback = 48 -- C-4
-    local mapping = new_instrument:sample_mapping(1, i + 1) -- [1]=original, [i+1]=slice i
-    if mapping and mapping.note_range then
-      slice_keyzone_notes[i] = mapping.note_range[1]
-    else
-      slice_keyzone_notes[i] = fallback
-    end
+    -- [1]=original, [i+1]=slice i
+    slice_keyzone_notes[i] = pakettiSliceTriggerNote(new_instrument, i + 1, 48)
   end
 
   -- Check if slices are equally spaced (mathematical slicing)
@@ -1482,7 +1521,7 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm, in_place)
     table.insert(slice_markers, sample_frames)
   end
 
-  local slice_count = #slice_markers - 1 -- exclude the end-of-sample sentinel
+  local slice_count = pakettiClampSliceCountToMappings(instrument, #slice_markers - 1) -- exclude the end-of-sample sentinel
 
   if slice_count > 126 then
     renoise.app():show_status("Too many slices (" .. slice_count .. "). Maximum 126 phrases allowed.")
@@ -1548,11 +1587,8 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm, in_place)
   for i = 1, slice_count do
     local marker_frame = slice_markers[i]
     local line_float = marker_frame / frames_per_line
-    local slice_note = 48 -- fallback to C-4
-    local mapping = new_instrument:sample_mapping(1, i + 1) -- [1]=original, [i+1]=slice i
-    if mapping and mapping.note_range then
-      slice_note = mapping.note_range[1]
-    end
+    -- [1]=original, [i+1]=slice i
+    local slice_note = pakettiSliceTriggerNote(new_instrument, i + 1, 48)
     abs_positions[i] = {pos = line_float, note = slice_note}
   end
 

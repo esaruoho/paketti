@@ -11019,6 +11019,8 @@ Writes slice notes to pattern starting from first row or current row.
 3. Spaces notes evenly or based on timing
 4. Starts from first row (00) or current cursor position
 
+**Slice limit:** Renoise's keyzone has 120 notes, and a sliced instrument spends one on the parent sample plus one per slice, so a maximum of 119 slices can be given a trigger note. If an instrument has more slices than that, Slices to Pattern and Slices to Phrase use the first 119 and tell you so in the status bar - the remaining slices have no note that would play them.
+
 ### Slices to Pattern (Beat Sync Only)
 
 **Keybindings:**
