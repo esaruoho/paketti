@@ -572,7 +572,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - RX2 break slices export as an audible Cyclone proof image — `@shipped @built @runtime-verified`
 - Drum-pad exports keep slice pitch fixed while trigger keys advance — `@shipped @built @code-verified @runtime-verified`
 
-**How it does it:** **Key procs:** `PakettiTyphoonBuildDiskImage`, `PakettiTyphoonNewStamp`, `PakettiTyphoonNewWaveId`, `typhoon_export_wave_root` · **Source files:** `PakettiTyphoon.lua`, `PakettiRX2Decode.lua`
+**How it does it:** **Key procs:** `PakettiTyphoonBuildDiskImage`, `PakettiTyphoonNewStamp`, `PakettiTyphoonNewWaveId`, `typhoon_export_wave_notes` · **Source files:** `PakettiTyphoon.lua`, `PakettiRX2Decode.lua`
 
 **Grade:** @built ×6 · @code-verified ×5 · @runtime-verified ×7 · @shipped ×7 · @stock ×1
 
