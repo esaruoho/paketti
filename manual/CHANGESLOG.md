@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-05 - Improvement: Release Notes Spell Out Which Paketti Build Matches Your Renoise
+
+Every GitHub release now leads with a "Which file do I download?" section instead of a one-line compatibility note. For Renoise v3.1, download the Paketti31 xrnx. For Renoise v3.5 and newer, download Paketti v3.54. Renoise 3.2 to 3.4 also takes the v3.54 build. Both exact filenames are printed with the release's own timestamp so there is no guessing which asset is which, and the notes warn in a callout not to install the wrong build on a newer Renoise. The two builds still install side by side, since Paketti 3.1 registers under its own tool Id.
+
 ### 2026-09-05 - Fix: Slices to Pattern and Slices to Phrase No Longer Error on Heavily Sliced Instruments
 
 Running Slices to Pattern, Slices to Pattern (Evenly), Slices to Pattern (Beat Sync Only), Slices to Phrase or Slices to Phrases (Per Slice) on an instrument with a very large number of slices stopped with `std::logic_error: 'invalid sample_mapping index'` and wrote nothing.

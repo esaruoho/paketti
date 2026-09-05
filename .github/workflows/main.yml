@@ -105,8 +105,19 @@ jobs:
           tag_name: ${{ steps.gen.outputs.tag_name }}
           release_name: Release ${{ steps.gen.outputs.tag_name }}
           body: |
-            **Renoise 3.2 – 3.5+** → download **Paketti** (standard .xrnx)
-            **Renoise 3.1.x** → download **Paketti 3.1** (Paketti31 .xrnx) — installable side-by-side
+            ## Which file do I download?
+
+            **For Renoise v3.1, please download the Paketti31 xrnx.**
+            `org.lackluster.Paketti31_V3.1_Renoise3.1_${{ steps.gen.outputs.tag_name }}.xrnx`
+
+            **For Renoise v3.5 and newer, please download Paketti v3.54.**
+            `org.lackluster.Paketti_V3.54_${{ steps.gen.outputs.tag_name }}.xrnx`
+
+            > ### ⚠️ Please don't attempt to use the wrong version of Paketti with a newer version of Renoise.
+
+            On Renoise 3.2 – 3.4, download the Paketti v3.54 build as well.
+
+            The two builds install side by side — Paketti 3.1 registers under its own tool Id (`org.lackluster.Paketti31`), so it will not overwrite Paketti v3.54.
 
             Support Paketti development: https://github.com/sponsors/esaruoho
           draft: false
