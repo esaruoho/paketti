@@ -16,7 +16,7 @@ Sending a sample from Renoise to Sononym for a similarity search failed with Son
 
 Sononym keeps its configuration in a folder named after its version, so `.../Sononym/1.6.2/query.json` becomes `.../Sononym/1.6.14/query.json` the moment Sononym updates itself. Sononymph was left pointing at a file that no longer existed and simply reported `invalid paths`, with no hint that a Sononym update was the cause. It now notices that the stored configuration file is gone, picks up the newest Sononym version it can find, and tells you in the status bar which version it switched to.
 
-The AppPath and ConfigPath you configure are now written to disk when you set them. Previously they were only held in memory, so a path set through Detect or Browse could be forgotten by the next Renoise start.
+Open Path, the button that reveals the Sononym configuration folder in your file browser, threw an error when no ConfigPath was set yet and did nothing at all on Linux. It now checks that the folder actually exists, says so in the status bar when it does not, and opens it through Renoise itself, which works the same on Windows, macOS and Linux.
 
 - Menu: `Main Menu:Tools:Paketti Gadgets:Sononymph Dialog...`
 - Menu: `Main Menu:Tools:Paketti:Samples:Sononymph:Search Selected Sample in Sononym`
