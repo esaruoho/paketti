@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-08 - Fix: Paketti v3.4.4 Failed To Load At Startup (Zero Crossings Auto-Snap)
+
+Paketti v3.4.4 could abort its entire startup with `std::logic_error: 'trying to access a nil object of type 'class RenoiseSong'`, traced to the Zero Crossings auto-snap initialisation that runs at the end of loading. When Paketti loads, no song document exists yet, and asking Renoise for the song at that moment raises an error rather than returning nothing. The auto-snap teardown routine asked for the song unguarded and then tested the result for nothing, which can never run because the error has already been raised. Every module had loaded correctly; the last few lines of startup then threw and took the whole tool down with them, so the user saw no Paketti at all.
+
+Both places in Zero Crossings that reach for the song during startup or during song teardown now ask for it safely and simply do nothing when there is no song, which is the correct behaviour in both cases: there is nothing to detach from a song that does not exist. Auto-snap arms itself as normal once a song is actually open.
+
+This affected anyone whose Zero Crossings auto-snap preference was switched off, which is the default.
+
 ### 2026-09-05 - Fix: Sononym Search Works Again on Windows, and Sononymph Survives a Sononym Update
 
 Three Sononymph problems, all reported from Windows.

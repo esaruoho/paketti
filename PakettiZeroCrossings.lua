@@ -446,8 +446,9 @@ function PakettiZeroCrossingsAttachSelectionObservable()
     PakettiZeroCrossingsSelectionObservable = nil
   end
 
-  local s = renoise.song()
-  local sample = s and s.selected_sample
+  local song_available, s = pcall(function() return renoise.song() end)
+  if not song_available or not s then return end
+  local sample = s.selected_sample
   if not sample or not sample.sample_buffer.has_sample_data then return end
   local buffer = sample.sample_buffer
 
@@ -471,8 +472,11 @@ function PakettiZeroCrossingsDetachAll()
     end)
     PakettiZeroCrossingsSelectionObservable = nil
   end
-  local s = renoise.song()
-  if s then
+  -- renoise.song() THROWS (not returns nil) when no song exists -- e.g. at tool
+  -- load time, and during app_release_document teardown. Guard with pcall, never
+  -- with `if s then`, which is dead code after a throw.
+  local song_available, s = pcall(function() return renoise.song() end)
+  if song_available and s then
     pcall(function()
       if s.selected_sample_observable:has_notifier(PakettiZeroCrossingsAttachSelectionObservable) then
         s.selected_sample_observable:remove_notifier(PakettiZeroCrossingsAttachSelectionObservable)
