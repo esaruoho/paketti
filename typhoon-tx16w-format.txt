@@ -371,18 +371,40 @@ normal TX16W percussion channel.
 These are hard requirements for an IMG that is intended for Cyclone, not merely
 pleasant-looking filesystem output:
 
+### Name-field contract
+
+These fields use different rules and must not share one generic normalizer:
+
+| Field | Example | Rule |
+|---|---|---|
+| Host/DOS filename | `HIBONGO.C01` | Uppercase 8.3 filename; DOS pads the seven-character root with a space internally. |
+| FAT root-directory field | `HIBONGO` + space | Standard DOS 8-byte base field. |
+| `.O01`/`.P01` wave or voice field | `HIBONGO` + NUL | Known-good Typhoon fixed field; DOS filename padding is separate. |
+| FAT volume label | `TX16W_2` | Preserve the underscore literally. |
+| `.O01`/`.P01` disk-reference field | `TX16W_2` + NUL | NUL-terminate the visible disk label; preserve the underscore. |
+
+The exporter therefore uses separate `PakettiTyphoonWaveName()` and
+`PakettiTyphoonDiskName()` paths. New format code must choose the field first
+and normalize only according to this table.
+
 - **Unique wave roots across a chained set.** Never resolve duplicate sample
   names as `BASSDRUM.C01`, `BASSDRUM.C02`, and `BASSDRUM.C03`. Typhoon resolves a
   wave by its 8-character name while changing disks. Keep the wave type as
   `.C01` and change the root: `BASSDRUM.C01`, `BASSDRU2.C01`,
   `BASSDRU3.C01`. The root used in the `.O01` `Wave` chunk must match the root
   in the disk directory exactly.
-- **No padding underscore in a root.** `MELODIC.C01` is correct for the
-  eight-character Typhoon name `MELODIC `. `MELODIC_.C01` is a different name
-  and produces `Missing wave MELODIC` even when the bytes are present on disk.
+- **No padding underscore in a root.** The exporter turns the short root
+  `MELODIC` into the DOS name `MELODIC.C01`; its eighth base-field byte is an
+  ASCII space. `MELODIC_.C01` is a different name and is never used as
+  padding.
+- **Wave roots use the known-good split convention.** Export `HIBONGO` as
+  `HIBONGO.C01`, `LOBONGO` as `LOBONGO.C01`, and `MTCONGA` as `MTCONGA.C01`.
+  The DOS directory root is space-padded by FAT, while the `.O01` Wave field
+  is NUL-terminated. Do not invent visible suffix characters.
 - **Disk labels preserve underscores.** A volume labeled `TX16W_2` must be
   referenced in voice/performance disk fields as `TX16W_2`, not `TX16W 2`.
-  Wave names and disk labels use different normalization rules.
+  The FAT label is DOS space-padded, while the fixed-width reference is
+  NUL-terminated. Wave names and disk labels use different normalization rules.
 - **Melodic one-wave map.** Renoise's sample mapping is zero-based, but the
   Typhoon voice key fields are one-based in known-good voices. A sample mapped
   across Renoise C-0..B-9 must therefore export with group bounds `1..120`,
@@ -395,6 +417,12 @@ pleasant-looking filesystem output:
   at the source loop end and keep the loop points within the exported frame
   count. The phrase `wave length / loop adjusted` is a warning that Cyclone
   changed loop data, not proof that chromatic key mapping works.
+- **Loop coordinates are source-first, output-second.** `PakettiDWVWLoopLimit`
+  reads the Renoise source `loop_end` before conversion; the resampler trims
+  and converts only that source span. `PakettiDWVWSampleMeta` then scales the
+  source `loop_start` and `loop_end` by `output_frames / source_frames` and
+  clamps them to the converted frame count. Do not calculate source loop
+  positions from the post-resample frame count.
 - **Performance test channel.** A drumkit `.P01` should reference the exact
   voice id and expose the voice on MIDI channel 1 for Cyclone's on-screen
   keyboard, as well as channel 10 for normal TX16W percussion use. A selected

@@ -9,6 +9,23 @@ Grounded in `/Users/esaruoho/work/paketti/PakettiMCP/server.lua`,
   **(A)** `socket_message` callback (event loop) and **(B)** a 100 ms `add_timer` poll (`safe_poll_clients`).
 - `router.handle(body)` dispatches JSON-RPC; tools live in `PakettiMCP/tools/*.lua`, registered into
   `router.tools`. `router.load_tools_dir()` already hot-reloads tool files **in place**.
+
+## Mandatory client preflight
+
+Before any PakettiMCP call, the client must verify the prerequisite chain in
+this order:
+
+1. Renoise is running and responsive (`osascript`/System Events check, or an
+   equivalent app probe).
+2. `GET http://localhost:19714/mcp` reaches the local server. A `404` response
+   is still proof that the HTTP server is alive; connection refusal is not.
+3. Only then send the JSON-RPC `POST` request.
+
+Do not report “PakettiMCP is offline” before checking Renoise. If Renoise is
+closed, MCP cannot be expected to answer. If Renoise is open but the endpoint
+refuses connections, report that distinct state and inspect the tool/server
+startup path. After starting Renoise, allow the server startup timer to run
+before retrying the endpoint.
 - `M.stop()` does NOT close the server socket ("port still reserved"); `start()` resumes the same socket.
 
 ## Root causes of the two brittleness points
