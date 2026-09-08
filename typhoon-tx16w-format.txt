@@ -344,6 +344,11 @@ velocity range, and either a single wave or a run of splits. Splits are defined
 by their *first key* only — consecutive, and the first split has no split point.
 The largest split count in the surveyed corpus is 42.
 
+The first `Splt` in a group has no `Parm` key chunk; it begins at the group's
+lower-key field. Therefore a drumkit group must use its first sample key as its
+lower bound. If the group lower bound is hard-coded to zero, the first kick is
+placed at C-0 while later slices begin at their requested keys.
+
 **Drum-pad pitch root.** For one-shot drumkit exports, the wave metadata must
 preserve each sample's actual trigger key. The split key chooses which pad
 triggers which wave, and the `.C01` wave's AIFF `INST` base note must match that
@@ -357,8 +362,56 @@ the pads. Drum-pad `.C01` note bounds are widened to `0..127`, matching the
 wide bounds seen in known-good Cyclone wave files.
 
 The drumkit export also writes a `.P01` performance beside the `.O01`. It puts
-the kit voice on MIDI channel 10 and includes a program-0 entry, so loading the
-performance selects the playable break voice.
+the kit voice on MIDI channels 1 and 10 and includes a program-0 entry, so the
+performance can be auditioned from Renoise channel 1 while retaining the
+normal TX16W percussion channel.
+
+### Paketti export invariants (do not regress)
+
+These are hard requirements for an IMG that is intended for Cyclone, not merely
+pleasant-looking filesystem output:
+
+- **Unique wave roots across a chained set.** Never resolve duplicate sample
+  names as `BASSDRUM.C01`, `BASSDRUM.C02`, and `BASSDRUM.C03`. Typhoon resolves a
+  wave by its 8-character name while changing disks. Keep the wave type as
+  `.C01` and change the root: `BASSDRUM.C01`, `BASSDRU2.C01`,
+  `BASSDRU3.C01`. The root used in the `.O01` `Wave` chunk must match the root
+  in the disk directory exactly.
+- **No padding underscore in a root.** `MELODIC.C01` is correct for the
+  eight-character Typhoon name `MELODIC `. `MELODIC_.C01` is a different name
+  and produces `Missing wave MELODIC` even when the bytes are present on disk.
+- **Disk labels preserve underscores.** A volume labeled `TX16W_2` must be
+  referenced in voice/performance disk fields as `TX16W_2`, not `TX16W 2`.
+  Wave names and disk labels use different normalization rules.
+- **Melodic one-wave map.** Renoise's sample mapping is zero-based, but the
+  Typhoon voice key fields are one-based in known-good voices. A sample mapped
+  across Renoise C-0..B-9 must therefore export with group bounds `1..120`,
+  its first `Splt` must omit `Parm`, and its closing `Splt/Parm` must contain
+  key `121`. Closing at key `1` makes only the first key playable. The wave
+  `INST` base note is the sample's root; the `1..120` range is the key
+  coverage, not the root.
+- **Audio loops are explicit.** Do not write `INST`/`MARK` loop chunks for a
+  one-shot source. If the source is deliberately audio-looped, trim the export
+  at the source loop end and keep the loop points within the exported frame
+  count. The phrase `wave length / loop adjusted` is a warning that Cyclone
+  changed loop data, not proof that chromatic key mapping works.
+- **Performance test channel.** A drumkit `.P01` should reference the exact
+  voice id and expose the voice on MIDI channel 1 for Cyclone's on-screen
+  keyboard, as well as channel 10 for normal TX16W percussion use. A selected
+  performance with only channel 10 will appear loaded but will be silent from
+  Cyclone's channel-1 keyboard.
+- **Use the slicer.** Loading a large fixture and exporting it from an MCP Lua
+  loop blocks `main.lua`. Fixture construction may be staged, but IMG creation
+  must call the `ProcessSlicer`-backed Typhoon export and be polled separately.
+- **Require an explicit completion marker.** A started ProcessSlicer job is not
+  complete until `.TX16W_EXPORT_COMPLETE` exists beside the manifest. A caller
+  must not hand over a directory containing only partial loose files or images.
+
+Before handing over an IMG set, verify: every `.O01` wave name/id has exactly
+one matching `.C01` on the named disk; no root is reused across disks; a
+single-wave voice uses Typhoon key bounds 1..120 and terminates at key 121;
+loop metadata agrees with the actual frame count; the `.P01` voice id matches;
+and every IMG passes `fsck_msdos`.
 
 ## Group parameters (`Parm`, 64 bytes) — bytes 0–3 decoded
 

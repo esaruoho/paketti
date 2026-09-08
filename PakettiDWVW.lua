@@ -236,7 +236,7 @@ function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every, m
   -- with loop positions as 1-based frame numbers; loop_mode uses the AIFF
   -- values 0 = none, 1 = forward, 2 = forward/backward.
   local inst, mark = "", ""
-  if meta then
+  if meta and (meta.loop_mode or 0) > 0 then
     local ls = math.max(0, math.min(nsamples, (meta.loop_start or 1) - 1))
     local le = math.max(0, math.min(nsamples, (meta.loop_end or nsamples) - 1))
     local mode = meta.loop_mode or 0
@@ -444,6 +444,11 @@ function PakettiDWVWDosName(name, used, ext_letter)
   n = n:gsub("^_+", ""):gsub("_+$", "")
   if n == "" then n = "SAMPLE" end
   n = n:sub(1, 8)
+  -- Spaces are converted to underscores for DOS-safe names, but a truncated
+  -- trailing underscore is only padding.  Typhoon voice Wave names use spaces
+  -- for that padding, so retaining it makes Cyclone look for a different wave.
+  n = n:gsub("_+$", "")
+  if n == "" then n = "SAMPLE" end
   used = used or {}
   for i = 1, 99 do
     local full = n .. "." .. string.format("%s%02d", ext_letter, i)

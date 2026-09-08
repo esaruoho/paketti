@@ -256,14 +256,14 @@
   <dynamic_view03_follow_pattern_step1>1.0</dynamic_view03_follow_pattern_step1>
   <dynamic_view03_play_step1>1.0</dynamic_view03_play_step1>
   <dynamic_view03_upper_step2>1.0</dynamic_view03_upper_step2>
-  <dynamic_view03_middle_step2>1.0</dynamic_view03_middle_step2>
-  <dynamic_view03_lower_step2>1.0</dynamic_view03_lower_step2>
+  <dynamic_view03_middle_step2>9</dynamic_view03_middle_step2>
+  <dynamic_view03_lower_step2>2</dynamic_view03_lower_step2>
   <dynamic_view03_sample_record_visible_step2>1.0</dynamic_view03_sample_record_visible_step2>
   <dynamic_view03_disk_browser_visible_step2>1.0</dynamic_view03_disk_browser_visible_step2>
   <dynamic_view03_instrument_box_visible_step2>1.0</dynamic_view03_instrument_box_visible_step2>
   <dynamic_view03_instrument_box_slot_size_step2>1.0</dynamic_view03_instrument_box_slot_size_step2>
-  <dynamic_view03_pattern_matrix_visible_step2>1.0</dynamic_view03_pattern_matrix_visible_step2>
-  <dynamic_view03_pattern_advanced_edit_visible_step2>1.0</dynamic_view03_pattern_advanced_edit_visible_step2>
+  <dynamic_view03_pattern_matrix_visible_step2>2</dynamic_view03_pattern_matrix_visible_step2>
+  <dynamic_view03_pattern_advanced_edit_visible_step2>2</dynamic_view03_pattern_advanced_edit_visible_step2>
   <dynamic_view03_instrument_editor_detached_step2>1.0</dynamic_view03_instrument_editor_detached_step2>
   <dynamic_view03_mixer_view_detached_step2>1.0</dynamic_view03_mixer_view_detached_step2>
   <dynamic_view03_metronome_step2>1.0</dynamic_view03_metronome_step2>

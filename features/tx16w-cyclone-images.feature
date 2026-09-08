@@ -104,3 +104,12 @@ Feature: TX16W IMG exports use Cyclone-compatible item identity
     When the export finishes
     Then disk 1 contains the kit `.O01` and matching `.P01`
     And the `.P01` references the exact voice id and assigns MIDI channel 10
+
+  @shipped @built @code-verified @runtime-untested
+  Scenario: The first drum slice starts at the requested base key
+    # cite: PakettiTyphoon.lua build_voice_groups (~line 1108) - group lower key supplies the first Typhoon Splt key because the first Splt has no Parm chunk ; commit worktree
+    Given a drumkit's first sample is mapped to C-2
+    When Paketti builds the Typhoon voice
+    Then the voice group lower key is C-2
+    And the first kick is not silently placed at C-0
+    And following slices remain addressable at consecutive keys

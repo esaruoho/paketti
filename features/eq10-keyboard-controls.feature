@@ -16,6 +16,7 @@
 # WATCH: adjust_eq10_band_gain pakettiEQ10XYDialog
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-08  direct-commit  touched: pakettiEQ10XYDialog
 #   2026-09-04  direct-commit  touched: adjust_eq10_band_gain
 # =============================================================================
 

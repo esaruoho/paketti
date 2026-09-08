@@ -96,6 +96,27 @@ function PakettiTyphoonWaveAppl(stamp, waveid)
   return chunk("APPL", "stoc" .. "\007" .. "Typhoon" .. chunk("VInf", stamp .. waveid))
 end
 
+-- A chained Typhoon set must not reuse a wave stem on another disk.  The
+-- generic DWVW allocator distinguishes collisions with C02/C03 extensions,
+-- but Typhoon resolves waves by their 8-character name while changing disks.
+-- Keep every wave a C01 and make repeated stems distinct instead:
+-- BASSDRUM.C01, BASSDRU2.C01, BASSDRU3.C01.
+local function typhoon_wave_name(name, used)
+  local probe = PakettiDWVWDosName(name, {})
+  local stem = probe:match("^[^%.]+") or "SAMPLE"
+  for suffix = 1, 99 do
+    local root = (suffix == 1)
+      and stem
+      or (stem:sub(1, 8 - #tostring(suffix)) .. tostring(suffix))
+    local full = root .. ".C01"
+    if not used[full] then
+      used[full] = true
+      return full
+    end
+  end
+  error("cannot find a unique Typhoon wave name for " .. tostring(name))
+end
+
 --------------------------------------------------------------------------------
 -- Voice (.O01) writer
 --------------------------------------------------------------------------------
@@ -124,6 +145,14 @@ function PakettiTyphoonHasKeyMapping(instrument)
       if (r[2] - r[1]) < 119 then narrow = narrow + 1 end
       seen[r[1] .. ":" .. r[2]] = true
     end
+  end
+  if n == 1 then
+    local smp = instrument.samples[1]
+    local r = smp.sample_mapping.note_range
+    -- A single mapped melodic sample is a valid chromatic instrument. The
+    -- multi-sample distinct-range heuristic must not discard its explicit map.
+    return smp.sample_mapping.map_key_to_pitch ~= false
+      and r and r[1] and r[2] and r[1] ~= r[2]
   end
   if n < 2 then return false end
   local distinct = 0
@@ -376,6 +405,14 @@ function PakettiTyphoonWaveName(dosbasename)
   return n .. string.rep("\0", 8 - #n)
 end
 
+-- Disk labels are not wave names: the FAT volume keeps underscores literally.
+-- Converting TX16W_2 to TX16W 2 makes Cyclone ask for a disk name that cannot
+-- match the mounted volume, even when the requested .C01 is present.
+function PakettiTyphoonDiskName(label)
+  local n = tostring(label or ""):upper():sub(1, 8)
+  return n .. string.rep("\0", 8 - #n)
+end
+
 -- splits: array of { key = <first MIDI key>, name = <8.3 basename>, id = <4 bytes> },
 --         which must be sorted ascending by key.
 -- end_key: the key that closes the mapping (defaults to just past the last split).
@@ -398,12 +435,13 @@ local function build_group(splits, range)
 
   for i, sp in ipairs(splits) do
     local body = ""
-    -- The first split never carries a Parm: it starts at key 0.
-    if i > 1 then body = body .. chunk("Parm", string.char(sp.key % 128) .. "\0") end
+    local voice_key = sp.voice_key or sp.key
+    -- The first split never carries a Parm: it starts at the group's low key.
+    if i > 1 then body = body .. chunk("Parm", string.char(voice_key % 128) .. "\0") end
     -- The 8 bytes after the id are the name of the diskette the wave lives on.
     -- 0xFF means "unknown", which is legal -- real third-party voices use it --
     -- but a real name lets Typhoon ask for the right floppy by name.
-    local disk = sp.disk and PakettiTyphoonWaveName(sp.disk) or string.rep("\255", 8)
+    local disk = sp.disk and PakettiTyphoonDiskName(sp.disk) or string.rep("\255", 8)
     body = body .. chunk("Wave", PakettiTyphoonWaveName(sp.name) .. sp.id .. disk)
     parts[#parts + 1] = chunk("Splt", body)
   end
@@ -656,7 +694,7 @@ function PakettiTyphoonBuildPerformance(entries, stamp, perfid, programs)
   assert(#entries > 0, "a performance needs at least one entry")
 
   local function ref(e)
-    local disk = e.disk and PakettiTyphoonWaveName(e.disk) or string.rep("\255", 8)
+    local disk = e.disk and PakettiTyphoonDiskName(e.disk) or string.rep("\255", 8)
     return chunk("Voic", PakettiTyphoonWaveName(e.name) .. e.id .. disk)
   end
 
@@ -685,7 +723,7 @@ end
 --   reference chunks, 20 bytes each.
 function PakettiTyphoonBuildSetup(name, stamp, setupid, perfs, voices, waves)
   local function ref(id, e)
-    local disk = e.disk and PakettiTyphoonWaveName(e.disk) or string.rep("\255", 8)
+    local disk = e.disk and PakettiTyphoonDiskName(e.disk) or string.rep("\255", 8)
     return chunk(id, PakettiTyphoonWaveName(e.name) .. e.id .. disk)
   end
 
@@ -1049,7 +1087,7 @@ local function encode_instrument(instrument, opts, stamp, used, progress, cancel
       local gm = PakettiTyphoonGMDrumNames[key]
       if gm then basename = gm end
     end
-    local dosname = PakettiDWVWDosName(basename, used)
+    local dosname = typhoon_wave_name(basename, used)
     local waveid = PakettiTyphoonNewWaveId(stamp, dosname, n)
 
     -- One sample per key. Renoise's own mapping is used when it is distinct,
@@ -1134,9 +1172,20 @@ local function build_voice_groups(instrument, splits, opts)
         highk = math.max(highk, math.min(127, sp.note_range[2]))
       end
     end
-    L.range.low_key = 0
-    L.range.high_key = math.max(highk, L.splits[#L.splits].key)
-    L.range.end_key = math.min(127, L.splits[#L.splits].key + 1)
+    -- The first Splt has no Parm key chunk; it starts at the group's lower
+    -- key. Keep that bound at the first real sample key instead of forcing the
+    -- first drum pad to C-0.
+    for _, sp in ipairs(L.splits) do
+      -- Typhoon's key fields are one-based in known-good voices.  Keep the
+      -- Renoise mapping zero-based, but translate the voice coordinates.
+      sp.voice_key = math.max(1, math.min(127, sp.key + 1))
+    end
+    L.range.low_key = math.max(1, math.min(127, L.splits[1].voice_key))
+    L.range.high_key = math.max(highk + 1, L.splits[#L.splits].voice_key)
+    -- The terminator closes the group's declared range, not merely the last
+    -- split's start key.  A single melodic wave spanning Renoise C-0..B-9
+    -- therefore uses Typhoon coordinates 1..120 and terminates at 121.
+    L.range.end_key = math.min(127, L.range.high_key + 1)
     L.range.filter = opts.filter_table
     L.range.output = opts.output
     L.range.aeg = aeg
@@ -1205,6 +1254,10 @@ local function typhoon_export_process(outdir, opts)
     local perfname = PakettiDWVWDosName(kitname, used, "P")
     local perfid = PakettiTyphoonNewWaveId(stamp, perfname, 200)
     local perf = PakettiTyphoonBuildPerformance({
+      -- Cyclone's on-screen keyboard sends channel 1; real TX16W drum use
+      -- conventionally sends channel 10.  Map both to the same kit voice.
+      { name = voicename:match("^[^%.]+"), id = voiceid,
+        disk = labelbase .. "1", channel = 0, transpose = 0, volume = 96 },
       { name = voicename:match("^[^%.]+"), id = voiceid,
         disk = labelbase .. "1", channel = 9, transpose = 0, volume = 96 },
     }, stamp, perfid, {
@@ -1232,7 +1285,7 @@ local function typhoon_export_process(outdir, opts)
         ram_warning and "   *** TOO BIG ***" or ""),
       "",
       "Insert the disks in this order. The voice and performance are on disk 1;",
-      "load the .P01 to select the kit on MIDI channel 10, or load the .O01 directly.",
+      "load the .P01 to select the kit on MIDI channels 1 and 10, or load the .O01 directly.",
       "asks for the others by name as it needs them.",
       "",
     }
@@ -1269,6 +1322,9 @@ local function typhoon_export_process(outdir, opts)
       for _, f in ipairs(files) do write_file(join(loose, f.name), f.data) end
     end
 
+    write_file(join(outdir, ".TX16W_EXPORT_COMPLETE"),
+      "Paketti TX16W export complete\n" .. os.date("!%Y-%m-%dT%H:%M:%SZ") .. "\n")
+
     local msg = string.format(
       "Paketti TX16W: %s - %d samples, voice %s, performance %s, %d disk image(s) in %s%s%s",
       kitname, #files, voicename, perfname, #disks, outdir,
@@ -1278,6 +1334,7 @@ local function typhoon_export_process(outdir, opts)
       msg = msg .. " - WARNING: " .. ram_warning
     end
     PakettiTyphoonLastStatus = msg
+    PakettiTyphoonExportState = "completed"
     renoise.app():show_status(msg)
     print(msg)
     for _, w in ipairs(written) do print("  wrote " .. join(outdir, w)) end
@@ -1296,12 +1353,14 @@ local function typhoon_export_process(outdir, opts)
   typhoon_slicer = nil
   if not ok then
     PakettiTyphoonLastStatus = "failed: " .. tostring(err)
+    PakettiTyphoonExportState = "failed"
     renoise.app():show_status("Paketti TX16W export failed: " .. tostring(err))
     print("PakettiTyphoon error: " .. tostring(err))
   end
 end
 
 PakettiTyphoonLastStatus = "never run"
+PakettiTyphoonExportState = "idle"
 
 function PakettiTyphoonExportDrumkit(outdir, opts)
   if typhoon_slicer and typhoon_slicer:running() then
@@ -1337,6 +1396,8 @@ function PakettiTyphoonExportDrumkit(outdir, opts)
     write_loose = (opts.write_loose ~= false),
     reveal = (opts.reveal ~= false),
   }
+  PakettiTyphoonExportState = "running"
+  PakettiTyphoonLastStatus = "running: TX16W export started"
   typhoon_slicer = ProcessSlicer(function() typhoon_export_process(outdir, resolved) end)
   typhoon_slicer:start()
   return true
