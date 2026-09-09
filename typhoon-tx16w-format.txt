@@ -116,14 +116,39 @@ FORM <size> TYPS     .X## setup
 ### Reference chunks — `Wave` / `Voic` / `Perf`, always 20 bytes
 
 ```
- 8 bytes  item name, space/NUL padded, may contain spaces ("808 BD 1")
+ 8 bytes  item name, NUL padded, byte-identical to the DOS 8.3 basename
  4 bytes  item id
  8 bytes  DISK NAME the item lives on, or 8 × 0xFF for "unknown"
 ```
 
-The trailing 8 bytes are the diskette name, not padding. Real third-party
-voices do write 0xFF there, so "unknown" is legal — but writing the true label
-lets Typhoon prompt for the right disk instead of searching.
+**The name never contains a space.** Measured over all 859 reference chunks on
+the known-good library disks `sd001`–`sd024`: 0 contain a space, 273 contain an
+underscore, and no DOS filename on any of those disks carries an embedded
+space. The reference name is the DOS basename, uppercased and NUL-padded —
+nothing is translated. (An earlier revision of this file claimed the internal
+name used spaces where the filename used underscores. That was wrong, and it
+made 49 of the 120 references in a drumkit export name a wave that existed on
+no disk.)
+
+**Only the `.X01` setup ever names a disk.** Same corpus, split by file type:
+
+| File | 0xFF "unknown" | names a diskette |
+|---|---|---|
+| `.O01`/`.O02`/`.O03` voices | 538 | 0 |
+| `.P01`…`.P06` performances | 417 | 0 |
+| `.X01` setups | 387 | **78** |
+
+The named values are `SD009`, `SD010`, `SD011`, `SD012` — uppercase and
+NUL-padded, against FAT volume labels that are lowercase `sd009`…`sd012`, so
+the match is case-insensitive. `sd011`'s setup points at `SD012` and `sd012`'s
+points back at `SD011`.
+
+So the setup is the **disk catalogue**, and on a chained set it is the only
+thing that knows where a wave lives. A voice says "this wave is somewhere"; the
+setup says "it is on that floppy". Ship a chained set without an `.X01` and the
+sampler is told a wave is missing but never which disk to ask for — every wave
+that packed onto disk 2 then reports as missing even though the `.C01` is
+physically present on the mounted image.
 
 Item ids look like a 3-byte per-session value with a 1-byte counter in front:
 `FAIRLITE.O01` is id `0c09f4dc` and references wave id `0b09f4dc`.
@@ -382,9 +407,10 @@ These fields use different rules and must not share one generic normalizer:
 |---|---|---|
 | Host/DOS filename | `HIBONGO.C01` | Uppercase 8.3 filename; DOS pads the seven-character root with a space internally. |
 | FAT root-directory field | `HIBONGO` + space | Standard DOS 8-byte base field. |
-| `.O01`/`.P01` wave or voice field | `HIBONGO` + NUL | Known-good Typhoon fixed field; DOS filename padding is separate. |
+| `.O01`/`.P01` wave or voice field | `HIBONGO` + NUL | Known-good Typhoon fixed field; DOS filename padding is separate. Underscores are kept: `SN_DRYCD` stays `SN_DRYCD`, never `SN DRYCD`. |
 | FAT volume label | `TX16W_2` | Preserve the underscore literally. |
-| `.O01`/`.P01` disk-reference field | `TX16W_2` + NUL | NUL-terminate the visible disk label; preserve the underscore. |
+| `.O01`/`.P01` disk-reference field in a chained set | eight `0xFF` bytes | 538 voice and 417 performance references in the known-good corpus; not one names a disk. |
+| `.X01` setup disk-reference field in a chained set | the target volume label, uppercase + NUL padded | The only field that carries a disk name, and the only reason a chained set resolves at all. |
 
 The exporter therefore uses separate `PakettiTyphoonWaveName()` and
 `PakettiTyphoonDiskName()` paths. New format code must choose the field first
@@ -404,10 +430,15 @@ and normalize only according to this table.
   `HIBONGO.C01`, `LOBONGO` as `LOBONGO.C01`, and `MTCONGA` as `MTCONGA.C01`.
   The DOS directory root is space-padded by FAT, while the `.O01` Wave field
   is NUL-terminated. Do not invent visible suffix characters.
-- **Disk labels preserve underscores.** A volume labeled `TX16W_2` must be
-  referenced in voice/performance disk fields as `TX16W_2`, not `TX16W 2`.
-  The FAT label is DOS space-padded, while the fixed-width reference is
-  NUL-terminated. Wave names and disk labels use different normalization rules.
+- **Chained sets need an `.X01`, and only the `.X01` names disks.** The
+  `.O01`/`.P01` disk-reference fields must contain eight `0xFF` bytes — the
+  corpus is unanimous, 955 references, zero exceptions. The disk names go in
+  the setup instead, one `Wave` reference per wave, each carrying the volume
+  label of the disk that wave actually landed on. A chained export with no
+  `.X01` fails with "Missing wave <first wave on disk 2>" no matter what the
+  voices contain, because nothing in the set records where disk 2's waves are.
+  Put the setup, every voice and the performance on disk 1, and load the
+  `.X01`: it is what makes the sampler ask for disk 2 by name.
 - **Melodic one-wave map.** Renoise's sample mapping is zero-based, but the
   Typhoon voice key fields are one-based in known-good voices. A sample mapped
   across Renoise C-0..B-9 must therefore export with group bounds `1..120`,

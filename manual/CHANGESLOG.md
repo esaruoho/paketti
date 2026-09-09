@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-09 - Fix: Multi-Disk TX16W Kits Now Load In Cyclone Instead Of Reporting Missing Waves
+
+A TX16W export big enough to span two 720K disks failed in Cyclone with `Missing wave <name>` for every wave that landed on disk 2, even though the `.C01` was physically present on the mounted image. Two separate defects, both now fixed, and both measured against all 859 reference chunks on the known-good Typhoon library disks `sd001` to `sd024` rather than guessed at.
+
+Wave references no longer translate underscores into spaces. The 8-byte name inside a `.O01` voice, `.P01` performance or `.X01` setup is byte-identical to the DOS 8.3 filename; not one of the 859 real references contains a space, while 273 contain an underscore. Paketti was rewriting `RM1X_DRU` as `RM1X DRU`, which made 49 of the 120 references in a 120-sample drumkit name a wave that existed on no disk.
+
+Multi-disk exports now write an `.X01` setup, and it is the file to load. The setup is the disk catalogue: it lists every wave alongside the volume label of the diskette that wave actually landed on. Real Typhoon sets do exactly this - all 538 voice references and all 417 performance references on the library disks mark the disk "unknown", and only the setups name one (78 of them, `SD009` through `SD012`). Without an `.X01` nothing in the set records where disk 2's waves are, so the sampler is told a wave is missing but never which floppy to ask for. The setup, every voice and the performance are on disk 1; the export manifest and the finished-export message now both say to load the `.X01`.
+
+The regression test in `tests/tx16w_export_regression.lua` was checking the wrong invariants and passed on the broken export. It now parses the FAT directory and every reference chunk, and fails unless each reference names a file that genuinely exists on one of the disks and the setup points every disk-2 wave at disk 2 by name.
+
 ### 2026-09-08 - Fix: Paketti v3.4.4 Failed To Load At Startup (Zero Crossings Auto-Snap)
 
 Paketti v3.4.4 could abort its entire startup with `std::logic_error: 'trying to access a nil object of type 'class RenoiseSong'`, traced to the Zero Crossings auto-snap initialisation that runs at the end of loading. When Paketti loads, no song document exists yet, and asking Renoise for the song at that moment raises an error rather than returning nothing. The auto-snap teardown routine asked for the song unguarded and then tested the result for nothing, which can never run because the error has already been raised. Every module had loaded correctly; the last few lines of startup then threw and took the whole tool down with them, so the user saw no Paketti at all.

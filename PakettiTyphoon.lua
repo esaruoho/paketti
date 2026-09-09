@@ -397,10 +397,14 @@ PakettiTyphoonDefaultMods = {
   "\012\003\000\015\000\000",
 }
 
--- Pad or trim a wave name into the 8 bytes a Wave reference holds. The internal
--- name uses spaces where the DOS filename uses underscores.
+-- Pad or trim a wave name into the 8 bytes a Wave/Voic/Perf reference holds.
+-- The internal name is byte-identical to the DOS filename: underscores stay
+-- underscores. Measured across 859 reference chunks on the known-good Typhoon
+-- library disks (sd001-sd024): 0 contain a space, 273 contain an underscore,
+-- and 0 DOS filenames carry an embedded space. Converting "_" to " " here made
+-- 49 of the 120 drumkit references name a wave that is on no disk.
 function PakettiTyphoonWaveName(dosbasename)
-  local n = tostring(dosbasename or ""):upper():gsub("_", " ")
+  local n = tostring(dosbasename or ""):upper()
   n = n:sub(1, 8)
   -- Known-good Typhoon voices use a NUL-terminated fixed field here; the FAT
   -- directory separately space-pads the DOS filename to eight bytes.
@@ -1269,8 +1273,12 @@ local function typhoon_export_process(outdir, opts)
     -- floppy when a wave is missing; without it the sampler only knows that
     -- something is absent, not where to send you.
     local labelbase = PakettiDWVWDosName(kitname, {}):match("^[^%.]+"):sub(1, 6)
-    local reserve_entries = #voice_parts + 1 -- voices plus performance
+    -- voices, the performance, and the .X01 setup that carries the disk names
+    local reserve_entries = #voice_parts + 2
     local reserve_bytes = 1024 + (#voice_parts * 1024) + (#splits * 64)
+      -- the setup: 56-byte globals plus one 28-byte reference per wave, voice
+      -- and performance, rounded up to a whole cluster.
+      + 1024 + ((#splits + #voice_parts + 1) * 28)
     local disks = PakettiTyphoonPackDisks(files, reserve_entries, reserve_bytes)
     local disk_of = {}
     for i, d in ipairs(disks) do
@@ -1315,6 +1323,30 @@ local function typhoon_export_process(outdir, opts)
     }, {unknown_disk_refs = (#disks > 1)})
     table.insert(disks[1].files, #voices + 1, { name = perfname, data = perf })
 
+    -- The .X01 setup is the disk catalogue, and on a chained set it is the only
+    -- thing that knows where a wave lives. Measured across the known-good
+    -- Typhoon library disks: every one of the 538 .O* voice references and 417
+    -- .P* performance references carries the 0xFF unknown-disk marker, while 78
+    -- of the .X01 references name a diskette outright ("SD009".."SD012",
+    -- NUL-padded). Without an .X01, Cyclone is told a wave is missing but never
+    -- which floppy to ask for, so every wave that packed onto disk 2 reports as
+    -- missing even though the .C01 is physically present.
+    local setup_waves = {}
+    for _, sp in ipairs(splits) do
+      setup_waves[#setup_waves + 1] = { name = sp.name, id = sp.id, disk = sp.disk }
+    end
+    local setup_voices = {}
+    for _, v in ipairs(voices) do
+      setup_voices[#setup_voices + 1] = { name = v.base, id = v.id, disk = labelbase .. "1" }
+    end
+    local setupname = PakettiDWVWDosName(kitname, used, "X")
+    local setup = PakettiTyphoonBuildSetup(
+      setupname:match("^[^%.]+"), stamp,
+      PakettiTyphoonNewWaveId(stamp, setupname, 201),
+      {{ name = perfname:match("^[^%.]+"), id = perfid, disk = labelbase .. "1" }},
+      setup_voices, setup_waves)
+    table.insert(disks[1].files, #voices + 2, { name = setupname, data = setup })
+
     -- What actually fits in the machine. DWVW shrinks the floppy copy only, so
     -- a kit can span disks correctly and still be too big to load.
     local installed = PakettiTyphoonInstalledPoints()
@@ -1333,9 +1365,11 @@ local function typhoon_export_process(outdir, opts)
         format_mb(total_points), format_mb(installed),
         ram_warning and "   *** TOO BIG ***" or ""),
       "",
-      "Insert the disks in this order. All voices and the performance are on disk 1;",
-      "load the .P01 to select the complete kit on MIDI channels 1 and 10.",
-      "The P01 contains every bounded voice; the sampler asks for later waves by disk name.",
+      "Insert the disks in this order. The setup, every voice and the performance",
+      "are on disk 1. Load the .X01 setup to rebuild the whole kit: it is the only",
+      "file that knows which diskette each wave lives on, so it is what makes the",
+      "sampler ask for disk 2 by name. Loading the .P01 on its own selects the kit",
+      "on MIDI channels 1 and 10, but can only resolve waves that are on disk 1.",
       "",
     }
     manifest[#manifest + 1] = string.format("Voices: %d (maximum 40 splits per voice)", #voices)
@@ -1373,6 +1407,7 @@ local function typhoon_export_process(outdir, opts)
       ensure_dir(loose)
       for _, v in ipairs(voices) do write_file(join(loose, v.name), v.data) end
       write_file(join(loose, perfname), perf)
+      write_file(join(loose, setupname), setup)
       for _, f in ipairs(files) do write_file(join(loose, f.name), f.data) end
     end
 
@@ -1382,7 +1417,7 @@ local function typhoon_export_process(outdir, opts)
     local msg = string.format(
       "Paketti TX16W: %s - %d samples, %d voices, performance %s, %d disk image(s) in %s%s%s",
       kitname, #files, #voices, perfname, #disks, outdir,
-      (#disks > 1) and " (voices are on disk 1; the sampler will ask for the others)" or "",
+      (#disks > 1) and string.format(" (load %s; it names the other disks)", setupname) or "",
       (oversize > 0) and string.format(", %d too long for the sampler", oversize) or "")
     if ram_warning then
       msg = msg .. " - WARNING: " .. ram_warning

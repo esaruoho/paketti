@@ -627,7 +627,9 @@ The dialog also carries the voice's own settings, which used to be inherited who
 
 Every export also writes a `KITNAME_DISKS.txt` manifest listing which sample landed on which disk, with the disk labels, so there is no guessing when the sampler asks for the next floppy. Disks follow the instrument's own order, so disk 1 holds the first samples.
 
-Takes the selected instrument and produces everything a TX16W running Typhoon needs to play it: one `.C01` wave per sample, one `.O01` voice file mapping them across the keyboard, a linked `.P01` performance on MIDI channel 10, and as many 720K floppy images as they take. Each disk gets its own name, and the voice records which diskette every wave landed on, so the sampler asks for the right floppy by name instead of just reporting something missing. The output folder is created if it does not exist yet. Pick a folder and you get `KITNAME_DISK1.img`, `KITNAME_DISK2.img` and so on, plus a `files` subfolder with the waves, voice, and performance loose if you would rather assemble a disk yourself.
+Takes the selected instrument and produces everything a TX16W running Typhoon needs to play it: one `.C01` wave per sample, one `.O01` voice file mapping them across the keyboard, a linked `.P01` performance on MIDI channel 10, an `.X01` setup, and as many 720K floppy images as they take.
+
+**When the kit spans more than one disk, load the `.X01` setup.** The setup is the disk catalogue: it lists every wave together with the name of the diskette that wave landed on, and it is the only file that carries that information. The voices and the performance mark every wave "disk unknown", which is exactly what real Typhoon library disks do. Load the `.P01` on its own and the sampler can only resolve the waves that happen to be on disk 1; load the `.X01` and it asks for disk 2 by name. The output folder is created if it does not exist yet. Pick a folder and you get `KITNAME_DISK1.img`, `KITNAME_DISK2.img` and so on, plus a `files` subfolder with the waves, voice, and performance loose if you would rather assemble a disk yourself.
 
 When it finishes, the folder opens in Finder so you can see what was written; the full path is also in the status bar and the scripting console.
 
@@ -635,7 +637,7 @@ Write the images to real floppies, or put them on a Gotek or HxC floppy emulator
 
 - Samples are mapped one per key going up from the base key. A duplicate key is nudged up rather than dropped, because Typhoon keys a split by where it starts.
 - Sample names become 8.3 uppercase, and the voice refers to each wave by an identifier stored inside the wave itself, so the pair always matches even after renaming.
-- The number of disks is set by whichever runs out first: the 730112 bytes of space, or the 112 entries a DOS root directory holds. A 120-sample kit runs out of directory entries first, so samples are spread evenly over the disks rather than filling the first one. The voice file always goes on disk 1.
+- The number of disks is set by whichever runs out first: the 730112 bytes of space, or the 112 entries a DOS root directory holds. A 120-sample kit runs out of directory entries first, so samples are spread evenly over the disks rather than filling the first one. The setup, every voice file and the performance go on disk 1.
 
 #### Export DWVW (Yamaha TX16W / Typhoon .C01)
 
