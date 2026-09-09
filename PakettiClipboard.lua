@@ -99,6 +99,25 @@ local function write_note_column_data(note_column, data, preserve_notes)
   end
 end
 
+-- REPORT-CARD >> features/clipboard-pattern-to-phrase.feature
+-- Pattern instrument values become phrase sample selectors if pasted raw.
+local function write_note_column_data_to_phrase(note_column, data, source_type, preserve_notes)
+  if source_type == "pattern" then
+    local phrase_data = {
+      note_value = data.note_value,
+      instrument_value = 255,
+      volume_value = data.volume_value,
+      panning_value = data.panning_value,
+      delay_value = data.delay_value,
+      effect_number_value = data.effect_number_value,
+      effect_amount_value = data.effect_amount_value
+    }
+    write_note_column_data(note_column, phrase_data, preserve_notes)
+  else
+    write_note_column_data(note_column, data, preserve_notes)
+  end
+end
+
 -- Helper to check if clipboard data contains only effects (no actual notes)
 local function clipboard_has_only_effects(data)
   if not data or not data.rows then return false end
@@ -1543,7 +1562,7 @@ local function paste_phrase_from_clipboard(slot_index)
       if track_data.note_columns then
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns then
-            write_note_column_data(phrase_line.note_columns[col_idx], col_data)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type)
           end
         end
       end
@@ -1636,7 +1655,7 @@ local function paste_phrase_by_editstep(slot_index)
       if track_data.note_columns then
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns then
-            write_note_column_data(phrase_line.note_columns[col_idx], col_data)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type)
           end
         end
       end
@@ -1714,7 +1733,7 @@ local function mix_paste_phrase_from_clipboard(slot_index)
             local note_col = phrase_line.note_columns[col_idx]
             -- Only paste into empty cells
             if note_col.is_empty then
-              write_note_column_data(note_col, col_data)
+              write_note_column_data_to_phrase(note_col, col_data, data.source_type)
               cells_pasted = cells_pasted + 1
             else
               cells_skipped = cells_skipped + 1
@@ -1807,7 +1826,7 @@ local function flood_fill_phrase_from_clipboard(slot_index)
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns and
              col_idx >= start_col and col_idx <= end_col then
-            write_note_column_data(phrase_line.note_columns[col_idx], col_data)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type)
           end
         end
       end
@@ -2421,7 +2440,7 @@ local function wonked_paste_phrase_from_clipboard(slot_index, preset_index)
       if track_data.note_columns then
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns then
-            write_note_column_data(phrase_line.note_columns[col_idx], col_data)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, transformed_data.source_type)
           end
         end
       end
@@ -2707,7 +2726,7 @@ local function transposed_paste_phrase_from_clipboard(slot_index, semitones)
       if track_data.note_columns then
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns then
-            write_note_column_data(phrase_line.note_columns[col_idx], col_data)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, transposed_data.source_type)
           end
         end
       end
@@ -3498,7 +3517,7 @@ local function swap_phrase_selection_with_clipboard(slot_index)
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns and
              col_idx >= start_col and col_idx <= end_col then
-            write_note_column_data(phrase_line.note_columns[col_idx], col_data)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, clipboard_data.source_type)
           end
         end
       end
@@ -5529,4 +5548,3 @@ for i = 1, NUM_CLIPBOARD_SLOTS do
     invoke = function() PakettiClipboardPasteToPattern(i) end
   }
 end
-

@@ -14,6 +14,7 @@
 |------|----:|:-----:|:----------:|:--------:|----------------|
 | 2026-06-11-groovebox-controller-follow-and-menu | 9 | ✓ | — | ✗ | @built @code-verified @hw-untested @logic-verified @superseded |
 | 2026-06-11-ui-fixes-and-menu-config | 8 | ✓ | ✓ | — | @built @code-verified @logic-verified @runtime-verified |
+| clipboard-pattern-to-phrase | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | eq10-keyboard-controls | 2 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
@@ -41,8 +42,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 27
-- Build-verified: 25
+- Cards: 28
+- Build-verified: 26
 - Runtime-verified: 3 full + 1 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

@@ -122,4 +122,4 @@
 - Resume: `claude --resume 62902262-0dee-4ad1-b398-6e54bed6b050`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/62902262-0dee-4ad1-b398-6e54bed6b050.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): TEMPLATE.feature, execute-command-slots.feature, song-lifecycle-safety.feature
+- Cards touched (4): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, execute-command-slots.feature, song-lifecycle-safety.feature

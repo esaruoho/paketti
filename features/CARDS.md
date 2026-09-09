@@ -7,6 +7,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 ## Contents
 
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
+- [Clipboard Pattern to Phrase conversion](#clipboard-pattern-to-phrase) — `clipboard-pattern-to-phrase.feature`
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
 - [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
 - [EQ10 keyboard controls](#eq10-keyboard-controls) — `eq10-keyboard-controls.feature`
@@ -46,6 +47,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - <what happens, in a few words>
 - <another behavior>
+
+
+<a id="clipboard-pattern-to-phrase"></a>
+## Clipboard Pattern to Phrase conversion
+
+`features/clipboard-pattern-to-phrase.feature` · [session](clipboard-pattern-to-phrase.session.md)
+
+**What it does:** As a Paketti user, I want cross-editor clipboard paste to respect phrase sample-column semantics, So that copied pattern notes do not turn into wrong or same-sample phrase content.
+
+**Behaviour (3 scenarios):**
+
+- Pattern-sourced clipboard paste clears phrase sample selectors — `@shipped @code-verified @runtime-untested`
+- Phrase-origin clipboard paste keeps explicit sample selectors — `@shipped @code-verified @runtime-untested`
+- Pattern-target clipboard paste keeps pattern instrument values — `@stock`
+
+**How it does it:** **Key procs:** `write_note_column_data_to_phrase`, `paste_phrase_from_clipboard`, `paste_phrase_by_editstep`, `mix_paste_phrase_from_clipboard`, `flood_fill_phrase_from_clipboard`, `wonked_paste_phrase_from_clipboard`, `transposed_paste_phrase_from_clipboard`, `swap_phrase_selection_with_clipboard` · **Source files:** `PakettiClipboard.lua`
+
+**Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
 
 
 <a id="device-hotswap-missing-to-actual"></a>
@@ -561,7 +580,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user, I want exported Yamaha TX16W IMG disks to present the same disk and item identity as known-good Cyclone images, So that Typhoon/Cyclone sees the disk contents as loadable Typhoon items.
 
-**Behaviour (10 scenarios):**
+**Behaviour (15 scenarios):**
 
 - Exported IMG uses the Typhoon/Cyclone short BPB identity — `@shipped @built @code-verified @runtime-verified`
 - Exported Typhoon items use the observed creator signature — `@shipped @built @code-verified @runtime-verified`
@@ -569,14 +588,19 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Exported IMG keeps the known-good 720K floppy geometry — `@shipped @built @code-verified @runtime-verified`
 - File placement and root-directory labels still use the existing FAT writer — `@stock`
 - Cyclone loads a VInf-fixed Paketti-exported disk through Typhoon Load* — `@shipped @runtime-verified`
+- A 120-pad drumkit uses bounded voices in one performance — `@built @code-verified @runtime-untested`
 - RX2 break slices export as an audible Cyclone proof image — `@shipped @built @runtime-verified`
 - Drum-pad exports preserve each slice's chromatic root — `@shipped @built @code-verified @runtime-verified`
 - Drumkit exports include a loadable performance — `@shipped @built @code-verified @runtime-verified`
-- The first drum slice starts at the requested base key — `@shipped @built @code-verified @runtime-untested`
+- A 120-sample kit spanning two disks loads and plays in Cyclone — `@shipped @built @code-verified @runtime-verified`
+- Each wave sits in its own group covering the keys it owns — `@shipped @built @code-verified @runtime-verified`
+- Every wave carries the loop metadata Typhoon expects — `@shipped @built @code-verified @runtime-verified`
+- A disk can be found by the name a reference gives it — `@shipped @built @code-verified @runtime-verified`
+- The first drum slice starts at the requested base key — `@shipped @built @code-verified @runtime-verified`
 
-**How it does it:** **Key procs:** `PakettiTyphoonBuildDiskImage`, `PakettiTyphoonNewStamp`, `PakettiTyphoonNewWaveId`, `typhoon_export_wave_notes` · **Source files:** `PakettiTyphoon.lua`, `PakettiRX2Decode.lua`
+**How it does it:** **Key procs:** `PakettiTyphoonBuildDiskImage`, `PakettiTyphoonNewStamp`, `PakettiTyphoonNewWaveId`, `typhoon_export_wave_notes` · **Source files:** `PakettiTyphoon.lua`, `PakettiRX2Decode.lua`, `PakettiDWVW.lua`
 
-**Grade:** @built ×8 · @code-verified ×7 · @runtime-untested ×1 · @runtime-verified ×8 · @shipped ×9 · @stock ×1
+**Grade:** @built ×13 · @code-verified ×12 · @runtime-untested ×1 · @runtime-verified ×13 · @shipped ×13 · @stock ×1
 
 
 ---

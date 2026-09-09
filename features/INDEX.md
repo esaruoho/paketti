@@ -13,6 +13,7 @@ Derived views — GENERATED, never hand-edit:
 |------|----------------|---------|------------|
 | `2026-06-11-groovebox-controller-follow-and-menu.feature` | AKAI controller debug/demo entries moved out of the Groovebox menu | `2026-06-11-groovebox-controller-follow-and-menu.session.md` | `37f054b1` `aae34805` `5483d3e3` |
 | `2026-06-11-ui-fixes-and-menu-config.feature` | Groovebox 8120 Kit loader status column alignment | `2026-06-11-ui-fixes-and-menu-config.session.md` | `47e81a77` `bc06819a` `2a1bce7a` |
+| `clipboard-pattern-to-phrase.feature` | Clipboard paste from Pattern Editor into Phrase Editor clears pattern instrument values instead of treating them as phrase sample selectors | `clipboard-pattern-to-phrase.session.md` | worktree |
 | `device-hotswap-missing-to-actual.feature` | Device hotswap — missing plugins → actually-installed equivalents | — | `bc06819a` `2300b421` |
 | `device-toggle-automation.feature` | Device Control NN enable/disable/toggle records bypass automation | `device-toggle-automation.session.md` | worktree |
 | `eq10-keyboard-controls.feature` | Shift+number/QWERTY gain controls for the EQ10 dialog | `eq10-keyboard-controls.session.md` | worktree |
