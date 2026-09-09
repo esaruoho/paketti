@@ -342,7 +342,10 @@ filenames may not. Typhoon 2000 displays spaces as underscores.
 **Groups and splits.** A voice holds groups; each group has one key range, one
 velocity range, and either a single wave or a run of splits. Splits are defined
 by their *first key* only — consecutive, and the first split has no split point.
-The largest split count in the surveyed corpus is 42.
+The largest split count in the surveyed corpus is 42. Paketti therefore caps
+an exported voice at 40 splits. A larger instrument is represented by several
+voices in one `.P01`, with disjoint key ranges; the performance, not one giant
+`.O01`, is the drumkit container.
 
 The first `Splt` in a group has no `Parm` key chunk; it begins at the group's
 lower-key field. Therefore a drumkit group must use its first sample key as its
@@ -707,8 +710,10 @@ Nothing has touched a real TX16W. Highest risk first:
 
 1. **Generated filter tables** — structurally verified byte for byte, never
    heard by anyone.
-2. **Very large kits** — 42 splits is the most any factory voice uses; we
-   happily write 120.
+2. **Very large kits** — factory voices top out at 42 splits. Paketti now
+   partitions a 120-pad kit into three 40-split voices and puts all three in
+   one `.P01`; Cyclone runtime loading of that new arrangement is still the
+   required live check.
 3. **The 12-byte creator stamp**, generated fresh. Only 667 of 1174 real waves
    shared their voice's stamp, so it reads as informational rather than load
    bearing — but that is an inference.

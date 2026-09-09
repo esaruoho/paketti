@@ -429,7 +429,7 @@ end
 -- 0-127 is NOISEWAV, which the Typhoon release notes describe as playing "only
 -- at higher key velocities" -- it reads 90-127. Everything past byte 3 is left
 -- at the known-good defaults, because it has not been decoded.
-local function build_group(splits, range)
+local function build_group(splits, range, unknown_disk_refs)
   local parm = PakettiTyphoonApplyParm(PakettiTyphoonDefaultParm, range)
 
   local parts = { chunk("Parm", parm) }
@@ -445,7 +445,8 @@ local function build_group(splits, range)
     -- The 8 bytes after the id are the name of the diskette the wave lives on.
     -- 0xFF means "unknown", which is legal -- real third-party voices use it --
     -- but a real name lets Typhoon ask for the right floppy by name.
-    local disk = sp.disk and PakettiTyphoonDiskName(sp.disk) or string.rep("\255", 8)
+    local disk = (sp.disk and not unknown_disk_refs)
+      and PakettiTyphoonDiskName(sp.disk) or string.rep("\255", 8)
     body = body .. chunk("Wave", PakettiTyphoonWaveName(sp.name) .. sp.id .. disk)
     parts[#parts + 1] = chunk("Splt", body)
   end
@@ -460,16 +461,20 @@ end
 -- splits: a flat list (one group), or a list of { splits = {...}, range = {...} }
 -- when the voice needs several groups -- which is how velocity layers are done,
 -- since a group carries the velocity range and a split does not.
-function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key)
+function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key, opts)
   assert(#splits > 0, "a voice needs at least one split")
 
   local groups = {}
   if splits[1].splits then
     for _, g in ipairs(splits) do
-      if #g.splits > 0 then groups[#groups + 1] = build_group(g.splits, g.range) end
+      if #g.splits > 0 then
+        groups[#groups + 1] = build_group(g.splits, g.range,
+          opts and opts.unknown_disk_refs)
+      end
     end
   else
-    groups[#groups + 1] = build_group(splits, end_key and {end_key = end_key} or nil)
+    groups[#groups + 1] = build_group(splits, end_key and {end_key = end_key} or nil,
+      opts and opts.unknown_disk_refs)
   end
   assert(#groups > 0, "a voice needs at least one group")
 
@@ -694,11 +699,12 @@ PAKETTI_TYPHOON_PERF_GLOBALS = "\000\255\004\010"
 -- entries: { name = "PIANO", id = <4 bytes>, disk = "DISK1",
 --            channel = 0-15 or nil for any, transpose = 0, volume = 96 }
 -- programs: { program = 0-127, name =, id =, disk = }
-function PakettiTyphoonBuildPerformance(entries, stamp, perfid, programs)
+function PakettiTyphoonBuildPerformance(entries, stamp, perfid, programs, opts)
   assert(#entries > 0, "a performance needs at least one entry")
 
   local function ref(e)
-    local disk = e.disk and PakettiTyphoonDiskName(e.disk) or string.rep("\255", 8)
+    local disk = (e.disk and not (opts and opts.unknown_disk_refs))
+      and PakettiTyphoonDiskName(e.disk) or string.rep("\255", 8)
     return chunk("Voic", PakettiTyphoonWaveName(e.name) .. e.id .. disk)
   end
 
@@ -1281,7 +1287,8 @@ local function typhoon_export_process(outdir, opts)
     for i, part in ipairs(voice_parts) do
       local voicename = PakettiDWVWDosName(kitname, used, "O")
       local voiceid = PakettiTyphoonNewWaveId(stamp, voicename, i)
-      local voice = PakettiTyphoonBuildVoice({part}, stamp, voiceid)
+      local voice = PakettiTyphoonBuildVoice({part}, stamp, voiceid, nil,
+        {unknown_disk_refs = (#disks > 1)})
       voices[#voices + 1] = { name = voicename, id = voiceid, data = voice,
                               base = voicename:match("^[^%.]+") }
       -- Every voice is on disk 1, where the performance will find it first.
@@ -1305,7 +1312,7 @@ local function typhoon_export_process(outdir, opts)
     local perfid = PakettiTyphoonNewWaveId(stamp, perfname, 200)
     local perf = PakettiTyphoonBuildPerformance(perf_entries, stamp, perfid, {
       { program = 0, name = voices[1].base, id = voices[1].id, disk = labelbase .. "1" },
-    })
+    }, {unknown_disk_refs = (#disks > 1)})
     table.insert(disks[1].files, #voices + 1, { name = perfname, data = perf })
 
     -- What actually fits in the machine. DWVW shrinks the floppy copy only, so

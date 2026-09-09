@@ -78,6 +78,15 @@ Feature: TX16W IMG exports use Cyclone-compatible item identity
     When `/Users/esaruoho/Downloads/tx16w/vinf-fixed/PAKETT_DISK1.img` is inserted and Typhoon runs System Setup, Utility, Load*, Go
     Then Cyclone loads the Paketti-exported disk instead of rejecting the item as requiring another OS version
 
+  @built @code-verified @runtime-untested
+  Scenario: A 120-pad drumkit uses bounded voices in one performance
+    # cite: PakettiTyphoon.lua partition_voice_groups and typhoon_export_process (~line 1200) - caps voices at 40 splits and emits all voice references in the P01 ; worktree
+    Given a drumkit contains 120 mapped samples
+    When Paketti exports the kit to TX16W images
+    Then the kit has three voices with no more than 40 splits each
+    And the P01 references all three voices on MIDI channels 1 and 10
+    And the loose output contains the P01 as well as every O01
+
   @shipped @built @runtime-verified
   Scenario: RX2 break slices export as an audible Cyclone proof image
     # cite: PakettiRX2Decode.lua PakettiRX2DecodeFile (~line 273) - decoded `RS - Funkey Bazzard.rx2`; PakettiTyphoon.lua PakettiTyphoonExportDrumkit (~line 1270) - exported `/Users/esaruoho/Downloads/tx16w/rx2-funk-proof/RX2_FU_DISK1.img` ; commit worktree
