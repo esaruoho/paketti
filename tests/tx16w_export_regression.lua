@@ -29,16 +29,56 @@ local function count(data, needle)
   return n
 end
 
+local p01 = read(root .. "/files/TX16W_DR.P01")
+local o01 = read(root .. "/files/TX16W_DR.O01")
+local o02 = read(root .. "/files/TX16W_DR.O02")
+local o03 = read(root .. "/files/TX16W_DR.O03")
+local disk1 = read(root .. "/TX16W__DISK1.img")
+local disk2 = read(root .. "/TX16W__DISK2.img")
+
+check("disk 1 is 720K", #disk1 == 737280)
+check("disk 2 is 720K", #disk2 == 737280)
+check("performance has channel 1", p01:byte(65) == 0)
+check("performance has channel 10", p01:byte(121) == 9)
+check("performance contains all three bounded voices", count(p01, "Entr") == 6)
+check("performance has program 0", has(p01, "PChg"))
+check("each bounded voice has at most 40 splits", count(o01, "Wave") <= 40
+  and count(o02, "Wave") <= 40 and count(o03, "Wave") <= 40)
+check("all 120 splits are present", count(o01, "Wave") + count(o02, "Wave")
+  + count(o03, "Wave") == 120)
+local voices = o01 .. o02 .. o03
+if unknown_disk_refs then
+  -- Known-good chained Cyclone/Typhoon images use FF in the wave and voice
+  -- reference fields. The physical disk labels still identify the media.
+  check("chained voices use unknown disk markers", not has(voices, "TX16W_1")
+    and not has(voices, "TX16W_2")
+    and has(voices, string.rep("\255", 8)))
+  check("performance uses unknown disk markers", not has(p01, "TX16W_1")
+    and not has(p01, "TX16W_2")
+    and has(p01, string.rep("\255", 8)))
+else
+  check("disk 2 label is referenced literally", has(voices, "TX16W_2"))
+  check("disk 2 reference is NUL-terminated", has(voices, "TX16W_2\0"))
+end
+check("disk 2 contains HIBONGO", has(disk2, "HIBONGO"))
+check("short disk-2 wave name is NUL-terminated", has(voices, "HIBONGO\0"))
+if not unknown_disk_refs then
+  check("voice references disk 1 literally", has(voices, "TX16W_1"))
+end
+
 --------------------------------------------------------------------------------
--- The drumkit invariants. The failure these exist to prevent: a kit spread over
--- several disks where the voices and the performance all sat on disk 1 while
--- the waves were scattered by size, so disk 1's voices referenced waves on
--- disk 2 and disk 2 carried no voice or performance at all. Cyclone loaded
--- disk 1 fine, loaded disk 2 with zero performances, and could resolve neither.
+-- Structural checks. These are the two invariants that made the 120-sample
+-- drumkit fail in Cyclone with "Missing wave VIBSLAP" while every substring
+-- check above still passed.
 --
--- Nothing in the Yamaha library corpus is built that way. Every disk must be
--- self-contained: its own voice, its own performance, and the waves that voice
--- plays, so it loads on its own with nothing missing.
+-- Both were established by measuring the known-good Typhoon library disks
+-- (sd001-sd024, 859 reference chunks):
+--   * 0 references contain a space, 273 contain an underscore, and no DOS
+--     filename carries an embedded space -- the 8-byte reference name is
+--     byte-identical to the DOS basename.
+--   * 538 .O* and 417 .P* references carry the 0xFF unknown-disk marker; only
+--     the .X01 setup ever names a diskette (78 references, "SD009".."SD012").
+--     The setup is the disk catalogue: without it nothing on disk 2 resolves.
 --------------------------------------------------------------------------------
 
 local function u16(d, o) return d:byte(o) + d:byte(o + 1) * 256 end
@@ -46,42 +86,38 @@ local function u32be(d, o)
   return ((d:byte(o) * 256 + d:byte(o + 1)) * 256 + d:byte(o + 2)) * 256 + d:byte(o + 3)
 end
 
--- Root directory of a FAT12 720K image.
+-- Root directory of a FAT12 720K image: { ["NAME.EXT"] = true }, plus the label.
 local function dir_of(img)
   local bps, spf = u16(img, 12), u16(img, 23)
-  local base = (1 + 2 * spf) * bps
-  local files, label, order = {}, nil, {}
+  local root = (1 + 2 * spf) * bps
+  local names, label = {}, nil
   for i = 0, u16(img, 18) - 1 do
-    local e = img:sub(base + i * 32 + 1, base + i * 32 + 32)
+    local e = img:sub(root + i * 32 + 1, root + i * 32 + 32)
     if e:byte(1) == 0 then break end
     if e:byte(1) ~= 0xE5 then
-      local stem = e:sub(1, 8):gsub(" +$", "")
-      local ext  = e:sub(9, 11):gsub(" +$", "")
-      if e:byte(12) % 16 >= 8 then label = (stem .. ext):gsub(" +$", "")
-      else
-        files[stem] = ext
-        order[#order + 1] = stem .. "." .. ext
-      end
+      local base = e:sub(1, 8):gsub(" +$", "")
+      if e:byte(12) % 16 >= 8 then label = (base .. e:sub(9, 11)):gsub(" +$", "")
+      else names[base .. "." .. e:sub(9, 11)] = true ; names[base] = true end
     end
   end
-  return files, label, order
+  return names, label
 end
 
--- Every 20-byte Wave/Voic/Perf reference: tag, name, disk field.
+-- Every 20-byte Wave/Voic/Perf reference: name, 4-byte id, 8-byte disk field.
 local function refs_of(data)
   local out, i = {}, 1
   while true do
-    local j
-    for _, tag in ipairs({ "Wave", "Voic", "Perf" }) do
-      local k = data:find(tag, i, true)
-      if k and (not j or k < j) then j = k end
-    end
+    local j = data:find("Wave", i, true) or data:find("Voic", i, true)
+    local k = data:find("Voic", i, true)
+    if k and (not j or k < j) then j = k end
+    local m = data:find("Perf", i, true)
+    if m and (not j or m < j) then j = m end
     if not j then break end
     if j + 27 <= #data and u32be(data, j + 4) == 20 then
       out[#out + 1] = {
         tag  = data:sub(j, j + 3),
         name = data:sub(j + 8, j + 15):gsub("%z+$", ""),
-        disk = data:sub(j + 20, j + 27):gsub("%z+$", ""),
+        disk = data:sub(j + 20, j + 27),
       }
     end
     i = j + 4
@@ -89,144 +125,96 @@ local function refs_of(data)
   return out
 end
 
--- Collect every disk image in the folder.
-local images = {}
-for i = 1, 99 do
-  local f = io.open(string.format("%s/TX16W__DISK%d.img", root, i), "rb")
-  if not f then break end
-  local d = f:read("*a") ; f:close()
-  images[i] = d
+local d1names, d1label = dir_of(disk1)
+local d2names, d2label = dir_of(disk2)
+
+-- 1. Reference names must be real DOS filenames. The "_" -> " " conversion made
+--    49 of the 120 drumkit references name a wave that exists on no disk.
+local nospace, unresolved = true, {}
+for _, src in ipairs({ o01, o02, o03, p01 }) do
+  for _, r in ipairs(refs_of(src)) do
+    if r.name:find(" ", 1, true) then nospace = false end
+    if r.tag == "Wave" and not d1names[r.name] and not d2names[r.name] then
+      unresolved[#unresolved + 1] = r.name
+    end
+  end
 end
-check("at least one disk image was written", #images >= 1)
+check("no reference name contains a space", nospace)
+check("every wave reference names a file that exists on some disk",
+  #unresolved == 0)
 
-local total_waves, total_splits = 0, 0
-for i, img in ipairs(images) do
-  local files, label, order = dir_of(img)
-  local tag = "disk " .. i
-
-  check(tag .. " is 720K", #img == 737280)
-  check(tag .. " carries a volume label", label ~= nil and label ~= "")
-
-  -- what kinds of file are on it
-  local voices, perfs, waves = {}, {}, 0
-  for _, entry in ipairs(order) do
-    local stem, ext = entry:match("^([^%.]+)%.(.+)$")
-    local kind = ext:sub(1, 1)
-    if kind == "O" then voices[#voices + 1] = entry
-    elseif kind == "P" then perfs[#perfs + 1] = entry
-    elseif kind == "C" then waves = waves + 1 end
-  end
-  total_waves = total_waves + waves
-
-  -- THE invariant: a disk that carries waves must be able to play them.
-  check(tag .. " has at least one voice", #voices >= 1)
-  check(tag .. " has at least one performance", #perfs >= 1)
-
-  -- Every WAVE reference on this disk must resolve on this same disk. Voice
-  -- references inside a performance may point at another disk: that is what the
-  -- master performance is for.
-  for _, entry in ipairs(order) do
-    local ext = entry:match("%.(.+)$")
-    if ext:sub(1, 1) == "O" or ext:sub(1, 1) == "P" then
-      local data = read(root .. "/files/" .. entry)
-      local n = 0
-      for _, r in ipairs(refs_of(data)) do
-        check(tag .. " " .. entry .. " reference '" .. r.name .. "' has no space",
-          not r.name:find(" ", 1, true))
-        if r.tag == "Wave" then
-          n = n + 1
-          check(tag .. " " .. entry .. " wave '" .. r.name .. "' is on this disk",
-            files[r.name] ~= nil)
-          check(tag .. " " .. entry .. " wave '" .. r.name .. "' names this disk",
-            r.disk == label)
-        else
-          check(tag .. " " .. entry .. " voice reference '" .. r.name .. "' names a disk",
-            r.disk ~= nil and r.disk ~= "")
-        end
-      end
-      if ext:sub(1, 1) == "O" then
-        check(tag .. " " .. entry .. " has at most 40 splits", n <= 40)
-        total_splits = total_splits + n
-      end
-    end
-  end
-
-  -- THE disk-2 fault: a performance that addresses only its own disk's voice
-  -- covers a 40-key slice, so playing outside it gives the group's first split
-  -- for every note - one sample instead of forty. A multi-disk kit must carry a
-  -- performance that addresses every voice.
-  if #images > 1 then
-    local covering = false
-    for _, entry in ipairs(order) do
-      if entry:match("%.P") then
-        local seen = {}
-        for _, r in ipairs(refs_of(read(root .. "/files/" .. entry))) do
-          if r.tag == "Voic" then seen[r.disk] = true end
-        end
-        local n = 0
-        for _ in pairs(seen) do n = n + 1 end
-        if n == #images then covering = true end
-      end
-    end
-    check(tag .. " carries a performance addressing every disk's voice", covering)
-  end
-
-  -- Wave invariants. Typhoon rounds a wave that does not meet these and says so
-  -- on load: "wave length / loop adjusted", "data after loop will not be
-  -- loaded". All 38 drum waves on the known-good disk sd007 meet them.
-  for _, entry in ipairs(order) do
-    if entry:match("%.C%d") then
-      local w = read(root .. "/files/" .. entry)
-      local seen, frames, loop_end, play = {}, nil, nil, nil
-      local i = 13
-      while i + 8 <= #w do
-        local t = w:sub(i, i + 3)
-        local l = u32be(w, i + 4)
-        local b = w:sub(i + 8, i + 7 + l)
-        seen[t] = true
-        if t == "COMM" then frames = u32be(b, 3) end
-        if t == "INST" then play = b:byte(9) * 256 + b:byte(10) end
-        if t == "MARK" then loop_end = u32be(b, 23) end
-        i = i + 8 + l + (l % 2)
-      end
-      check(entry .. " carries INST", seen.INST == true)
-      check(entry .. " carries MARK", seen.MARK == true)
-      check(entry .. " length is a multiple of 64", frames % 64 == 0)
-      if play == 0 then
-        check(entry .. " has no sample data after the loop", loop_end == frames)
-      end
-    end
-  end
-
-  -- performance reaches both the Renoise channel and the percussion convention
-  local perf = read(root .. "/files/" .. perfs[1])
-  check(tag .. " performance answers on MIDI channel 1", perf:byte(65) == 0)
-  check(tag .. " performance answers on MIDI channel 10", perf:byte(121) == 9)
-  check(tag .. " performance has a program change", has(perf, "PChg"))
-end
-
-check("every wave is on some disk", total_waves == 120)
-check("every wave is played by some voice", total_splits == 120)
-
--- Disk 1 carries the setup: the catalogue of the whole kit, every wave listed
--- against the disk it lives on. That is where the library disks put theirs.
-local files1, label1 = dir_of(images[1])
-check("disk 1 carries the setup", files1["TX16W_DR"] ~= nil)
+-- 2. The .X01 setup must exist and must name the diskette every wave lives on.
 local setup = read(root .. "/files/TX16W_DR.X01")
-local catalogued, named = 0, {}
-for _, r in ipairs(refs_of(setup)) do
-  if r.tag == "Wave" then catalogued = catalogued + 1 ; named[r.name] = r.disk end
-end
-check("the setup catalogues all 120 waves", catalogued == 120)
+check("the setup is on disk 1", d1names["TX16W_DR.X01"] ~= nil)
+check("disk 1 carries a volume label", d1label ~= nil and d1label ~= "")
+check("disk 2 carries a volume label", d2label ~= nil and d2label ~= "")
 
-for i, img in ipairs(images) do
-  local files, label = dir_of(img)
-  for stem, ext in pairs(files) do
-    if ext:sub(1, 1) == "C" then
-      check("the setup places " .. stem .. " on " .. label, named[stem] == label)
+local named_for, setup_waves = {}, 0
+for _, r in ipairs(refs_of(setup)) do
+  if r.tag == "Wave" then
+    setup_waves = setup_waves + 1
+    named_for[r.name] = r.disk:gsub("%z+$", "")
+  end
+end
+check("the setup catalogues all 120 waves", setup_waves == 120)
+
+local mislabelled = {}
+for name in pairs(d2names) do
+  local base = name:match("^([^%.]+)%.C01$")
+  if base and named_for[base] ~= d2label then
+    mislabelled[#mislabelled + 1] = base .. "->" .. tostring(named_for[base])
+  end
+end
+check("the setup points every disk-2 wave at disk 2 by name (was: VIBSLAP missing)",
+  #mislabelled == 0)
+
+for name in pairs(d1names) do
+  local base = name:match("^([^%.]+)%.C01$")
+  if base then
+    check("the setup points " .. base .. " at disk 1", named_for[base] == d1label)
+    break
+  end
+end
+
+-- Wave invariants. Typhoon repairs a wave that does not meet these and says so
+-- on load: "wave length / loop adjusted", then "data after loop will not be
+-- loaded". All 38 drum waves on the known-good disk sd007 meet them: an exact
+-- multiple of 64 frames, INST and MARK always present, and for a wave that does
+-- not loop a dummy marker pair at the very end so no data sits after the loop.
+local function u32be2(d, o)
+  return ((d:byte(o) * 256 + d:byte(o + 1)) * 256 + d:byte(o + 2)) * 256 + d:byte(o + 3)
+end
+local waves_checked = 0
+for _, disk in ipairs({ disk1, disk2 }) do
+  local bps, spf = u16(disk, 12), u16(disk, 23)
+  local base = (1 + 2 * spf) * bps
+  for i = 0, u16(disk, 18) - 1 do
+    local e = disk:sub(base + i * 32 + 1, base + i * 32 + 32)
+    if e:byte(1) == 0 then break end
+    if e:byte(1) ~= 0xE5 and e:byte(12) % 16 < 8 and e:sub(9, 9) == "C" then
+      local name = e:sub(1, 8):gsub(" +$", "") .. "." .. e:sub(9, 11)
+      local w = read(root .. "/files/" .. name)
+      local seen, frames, loop_end, play = {}, nil, nil, nil
+      local j = 13
+      while j + 8 <= #w do
+        local t, l = w:sub(j, j + 3), u32be2(w, j + 4)
+        local b = w:sub(j + 8, j + 7 + l)
+        seen[t] = true
+        if t == "COMM" then frames = u32be2(b, 3) end
+        if t == "INST" then play = b:byte(9) * 256 + b:byte(10) end
+        if t == "MARK" then loop_end = u32be2(b, 23) end
+        j = j + 8 + l + (l % 2)
+      end
+      check(name .. " carries INST and MARK", seen.INST and seen.MARK)
+      check(name .. " length is a multiple of 64", frames % 64 == 0)
+      if play == 0 then
+        check(name .. " has no sample data after the loop", loop_end == frames)
+      end
+      waves_checked = waves_checked + 1
     end
   end
 end
+check("every wave was checked", waves_checked == 120)
 
 print("TX16W export regression checks passed")
 

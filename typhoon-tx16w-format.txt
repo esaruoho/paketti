@@ -467,9 +467,14 @@ and normalize only according to this table.
   keyboard plays a single sample. Ship a per-disk performance for auditioning
   and a master performance listing every voice on channel 1 and channel 10.
 
-- **Do not strand voices on disk 1. Make every disk self-contained.** This is
-  the layout rule that matters most, and it is what the corpus is really
-  telling you. Counting file types per disk across all nine multi-disk sets:
+- **Chained layout: voices, performance and setup on disk 1; waves packed
+  across the set; every wave reference naming the disk it landed on.** Cyclone
+  fetches the later disks itself from those names - verified in use. Do NOT
+  "improve" this into one standalone disk per voice: that removes every
+  cross-disk reference and with it the automatic fetch, which is the whole
+  point. The corpus table below tempts you to; read the caveat under it first.
+
+  Counting file types per disk across all nine multi-disk sets:
 
   | | voices | performances | setup | `.C01` waves |
   |---|---|---|---|---|
@@ -482,10 +487,16 @@ and normalize only according to this table.
   that way and the second disk loads with zero performances and nothing
   resolves, which is exactly what Cyclone reports.
 
-  So: cut the kit into voices of at most 40 splits *and* at most one disk's
-  worth of waves, and give each voice its own floppy with a performance and its
-  own waves. Every disk then loads standalone, its pads join what is already in
-  memory, and no reference ever crosses a disk boundary.
+  **Caveat, and it is the important half.** That is how Yamaha shipped *library*
+  media, where each disk is a browsable collection. It is not a constraint on
+  what Cyclone can load, and it is not what a single kit spanning several disks
+  should look like. A kit is chained: disk 1 holds the voices, the performance
+  and the setup, the waves are packed across the disks, and the references name
+  where each wave is. Cyclone follows those names and pulls the next disk in on
+  its own. Building the kit as standalone per-voice disks instead makes every
+  disk loadable alone but breaks that fetch, and leaves a single-voice
+  performance covering only 40 keys - play outside them and every note gives the
+  group's first split.
 - **Melodic one-wave map.** Renoise's sample mapping is zero-based, but the
   Typhoon voice key fields are one-based in known-good voices. A sample mapped
   across Renoise C-0..B-9 must therefore export with group bounds `1..120`,
