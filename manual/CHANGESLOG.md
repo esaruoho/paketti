@@ -8,6 +8,23 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-09 - Feature: Three New Tools - Automation Curve Interpolation, Randomize FX Values, and a Track DSP Device Copy Dialog
+
+**Automation Interpolation between two points, with curves (issue #423).** Select a range in an automation lane (or leave nothing selected to cover the whole pattern), pick a shape, and Paketti rewrites the points in between so the envelope travels from the value at the start of the selection to the value at the end along that shape. Unlike the existing Automation Curves stamps, this honours the two real endpoint values - it is Renoise's Ctrl+I with curve options. Seven shapes ship: Linear, Ease In, Ease Out, Ease In-Out, Exponential, Logarithmic, S-Curve. If the lane is empty it defaults to a clean 0-to-1 ramp so the command still does something sensible.
+- Menu: `Main Menu:Tools:Paketti:Automation:Interpolate Selection (Linear)` (and one entry per shape)
+- Keybinding: `Global:Paketti:Automation Interpolate Selection Linear` (and one per shape, e.g. `... Ease In`, `... S-Curve`)
+- MIDI Mapping: `Paketti:Automation Interpolate Selection Linear [Trigger]` (and one per shape)
+
+**Randomize FX Values on Selection (issue #375).** Highlight a block in the Pattern Editor, open the dialog, set a min/max amount range (00-FF) and roll a new effect amount for each effect-column cell. By default it only touches cells that already carry a command, so it randomizes the values of an existing fx. Optionally type a command (e.g. `0S`) to stamp it onto every selected cell first, or untick "Only cells that already have a command" to fill the whole block.
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Randomize FX Values on Selection...` and `Pattern Editor:Paketti:Randomize FX Values on Selection...`
+- Keybinding: `Pattern Editor:Paketti:Randomize FX Values on Selection`
+- MIDI Mapping: `Paketti:Randomize FX Values on Selection [Trigger]`
+
+**Track DSP Device Copy Dialog (issue #322).** A dialog listing every track and its DSP devices with a checkbox each. Tick the source devices you want, then press a target track's "-> Beginning" or "-> End" button to copy the ticked devices into that track, carrying their full preset state. The TrackVolPan mixer device is never listed or touched.
+- Menu: `Main Menu:Tools:Paketti:Mixer:Track DSP Device Copy Dialog...` and `Mixer:Paketti:Track DSP Device Copy Dialog...`
+- Keybinding: `Global:Paketti:Track DSP Device Copy Dialog`
+- MIDI Mapping: `Paketti:Track DSP Device Copy Dialog [Trigger]`
+
 ### 2026-09-09 - Fix: Multi-Disk TX16W Kits Now Load In Cyclone Instead Of Reporting Missing Waves
 
 A TX16W export big enough to span two 720K disks failed in Cyclone with `Missing wave <name>` for every wave that landed on disk 2, even though the `.C01` was physically present on the mounted image. Two separate defects, both now fixed, and both measured against all 859 reference chunks on the known-good Typhoon library disks `sd001` to `sd024` rather than guessed at.
