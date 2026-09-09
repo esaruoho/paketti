@@ -430,15 +430,25 @@ and normalize only according to this table.
   `HIBONGO.C01`, `LOBONGO` as `LOBONGO.C01`, and `MTCONGA` as `MTCONGA.C01`.
   The DOS directory root is space-padded by FAT, while the `.O01` Wave field
   is NUL-terminated. Do not invent visible suffix characters.
-- **Chained sets need an `.X01`, and only the `.X01` names disks.** The
-  `.O01`/`.P01` disk-reference fields must contain eight `0xFF` bytes — the
-  corpus is unanimous, 955 references, zero exceptions. The disk names go in
-  the setup instead, one `Wave` reference per wave, each carrying the volume
-  label of the disk that wave actually landed on. A chained export with no
-  `.X01` fails with "Missing wave <first wave on disk 2>" no matter what the
-  voices contain, because nothing in the set records where disk 2's waves are.
-  Put the setup, every voice and the performance on disk 1, and load the
-  `.X01`: it is what makes the sampler ask for disk 2 by name.
+- **Chained sets: name the disk in the voice, and ship an `.X01` as well.**
+  Two separate facts, and they pull in different directions:
+
+  *What the library disks do.* All 538 `.O*` and 417 `.P*` references in the
+  corpus carry the `0xFF` unknown marker; only the 78 named `.X01` references
+  name a diskette. So on real Typhoon library media the setup is the catalogue
+  and the voice says nothing.
+
+  *What Cyclone actually needs.* Cyclone is driven by picking an `.img` and
+  loading everything on it, and the prompt text comes from the **voice's**
+  disk field. Observed on the 120-sample kit, 2026-09-09: with a literal label
+  Cyclone prompts for that disk by name; with `0xFF` it can only say
+  "Missing wave <name>" and never says which floppy to insert. The setup alone
+  did not change that.
+
+  Paketti therefore writes the real volume label into the `.O01`/`.P01`
+  reference fields on a chained export *and* ships the `.X01` catalogue. That
+  is a superset of what the library disks carry, and `0xFF` is only a fallback
+  for a wave whose disk is genuinely unknown.
 - **Melodic one-wave map.** Renoise's sample mapping is zero-based, but the
   Typhoon voice key fields are one-based in known-good voices. A sample mapped
   across Renoise C-0..B-9 must therefore export with group bounds `1..120`,

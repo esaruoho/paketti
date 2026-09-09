@@ -1295,8 +1295,12 @@ local function typhoon_export_process(outdir, opts)
     for i, part in ipairs(voice_parts) do
       local voicename = PakettiDWVWDosName(kitname, used, "O")
       local voiceid = PakettiTyphoonNewWaveId(stamp, voicename, i)
-      local voice = PakettiTyphoonBuildVoice({part}, stamp, voiceid, nil,
-        {unknown_disk_refs = (#disks > 1)})
+      -- Name the diskette every wave landed on. Real Typhoon library voices use
+      -- the 0xFF unknown marker, but Cyclone reads this field to decide what to
+      -- ask for: with a literal label it prompts for that disk by name, with
+      -- 0xFF it can only report "Missing wave <name>" and never says where to
+      -- look. Observed both ways on the 120-sample kit, 2026-09-09.
+      local voice = PakettiTyphoonBuildVoice({part}, stamp, voiceid, nil, nil)
       voices[#voices + 1] = { name = voicename, id = voiceid, data = voice,
                               base = voicename:match("^[^%.]+") }
       -- Every voice is on disk 1, where the performance will find it first.
@@ -1320,7 +1324,7 @@ local function typhoon_export_process(outdir, opts)
     local perfid = PakettiTyphoonNewWaveId(stamp, perfname, 200)
     local perf = PakettiTyphoonBuildPerformance(perf_entries, stamp, perfid, {
       { program = 0, name = voices[1].base, id = voices[1].id, disk = labelbase .. "1" },
-    }, {unknown_disk_refs = (#disks > 1)})
+    }, nil)
     table.insert(disks[1].files, #voices + 1, { name = perfname, data = perf })
 
     -- The .X01 setup is the disk catalogue, and on a chained set it is the only
