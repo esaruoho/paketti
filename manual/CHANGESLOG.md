@@ -18,6 +18,8 @@ Wave references no longer translate underscores into spaces. The 8-byte name ins
 
 **Exported kits start on C-0 again instead of C#0.** Paketti added one to every key on the way out, on the reading that the sampler's key fields are one-based. They are not - the sampler's key number is the MIDI note number - so every pad sat a semitone high and the top one fell off the end. A 120-sample kit now occupies Renoise C-0 to B-9 exactly, one sample per semitone.
 
+**A sample keeps whatever key span it was given.** One sample spread across the keyboard exports as a melodic map covering the whole board; many samples export as a kit with one group per key; RX2 slices export as a kit, one slice per key. An intermediate version of the group change pinned every group to a single key, which would have collapsed a melodic export onto one note - each group now covers from its own key up to just below the next sample's, and the last one up to the top of the voice's range.
+
 **Each sample now gets its own group in the voice file, instead of 40 samples sharing one.** A drum kit exported as one group holding 40 split points played a single sample across a wide stretch of the keyboard. Every voice on the Yamaha library disks is built the other way: 587 groups across 188 voices, 538 of them holding exactly one wave on exactly one key, and not one using a second split point. Split points are documented for multi-sampled instruments like pianos, but nothing shipped uses them. A 40-sample voice is now 40 groups, each covering the one key its sample sits on.
 
 **Performance entries carry the values the format actually uses.** Paketti wrote 0 into a byte that is 1, 2, 3 or 5 in all 417 performance entries on the library disks, and a volume of 96 where all 417 use 108.

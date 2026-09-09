@@ -477,14 +477,31 @@ end
 -- group as 40 split points. That path has zero real-world examples behind it,
 -- and it mapped a whole stretch of the keyboard to one sample. One group per
 -- key is the structure with 538 working examples.
+-- Each split becomes its own group, covering the keys that split owned: from
+-- its own key up to just below the next split's key, and the last split up to
+-- the group's declared top key.
+--
+-- For a drum kit, where the splits are on consecutive keys, that gives one key
+-- per group. For a single sample mapped across the whole keyboard it gives one
+-- group spanning the whole keyboard, which is the point - a melodic map must
+-- keep its span. An earlier version pinned every group to low == high == key
+-- and would have collapsed a melodic export onto a single key.
 local function build_key_groups(splits, range, unknown_disk_refs)
   local out = {}
+  local top = range and range.high_key
   for i, sp in ipairs(splits) do
     local key = sp.voice_key or sp.key
+    local nxt = splits[i + 1]
+    local high
+    if nxt then
+      high = math.max(key, (nxt.voice_key or nxt.key) - 1)
+    else
+      high = math.max(key, top or key)
+    end
     local r = {}
     for k, v in pairs(range or {}) do r[k] = v end
-    r.low_key, r.high_key = key, key
-    r.end_key = key + 1
+    r.low_key, r.high_key = key, high
+    r.end_key = math.min(127, high + 1)
     out[#out + 1] = build_group({ sp }, r, unknown_disk_refs)
   end
   return out

@@ -510,7 +510,12 @@ spanning 40 keys as 40 split points. It is legal on paper and it has zero
 working examples behind it, and in Cyclone it mapped long stretches of the
 keyboard to a single sample.
 
-So: **one `Grop` per wave, its key range set to the one key that wave sits on.**
+So: **one `Grop` per wave, its key range covering the keys that wave owns** —
+from its own key up to just below the next wave's, and the last wave up to the
+voice's top key. For a kit, whose waves sit on consecutive keys, that is one key
+per group. For a single sample mapped across the keyboard it is one group
+spanning the whole board, which is what a melodic map has to be. Pinning every
+group to `low == high == key` collapses a melodic export onto one note.
 A 40-wave voice is 40 groups, about 9.9 KB. That is the structure with 538
 working examples.
 
