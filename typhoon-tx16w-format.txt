@@ -482,8 +482,18 @@ sounded first on C#0 and the top pad fell off the end of the range. A 120-pad
 kit now occupies keys 0..119 = Renoise C-0..B-9 exactly, one pad per semitone.
 
 Group key ranges observed in the corpus run 1..96, so 96 is the highest key any
-shipped voice uses. Keys above that are untested territory; if the top of a
-120-pad kit turns out not to respond, that ceiling is the first thing to suspect.
+shipped voice uses. Keys above that are untested territory.
+
+**What key 0 actually sounds as, measured in Cyclone (2026-09-09).** A 120-pad
+kit written to keys 0..119 sounds from **C1 to B9 as Cyclone names notes** —
+so Cyclone's note names sit an octave above Renoise's, where the same span is
+C-0..B-9. Verified by shifting the whole kit down one semitone and watching the
+first pad move from C#1 to C1, which is also how the `+1` bug was caught.
+
+C1..B9 is 108 semitones, so on a controller that stops at B9 the top dozen pads
+of a 120-pad kit are out of reach. That is a keyboard-range limit, not an export
+fault: the pads exist and respond to those note numbers. Lay a kit out with
+108 or fewer samples and every pad is reachable.
 
 ### One group per wave, one key per group — the layout every real voice uses
 
@@ -607,15 +617,18 @@ there is no way to have several diskettes mounted at once.
   disk loadable alone but breaks that fetch, and leaves a single-voice
   performance covering only 40 keys - play outside them and every note gives the
   group's first split.
-- **Melodic one-wave map.** Renoise's sample mapping is zero-based, but the
-  Typhoon voice key fields are one-based in known-good voices. A sample mapped
-  across Renoise C-0..B-9 must therefore export with group bounds `1..120`,
-  its first `Splt` must omit `Parm`, and its closing `Splt/Parm` must contain
-  key `121`. Closing at key `1` makes only the first key playable. The wave
-  `INST` base note is the sample's root; the `1..120` range is the key
-  coverage, not the root.
-- **Audio loops are explicit.** Do not write `INST`/`MARK` loop chunks for a
-  one-shot source. If the source is deliberately audio-looped, trim the export
+- **Melodic one-wave map.** The key number is the MIDI note number, so a sample
+  mapped across Renoise C-0..B-9 exports with group bounds `0..119`, its first
+  `Splt` omits `Parm`, and its closing `Splt/Parm` carries key `120`. Closing at
+  the low key makes only the first key playable. The wave `INST` base note is
+  the sample's root; the range is key coverage, not the root.
+
+  (This entry previously said the fields were one-based and prescribed
+  `1..120` closing at `121`. That was wrong — see the key-numbering section
+  above — and it put every exported pad a semitone high.)
+- **Audio loops are NOT optional.** Every wave carries `INST` and `MARK`, a
+  one-shot included; see the wave-invariants section above. What must not
+  happen is sample data sitting past the loop end. If the source is deliberately audio-looped, trim the export
   at the source loop end and keep the loop points within the exported frame
   count. The phrase `wave length / loop adjusted` is a warning that Cyclone
   changed loop data, not proof that chromatic key mapping works.
@@ -639,7 +652,7 @@ there is no way to have several diskettes mounted at once.
 
 Before handing over an IMG set, verify: every `.O01` wave name/id has exactly
 one matching `.C01` on the named disk; no root is reused across disks; a
-single-wave voice uses Typhoon key bounds 1..120 and terminates at key 121;
+single-wave voice uses Typhoon key bounds 0..119 and terminates at key 120;
 loop metadata agrees with the actual frame count; the `.P01` voice id matches;
 and every IMG passes `fsck_msdos`.
 

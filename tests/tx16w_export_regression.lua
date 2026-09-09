@@ -361,8 +361,11 @@ if melodic and melodic ~= "unknown-disk-refs" then
   local mo = read(melodic .. "/files/TX16W_ME.O01")
   local mw = read(melodic .. "/files/SYNTHAAA.C01")
   local mi = read(melodic .. "/TX16W__DISK1.img")
-  check("melodic voice starts at Typhoon key 1", has(mo, string.char(1, 120, 0, 127)))
-  check("melodic voice terminates at Typhoon key 121", has(mo, string.char(121, 0)))
+  -- The key number is the MIDI note number: Renoise C-0..B-9 is keys 0..119,
+  -- closing at 120. This asserted 1..120 closing at 121 while the exporter was
+  -- adding one to every key, so it passed on output that sounded a semitone high.
+  check("melodic voice starts at Typhoon key 0", has(mo, string.char(0, 119, 0, 127)))
+  check("melodic voice terminates at Typhoon key 120", has(mo, string.char(120, 0)))
   check("melodic wave stem is NUL-terminated", has(mo, "SYNTH\0"))
   check("melodic DOS directory uses 8.3 filename", has(mi, "SYNTH   C01"))
   check("looped melodic wave has INST metadata", has(mw, "INST"))
