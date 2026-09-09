@@ -449,6 +449,24 @@ and normalize only according to this table.
   reference fields *and* ships the `.X01` catalogue. `0xFF` is only a fallback
   for a wave whose disk is genuinely unknown.
 
+- **A wave always carries `INST` and `MARK`, and its length is a multiple of
+  64.** All 38 drum waves on `sd007` do both. A wave that does not loop still
+  carries one: a dummy marker pair at the very end, `loop start` at
+  `frames - 64` and `loop end` at `frames`, with the INST sustain-loop mode set
+  to 0 (no looping). Because `loop end` equals the frame count there is never
+  any sample data after the loop. The INST tail is constant across the corpus:
+  `007f007f0000000000010002000000010002` (lowNote 0, highNote 127, velocity
+  0-127, gain 0, sustain and release loops both `{play 0, begin 1, end 2}`);
+  only `baseNote` varies, and it is the key the wave is mapped to. Omit any of
+  this and Typhoon repairs the file on load and reports
+  "wave length / loop adjusted" then "data after loop will not be loaded".
+
+- **A multi-disk kit needs one performance that addresses every voice.** A
+  performance that names only one voice covers that voice's key range and
+  nothing else; notes outside it fall to the group's first split, so the whole
+  keyboard plays a single sample. Ship a per-disk performance for auditioning
+  and a master performance listing every voice on channel 1 and channel 10.
+
 - **Do not strand voices on disk 1. Make every disk self-contained.** This is
   the layout rule that matters most, and it is what the corpus is really
   telling you. Counting file types per disk across all nine multi-disk sets:

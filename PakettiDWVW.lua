@@ -224,6 +224,21 @@ end
 function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every, meta)
   local nch = #channels
 
+  -- The sampler's memory is granular to 64 points, and every one of the 38 drum
+  -- waves on the known-good disk sd007 has a frame count that is an exact
+  -- multiple of 64. Anything else is rounded on load, which is half of the
+  -- "wave length / loop adjusted" message. Pad up with silence so the file is
+  -- already the length the machine wants. A looped wave is left alone: moving
+  -- its end would move the loop.
+  if ((meta and meta.loop_mode) or 0) == 0 and nsamples % 64 ~= 0 then
+    local padded = nsamples + (64 - nsamples % 64)
+    for c = 1, nch do
+      local ch = channels[c]
+      for i = nsamples + 1, padded do ch[i] = 0 end
+    end
+    nsamples = padded
+  end
+
   local comm = putint(nch, 16) .. putint(nsamples, 32) .. putint(wordsize, 16)
     .. put_extended(rate)
     -- Compression type, then a pascal string. Real Typhoon files use a length
@@ -235,20 +250,36 @@ function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every, m
   -- points at those markers. meta = {base_note, loop_mode, loop_start, loop_end}
   -- with loop positions as 1-based frame numbers; loop_mode uses the AIFF
   -- values 0 = none, 1 = forward, 2 = forward/backward.
-  local inst, mark = "", ""
-  if meta and (meta.loop_mode or 0) > 0 then
-    local ls = math.max(0, math.min(nsamples, (meta.loop_start or 1) - 1))
-    local le = math.max(0, math.min(nsamples, (meta.loop_end or nsamples) - 1))
-    local mode = meta.loop_mode or 0
-    mark = putint(2, 16)
-      .. putint(1, 16) .. putint(ls, 32) .. "\010loop start\0"
-      .. putint(2, 16) .. putint(le, 32) .. "\008loop end\0"
-    inst = putint(meta.base_note or 60, 8) .. putint(0, 8)
-      .. putint(meta.low_note or 0, 8) .. putint(meta.high_note or 127, 8)
-      .. putint(0, 8) .. putint(127, 8) .. putint(0, 16)
-      .. putint(mode, 16) .. putint(1, 16) .. putint(2, 16)   -- sustain loop
-      .. putint(0, 16) .. putint(1, 16) .. putint(2, 16)      -- release loop
+  -- INST and MARK are NOT optional, and the length is not free.
+  --
+  -- Measured over the 38 drum waves on the known-good Typhoon disk sd007:
+  -- 38/38 carry both chunks, and 38/38 have a frame count that is an exact
+  -- multiple of 64. A wave that does not loop still carries a loop: a dummy
+  -- 64-frame marker pair parked at the very end (start = frames - 64,
+  -- end = frames) with the sustain loop mode set to 0 = no looping, so there
+  -- is never any sample data sitting after the loop.
+  --
+  -- Omit them and Typhoon fixes the file up on load and tells you so:
+  -- "wave length / loop adjusted" followed by "data after loop will not be
+  -- loaded". Writing what the real waves write keeps it quiet.
+  local mode = (meta and meta.loop_mode) or 0
+  local ls, le
+  if mode > 0 then
+    ls = math.max(0, math.min(nsamples, ((meta.loop_start or 1) - 1)))
+    le = math.max(0, math.min(nsamples, ((meta.loop_end or nsamples) - 1)))
+  else
+    ls = math.max(0, nsamples - 64)
+    le = nsamples
   end
+  local mark = putint(2, 16)
+    .. putint(1, 16) .. putint(ls, 32) .. "\010loop start\0"
+    .. putint(2, 16) .. putint(le, 32) .. "\008loop end\0"
+  local inst = putint((meta and meta.base_note) or 60, 8) .. putint(0, 8)
+    .. putint((meta and meta.low_note) or 0, 8)
+    .. putint((meta and meta.high_note) or 127, 8)
+    .. putint(0, 8) .. putint(127, 8) .. putint(0, 16)
+    .. putint(mode, 16) .. putint(1, 16) .. putint(2, 16)   -- sustain loop
+    .. putint(0, 16) .. putint(1, 16) .. putint(2, 16)      -- release loop
 
   local ssnd = {putint(0, 32), putint(0, 32)}   -- offset, blockSize
   local n = 16                                   -- chunk header + those 8 bytes
@@ -272,10 +303,8 @@ function PakettiDWVWBuildFile(channels, nsamples, rate, wordsize, yield_every, m
   body = body
     .. "FVER" .. putint(#fver, 32) .. fver
     .. "COMM" .. putint(#comm, 32) .. comm .. ((#comm % 2 == 1) and "\0" or "")
-  if inst ~= "" then
-    body = body .. "INST" .. putint(#inst, 32) .. inst
-                .. "MARK" .. putint(#mark, 32) .. mark .. ((#mark % 2 == 1) and "\0" or "")
-  end
+  body = body .. "INST" .. putint(#inst, 32) .. inst
+              .. "MARK" .. putint(#mark, 32) .. mark .. ((#mark % 2 == 1) and "\0" or "")
   body = body
     .. "SSND" .. putint(#ssnd, 32) .. ssnd .. ((#ssnd % 2 == 1) and "\0" or "")
   return "FORM" .. putint(#body, 32) .. body

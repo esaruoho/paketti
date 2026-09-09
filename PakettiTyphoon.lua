@@ -1354,6 +1354,35 @@ local function typhoon_export_process(outdir, opts)
                      {{ program = 0, name = v.base, id = v.id, disk = v.disk }}, nil) }
     end
 
+    -- ONE MASTER PERFORMANCE, ON EVERY DISK.
+    --
+    -- Each disk's own performance addresses only that disk's voice, which
+    -- covers a 40-key slice of the keyboard. Select it and play outside that
+    -- slice and the sampler falls back to the group's first split, so every
+    -- note gives you the same sample - which is exactly what a disk past the
+    -- first one sounds like on its own.
+    --
+    -- The master performance addresses every voice in the kit, on MIDI channel
+    -- 1 and channel 10, and the voices cover disjoint key ranges. Load all the
+    -- disks, select this one, and the whole kit plays across the full range.
+    -- It is on every disk so it is always to hand, and its voice references
+    -- name the disk each voice lives on, so the sampler can say which floppy is
+    -- still missing rather than silently playing one sample.
+    local master_entries, programs = {}, {}
+    for i, v in ipairs(voices) do
+      for _, channel in ipairs({0, 9}) do
+        master_entries[#master_entries + 1] = { name = v.base, id = v.id, disk = v.disk,
+                                                channel = channel, transpose = 0, volume = 96 }
+      end
+      if i <= 128 then
+        programs[#programs + 1] = { program = i - 1, name = v.base, id = v.id, disk = v.disk }
+      end
+    end
+    local mastername = PakettiDWVWDosName(kitname .. "ALL", used, "P")
+    local masterid = PakettiTyphoonNewWaveId(stamp, mastername, 240)
+    local master = { name = mastername, base = mastername:match("^[^%.]+"), id = masterid,
+      data = PakettiTyphoonBuildPerformance(master_entries, stamp, masterid, programs, nil) }
+
     -- Disk 1 also carries the .X01 setup: the catalogue of the whole kit, every
     -- wave listed against the disk it lives on. That is where the library disks
     -- put theirs, and it is what lets the sampler ask for a later disk by name.
@@ -1366,6 +1395,7 @@ local function typhoon_export_process(outdir, opts)
       setup_voices[i] = { name = v.base, id = v.id, disk = v.disk }
       setup_perfs[i]  = { name = perfs[i].base, id = perfs[i].id, disk = v.disk }
     end
+    setup_perfs[#setup_perfs + 1] = { name = master.base, id = master.id, disk = voices[1].disk }
     local setupname = PakettiDWVWDosName(kitname, used, "X")
     local setup = PakettiTyphoonBuildSetup(
       setupname:match("^[^%.]+"), stamp,
@@ -1378,6 +1408,9 @@ local function typhoon_export_process(outdir, opts)
       local d = disks[i]
       d.files[#d.files + 1] = { name = voices[i].name, data = voices[i].data }
       d.files[#d.files + 1] = { name = perfs[i].name,  data = perfs[i].data }
+      if #voice_parts > 1 then
+        d.files[#d.files + 1] = { name = master.name, data = master.data }
+      end
       if i == 1 then d.files[#d.files + 1] = { name = setupname, data = setup } end
       local seen = {}
       for _, sp in ipairs(part.splits) do
@@ -1407,7 +1440,7 @@ local function typhoon_export_process(outdir, opts)
         end
       end
     end
-    local perfname = perfs[1].name
+    local perfname = (#voice_parts > 1) and master.name or perfs[1].name
 
     -- What actually fits in the machine. DWVW shrinks the floppy copy only, so
     -- a kit can span disks correctly and still be too big to load.
@@ -1430,9 +1463,15 @@ local function typhoon_export_process(outdir, opts)
       "",
       "EVERY DISK IS SELF-CONTAINED. Each one carries a voice, a performance and",
       "the waves that voice plays, so it loads on its own with nothing missing.",
-      "Load them in any order; each disk's pads join the ones already in memory,",
-      "and the whole kit is playable once every disk is in. Every performance",
-      "answers on MIDI channel 1 and channel 10.",
+      "Load them in any order; each disk's pads join the ones already in memory.",
+      "",
+      "TO PLAY THE WHOLE KIT: load every disk, then select the performance",
+      ((#voice_parts > 1) and ("    " .. master.name .. "   (it addresses all "
+        .. #voice_parts .. " voices across the full key range)") or "    (single disk)"),
+      "A single disk's own performance only covers that disk's 40 keys; play",
+      "outside them and every note gives you the same sample. That is the",
+      "performance to use while auditioning one disk, not the whole kit.",
+      "All performances answer on MIDI channel 1 and channel 10.",
       "",
     }
     manifest[#manifest + 1] = string.format("Voices: %d (maximum 40 splits per voice)", #voices)
@@ -1471,6 +1510,7 @@ local function typhoon_export_process(outdir, opts)
       ensure_dir(loose)
       for _, v in ipairs(voices) do write_file(join(loose, v.name), v.data) end
       for _, pf in ipairs(perfs) do write_file(join(loose, pf.name), pf.data) end
+      if #voice_parts > 1 then write_file(join(loose, master.name), master.data) end
       write_file(join(loose, setupname), setup)
       for _, f in ipairs(files) do write_file(join(loose, f.name), f.data) end
     end

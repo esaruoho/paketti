@@ -122,25 +122,78 @@ for i, img in ipairs(images) do
   check(tag .. " has at least one voice", #voices >= 1)
   check(tag .. " has at least one performance", #perfs >= 1)
 
-  -- and every reference on it must resolve on this same disk
+  -- Every WAVE reference on this disk must resolve on this same disk. Voice
+  -- references inside a performance may point at another disk: that is what the
+  -- master performance is for.
   for _, entry in ipairs(order) do
     local ext = entry:match("%.(.+)$")
     if ext:sub(1, 1) == "O" or ext:sub(1, 1) == "P" then
-      local stem = entry:match("^([^%.]+)")
       local data = read(root .. "/files/" .. entry)
       local n = 0
       for _, r in ipairs(refs_of(data)) do
-        n = n + 1
         check(tag .. " " .. entry .. " reference '" .. r.name .. "' has no space",
           not r.name:find(" ", 1, true))
-        check(tag .. " " .. entry .. " reference '" .. r.name .. "' is on this disk",
-          files[r.name] ~= nil)
-        check(tag .. " " .. entry .. " reference '" .. r.name .. "' names this disk",
-          r.disk == label)
+        if r.tag == "Wave" then
+          n = n + 1
+          check(tag .. " " .. entry .. " wave '" .. r.name .. "' is on this disk",
+            files[r.name] ~= nil)
+          check(tag .. " " .. entry .. " wave '" .. r.name .. "' names this disk",
+            r.disk == label)
+        else
+          check(tag .. " " .. entry .. " voice reference '" .. r.name .. "' names a disk",
+            r.disk ~= nil and r.disk ~= "")
+        end
       end
       if ext:sub(1, 1) == "O" then
         check(tag .. " " .. entry .. " has at most 40 splits", n <= 40)
         total_splits = total_splits + n
+      end
+    end
+  end
+
+  -- THE disk-2 fault: a performance that addresses only its own disk's voice
+  -- covers a 40-key slice, so playing outside it gives the group's first split
+  -- for every note - one sample instead of forty. A multi-disk kit must carry a
+  -- performance that addresses every voice.
+  if #images > 1 then
+    local covering = false
+    for _, entry in ipairs(order) do
+      if entry:match("%.P") then
+        local seen = {}
+        for _, r in ipairs(refs_of(read(root .. "/files/" .. entry))) do
+          if r.tag == "Voic" then seen[r.disk] = true end
+        end
+        local n = 0
+        for _ in pairs(seen) do n = n + 1 end
+        if n == #images then covering = true end
+      end
+    end
+    check(tag .. " carries a performance addressing every disk's voice", covering)
+  end
+
+  -- Wave invariants. Typhoon rounds a wave that does not meet these and says so
+  -- on load: "wave length / loop adjusted", "data after loop will not be
+  -- loaded". All 38 drum waves on the known-good disk sd007 meet them.
+  for _, entry in ipairs(order) do
+    if entry:match("%.C%d") then
+      local w = read(root .. "/files/" .. entry)
+      local seen, frames, loop_end, play = {}, nil, nil, nil
+      local i = 13
+      while i + 8 <= #w do
+        local t = w:sub(i, i + 3)
+        local l = u32be(w, i + 4)
+        local b = w:sub(i + 8, i + 7 + l)
+        seen[t] = true
+        if t == "COMM" then frames = u32be(b, 3) end
+        if t == "INST" then play = b:byte(9) * 256 + b:byte(10) end
+        if t == "MARK" then loop_end = u32be(b, 23) end
+        i = i + 8 + l + (l % 2)
+      end
+      check(entry .. " carries INST", seen.INST == true)
+      check(entry .. " carries MARK", seen.MARK == true)
+      check(entry .. " length is a multiple of 64", frames % 64 == 0)
+      if play == 0 then
+        check(entry .. " has no sample data after the loop", loop_end == frames)
       end
     end
   end
