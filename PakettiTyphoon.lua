@@ -1223,15 +1223,23 @@ local function build_voice_groups(instrument, splits, opts)
     -- key. Keep that bound at the first real sample key instead of forcing the
     -- first drum pad to C-0.
     for _, sp in ipairs(L.splits) do
-      -- Typhoon's key fields are one-based in known-good voices.  Keep the
-      -- Renoise mapping zero-based, but translate the voice coordinates.
-      sp.voice_key = math.max(1, math.min(127, sp.key + 1))
+      -- Typhoon's key number IS the MIDI note number. A sample mapped to
+      -- Renoise C-0 (note 0) belongs on Typhoon key 0.
+      --
+      -- Paketti used to add one here, on the reading that "Typhoon's key fields
+      -- are one-based in known-good voices". They are not one-based; the
+      -- library voices simply never need the bottom key, because they are
+      -- melodic instruments. Across all 587 corpus groups the lowest key used
+      -- is 1 and it appears 138 times purely as the catch-all bottom of a
+      -- melodic voice's lowest group. The +1 shifted every drum pad a semitone
+      -- up, so a kit laid out from C-0 sounded first on C#0.
+      sp.voice_key = math.max(0, math.min(127, sp.key))
     end
-    L.range.low_key = math.max(1, math.min(127, L.splits[1].voice_key))
+    L.range.low_key = math.max(0, math.min(127, L.splits[1].voice_key))
     L.range.high_key = math.max(highk + 1, L.splits[#L.splits].voice_key)
     -- The terminator closes the group's declared range, not merely the last
     -- split's start key.  A single melodic wave spanning Renoise C-0..B-9
-    -- therefore uses Typhoon coordinates 1..120 and terminates at 121.
+    -- therefore uses Typhoon coordinates 0..119 and terminates at 120.
     L.range.end_key = math.min(127, L.range.high_key + 1)
     L.range.filter = opts.filter_table
     L.range.output = opts.output

@@ -467,6 +467,24 @@ and normalize only according to this table.
   keyboard plays a single sample. Ship a per-disk performance for auditioning
   and a master performance listing every voice on channel 1 and channel 10.
 
+### The Typhoon key number IS the MIDI note number — do not add one
+
+A sample mapped to Renoise C-0 (note 0) belongs on Typhoon key **0**. Paketti
+used to write `key + 1`, on the reading that "Typhoon's key fields are one-based
+in known-good voices". That reading is wrong. The library voices are melodic
+instruments that never need the bottom key: across all 587 corpus groups the
+lowest key used is 1, and it appears 138 times purely as the catch-all bottom of
+a melodic voice's lowest group. Nothing there says 0 is illegal, only that those
+instruments had no reason to use it.
+
+The `+1` put every drum pad a semitone high, so a kit laid out from Renoise C-0
+sounded first on C#0 and the top pad fell off the end of the range. A 120-pad
+kit now occupies keys 0..119 = Renoise C-0..B-9 exactly, one pad per semitone.
+
+Group key ranges observed in the corpus run 1..96, so 96 is the highest key any
+shipped voice uses. Keys above that are untested territory; if the top of a
+120-pad kit turns out not to respond, that ceiling is the first thing to suspect.
+
 ### One group per wave, one key per group — the layout every real voice uses
 
 Measured across all 188 voices on the Yamaha library disks: **587 groups, of
