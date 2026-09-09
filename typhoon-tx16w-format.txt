@@ -467,6 +467,54 @@ and normalize only according to this table.
   keyboard plays a single sample. Ship a per-disk performance for auditioning
   and a master performance listing every voice on channel 1 and channel 10.
 
+### How Typhoon actually loads a multi-disk kit — from the manual, not inferred
+
+Source: *Typhoon User's Manual* (NuEdge Development), §2.2 and §4.3.1, in
+`Typhoon2000/Typhoon User's Manual.pdf`. **Read this before theorising about
+disk chaining again.**
+
+§2.2: "if a file is loaded and its dependent items are not available in memory,
+Typhoon will automatically load the required items that are missing. **It does
+not matter if the required items are located on several diskettes.**" And:
+"diskettes can also be named. When an item is stored to or loaded from a
+diskette Typhoon remembers the name of that diskette. Typhoon can then suggest
+where to find it if the item is required during another session. This is
+especially recommended for those that would like to build Typhoon sound library
+diskettes."
+
+§4.3.1 documents the message itself:
+
+```
+Missing perf PERF (from TEMP)
+         More [ent] Skip [-1]      Stop [-]
+```
+
+> "A request such as the one shown above is displayed if performances, voices or
+> waves are missing. If Typhoon can locate the diskette where the particular
+> item may be stored, **the name of the diskette is shown within parenthesis**.
+> In any case, **the user is allowed to switch diskettes during this request.**
+> Press ENTER to step through the different items that are missing."
+
+and: "the query is automatically withdrawn if the correct item is found."
+
+**So `Missing wave VIBSLAP (from TX16WD2)` is not an error. It is the request.**
+The disk name in parentheses means the reference is correct and Typhoon knows
+where to send you. The operator swaps the diskette *while the prompt is on
+screen* and presses ENTER; the query withdraws itself once the item is found.
+Pressing Skip instead abandons that wave — the manual says skipping "results in
+an incorrect reconstruction and should only be done in an emergency".
+
+The same message with **no** parenthesis means Typhoon could not locate the
+diskette, which is what a `0xFF` unknown-disk reference produces. That is the
+difference the disk-name field makes, and it is the whole reason to write it.
+
+A related message, `Incorrect version of wave X ... More [ent] Load [+1]`,
+appears when a wave of that name is found but its item id does not match the
+reference — so name and id are checked separately, and both must match.
+
+There is one floppy drive and no hard disk, so swapping is the only mechanism;
+there is no way to have several diskettes mounted at once.
+
 - **Chained layout: voices, performance and setup on disk 1; waves packed
   across the set; every wave reference naming the disk it landed on.** Cyclone
   fetches the later disks itself from those names - verified in use. Do NOT
