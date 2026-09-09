@@ -446,9 +446,28 @@ and normalize only according to this table.
   did not change that.
 
   Paketti therefore writes the real volume label into the `.O01`/`.P01`
-  reference fields on a chained export *and* ships the `.X01` catalogue. That
-  is a superset of what the library disks carry, and `0xFF` is only a fallback
+  reference fields *and* ships the `.X01` catalogue. `0xFF` is only a fallback
   for a wave whose disk is genuinely unknown.
+
+- **Do not strand voices on disk 1. Make every disk self-contained.** This is
+  the layout rule that matters most, and it is what the corpus is really
+  telling you. Counting file types per disk across all nine multi-disk sets:
+
+  | | voices | performances | setup | `.C01` waves |
+  |---|---|---|---|---|
+  | first disks (`sd001`, `sd005`, `sd007`, `sd009`, `sd011`, `sd013`…) | 5–32 | 7–32 | 1 | 11–38 |
+  | companion disks (`sd006`, `sd008`, `sd010`, `sd012`, `sd014`) | **0** | **0** | 0–1 | 2–8 |
+
+  A companion disk is *supplementary* — a handful of extra waves and Yamaha
+  `.W##` material — not half of a kit. There is no example anywhere in the
+  corpus of a voice set on one disk playing waves spread across two. Build one
+  that way and the second disk loads with zero performances and nothing
+  resolves, which is exactly what Cyclone reports.
+
+  So: cut the kit into voices of at most 40 splits *and* at most one disk's
+  worth of waves, and give each voice its own floppy with a performance and its
+  own waves. Every disk then loads standalone, its pads join what is already in
+  memory, and no reference ever crosses a disk boundary.
 - **Melodic one-wave map.** Renoise's sample mapping is zero-based, but the
   Typhoon voice key fields are one-based in known-good voices. A sample mapped
   across Renoise C-0..B-9 must therefore export with group bounds `1..120`,

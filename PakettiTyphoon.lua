@@ -1214,15 +1214,36 @@ end
 -- sampler can address several voices from one P01, while Cyclone may reject or
 -- partially parse an oversized Grop. Partition by split range before writing
 -- the voices, preserving the original key and velocity metadata.
-local function partition_voice_groups(groups, max_splits)
+-- Cut a voice into parts that each fit one 720K disk *together with their own
+-- waves*, so a disk is self-contained and nothing has to reach across disks.
+--
+-- max_splits bounds the split count (40 is the sampler's limit per voice).
+-- max_clusters and clusters_of bound the disk space the part's waves need; pass
+-- neither and the split count is the only bound, which is the old behaviour.
+local function partition_voice_groups(groups, max_splits, max_clusters, clusters_of)
   max_splits = max_splits or 40
   local parts = {}
   for _, group in ipairs(groups) do
     local source = group.splits
-    for first = 1, #source, max_splits do
-      local last = math.min(#source, first + max_splits - 1)
+    -- Where each part ends: the split count, or the point at which one more
+    -- wave would not fit on the disk alongside the ones already in the part.
+    local cuts, used, count = {}, 0, 0
+    for i = 1, #source do
+      local need = clusters_of and clusters_of(source[i]) or 0
+      if count > 0 and (count >= max_splits
+                        or (max_clusters and used + need > max_clusters)) then
+        cuts[#cuts + 1] = i - 1
+        used, count = 0, 0
+      end
+      used, count = used + need, count + 1
+    end
+    cuts[#cuts + 1] = #source
+
+    local first = 1
+    for _, last in ipairs(cuts) do
       local splits = {}
       for i = first, last do splits[#splits + 1] = source[i] end
+      first = last + 1
       local range = {}
       for k, v in pairs(group.range or {}) do range[k] = v end
       range.low_key = math.max(1, math.min(127, splits[1].voice_key or splits[1].key))
@@ -1259,97 +1280,134 @@ local function typhoon_export_process(outdir, opts)
     if dvb then dvb.views.progress_text.text = "Packing 720K disks..." end
     coroutine.yield()
 
-    -- Build bounded voice parts before packing, so the packer can reserve a
-    -- directory entry and space for every O01 plus the P01.
+    -- ONE SELF-CONTAINED DISK PER VOICE.
+    --
+    -- A voice and the waves it plays go on the same floppy, with a performance
+    -- beside them, so every disk loads on its own and nothing ever has to reach
+    -- across disks. Load disk 1 and its 40 pads play; load disk 2 and its pads
+    -- join them in memory; and so on until the whole kit is loaded.
+    --
+    -- The previous layout put every voice and the performance on disk 1 while
+    -- the waves were spread by size over all the disks, so disk 1's voices
+    -- referenced waves on disk 2 and disk 2 had no voice or performance at all.
+    -- Nothing in the Yamaha library corpus is built that way: on all nine
+    -- multi-disk sets the first disk carries the voices, performances and setup
+    -- with its own waves, and the companion disk is supplementary. A 120-wave
+    -- kit split evenly across two disks with one voice set stranded on disk 1
+    -- has no precedent, and Cyclone will not resolve it.
+    local by_file = {}
+    for _, f in ipairs(files) do by_file[f.name] = f end
+    local function clusters_of(sp)
+      local f = by_file[sp.file]
+      return f and math.max(1, math.ceil(#f.data / PAKETTI_TYPHOON_CLUSTER)) or 1
+    end
+    -- Leave room on every disk for the voice, its performance and the setup.
+    local PER_DISK_RESERVE = 12
     local voice_groups = build_voice_groups(instrument, splits, opts)
-    local voice_parts = partition_voice_groups(voice_groups, 40)
+    local voice_parts = partition_voice_groups(voice_groups, 40,
+      PAKETTI_TYPHOON_CLUSTERS - PER_DISK_RESERVE, clusters_of)
     if #voice_parts > 1 then
-      print(string.format("PakettiTyphoon: %d split(s) -> %d bounded voices (max 40 splits/voice)",
+      print(string.format("PakettiTyphoon: %d split(s) -> %d self-contained disk(s)",
         #splits, #voice_parts))
     end
 
-    -- Pack before assigning disks, so each split can name the diskette its
-    -- wave actually landed on. Typhoon uses that name to prompt for the right
-    -- floppy when a wave is missing; without it the sampler only knows that
-    -- something is absent, not where to send you.
     local labelbase = PakettiDWVWDosName(kitname, {}):match("^[^%.]+"):sub(1, 6)
-    -- voices, the performance, and the .X01 setup that carries the disk names
-    local reserve_entries = #voice_parts + 2
-    local reserve_bytes = 1024 + (#voice_parts * 1024) + (#splits * 64)
-      -- the setup: 56-byte globals plus one 28-byte reference per wave, voice
-      -- and performance, rounded up to a whole cluster.
-      + 1024 + ((#splits + #voice_parts + 1) * 28)
-    local disks = PakettiTyphoonPackDisks(files, reserve_entries, reserve_bytes)
-    local disk_of = {}
-    for i, d in ipairs(disks) do
-      for _, f in ipairs(d.files) do
-        disk_of[f.name] = string.format("%s%d", labelbase, i)
+    local disks = {}
+    for i = 1, #voice_parts do disks[i] = { files = {} } end
+
+    -- Every split now names the disk it is actually on, which is its own disk.
+    for i, part in ipairs(voice_parts) do
+      for _, sp in ipairs(part.splits) do
+        sp.disk = string.format("%s%d", labelbase, i)
       end
     end
-    for _, sp in ipairs(splits) do sp.disk = disk_of[sp.file] end
 
-    if dvb then dvb.views.progress_text.text = "Building voice file..." end
+    if dvb then dvb.views.progress_text.text = "Building voice files..." end
     coroutine.yield()
 
     local voices = {}
     for i, part in ipairs(voice_parts) do
       local voicename = PakettiDWVWDosName(kitname, used, "O")
       local voiceid = PakettiTyphoonNewWaveId(stamp, voicename, i)
-      -- Name the diskette every wave landed on. Real Typhoon library voices use
-      -- the 0xFF unknown marker, but Cyclone reads this field to decide what to
-      -- ask for: with a literal label it prompts for that disk by name, with
-      -- 0xFF it can only report "Missing wave <name>" and never says where to
-      -- look. Observed both ways on the 120-sample kit, 2026-09-09.
       local voice = PakettiTyphoonBuildVoice({part}, stamp, voiceid, nil, nil)
-      voices[#voices + 1] = { name = voicename, id = voiceid, data = voice,
-                              base = voicename:match("^[^%.]+") }
-      -- Every voice is on disk 1, where the performance will find it first.
-      table.insert(disks[1].files, i, { name = voicename, data = voice })
+      voices[i] = { name = voicename, id = voiceid, data = voice,
+                    base = voicename:match("^[^%.]+"),
+                    disk = string.format("%s%d", labelbase, i) }
+      coroutine.yield()
     end
 
-    -- One P01 owns all bounded voices. Each entry is on channel 1 and channel
-    -- 10, so Renoise channel 1 and the TX16W percussion convention select the
-    -- same complete kit. Their key ranges are disjoint, so only one voice can
-    -- answer a given pad.
-    local perf_entries = {}
-    for _, v in ipairs(voices) do
+    -- One performance per disk, addressing that disk's voice on channel 1 and
+    -- channel 10, so Renoise channel 1 and the TX16W percussion convention both
+    -- reach it. Key ranges are disjoint across the voices, so the performances
+    -- stack rather than fight as each disk is loaded.
+    local perfs = {}
+    for i, v in ipairs(voices) do
+      local entries = {}
       for _, channel in ipairs({0, 9}) do
-        perf_entries[#perf_entries + 1] = {
-          name = v.base, id = v.id, disk = labelbase .. "1",
-          channel = channel, transpose = 0, volume = 96,
-        }
+        entries[#entries + 1] = { name = v.base, id = v.id, disk = v.disk,
+                                  channel = channel, transpose = 0, volume = 96 }
       end
+      local perfname = PakettiDWVWDosName(kitname, used, "P")
+      local perfid = PakettiTyphoonNewWaveId(stamp, perfname, 200 + i)
+      perfs[i] = { name = perfname, id = perfid, base = perfname:match("^[^%.]+"),
+                   data = PakettiTyphoonBuildPerformance(entries, stamp, perfid,
+                     {{ program = 0, name = v.base, id = v.id, disk = v.disk }}, nil) }
     end
-    local perfname = PakettiDWVWDosName(kitname, used, "P")
-    local perfid = PakettiTyphoonNewWaveId(stamp, perfname, 200)
-    local perf = PakettiTyphoonBuildPerformance(perf_entries, stamp, perfid, {
-      { program = 0, name = voices[1].base, id = voices[1].id, disk = labelbase .. "1" },
-    }, nil)
-    table.insert(disks[1].files, #voices + 1, { name = perfname, data = perf })
 
-    -- The .X01 setup is the disk catalogue, and on a chained set it is the only
-    -- thing that knows where a wave lives. Measured across the known-good
-    -- Typhoon library disks: every one of the 538 .O* voice references and 417
-    -- .P* performance references carries the 0xFF unknown-disk marker, while 78
-    -- of the .X01 references name a diskette outright ("SD009".."SD012",
-    -- NUL-padded). Without an .X01, Cyclone is told a wave is missing but never
-    -- which floppy to ask for, so every wave that packed onto disk 2 reports as
-    -- missing even though the .C01 is physically present.
+    -- Disk 1 also carries the .X01 setup: the catalogue of the whole kit, every
+    -- wave listed against the disk it lives on. That is where the library disks
+    -- put theirs, and it is what lets the sampler ask for a later disk by name.
     local setup_waves = {}
     for _, sp in ipairs(splits) do
       setup_waves[#setup_waves + 1] = { name = sp.name, id = sp.id, disk = sp.disk }
     end
-    local setup_voices = {}
-    for _, v in ipairs(voices) do
-      setup_voices[#setup_voices + 1] = { name = v.base, id = v.id, disk = labelbase .. "1" }
+    local setup_voices, setup_perfs = {}, {}
+    for i, v in ipairs(voices) do
+      setup_voices[i] = { name = v.base, id = v.id, disk = v.disk }
+      setup_perfs[i]  = { name = perfs[i].base, id = perfs[i].id, disk = v.disk }
     end
     local setupname = PakettiDWVWDosName(kitname, used, "X")
     local setup = PakettiTyphoonBuildSetup(
       setupname:match("^[^%.]+"), stamp,
-      PakettiTyphoonNewWaveId(stamp, setupname, 201),
-      {{ name = perfname:match("^[^%.]+"), id = perfid, disk = labelbase .. "1" }},
-      setup_voices, setup_waves)
-    table.insert(disks[1].files, #voices + 2, { name = setupname, data = setup })
+      PakettiTyphoonNewWaveId(stamp, setupname, 250),
+      setup_perfs, setup_voices, setup_waves)
+
+    -- Lay each disk out: voice, performance, (setup on disk 1), then its waves.
+    local placed = {}
+    for i, part in ipairs(voice_parts) do
+      local d = disks[i]
+      d.files[#d.files + 1] = { name = voices[i].name, data = voices[i].data }
+      d.files[#d.files + 1] = { name = perfs[i].name,  data = perfs[i].data }
+      if i == 1 then d.files[#d.files + 1] = { name = setupname, data = setup } end
+      local seen = {}
+      for _, sp in ipairs(part.splits) do
+        local f = by_file[sp.file]
+        if f and not seen[f.name] then
+          seen[f.name] = true ; placed[f.name] = true
+          d.files[#d.files + 1] = f
+        end
+      end
+    end
+    -- Anything no split claimed still has to ship; it goes wherever it fits.
+    for _, f in ipairs(files) do
+      if not placed[f.name] then
+        local need = math.max(1, math.ceil(#f.data / PAKETTI_TYPHOON_CLUSTER))
+        for _, d in ipairs(disks) do
+          local used_clusters = 0
+          for _, x in ipairs(d.files) do
+            used_clusters = used_clusters + math.max(1, math.ceil(#x.data / PAKETTI_TYPHOON_CLUSTER))
+          end
+          if used_clusters + need <= PAKETTI_TYPHOON_CLUSTERS
+             and #d.files + 1 < PAKETTI_TYPHOON_ROOT_ENTRIES then
+            d.files[#d.files + 1] = f ; placed[f.name] = true ; break
+          end
+        end
+        if not placed[f.name] then
+          error(string.format("%s does not fit on any disk", f.name))
+        end
+      end
+    end
+    local perfname = perfs[1].name
 
     -- What actually fits in the machine. DWVW shrinks the floppy copy only, so
     -- a kit can span disks correctly and still be too big to load.
@@ -1370,16 +1428,17 @@ local function typhoon_export_process(outdir, opts)
         format_mb(total_points), format_mb(installed),
         ram_warning and "   *** TOO BIG ***" or ""),
       "",
-      "Insert the disks in this order. The setup, every voice and the performance",
-      "are on disk 1. Load the .X01 setup to rebuild the whole kit: it is the only",
-      "file that knows which diskette each wave lives on, so it is what makes the",
-      "sampler ask for disk 2 by name. Loading the .P01 on its own selects the kit",
-      "on MIDI channels 1 and 10, but can only resolve waves that are on disk 1.",
+      "EVERY DISK IS SELF-CONTAINED. Each one carries a voice, a performance and",
+      "the waves that voice plays, so it loads on its own with nothing missing.",
+      "Load them in any order; each disk's pads join the ones already in memory,",
+      "and the whole kit is playable once every disk is in. Every performance",
+      "answers on MIDI channel 1 and channel 10.",
       "",
     }
     manifest[#manifest + 1] = string.format("Voices: %d (maximum 40 splits per voice)", #voices)
     for i, v in ipairs(voices) do
-      manifest[#manifest + 1] = string.format("    voice %d: %s", i, v.name)
+      manifest[#manifest + 1] = string.format("    voice %d: %-14s on disk %d with %s",
+        i, v.name, i, perfs[i].name)
     end
     manifest[#manifest + 1] = ""
     for i, d in ipairs(disks) do
@@ -1411,7 +1470,7 @@ local function typhoon_export_process(outdir, opts)
       local loose = join(outdir, "files")
       ensure_dir(loose)
       for _, v in ipairs(voices) do write_file(join(loose, v.name), v.data) end
-      write_file(join(loose, perfname), perf)
+      for _, pf in ipairs(perfs) do write_file(join(loose, pf.name), pf.data) end
       write_file(join(loose, setupname), setup)
       for _, f in ipairs(files) do write_file(join(loose, f.name), f.data) end
     end
@@ -1422,7 +1481,7 @@ local function typhoon_export_process(outdir, opts)
     local msg = string.format(
       "Paketti TX16W: %s - %d samples, %d voices, performance %s, %d disk image(s) in %s%s%s",
       kitname, #files, #voices, perfname, #disks, outdir,
-      (#disks > 1) and string.format(" (load %s; it names the other disks)", setupname) or "",
+      (#disks > 1) and " (every disk is self-contained: voice, performance and its own waves)" or "",
       (oversize > 0) and string.format(", %d too long for the sampler", oversize) or "")
     if ram_warning then
       msg = msg .. " - WARNING: " .. ram_warning
