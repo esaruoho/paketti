@@ -14,7 +14,7 @@
 |------|----:|:-----:|:----------:|:--------:|----------------|
 | 2026-06-11-groovebox-controller-follow-and-menu | 9 | ✓ | — | ✗ | @built @code-verified @hw-untested @logic-verified @superseded |
 | 2026-06-11-ui-fixes-and-menu-config | 8 | ✓ | ✓ | — | @built @code-verified @logic-verified @runtime-verified |
-| clipboard-pattern-to-phrase | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| clipboard-pattern-to-phrase | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | eq10-keyboard-controls | 2 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |

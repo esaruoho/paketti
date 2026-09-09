@@ -118,6 +118,131 @@ local function write_note_column_data_to_phrase(note_column, data, source_type, 
   end
 end
 
+local function get_selected_phrase_line_index(song)
+  local line_index = song.selected_phrase_line_index or song.selected_line_index or 1
+  if line_index < 1 then line_index = 1 end
+  return line_index
+end
+
+local function positive_index_or_fallback(index, fallback)
+  if index and index > 0 then
+    return index
+  end
+  return fallback
+end
+
+local function analyze_phrase_clipboard_payload(data)
+  local info = {
+    max_note_col = 0,
+    max_effect_col = 0,
+    has_volume = false,
+    has_panning = false,
+    has_delay = false,
+    has_sample_effects = false,
+    instrument_refs = {},
+    instrument_ref_count = 0
+  }
+
+  if not data or not data.rows then
+    return info
+  end
+
+  for _, row_data in ipairs(data.rows) do
+    if data.source_type == "pattern" then
+      for _, source_track_data in pairs(row_data) do
+        if source_track_data.note_columns then
+          for _, col_data in pairs(source_track_data.note_columns) do
+            if col_data.instrument_value and col_data.instrument_value ~= 255 and
+               not info.instrument_refs[col_data.instrument_value] then
+              info.instrument_refs[col_data.instrument_value] = true
+              info.instrument_ref_count = info.instrument_ref_count + 1
+            end
+          end
+        end
+      end
+    end
+
+    -- Phrase paste intentionally consumes the first source track only.
+    local track_data = row_data[1]
+    if track_data then
+      if track_data.note_columns then
+        for col_idx, col_data in pairs(track_data.note_columns) do
+          if col_idx > info.max_note_col then
+            info.max_note_col = col_idx
+          end
+          if col_data.volume_value and col_data.volume_value ~= 255 then
+            info.has_volume = true
+          end
+          if col_data.panning_value and col_data.panning_value ~= 255 then
+            info.has_panning = true
+          end
+          if col_data.delay_value and col_data.delay_value ~= 0 then
+            info.has_delay = true
+          end
+          if (col_data.effect_number_value and col_data.effect_number_value ~= 0) or
+             (col_data.effect_amount_value and col_data.effect_amount_value ~= 0) then
+            info.has_sample_effects = true
+          end
+        end
+      end
+
+      if track_data.effect_columns then
+        for col_idx, _ in pairs(track_data.effect_columns) do
+          if col_idx > info.max_effect_col then
+            info.max_effect_col = col_idx
+          end
+        end
+      end
+    end
+  end
+
+  return info
+end
+
+local function prepare_phrase_clipboard_paste(phrase, data, start_line, rows_to_write, expand_columns)
+  local info = analyze_phrase_clipboard_payload(data)
+  local messages = {}
+
+  if expand_columns then
+    if info.max_note_col > phrase.visible_note_columns then
+      phrase.visible_note_columns = math.min(info.max_note_col, 12)
+      if info.max_note_col > 12 then
+        table.insert(messages, "note columns clipped to 12")
+      end
+    end
+    if info.max_effect_col > phrase.visible_effect_columns then
+      phrase.visible_effect_columns = math.min(info.max_effect_col, 8)
+      if info.max_effect_col > 8 then
+        table.insert(messages, "effect columns clipped to 8")
+      end
+    end
+    if info.has_volume then phrase.volume_column_visible = true end
+    if info.has_panning then phrase.panning_column_visible = true end
+    if info.has_delay then phrase.delay_column_visible = true end
+    if info.has_sample_effects then phrase.sample_effects_column_visible = true end
+  end
+
+  local required_last_line = start_line + math.max(rows_to_write, 1) - 1
+  if required_last_line > phrase.number_of_lines then
+    local target_length = math.max(required_last_line, phrase.number_of_lines + rows_to_write)
+    local new_length = math.min(target_length, 512)
+    phrase.number_of_lines = new_length
+    table.insert(messages, "phrase grew to " .. tostring(new_length) .. " lines")
+    if required_last_line > 512 then
+      table.insert(messages, "clipped at 512")
+    end
+  end
+
+  if info.instrument_ref_count > 1 then
+    table.insert(messages, "warning: mixed pattern instruments cleared")
+  end
+
+  if #messages > 0 then
+    return " (" .. table.concat(messages, "; ") .. ")"
+  end
+  return ""
+end
+
 -- Helper to check if clipboard data contains only effects (no actual notes)
 local function clipboard_has_only_effects(data)
   if not data or not data.rows then return false end
@@ -1377,9 +1502,11 @@ local function copy_phrase_selection(slot_index, clear_after_copy)
   
   -- If no selection, copy current line on current note column or effect column
   if not selection then
-    local line_idx = song.selected_line_index
-    local note_col_idx = song.selected_note_column_index
-    local effect_col_idx = song.selected_effect_column_index
+    local line_idx = get_selected_phrase_line_index(song)
+    local note_col_idx = positive_index_or_fallback(
+      song.selected_phrase_note_column_index,
+      positive_index_or_fallback(song.selected_note_column_index, 1))
+    local effect_col_idx = positive_index_or_fallback(song.selected_phrase_effect_column_index, song.selected_effect_column_index or 0)
     
     if line_idx > phrase.number_of_lines then
       line_idx = phrase.number_of_lines
@@ -1539,7 +1666,9 @@ local function paste_phrase_from_clipboard(slot_index)
     return false
   end
   
-  local start_line = song.selected_line_index
+  local start_line = get_selected_phrase_line_index(song)
+  local preserve_notes = clipboard_has_only_effects(data)
+  local status_suffix = prepare_phrase_clipboard_paste(phrase, data, start_line, #data.rows, true)
   local phrase_length = phrase.number_of_lines
   local is_cross_editor = (data.source_type == "pattern")
   local rows_pasted = 0
@@ -1562,7 +1691,7 @@ local function paste_phrase_from_clipboard(slot_index)
       if track_data.note_columns then
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns then
-            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type, preserve_notes)
           end
         end
       end
@@ -1586,11 +1715,11 @@ local function paste_phrase_from_clipboard(slot_index)
     if data.num_tracks > 1 then
       extra_info = " (used first track only from " .. data.num_tracks .. "-track pattern)"
     end
-    renoise.app():show_status(string.format("Pasted %d rows from Pattern to Phrase (Slot %s)%s", 
-      rows_pasted, format_slot_index(slot_index), extra_info))
+    renoise.app():show_status(string.format("Pasted %d rows from Pattern to Phrase (Slot %s)%s%s",
+      rows_pasted, format_slot_index(slot_index), extra_info, status_suffix))
   else
-    renoise.app():show_status(string.format("Pasted %d rows to phrase from Clipboard Slot %s", 
-      rows_pasted, format_slot_index(slot_index)))
+    renoise.app():show_status(string.format("Pasted %d rows to phrase from Clipboard Slot %s%s",
+      rows_pasted, format_slot_index(slot_index), status_suffix))
   end
   
   return true
@@ -1613,9 +1742,9 @@ local function paste_phrase_by_editstep(slot_index)
     return false
   end
   
-  local start_line = song.selected_line_index
-  local phrase_length = phrase.number_of_lines
+  local start_line = get_selected_phrase_line_index(song)
   local editstep = song.transport.edit_step
+  local preserve_notes = clipboard_has_only_effects(data)
   
   -- If editstep is 0, treat it as 1 (paste consecutively)
   if editstep == 0 then
@@ -1635,6 +1764,9 @@ local function paste_phrase_by_editstep(slot_index)
     return false
   end
   
+  local rows_to_write = ((#content_rows - 1) * editstep) + 1
+  local status_suffix = prepare_phrase_clipboard_paste(phrase, data, start_line, rows_to_write, true)
+  local phrase_length = phrase.number_of_lines
   local rows_pasted = 0
   
   -- Paste each content row at editstep intervals
@@ -1655,7 +1787,7 @@ local function paste_phrase_by_editstep(slot_index)
       if track_data.note_columns then
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns then
-            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type, preserve_notes)
           end
         end
       end
@@ -1678,8 +1810,8 @@ local function paste_phrase_by_editstep(slot_index)
     return false
   end
   
-  renoise.app():show_status(string.format("Pasted %d notes by editstep %d to phrase from Slot %s", 
-    rows_pasted, editstep, format_slot_index(slot_index)))
+  renoise.app():show_status(string.format("Pasted %d notes by editstep %d to phrase from Slot %s%s",
+    rows_pasted, editstep, format_slot_index(slot_index), status_suffix))
   
   return true
 end
@@ -1711,6 +1843,8 @@ local function mix_paste_phrase_from_clipboard(slot_index)
   local clipboard_rows = #data.rows
   local start_col = selection.start_column
   local end_col = selection.end_column
+  local preserve_notes = clipboard_has_only_effects(data)
+  local status_suffix = prepare_phrase_clipboard_paste(phrase, data, selection.start_line, 1, false)
   local cells_pasted = 0
   local cells_skipped = 0
   
@@ -1733,7 +1867,7 @@ local function mix_paste_phrase_from_clipboard(slot_index)
             local note_col = phrase_line.note_columns[col_idx]
             -- Only paste into empty cells
             if note_col.is_empty then
-              write_note_column_data_to_phrase(note_col, col_data, data.source_type)
+              write_note_column_data_to_phrase(note_col, col_data, data.source_type, preserve_notes)
               cells_pasted = cells_pasted + 1
             else
               cells_skipped = cells_skipped + 1
@@ -1762,8 +1896,8 @@ local function mix_paste_phrase_from_clipboard(slot_index)
     end
   end
   
-  renoise.app():show_status(string.format("Mix-Pasted to phrase from Slot %s: %d cells filled, %d skipped", 
-    format_slot_index(slot_index), cells_pasted, cells_skipped))
+  renoise.app():show_status(string.format("Mix-Pasted to phrase from Slot %s: %d cells filled, %d skipped%s",
+    format_slot_index(slot_index), cells_pasted, cells_skipped, status_suffix))
   
   return true
 end
@@ -1804,9 +1938,15 @@ local function flood_fill_phrase_from_clipboard(slot_index)
     end_col = selection.end_column
   else
     -- No selection: fill from cursor row to end of phrase, all columns
-    start_line = song.selected_line_index
+    start_line = get_selected_phrase_line_index(song)
     end_line = phrase.number_of_lines
     start_col = 1
+    end_col = phrase.visible_note_columns + phrase.visible_effect_columns
+  end
+  local status_suffix = prepare_phrase_clipboard_paste(phrase, data, start_line, 1, not has_selection)
+  local preserve_notes = clipboard_has_only_effects(data)
+  if not has_selection then
+    end_line = phrase.number_of_lines
     end_col = phrase.visible_note_columns + phrase.visible_effect_columns
   end
   
@@ -1826,7 +1966,7 @@ local function flood_fill_phrase_from_clipboard(slot_index)
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns and
              col_idx >= start_col and col_idx <= end_col then
-            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, data.source_type, preserve_notes)
           end
         end
       end
@@ -1846,11 +1986,11 @@ local function flood_fill_phrase_from_clipboard(slot_index)
   
   local filled_rows = end_line - start_line + 1
   if has_selection then
-    renoise.app():show_status(string.format("Flood filled %d phrase rows with Clipboard Slot %s", 
-      filled_rows, format_slot_index(slot_index)))
+    renoise.app():show_status(string.format("Flood filled %d phrase rows with Clipboard Slot %s%s",
+      filled_rows, format_slot_index(slot_index), status_suffix))
   else
-    renoise.app():show_status(string.format("Flood filled phrase from row %d to %d with Clipboard Slot %s", 
-      start_line, end_line, format_slot_index(slot_index)))
+    renoise.app():show_status(string.format("Flood filled phrase from row %d to %d with Clipboard Slot %s%s",
+      start_line, end_line, format_slot_index(slot_index), status_suffix))
   end
   
   return true
@@ -2420,8 +2560,10 @@ local function wonked_paste_phrase_from_clipboard(slot_index, preset_index)
   
   -- Transform the clipboard data
   local transformed_data = transform_clipboard_data(data, preset)
+  local preserve_notes = clipboard_has_only_effects(transformed_data)
   
-  local start_line = song.selected_line_index
+  local start_line = get_selected_phrase_line_index(song)
+  local status_suffix = prepare_phrase_clipboard_paste(phrase, transformed_data, start_line, #transformed_data.rows, true)
   local phrase_length = phrase.number_of_lines
   local rows_pasted = 0
   
@@ -2440,7 +2582,7 @@ local function wonked_paste_phrase_from_clipboard(slot_index, preset_index)
       if track_data.note_columns then
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns then
-            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, transformed_data.source_type)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, transformed_data.source_type, preserve_notes)
           end
         end
       end
@@ -2458,8 +2600,8 @@ local function wonked_paste_phrase_from_clipboard(slot_index, preset_index)
     end
   end
   
-  renoise.app():show_status(string.format("Wonked Paste (%s): %d rows to phrase from Slot %s", 
-    preset.name, rows_pasted, format_slot_index(slot_index)))
+  renoise.app():show_status(string.format("Wonked Paste (%s): %d rows to phrase from Slot %s%s",
+    preset.name, rows_pasted, format_slot_index(slot_index), status_suffix))
   
   return true
 end
@@ -2710,8 +2852,10 @@ local function transposed_paste_phrase_from_clipboard(slot_index, semitones)
   end
   
   local transposed_data = transpose_clipboard_data(data, semitones)
+  local preserve_notes = clipboard_has_only_effects(transposed_data)
   
-  local start_line = song.selected_line_index
+  local start_line = get_selected_phrase_line_index(song)
+  local status_suffix = prepare_phrase_clipboard_paste(phrase, transposed_data, start_line, #transposed_data.rows, true)
   local phrase_length = phrase.number_of_lines
   local rows_pasted = 0
   
@@ -2726,7 +2870,7 @@ local function transposed_paste_phrase_from_clipboard(slot_index, semitones)
       if track_data.note_columns then
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns then
-            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, transposed_data.source_type)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, transposed_data.source_type, preserve_notes)
           end
         end
       end
@@ -2744,8 +2888,8 @@ local function transposed_paste_phrase_from_clipboard(slot_index, semitones)
   end
   
   local direction = semitones >= 0 and "+" or ""
-  renoise.app():show_status(string.format("Transposed Paste (%s%d): %d rows to phrase from Slot %s", 
-    direction, semitones, rows_pasted, format_slot_index(slot_index)))
+  renoise.app():show_status(string.format("Transposed Paste (%s%d): %d rows to phrase from Slot %s%s",
+    direction, semitones, rows_pasted, format_slot_index(slot_index), status_suffix))
   
   return true
 end
@@ -3469,6 +3613,8 @@ local function swap_phrase_selection_with_clipboard(slot_index)
   
   local start_col = selection.start_column
   local end_col = selection.end_column
+  local preserve_notes = clipboard_has_only_effects(clipboard_data)
+  local status_suffix = prepare_phrase_clipboard_paste(phrase, clipboard_data, selection.start_line, 1, false)
   
   -- Capture phrase selection data
   for line_idx = selection.start_line, selection.end_line do
@@ -3517,7 +3663,7 @@ local function swap_phrase_selection_with_clipboard(slot_index)
         for col_idx, col_data in pairs(track_data.note_columns) do
           if col_idx <= phrase.visible_note_columns and
              col_idx >= start_col and col_idx <= end_col then
-            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, clipboard_data.source_type)
+            write_note_column_data_to_phrase(phrase_line.note_columns[col_idx], col_data, clipboard_data.source_type, preserve_notes)
           end
         end
       end
@@ -3537,8 +3683,8 @@ local function swap_phrase_selection_with_clipboard(slot_index)
   -- Save captured selection to clipboard
   save_clipboard_to_preferences(slot_index, selection_data)
   
-  renoise.app():show_status(string.format("Swapped phrase selection with Clipboard Slot %s (%d rows)", 
-    format_slot_index(slot_index), selection_data.num_rows))
+  renoise.app():show_status(string.format("Swapped phrase selection with Clipboard Slot %s (%d rows)%s",
+    format_slot_index(slot_index), selection_data.num_rows, status_suffix))
   
   return true
 end

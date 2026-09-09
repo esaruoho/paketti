@@ -56,15 +56,19 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user, I want cross-editor clipboard paste to respect phrase sample-column semantics, So that copied pattern notes do not turn into wrong or same-sample phrase content.
 
-**Behaviour (3 scenarios):**
+**Behaviour (7 scenarios):**
 
 - Pattern-sourced clipboard paste clears phrase sample selectors — `@shipped @code-verified @runtime-untested`
 - Phrase-origin clipboard paste keeps explicit sample selectors — `@shipped @code-verified @runtime-untested`
+- Phrase paste grows instead of clipping pasted rows — `@shipped @code-verified @runtime-untested`
+- Phrase paste reveals needed columns and sub-columns — `@shipped @code-verified @runtime-untested`
+- Mixed pattern instruments are reported when pasted to a phrase — `@shipped @code-verified @runtime-untested`
+- Effects-only phrase paste preserves existing notes — `@shipped @code-verified @runtime-untested`
 - Pattern-target clipboard paste keeps pattern instrument values — `@stock`
 
-**How it does it:** **Key procs:** `write_note_column_data_to_phrase`, `paste_phrase_from_clipboard`, `paste_phrase_by_editstep`, `mix_paste_phrase_from_clipboard`, `flood_fill_phrase_from_clipboard`, `wonked_paste_phrase_from_clipboard`, `transposed_paste_phrase_from_clipboard`, `swap_phrase_selection_with_clipboard` · **Source files:** `PakettiClipboard.lua`
+**How it does it:** **Key procs:** `write_note_column_data_to_phrase`, `prepare_phrase_clipboard_paste`, `analyze_phrase_clipboard_payload`, `get_selected_phrase_line_index`, `paste_phrase_from_clipboard`, `paste_phrase_by_editstep`, `mix_paste_phrase_from_clipboard`, `flood_fill_phrase_from_clipboard`, `wonked_paste_phrase_from_clipboard`, `transposed_paste_phrase_from_clipboard`, `swap_phrase_selection_with_clipboard` · **Source files:** `PakettiClipboard.lua`
 
-**Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+**Grade:** @code-verified ×6 · @runtime-untested ×6 · @shipped ×6 · @stock ×1
 
 
 <a id="device-hotswap-missing-to-actual"></a>

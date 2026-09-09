@@ -9,14 +9,16 @@
 #
 # Innards linked back to this card (grep "features/clipboard-pattern-to-phrase.feature"):
 #   PakettiClipboard.lua - write_note_column_data_to_phrase clears pattern instrument values for phrase targets
+#   PakettiClipboard.lua - prepare_phrase_clipboard_paste expands phrase rows/columns and reports cross-editor warnings
 #   PakettiClipboard.lua - paste_phrase_from_clipboard and related phrase paste sinks route note writes through the helper
 #
 # SESSION:      clipboard-pattern-to-phrase.session.md
 # RESULT:       Worktree delivery; direct-push/PR not yet known
 #
-# WATCH: write_note_column_data_to_phrase paste_phrase_from_clipboard paste_phrase_by_editstep mix_paste_phrase_from_clipboard flood_fill_phrase_from_clipboard wonked_paste_phrase_from_clipboard transposed_paste_phrase_from_clipboard swap_phrase_selection_with_clipboard
+# WATCH: write_note_column_data_to_phrase prepare_phrase_clipboard_paste analyze_phrase_clipboard_payload get_selected_phrase_line_index paste_phrase_from_clipboard paste_phrase_by_editstep mix_paste_phrase_from_clipboard flood_fill_phrase_from_clipboard wonked_paste_phrase_from_clipboard transposed_paste_phrase_from_clipboard swap_phrase_selection_with_clipboard
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-09  direct-commit  touched: write_note_column_data_to_phrase prepare_phrase_clipboard_paste analyze_phrase_clipboard_payload get_selected_phrase_line_index
 #   2026-09-09  direct-commit  touched: write_note_column_data_to_phrase
 # =============================================================================
 
@@ -26,7 +28,7 @@ Feature: Clipboard Pattern to Phrase conversion
   @shipped @code-verified @runtime-untested
   Scenario: Pattern-sourced clipboard paste clears phrase sample selectors
     # cite: PakettiClipboard.lua write_note_column_data_to_phrase (~line 104) — clears instrument_value for pattern-sourced phrase writes
-    # cite: PakettiClipboard.lua paste_phrase_from_clipboard (~line 1525) — routes normal Phrase Editor paste through the phrase-safe helper
+    # cite: PakettiClipboard.lua paste_phrase_from_clipboard (~line 1653) — routes normal Phrase Editor paste through the phrase-safe helper
     Given Clipboard Slot 01 contains note-column data copied from the Pattern Editor
     When the user pastes that slot into the Phrase Editor
     Then Paketti writes notes, volume, panning, delay, and sample effects into the phrase
@@ -38,6 +40,40 @@ Feature: Clipboard Pattern to Phrase conversion
     Given Clipboard Slot 01 contains note-column data copied from the Phrase Editor
     When the user pastes that slot back into the Phrase Editor
     Then Paketti preserves the phrase's explicit sample selector values
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Phrase paste grows instead of clipping pasted rows
+    # cite: PakettiClipboard.lua prepare_phrase_clipboard_paste (~line 202) — expands phrase length on overflow, clamped to 512
+    Given a phrase is shorter than the pasted clipboard rows would require
+    When the user pastes clipboard data into the Phrase Editor
+    Then Paketti grows the phrase length before writing rows
+    And only the Renoise 512-line phrase limit can still clip the paste
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Phrase paste reveals needed columns and sub-columns
+    # cite: PakettiClipboard.lua analyze_phrase_clipboard_payload (~line 134) — scans first source track for note/effect columns and note sub-column data
+    # cite: PakettiClipboard.lua prepare_phrase_clipboard_paste (~line 202) — raises visible phrase columns and sub-column visibility
+    Given clipboard data contains note columns, effect columns, or note sub-column values hidden in the destination phrase
+    When the user pastes into the Phrase Editor without a selection-constrained paste mode
+    Then Paketti expands visible phrase note and effect columns before writing
+    And Paketti turns on volume, panning, delay, and sample-effect sub-columns when the clipboard content needs them
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Mixed pattern instruments are reported when pasted to a phrase
+    # cite: PakettiClipboard.lua analyze_phrase_clipboard_payload (~line 134) — counts distinct pattern instrument references across the copied pattern payload
+    # cite: PakettiClipboard.lua prepare_phrase_clipboard_paste (~line 202) — returns a status warning when more than one pattern instrument reference was cleared
+    Given clipboard data copied from the Pattern Editor contains notes with multiple instrument values
+    When the user pastes that data into the Phrase Editor
+    Then Paketti clears those pattern instrument values for phrase safety
+    And the status message warns that mixed pattern instruments were cleared
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Effects-only phrase paste preserves existing notes
+    # cite: PakettiClipboard.lua clipboard_has_only_effects (~line 239) — detects clipboard payloads without actual notes
+    # cite: PakettiClipboard.lua paste_phrase_from_clipboard (~line 1653) — passes preserve_notes into the phrase-safe writer
+    Given clipboard data contains only effect or sub-column values
+    When the user pastes it into the Phrase Editor
+    Then Paketti preserves existing phrase notes while writing the effect data
 
   @stock
   Scenario: Pattern-target clipboard paste keeps pattern instrument values

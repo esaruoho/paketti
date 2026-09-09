@@ -34,6 +34,15 @@ All Phrase Editor clipboard paste sinks now use the helper:
 
 Pattern-target clipboard paste was left untouched.
 
+Follow-up hardening added in the same session:
+
+- `analyze_phrase_clipboard_payload()` scans the clipboard payload for the first source track's required note/effect columns and note sub-column visibility needs.
+- The same analyzer counts distinct pattern instrument references across the whole copied pattern payload, so multi-track or mixed-instrument selections can produce a warning when pasted into a phrase.
+- `prepare_phrase_clipboard_paste()` expands phrase note/effect columns before unconstrained phrase paste, turns on needed phrase sub-columns, and grows phrase length before writing rows.
+- Phrase length growth is additive on overflow: if the paste would exceed the current phrase end, Paketti grows by the incoming write span, clamped to 512. If edit-step spacing needs more room than that, the required last line wins.
+- Phrase paste now reuses the existing `clipboard_has_only_effects()` policy so effects-only data does not erase existing phrase notes.
+- Single-cell phrase copy now uses phrase-specific cursor fields, with explicit positive-index fallbacks so Lua's truthy `0` cannot become note column 0.
+
 ## Verification
 
 Static verification was performed from the shell. Runtime verification inside Renoise was not performed in this session.
