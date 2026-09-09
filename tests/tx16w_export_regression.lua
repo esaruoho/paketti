@@ -33,8 +33,67 @@ local p01 = read(root .. "/files/TX16W_DR.P01")
 local o01 = read(root .. "/files/TX16W_DR.O01")
 local o02 = read(root .. "/files/TX16W_DR.O02")
 local o03 = read(root .. "/files/TX16W_DR.O03")
-local disk1 = read(root .. "/TX16W__DISK1.img")
-local disk2 = read(root .. "/TX16W__DISK2.img")
+-- The images are named after their volume label, so discover them.
+local imgs = {}
+do
+  local pipe = assert(io.popen('ls "' .. root .. '"/*.img 2>/dev/null'))
+  for line in pipe:lines() do imgs[#imgs + 1] = line end
+  pipe:close()
+  table.sort(imgs)
+end
+check("two disk images were written", #imgs == 2)
+
+-- Every IFF object must be exactly as long as its FORM header says. A file
+-- whose last chunk is a 20-byte reference is where an off-by-one in any
+-- rewriting step shows up, and a one-byte-short .P01 or .X01 looks fine in a
+-- hex dump.
+do
+  local pipe = assert(io.popen('ls "' .. root .. '"/files/*.O?? "' .. root
+    .. '"/files/*.P?? "' .. root .. '"/files/*.X?? 2>/dev/null'))
+  local n = 0
+  for line in pipe:lines() do
+    local d = read(line)
+    if d:sub(1, 4) == "FORM" then
+      local declared = ((d:byte(5) * 256 + d:byte(6)) * 256 + d:byte(7)) * 256 + d:byte(8) + 8
+      check(line:match("[^/]+$") .. " is exactly as long as its FORM header says",
+        declared == #d)
+      n = n + 1
+    end
+  end
+  pipe:close()
+  check("every voice, performance and setup was length-checked", n >= 4)
+end
+local disk1 = read(imgs[1])
+local disk2 = read(imgs[2])
+
+-- Cyclone has to find the disk a reference names. Every one of the 18 known-good
+-- library images carries an ALPHANUMERIC volume label and lives in a file whose
+-- name starts with that label. Paketti used to write label "TX16W_2" into
+-- "TX16W__DISK2.img" - an underscore the corpus never uses, in a filename that
+-- does not begin with the label.
+do
+  local function label_of(img)
+    local bps = img:byte(12) + img:byte(13) * 256
+    local spf = img:byte(23) + img:byte(24) * 256
+    local base = (1 + 2 * spf) * bps
+    for i = 0, (img:byte(18) + img:byte(19) * 256) - 1 do
+      local e = img:sub(base + i * 32 + 1, base + i * 32 + 32)
+      if e:byte(1) == 0 then break end
+      if e:byte(1) ~= 0xE5 and e:byte(12) % 16 >= 8 then
+        return (e:sub(1, 11):gsub(" +$", ""))
+      end
+    end
+  end
+  for i, img in ipairs({ disk1, disk2 }) do
+    local lab = label_of(img)
+    local file = imgs[i]:match("([^/]+)%.img$")
+    check("disk " .. i .. " has a volume label", lab ~= nil and lab ~= "")
+    check("disk " .. i .. " label '" .. tostring(lab) .. "' is alphanumeric",
+      lab:match("^[A-Za-z0-9]+$") ~= nil)
+    check("disk " .. i .. " image file '" .. file .. "' is named after its label",
+      file:upper() == lab:upper())
+  end
+end
 
 check("disk 1 is 720K", #disk1 == 737280)
 check("disk 2 is 720K", #disk2 == 737280)
@@ -53,17 +112,17 @@ if unknown_disk_refs then
   check("chained voices use unknown disk markers", not has(voices, "TX16W_1")
     and not has(voices, "TX16W_2")
     and has(voices, string.rep("\255", 8)))
-  check("performance uses unknown disk markers", not has(p01, "TX16W_1")
-    and not has(p01, "TX16W_2")
+  check("performance uses unknown disk markers", not has(p01, "TX16WD1")
+    and not has(p01, "TX16WD2")
     and has(p01, string.rep("\255", 8)))
 else
-  check("disk 2 label is referenced literally", has(voices, "TX16W_2"))
-  check("disk 2 reference is NUL-terminated", has(voices, "TX16W_2\0"))
+  check("disk 2 label is referenced literally", has(voices, "TX16WD2"))
+  check("disk 2 reference is NUL-terminated", has(voices, "TX16WD2\0"))
 end
 check("disk 2 contains HIBONGO", has(disk2, "HIBONGO"))
 check("short disk-2 wave name is NUL-terminated", has(voices, "HIBONGO\0"))
 if not unknown_disk_refs then
-  check("voice references disk 1 literally", has(voices, "TX16W_1"))
+  check("voice references disk 1 literally", has(voices, "TX16WD1"))
 end
 
 --------------------------------------------------------------------------------

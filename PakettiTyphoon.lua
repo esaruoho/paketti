@@ -1272,7 +1272,16 @@ local function typhoon_export_process(outdir, opts)
     -- wave actually landed on. Typhoon uses that name to prompt for the right
     -- floppy when a wave is missing; without it the sampler only knows that
     -- something is absent, not where to send you.
-    local labelbase = PakettiDWVWDosName(kitname, {}):match("^[^%.]+"):sub(1, 6)
+    -- Disk labels are ALPHANUMERIC ONLY, and the image file is named after the
+    -- label. All 18 known-good library images carry a label of letters and
+    -- digits (sd001..sd024) and 17 of the 18 are in a file whose name starts
+    -- with that label. Paketti used to label a disk TX16W_2 and put it in
+    -- TX16W__DISK2.img: an underscore the corpus never uses, in a file whose
+    -- name does not begin with the label. Cyclone named the disk it wanted and
+    -- still could not find it.
+    local labelbase = (PakettiDWVWDosName(kitname, {}):match("^[^%.]+")
+      :gsub("[^A-Z0-9]", "")):sub(1, 6)
+    if labelbase == "" then labelbase = "TX16W" end
     -- voices, the performance, and the .X01 setup that carries the disk names
     local reserve_entries = #voice_parts + 2
     local reserve_bytes = 1024 + (#voice_parts * 1024) + (#splits * 64)
@@ -1397,7 +1406,7 @@ local function typhoon_export_process(outdir, opts)
         coroutine.yield()
         local img = PakettiTyphoonBuildDiskImage(d.files,
           string.format("%s%d", labelbase, i), 8)
-        local name = string.format("%s_DISK%d.img", labelbase, i)
+        local name = string.format("%s%d.img", labelbase, i)
         write_file(join(outdir, name), img)
         written[#written + 1] = name
       end
@@ -1560,7 +1569,11 @@ local function typhoon_song_process(outdir, opts)
     coroutine.yield()
 
     -- One entry per voice and one for the setup, on top of the waves.
-    local labelbase = PakettiDWVWDosName(songname, {}):match("^[^%.]+"):sub(1, 6)
+    -- Alphanumeric only, and the image is named after the label. See the note
+    -- in the drumkit path above.
+    local labelbase = (PakettiDWVWDosName(songname, {}):match("^[^%.]+")
+      :gsub("[^A-Z0-9]", "")):sub(1, 6)
+    if labelbase == "" then labelbase = "TX16W" end
     local voice_bytes = 2048
     for _, pi in ipairs(per_instrument) do
       voice_bytes = voice_bytes + 1024 + #pi.splits * 64
@@ -1672,7 +1685,7 @@ local function typhoon_song_process(outdir, opts)
         coroutine.yield()
         local img = PakettiTyphoonBuildDiskImage(d.files,
           string.format("%s%d", labelbase, i), 8)
-        local name = string.format("%s_DISK%d.img", labelbase, i)
+        local name = string.format("%s%d.img", labelbase, i)
         write_file(join(outdir, name), img)
         written[#written + 1] = name
       end
