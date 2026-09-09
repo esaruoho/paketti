@@ -275,6 +275,72 @@ for _, disk in ipairs({ disk1, disk2 }) do
 end
 check("every wave was checked", waves_checked == 120)
 
+-- ONE GROUP PER WAVE, ONE KEY PER GROUP.
+-- 587 groups across the 188 voices on the Yamaha library disks; 538 hold
+-- exactly one wave and the rest are empty terminators. Not one uses a second
+-- split point. Paketti used to put 40 waves into a single group as split
+-- points - legal per the manual, but with zero real-world examples - and a
+-- whole stretch of the keyboard played one sample.
+do
+  local function u32b(d, o)
+    return ((d:byte(o) * 256 + d:byte(o + 1)) * 256 + d:byte(o + 2)) * 256 + d:byte(o + 3)
+  end
+  local total_groups, total_waves = 0, 0
+  for _, v in ipairs({ "O01", "O02", "O03" }) do
+    local d = read(root .. "/files/TX16W_DR." .. v)
+    local i = 13
+    while i + 8 <= #d do
+      local t, ln = d:sub(i, i + 3), u32b(d, i + 4)
+      if t == "Grop" then
+        total_groups = total_groups + 1
+        local b, j, low, high, nw = d:sub(i + 8, i + 7 + ln), 1, nil, nil, 0
+        while j + 8 <= #b do
+          local tt, ll = b:sub(j, j + 3), u32b(b, j + 4)
+          local bb = b:sub(j + 8, j + 7 + ll)
+          if tt == "Parm" and not low and ll == 64 then low, high = bb:byte(1), bb:byte(2) end
+          if tt == "Splt" then
+            local k = 1
+            while k + 8 <= #bb do
+              local st, sl = bb:sub(k, k + 3), u32b(bb, k + 4)
+              if st == "Wave" then nw = nw + 1 end
+              k = k + 8 + sl + (sl % 2)
+            end
+          end
+          j = j + 8 + ll + (ll % 2)
+        end
+        check(v .. " group at key " .. tostring(low) .. " holds exactly one wave", nw == 1)
+        check(v .. " group at key " .. tostring(low) .. " covers exactly one key", low == high)
+        total_waves = total_waves + nw
+      end
+      i = i + 8 + ln + (ln % 2)
+    end
+  end
+  check("the kit is 120 groups", total_groups == 120)
+  check("each group carries one wave", total_waves == 120)
+end
+
+-- Performance entry parameters. Byte 6 is never 0 in the 417 entries on the
+-- library disks (it is 1, 2, 3 or 5) and the volume byte is 108 in all of them.
+do
+  local function u32b(d, o)
+    return ((d:byte(o) * 256 + d:byte(o + 1)) * 256 + d:byte(o + 2)) * 256 + d:byte(o + 3)
+  end
+  local i, n = 1, 0
+  while true do
+    local j = p01:find("Entr", i, true)
+    if not j then break end
+    local body = p01:sub(j + 8, j + 7 + u32b(p01, j + 4))
+    local parm = body:sub(9, 8 + u32b(body, 5))
+    check("performance entry parm is 12 bytes", #parm == 12)
+    check("performance entry byte 6 is a value the format uses (not 0)",
+      parm:byte(7) >= 1 and parm:byte(7) <= 5)
+    check("performance entry volume is 108", parm:byte(4) == 108)
+    n = n + 1
+    i = j + 4
+  end
+  check("every performance entry was checked", n == 6)
+end
+
 print("TX16W export regression checks passed")
 
 local rx2 = arg[2]

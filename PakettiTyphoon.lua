@@ -465,6 +465,31 @@ end
 -- splits: a flat list (one group), or a list of { splits = {...}, range = {...} }
 -- when the voice needs several groups -- which is how velocity layers are done,
 -- since a group carries the velocity range and a split does not.
+-- ONE GROUP PER WAVE, each group covering exactly the one key that wave sits on.
+--
+-- This is what every real Typhoon voice does. Measured across the 188 voices on
+-- the Yamaha library disks: 587 groups, and 538 of them hold EXACTLY ONE wave
+-- (the other 49 are empty terminators). Not one group in the entire corpus uses
+-- a second split. The largest voice, PERC_MIX.O01, is 14 waves in 14 groups.
+--
+-- Split points are documented (manual 4.5, "multi-sampled instruments such as
+-- pianos") and Paketti used to put all 40 waves of a drum voice into a single
+-- group as 40 split points. That path has zero real-world examples behind it,
+-- and it mapped a whole stretch of the keyboard to one sample. One group per
+-- key is the structure with 538 working examples.
+local function build_key_groups(splits, range, unknown_disk_refs)
+  local out = {}
+  for i, sp in ipairs(splits) do
+    local key = sp.voice_key or sp.key
+    local r = {}
+    for k, v in pairs(range or {}) do r[k] = v end
+    r.low_key, r.high_key = key, key
+    r.end_key = key + 1
+    out[#out + 1] = build_group({ sp }, r, unknown_disk_refs)
+  end
+  return out
+end
+
 function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key, opts)
   assert(#splits > 0, "a voice needs at least one split")
 
@@ -472,13 +497,18 @@ function PakettiTyphoonBuildVoice(splits, stamp, voiceid, end_key, opts)
   if splits[1].splits then
     for _, g in ipairs(splits) do
       if #g.splits > 0 then
-        groups[#groups + 1] = build_group(g.splits, g.range,
-          opts and opts.unknown_disk_refs)
+        for _, grp in ipairs(build_key_groups(g.splits, g.range,
+            opts and opts.unknown_disk_refs)) do
+          groups[#groups + 1] = grp
+        end
       end
     end
   else
-    groups[#groups + 1] = build_group(splits, end_key and {end_key = end_key} or nil,
-      opts and opts.unknown_disk_refs)
+    for _, grp in ipairs(build_key_groups(splits,
+        end_key and {end_key = end_key} or nil,
+        opts and opts.unknown_disk_refs)) do
+      groups[#groups + 1] = grp
+    end
   end
   assert(#groups > 0, "a voice needs at least one group")
 
@@ -715,9 +745,12 @@ function PakettiTyphoonBuildPerformance(entries, stamp, perfid, programs, opts)
   local parts = { chunk("Parm", PAKETTI_TYPHOON_PERF_GLOBALS) }
   for _, e in ipairs(entries) do
     local ch = e.channel and math.max(0, math.min(15, e.channel)) or 255
-    local vol = math.max(0, math.min(127, e.volume or 96))
+    -- Volume is 108 in all 417 performance entries on the library disks.
+    local vol = math.max(0, math.min(127, e.volume or 108))
+    -- Byte 6 is NEVER zero in those 417 entries - it is 1, 2, 3 or 5, and 3 in
+    -- 216 of them. Paketti wrote 0, which is not a value the format uses.
     local body = chunk("Parm", string.char(ch, (e.transpose or 0) % 256)
-      .. be(vol, 16) .. string.rep("\000", 4) .. "\000\007\002\000")
+      .. be(vol, 16) .. "\000\000\003\000" .. "\000\007\002\000")
       .. ref(e)
     parts[#parts + 1] = chunk("Entr", body)
   end
@@ -1325,7 +1358,7 @@ local function typhoon_export_process(outdir, opts)
       for _, channel in ipairs({0, 9}) do
         perf_entries[#perf_entries + 1] = {
           name = v.base, id = v.id, disk = labelbase .. "1",
-          channel = channel, transpose = 0, volume = 96,
+          channel = channel, transpose = 0, volume = 108,
         }
       end
     end
@@ -1609,7 +1642,7 @@ local function typhoon_song_process(outdir, opts)
       entries[#entries + 1] = {
         name = pi.voicename:match("^[^%.]+"), id = pi.voiceid,
         disk = string.format("%s1", labelbase),
-        channel = pi.channel, volume = 96,
+        channel = pi.channel, volume = 108,
       }
       if i > 16 then entries[#entries].channel = nil end
     end

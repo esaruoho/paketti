@@ -467,6 +467,50 @@ and normalize only according to this table.
   keyboard plays a single sample. Ship a per-disk performance for auditioning
   and a master performance listing every voice on channel 1 and channel 10.
 
+### One group per wave, one key per group — the layout every real voice uses
+
+Measured across all 188 voices on the Yamaha library disks: **587 groups, of
+which 538 hold exactly one `Wave`** and the remaining 49 are empty terminators.
+**Not one group in the corpus carries a second split point.** The largest voice
+in the whole set, `PERC_MIX.O01`, is 14 waves in 14 groups, and each group's
+`Parm` key range is a single key (`low == high`, e.g. `50,50` then `52,52`).
+
+Split points are real — the manual, §4.5, documents them for "multi-sampled
+instruments such as pianos", with a `001:DRUMS` example — but no shipped voice
+uses them. Paketti used to put all 40 waves of a drum voice into **one** group
+spanning 40 keys as 40 split points. It is legal on paper and it has zero
+working examples behind it, and in Cyclone it mapped long stretches of the
+keyboard to a single sample.
+
+So: **one `Grop` per wave, its key range set to the one key that wave sits on.**
+A 40-wave voice is 40 groups, about 9.9 KB. That is the structure with 538
+working examples.
+
+### Performance entry parameters — the 12-byte `Entr` `Parm`
+
+Profiled over all 417 performance entries in the corpus:
+
+| byte | meaning | corpus values |
+|---|---|---|
+| 0 | MIDI channel | 255 = any (356), else 0–15 |
+| 1 | transpose | 0 in 391 |
+| 2–3 | volume, big-endian | **108 in all 417** |
+| 4 | — | 0 in 357 |
+| 5 | semitone shift, signed | 0 in 234, ±5, ±11 … |
+| 6 | — | **1, 2, 3 or 5. NEVER 0** (3 in 216) |
+| 7 | — | 0 in all 417 |
+| 8–9 | output range | 0,7 most common |
+| 10 | — | 2 in all 417 |
+| 11 | — | 0 in all 417 |
+
+Paketti wrote 0 into byte 6 and 96 into the volume. Byte 6 = 0 is a value the
+format never uses.
+
+Note that `>Bot` / `>Top` (the entry's receive range, manual §4.4.1) could not
+be located in this block — every byte is either accounted for or constant
+across all 417 entries. Voices layered on one MIDI channel are therefore kept
+apart by their group key ranges, not by an entry range.
+
 ### How Typhoon actually loads a multi-disk kit — from the manual, not inferred
 
 Source: *Typhoon User's Manual* (NuEdge Development), §2.2 and §4.3.1, in
