@@ -16,6 +16,8 @@ Wave references no longer translate underscores into spaces. The 8-byte name ins
 
 Multi-disk exports now write an `.X01` setup, and it is the file to load. The setup is the disk catalogue: it lists every wave alongside the volume label of the diskette that wave actually landed on. Real Typhoon sets do exactly this - all 538 voice references and all 417 performance references on the library disks mark the disk "unknown", and only the setups name one (78 of them, `SD009` through `SD012`). Without an `.X01` nothing in the set records where disk 2's waves are, so the sampler is told a wave is missing but never which floppy to ask for. The setup, every voice and the performance are on disk 1; the export manifest and the finished-export message now both say to load the `.X01`.
 
+Every TX16W export manifest now carries the build time on its second line (`Built YYYY-MM-DD HH:MM UTC by Paketti`), so which export folder is the newest is readable from the manifest itself rather than from file timestamps.
+
 The regression test in `tests/tx16w_export_regression.lua` was checking the wrong invariants and passed on the broken export. It now parses the FAT directory and every reference chunk, and fails unless each reference names a file that genuinely exists on one of the disks and the setup points every disk-2 wave at disk 2 by name.
 
 ### 2026-09-08 - Fix: Paketti v3.4.4 Failed To Load At Startup (Zero Crossings Auto-Snap)

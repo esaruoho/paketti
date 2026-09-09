@@ -1360,6 +1360,7 @@ local function typhoon_export_process(outdir, opts)
     -- A manifest, so there is no guessing when the sampler asks for a disk.
     local manifest = {
       string.format("%s - Yamaha TX16W export", kitname),
+      string.format("Built %s by Paketti", os.date("!%Y-%m-%d %H:%M UTC")),
       string.format("%d sample(s), %d disk(s)", #files, #disks),
       string.format("Sample memory needed: %s of the %s installed%s",
         format_mb(total_points), format_mb(installed),
@@ -1635,6 +1636,7 @@ local function typhoon_song_process(outdir, opts)
 
     local manifest = {
       string.format("%s - Yamaha TX16W song export", songname),
+      string.format("Built %s by Paketti", os.date("!%Y-%m-%d %H:%M UTC")),
       string.format("%d instrument(s), %d sample(s), %d disk(s)",
         #per_instrument, #files, #disks),
       string.format("Sample memory needed: %s of the %s installed%s",
