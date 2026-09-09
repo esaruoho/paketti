@@ -119,11 +119,53 @@ Feature: TX16W IMG exports use Cyclone-compatible item identity
     Then disk 1 contains the kit `.O01` and matching `.P01`
     And the `.P01` references the exact voice id and assigns MIDI channel 10
 
-  @shipped @built @code-verified @runtime-untested
+  @shipped @built @code-verified @runtime-verified
+  Scenario: A 120-sample kit spanning two disks loads and plays in Cyclone
+    # cite: PakettiTyphoon.lua typhoon_export_process - chained layout: voices, performance and .X01 setup on disk 1, waves packed across the set, every wave reference naming the disk it landed on ; commit 29f11f72 98d80040
+    # Confirmed by the user in Cyclone on 2026-09-09.
+    Given a 120-sample drumkit that does not fit on one 720K disk
+    When Paketti exports it and the user loads disk 1 in Cyclone
+    Then no "wave length / loop adjusted" warning appears
+    And the sampler asks for disk 2 BY NAME, as "Missing wave X (from LABEL)"
+    And swapping to disk 2 at that prompt resolves the remaining waves
+    And every pad triggers its own sample across the keyboard
+
+  @shipped @built @code-verified @runtime-verified
+  Scenario: Each wave sits in its own group covering the keys it owns
+    # cite: PakettiTyphoon.lua build_key_groups - one Grop per split, spanning from its own key to just below the next split's ; commit 7483dc42 aa493f55
+    # 538 of 538 non-empty groups in the Yamaha library corpus hold exactly one wave.
+    Given an instrument with many samples on consecutive keys
+    When Paketti builds the Typhoon voice
+    Then each sample gets its own group covering exactly its one key
+    And a single sample mapped across the keyboard instead gets ONE group spanning the whole board
+    And no group uses a second split point
+
+  @shipped @built @code-verified @runtime-verified
+  Scenario: Every wave carries the loop metadata Typhoon expects
+    # cite: PakettiDWVW.lua PakettiDWVWBuildFile - always emits INST and MARK, pads a non-looping wave to a multiple of 64 frames ; commit aab3dd17
+    # 38 of 38 corpus drum waves carry both chunks and are an exact multiple of 64 frames.
+    Given a one-shot sample of an arbitrary length
+    When Paketti encodes it as a Typhoon `.C01` wave
+    Then the frame count is a multiple of 64
+    And the wave carries INST and MARK
+    And the loop markers sit at the very end so no data follows the loop
+    And Typhoon reports neither "wave length / loop adjusted" nor "data after loop will not be loaded"
+
+  @shipped @built @code-verified @runtime-verified
+  Scenario: A disk can be found by the name a reference gives it
+    # cite: PakettiTyphoon.lua typhoon_export_process - labels stripped to letters and digits, image file named after the label ; commit 98d80040
+    # 18 of 18 corpus images carry an alphanumeric label; 17 of 18 live in a file named after it.
+    Given a kit that spans more than one disk
+    When Paketti writes the images
+    Then each volume label contains only letters and digits
+    And each image file is named after its own volume label
+    And a wave reference names the label of the disk that wave is on
+
+  @shipped @built @code-verified @runtime-verified
   Scenario: The first drum slice starts at the requested base key
     # cite: PakettiTyphoon.lua build_voice_groups (~line 1108) - group lower key supplies the first Typhoon Splt key because the first Splt has no Parm chunk ; commit worktree
-    Given a drumkit's first sample is mapped to C-2
+    Given a drumkit's first sample is mapped to a given Renoise key
     When Paketti builds the Typhoon voice
-    Then the voice group lower key is C-2
-    And the first kick is not silently placed at C-0
+    Then the Typhoon key equals the MIDI note number, with no offset added
+    And a kit laid out from Renoise C-0 occupies Typhoon keys 0..119
     And following slices remain addressable at consecutive keys

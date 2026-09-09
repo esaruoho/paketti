@@ -4,7 +4,42 @@ Typhoon is by Magnus Lidström (later Sonic Charge), who also invented DWVW.
 Typhoon 2000 is freeware and final; there will be no further versions.
 
 Everything here is either measured against real files or marked as unknown.
-Nothing is guessed silently. **None of it has been tested on a real TX16W.**
+Nothing is guessed silently. **None of it has been tested on real TX16W
+hardware**, but as of 2026-09-09 the export is confirmed working in the Cyclone
+emulator — see below.
+
+## Confirmed working in Cyclone, 2026-09-09
+
+A 120-sample drumkit spanning two 720K disks loads and plays: no warnings on
+wave load, disk 1 asks for disk 2 by name, and every pad triggers its own
+sample across the keyboard. A 24-slice RX2 kit and a single-sample melodic map
+were rebuilt through the same code path.
+
+Getting there took seven separate fixes. Each is documented below with the
+measurement behind it; the summary is in
+`HANDOVER_TX16W_CYCLONE_2026-09-09.md`.
+
+| # | What was wrong | What settled it |
+|---|---|---|
+| 1 | Reference names turned `_` into a space | 0 of 859 corpus references contain a space; 273 contain `_` |
+| 2 | No `.X01` setup was written | Only `.X01` ever names a diskette (78 refs) |
+| 3 | Voice references said "disk unknown" | With `0xFF` the sampler cannot say which floppy it needs |
+| 4 | Waves had no `INST`/`MARK`, and a free length | 38/38 corpus drum waves carry both, all a multiple of 64 frames |
+| 5 | Disk label held `_`; image filename ≠ label | 18/18 corpus labels alphanumeric, 17/18 files named after the label |
+| 6 | Many waves in one group, via split points | 538/538 non-empty corpus groups hold exactly ONE wave |
+| 7 | `voice_key = key + 1` | The key number IS the MIDI note number |
+
+**The two method mistakes cost more than any single bug**, and are worth
+repeating here because both are easy to make again:
+
+- *The manual went unread.* `Typhoon2000/Typhoon User's Manual.pdf` answers the
+  central question directly (§4.3.1) and sat unopened while the format was
+  inferred from hex dumps. Read it first.
+- *The corpus was read as prescriptive.* It is descriptive. The library disks
+  are melodic instruments that never need key 0 and whose companion disks are
+  supplementary; both facts got promoted into rules ("keys are one-based",
+  "make every disk standalone") and both were wrong. Absence in a sample is not
+  a prohibition.
 
 ## The corpus this was derived from
 
@@ -17,6 +52,16 @@ Nothing is guessed silently. **None of it has been tested on a real TX16W.**
 - A 1006-file survey of real `.C01` libraries.
 - `TR_808.O01`, a third-party voice, which is the only non-NuEdge voice here
   and so the only independent check on the voice format.
+- **The Typhoon User's Manual** (74 pages, in the NuEdge distribution). This is
+  documentation, not inference, and it outranks anything derived from the
+  binaries. Sections that settled real questions: §2.2 (dependencies load
+  automatically across several diskettes), §2.4 (item versions), §4.3.1 (the
+  missing-item request and diskette switching), §4.4.1 (performance entries,
+  `>Bot`/`>Top`, priority), §4.5 (split points).
+
+Everything lives in `~/Downloads/tx16w/tx16w_typhoon_example_files/`:
+`Typhoon2000/` holds the manual and the OS image, `sd/cyclone-format/` the 18
+Typhoon library disks, `sd/yamaha-format/` the 24 Yamaha originals.
 
 ## MS-DOS extensions (manual table 4.4)
 
@@ -397,7 +442,29 @@ normal TX16W percussion channel.
 ### Paketti export invariants (do not regress)
 
 These are hard requirements for an IMG that is intended for Cyclone, not merely
-pleasant-looking filesystem output:
+pleasant-looking filesystem output. Every one of them was a shipped bug at some
+point on 2026-09-09; the detail and the measurement for each is in its own
+section below.
+
+| Invariant | Regressing it looks like |
+|---|---|
+| Reference name == the DOS 8.3 basename, underscores kept | references naming a wave that is on no disk |
+| Every wave carries `INST` + `MARK` | "wave length / loop adjusted" on load |
+| Wave frame count is a multiple of 64 | same warning, plus "data after loop will not be loaded" |
+| A non-looping wave's loop sits at the very end | "data after loop will not be loaded" |
+| Typhoon key == MIDI note; no `+1` | the whole kit sounds a semitone high, top pad lost |
+| One `Grop` per wave, covering the keys that wave owns | one sample sounding across a stretch of keyboard, or a melodic map collapsed onto one note |
+| Disk label alphanumeric, image file named after the label | sampler names the disk it wants and still cannot find it |
+| Wave references carry the label of the disk they live on | `Missing wave X` with no disk named, so nothing to insert |
+| Voices, performance and setup on disk 1; waves packed across | disk 2 loads with no performance and nothing resolves |
+| A multi-disk kit ships an `.X01` catalogue | nothing records where disk 2's waves are |
+| Performance entry `Parm` byte 6 in 1..5, volume 108 | values the format never uses |
+| Every object's length matches its own `FORM` header | silent one-byte truncation, invisible in a hex dump |
+
+**Do not "simplify" a chained multi-disk kit into one standalone disk per
+voice.** It removes every cross-disk reference and with it the automatic disk
+fetch, which is the behaviour that makes a multi-disk kit usable. This was tried
+and reverted. See the chained-layout section.
 
 ### Name-field contract
 
@@ -495,7 +562,7 @@ of a 120-pad kit are out of reach. That is a keyboard-range limit, not an export
 fault: the pads exist and respond to those note numbers. Lay a kit out with
 108 or fewer samples and every pad is reachable.
 
-### One group per wave, one key per group — the layout every real voice uses
+### One group per wave, covering the keys that wave owns
 
 Measured across all 188 voices on the Yamaha library disks: **587 groups, of
 which 538 hold exactly one `Wave`** and the remaining 49 are empty terminators.
@@ -815,7 +882,24 @@ MIDI channel lands in the instrument name); `.X01` setups. Drag and drop for
 **Verified** — all 1006 real `.C01` files parse, 1002 re-encode bit-identically
 and the other 4 decode identically. Built images mount natively with every file
 byte-identical. `.W##` checked against Typhoon's own conversions: 218/218 on
-frames, rate and loop end.
+frames, rate and loop end. And, since 2026-09-09, a 120-sample two-disk kit, a
+24-slice RX2 kit and a single-sample melodic map all load and play in Cyclone.
+
+**How to check a build.** Two tests, and they are not equally trustworthy:
+
+    lua      tests/tx16w_export_regression.lua <export-folder>
+    python3  tests/tx16w_corpus_diff.py        <folder>/DISK1.img
+
+The Lua test (656 checks) encodes *our own* reading of the format. It has passed
+on a broken export before — it once asserted the very off-by-one it should have
+caught, because the wrong rule had been written into both the exporter and the
+test. Treat it as a regression guard, not proof.
+
+`tx16w_corpus_diff.py` is the non-circular one: it diffs a Paketti disk against
+a real Yamaha disk property by property and prints every difference for a human
+to judge. Its reference corpus lives in the example-files folder above; set
+`TX16W_REFERENCE` if it moves. A "DIFFERS" line is not automatically a bug —
+counts legitimately vary — but no *structural* property should differ.
 
 ## Open questions
 
@@ -923,15 +1007,18 @@ a record boundary that gives a consistent stride across several disks).
 
 ### Q8 — does any of this work on hardware?
 
-Nothing has touched a real TX16W. Highest risk first:
+Cyclone yes, as of 2026-09-09; a real TX16W still unknown. Cyclone is a faithful
+emulator, so this is real evidence — but it is not the machine. Highest risk
+first, now that kit loading is settled:
 
 1. **Generated filter tables** — structurally verified byte for byte, never
    heard by anyone.
-2. **Very large kits** — factory voices top out at 42 splits. Paketti now
-   partitions a 120-pad kit into three 40-split voices and puts all three in
-   one `.P01`; Cyclone runtime loading of that new arrangement is still the
-   required live check.
+2. **The top of the key range.** Corpus group ranges run 1..96, so 96 is the
+   highest key any shipped voice uses. A 120-pad kit is written to keys 0..119
+   and plays in Cyclone, but keys 97..119 have no precedent in the corpus.
 3. **The 12-byte creator stamp**, generated fresh. Only 667 of 1174 real waves
    shared their voice's stamp, so it reads as informational rather than load
    bearing — but that is an inference.
 4. **MIDI sample dump**, sent open loop and never received by a machine.
+5. **Real floppy media.** Everything so far is disk images. A Gotek or HxC
+   should behave the same; actual 720K double-density floppies are untried.
