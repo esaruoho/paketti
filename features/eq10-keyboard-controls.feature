@@ -13,9 +13,10 @@
 # SESSION:      eq10-keyboard-controls.session.md
 # RESULT:       Worktree delivery; direct-push/PR not yet known
 #
-# WATCH: adjust_eq10_band_gain pakettiEQ10XYDialog
+# WATCH: adjust_eq10_band_gain refresh_eq10_band_xypad pakettiEQ10XYDialog
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-10  direct-commit  touched: adjust_eq10_band_gain refresh_eq10_band_xypad
 #   2026-09-08  direct-commit  touched: pakettiEQ10XYDialog
 #   2026-09-04  direct-commit  touched: adjust_eq10_band_gain
 # =============================================================================
@@ -39,3 +40,12 @@ Feature: EQ10 keyboard controls
     When the user presses Shift+Q through Shift+P
     Then the matching EQ10 band gain decreases by 1 dB
     And the gain remains within the EQ10 parameter limits
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Keyboard gain shortcuts keep XY pads visually synchronized
+    # cite: PakettiExperimental_Verify.lua refresh_eq10_band_xypad — recalculates and writes the matching XY pad value after a shortcut nudge
+    # cite: PakettiExperimental_Verify.lua pakettiEQ10XYDialog — calls the pad refresh helper after handled Shift shortcuts and displays the shortcut hints
+    Given the EQ10 XY Control dialog is open
+    When the user changes a band gain with a Shift shortcut
+    Then the matching XY pad moves to the updated gain position
+    And the dialog shows the raise and lower shortcut rows

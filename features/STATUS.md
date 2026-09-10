@@ -17,7 +17,7 @@
 | clipboard-pattern-to-phrase | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
-| eq10-keyboard-controls | 2 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
+| eq10-keyboard-controls | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | groovebox-8120-default-instrument-slots | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
 | groovebox-8120-grid-controllers | 12 | ✓ | — | ✓ | @built @code-verified @hw-verified |

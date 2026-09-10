@@ -71,6 +71,27 @@ local function eq10_shortcut_band(key_name, key_row)
   return nil
 end
 
+local function refresh_eq10_band_xypad(vb, device, band_index)
+  local pad = vb.views[string.format("xy_band_%d", band_index)]
+  local gain_param = device and device.parameters[band_index]
+  local freq_param = device and device.parameters[band_index + 10]
+  if not pad or not gain_param or not freq_param then
+    return false
+  end
+
+  local freq_range = freq_param.value_max - freq_param.value_min
+  local x_value = 0
+  if freq_range > 0 then
+    x_value = (freq_param.value - freq_param.value_min) / freq_range
+  end
+
+  pad.value = {
+    x = math.max(0, math.min(1, x_value)),
+    y = normalize_gain(gain_param.value)
+  }
+  return true
+end
+
 -- Function to create the EQ10 dialog
 function pakettiEQ10XYDialog()
   -- Check if dialog is already open and close it
@@ -87,7 +108,10 @@ function pakettiEQ10XYDialog()
   local eq10_device = renoise.song().selected_track.devices[eq10_index]
   
   -- Create single row of XY pads
-  local content = vb:column{}
+  local content = vb:column{
+    vb:text{text="Shift+1..0 raise bands 1..10 by 1 dB"},
+    vb:text{text="Shift+Q..P lower bands 1..10 by 1 dB"}
+  }
   
   -- Create the single row for all XY pads
   local row_content = vb:row{}
@@ -155,10 +179,14 @@ function pakettiEQ10XYDialog()
       local up_band = eq10_shortcut_band(key.name, gain_up)
       local down_band = eq10_shortcut_band(key.name, gain_down)
       if up_band then
-        adjust_eq10_band_gain(eq10_device, up_band, 1)
+        if adjust_eq10_band_gain(eq10_device, up_band, 1) then
+          refresh_eq10_band_xypad(vb, eq10_device, up_band)
+        end
         return
       elseif down_band then
-        adjust_eq10_band_gain(eq10_device, down_band, -1)
+        if adjust_eq10_band_gain(eq10_device, down_band, -1) then
+          refresh_eq10_band_xypad(vb, eq10_device, down_band)
+        end
         return
       end
     end

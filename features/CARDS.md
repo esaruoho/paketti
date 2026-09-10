@@ -119,14 +119,15 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user, I want quick keyboard control of EQ10 bands, So that I can shape gains without reaching for each GUI control.
 
-**Behaviour (2 scenarios):**
+**Behaviour (3 scenarios):**
 
 - Shift-number shortcuts raise individual EQ10 bands — `@shipped @code-verified @runtime-untested`
 - Shift-QWERTY shortcuts lower individual EQ10 bands — `@shipped @code-verified @runtime-untested`
+- Keyboard gain shortcuts keep XY pads visually synchronized — `@shipped @code-verified @runtime-untested`
 
-**How it does it:** **Key procs:** `adjust_eq10_band_gain`, `pakettiEQ10XYDialog` · **Source files:** `PakettiExperimental_Verify.lua`
+**How it does it:** **Key procs:** `adjust_eq10_band_gain`, `refresh_eq10_band_xypad`, `pakettiEQ10XYDialog` · **Source files:** `PakettiExperimental_Verify.lua`
 
-**Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3
 
 
 <a id="execute-command-slots"></a>
