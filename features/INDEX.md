@@ -24,6 +24,7 @@ Derived views — GENERATED, never hand-edit:
 | `groovebox-8120-lpd8.feature` | Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select) | — | `bc06819a` `a3636675` `7d3dd71f` |
 | `groovebox-8120-record-pakettified-instrument.feature` | Groovebox 8120 Record button records into a Pakettified instrument | — | `1797e45a` `34fac2d3` `bc06819a` |
 | `master-low-cut-200hz.feature` | Master Low-Cut 200Hz punch toggle | — | `bc06819a` `d348b0be` |
+| `master-bandpass.feature` | Paketti Master Bandpass audition filter | `master-bandpass.session.md` | worktree |
 | `mcp-claude-bridge.feature` | Paketti × Claude MCP + probe bridges (Renoise ↔ Claude) | — | `4bc8daab` `26c583a5` `bc06819a` |
 | `mlx-renoise-bridge.feature` | Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens) | — | `4bc8daab` `26c583a5` `bc06819a` |
 | `music-mouse.feature` | Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise | `music-mouse.session.md` | `37f054b1` `c3465c5d` `ab144dc2` |

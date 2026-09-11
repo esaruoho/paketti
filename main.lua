@@ -1302,6 +1302,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Toggle Select Track Selects Instru
 timed_require("PakettieSpeak")
 timed_require("PakettiLaunchApp")
 timed_require("PakettiDeviceChains")
+timed_require("PakettiMasterBandpass")
 timed_require("PakettiExecute")
 timed_require("PakettiSandbox")
 timed_require("PakettiTupletGenerator")
@@ -1734,6 +1735,5 @@ PakettiFlushMenuEntries()
 
 --dbug(renoise.song())
 -- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument
-
 
 

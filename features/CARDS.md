@@ -17,6 +17,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select)](#groovebox-8120-lpd8) — `groovebox-8120-lpd8.feature`
 - [Groovebox 8120 Record button records into a Pakettified instrument](#groovebox-8120-record-pakettified-instrument) — `groovebox-8120-record-pakettified-instrument.feature`
 - [Issue follow-up utilities](#issue-followup-utilities) — `issue-followup-utilities.feature`
+- [Paketti Master Bandpass audition filter](#master-bandpass) — `master-bandpass.feature`
 - [Master Low-Cut 200Hz punch toggle](#master-low-cut-200hz) — `master-low-cut-200hz.feature`
 - [Paketti × Claude MCP + probe bridges (Renoise ↔ Claude)](#mcp-claude-bridge) — `mcp-claude-bridge.feature`
 - [Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens)](#mlx-renoise-bridge) — `mlx-renoise-bridge.feature`
@@ -244,6 +245,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiPhraseEditorNudgeWithDelay`, `PakettiPhraseEditorNudgeByDelay`, `PakettiAutomationCurvesReverseSelection`, `PakettieSpeakGenerateLines` · **Source files:** `PakettiPhraseEditor.lua`, `PakettiAutomationCurves.lua`, `PakettiMenuConfig.lua`, `Paketti0G01_Loader.lua`, `PakettieSpeak.lua`
 
 **Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4
+
+
+<a id="master-bandpass"></a>
+## Paketti Master Bandpass audition filter
+
+`features/master-bandpass.feature` · [session](master-bandpass.session.md)
+
+**What it does:** Context: Global
+
+**Behaviour (4 scenarios):**
+
+- Insert or reuse the tagged master Doofer — `@shipped @build-verified @runtime-untested`
+- Control cutoff, Q, gain, and filter character — `@shipped @build-verified @runtime-untested`
+- Audition through a compact dialog — `@shipped @build-verified @runtime-untested`
+- Drive the bandpass from shortcuts, menus, and MIDI — `@shipped @build-verified @runtime-untested`
+
+**How it does it:** **Source files:** `PakettiMasterBandpass.lua`, `main.lua`
+
+**Grade:** @build-verified ×4 · @runtime-untested ×4 · @shipped ×4
 
 
 <a id="master-low-cut-200hz"></a>
