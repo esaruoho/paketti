@@ -8,6 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-16 - Feature: Interpolate Beyond - cross-pattern, multi-shape column interpolation
+
+**Interpolate a column from the cursor, searching across pattern boundaries, with a choice of curve shapes.** Ported from GARBANZO's "Interpolate Beyond". Unlike Renoise's built-in interpolation (linear, within one pattern selection) and Paketti's own Interpolate Column Values (selection-based, linear/exponential), this works from the cursor with no selection: it finds the previous and next non-empty value in the current sub-column - searching across pattern boundaries along the sequence - and interpolates between them through the cursor. If only one point is found it extends to the start or end of the track. It works on the sub-column under the cursor (note-column volume / panning / delay / sample-effect amount, or effect-column amount) and offers ten interpolation shapes: Linear, Logarithmic In, Logarithmic Out, Sine, Square, Saw, Triangle, Bounce Out, Bounce In, and Gradient Noise. The number of oscillations for the wave shapes is taken from the current Edit Step.
+- Menu: `Pattern Editor:Paketti:Interpolate Beyond:` (Linear, Logarithmic In, Logarithmic Out, Sine, Square, Saw, Triangle, Bounce Out, Bounce In, Gradient Noise)
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Interpolate Beyond:` (same ten shapes)
+- Keybindings: `Pattern Editor:Paketti:Interpolate Beyond Linear` and one per shape (Logarithmic In/Out, Sine, Square, Saw, Triangle, Bounce Out/In, Gradient Noise)
+
 ### 2026-09-16 - Feature: Marks - named GUI-location bookmarks
 
 **Save where you are in Renoise under a key, jump back to it instantly.** A mark snapshots your whole layout - which frames are showing, the selected instrument/sample/track/device, the pattern position and cursor, the pattern selection, and every track's collapse state - stored under a single key (a-z, 0-9). Jump to a mark and Renoise snaps back to that layout. Three accuracy levels decide how much a jump restores: `view` (just the window frames), `pattern` (plus instrument/sample/track/device/sequence), or `cursor` (plus line/columns/selection/collapse - the default). Marks are saved per-song (serialised into the song's comments, so they travel with the song and survive save/reload) and auto-reload when you open a song. In the Marks dialog, press a key to jump, Shift+key to save, Alt+key to clear. Ported from aklt's "Marks" tool.
