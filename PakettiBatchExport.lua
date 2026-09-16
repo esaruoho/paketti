@@ -217,6 +217,233 @@ function PakettiBatchXRNIToDigitaktChain()
   end }
 end
 
+--------------------------------------------------------------------------------
+-- BATCH .PTI FOLDER -> .WAV (with M8-safe embedded CUE headers)
+--
+-- Throw a folder of .pti files at this and get a .wav beside each one, carrying
+-- the PTI's slice markers as WAV cue points in the layout the Dirtywave M8 will
+-- load (fmt -> LIST/adtl -> data -> cue). This is the ".pti to .m8" conversion.
+--
+-- Each .pti is imported with the real loader (pti_loadsample_Worker, run
+-- synchronously by passing no dialog), the base sample (samples[1], which holds
+-- the slice markers) is written with sample_buffer:save_as, then rewritten by
+-- PakettiWavCueWriteCueChunksToWav (both from PakettiWavCueExtract.lua) so the
+-- chunk order is M8-safe. The temp instrument is deleted after each file so we
+-- never pile up or hit the 255-instrument cap. Whole batch runs in a
+-- ProcessSlicer so Renoise stays responsive.
+--------------------------------------------------------------------------------
+function PakettiCollectPTIFilesRecursive(folder)
+  local results = {}
+  local sep = package.config:sub(1, 1)
+
+  local ok_files, files = pcall(os.filenames, folder, "*.pti")
+  if ok_files and files then
+    for _, fn in ipairs(files) do
+      table.insert(results, folder .. sep .. fn)
+    end
+  end
+
+  local ok_dirs, dirs = pcall(os.dirnames, folder)
+  if ok_dirs and dirs then
+    for _, d in ipairs(dirs) do
+      if not d:match("^%.") then
+        local sub_results = PakettiCollectPTIFilesRecursive(folder .. sep .. d)
+        for _, p in ipairs(sub_results) do
+          table.insert(results, p)
+        end
+      end
+    end
+  end
+
+  return results
+end
+
+-- Pure-binary PTI reader. Does NOT create an instrument, load a plugin, or
+-- touch the song - so it can never spin up the default-instrument template
+-- (Amigo etc.). Mirrors PakettiPTILoader.lua's parse: sample_length at header
+-- offset 60, slice_count at 376, slice offsets at 280+i*2 (uint16, normalized
+-- to 0..65535 over the sample length), PCM after the 392-byte header (mono =
+-- 16-bit LE; stereo = planar L block then R block). Returns a table describing
+-- the WAV to write, or nil + error string.
+function PakettiPTIReadForWav(pti_path)
+  local f, oerr = io.open(pti_path, "rb")
+  if not f then return nil, "cannot open: " .. tostring(oerr) end
+  local header = f:read(392)
+  if not header or #header < 392 then f:close() return nil, "header too short (not a PTI?)" end
+  local pcm = f:read("*a") or ""
+  f:close()
+
+  local function u16(off) -- 0-based, matches read_uint16_le
+    local a, b = header:byte(off + 1), header:byte(off + 2)
+    if not a or not b then return 0 end
+    return a + b * 256
+  end
+  local function u32(off)
+    local a, b, c, d = header:byte(off + 1), header:byte(off + 2), header:byte(off + 3), header:byte(off + 4)
+    if not (a and b and c and d) then return 0 end
+    return a + b * 256 + c * 65536 + d * 16777216
+  end
+
+  local sample_length = u32(60)
+  if sample_length == 0 then return nil, "sample has 0 frames" end
+
+  local mono_bytes = sample_length * 2
+  local stereo_bytes = sample_length * 4
+  -- Same stereo detection as the loader (>= stereo_bytes means two planar blocks).
+  local is_stereo = #pcm >= stereo_bytes
+  local channels = is_stereo and 2 or 1
+
+  -- The loader tolerates a PCM block a few bytes short by zero-filling the tail
+  -- (pcm:byte(x) or 0); some real/fixture PTIs are a handful of frames short of
+  -- their declared sample_length. Match that leniency instead of failing.
+  local need = is_stereo and stereo_bytes or mono_bytes
+  if #pcm < need then
+    pcm = pcm .. string.rep(string.char(0), need - #pcm)
+  end
+
+  -- Interleave data for the WAV data chunk.
+  local data
+  if is_stereo then
+    local left = pcm:sub(1, mono_bytes)
+    local right = pcm:sub(mono_bytes + 1, stereo_bytes)
+    local parts = {}
+    for i = 1, sample_length do
+      local o = (i - 1) * 2 + 1
+      parts[i] = left:sub(o, o + 1) .. right:sub(o, o + 1)
+    end
+    data = table.concat(parts)
+  else
+    data = pcm:sub(1, mono_bytes)
+  end
+
+  -- Slice markers -> 1-based Renoise-style frame positions (frame+1), exactly
+  -- as PakettiPTILoader inserts them, so the cue offsets match the loader path.
+  local slice_count = header:byte(377) or 0
+  local markers = {}
+  for i = 0, slice_count - 1 do
+    local raw = u16(280 + i * 2)
+    local frame = math.floor((raw / 65535) * sample_length)
+    markers[#markers + 1] = frame + 1
+  end
+  table.sort(markers)
+
+  return {
+    sample_rate = 44100,     -- PTI is always 44100 (matches the loader)
+    channels = channels,
+    data = data,
+    markers = markers,
+    name = get_clean_filename(pti_path),
+  }
+end
+
+-- Write a parsed PTI as a WAV in the M8-safe layout: fmt -> LIST/adtl -> data
+-- -> cue. Reuses the cue/label chunk builders from PakettiWavCueExtract.lua.
+function PakettiWritePTIAsWavCue(pti_path, wav_path)
+  local info, err = PakettiPTIReadForWav(pti_path)
+  if not info then return false, err end
+
+  local u16, u32 = PakettiWavCueWriteU16LE, PakettiWavCueWriteU32LE
+  local byte_rate = info.sample_rate * info.channels * 2
+  local block_align = info.channels * 2
+  local fmt = u16(1) .. u16(info.channels) .. u32(info.sample_rate)
+    .. u32(byte_rate) .. u16(block_align) .. u16(16)
+  local fmt_chunk = "fmt " .. u32(#fmt) .. fmt
+
+  local data_chunk = "data" .. u32(#info.data) .. info.data
+  if (#info.data % 2) == 1 then data_chunk = data_chunk .. string.char(0) end
+
+  local cue_chunk = (#info.markers > 0)
+    and PakettiWavCueBuildCueChunk(info.markers, info.sample_rate) or nil
+  local adtl_chunk = (#info.markers > 0)
+    and PakettiWavCueBuildAdtlChunk(info.name, info.markers) or nil
+
+  local body = fmt_chunk
+  if adtl_chunk then body = body .. adtl_chunk end
+  body = body .. data_chunk
+  if cue_chunk then body = body .. cue_chunk end
+
+  local wav = "RIFF" .. u32(#body + 4) .. "WAVE" .. body
+
+  local f, werr = io.open(wav_path, "wb")
+  if not f then return false, "cannot write: " .. tostring(werr) end
+  f:write(wav)
+  f:close()
+
+  return true, #info.markers
+end
+
+function PakettiBatchPTIToWavCueWorker(parent, pti_files, report)
+  print("------------")
+  print(string.format("-- Batch PTI->WAV+CUE: Found %d .pti files under %s", #pti_files, parent))
+
+  local done = 0
+  local failed = 0
+  local total_cues = 0
+  local failures = {}
+
+  for i, pti_path in ipairs(pti_files) do
+    local wav_path = pti_path:gsub("%.[pP][tT][iI]$", ".wav")
+    if wav_path == pti_path then wav_path = pti_path .. ".wav" end
+
+    local ok, res = PakettiWritePTIAsWavCue(pti_path, wav_path)
+    if ok then
+      done = done + 1
+      local ncues = (res > 0) and (res + 1) or 0  -- +1 implicit marker at frame 1
+      total_cues = total_cues + ncues
+      print(string.format("-- [%d/%d] %s -> %s (%s cues)",
+        i, #pti_files, pti_path, wav_path, ncues > 0 and tostring(ncues) or "no"))
+    else
+      failed = failed + 1
+      table.insert(failures, pti_path .. " (" .. tostring(res) .. ")")
+      print(string.format("-- [%d/%d] FAILED %s: %s", i, #pti_files, pti_path, tostring(res)))
+    end
+
+    renoise.app():show_status(string.format("Batch PTI->WAV+CUE: %d/%d done...", done, #pti_files))
+    if report then report(string.format("%d/%d - %s", i, #pti_files, pti_path:match("([^/\\]+)$") or "")) end
+    coroutine.yield()
+  end
+
+  local msg = string.format("Batch PTI->WAV+CUE complete: %d/%d files, %d cue points total",
+    done, #pti_files, total_cues)
+  if failed > 0 then msg = msg .. string.format(" (%d failed)", failed) end
+  renoise.app():show_status(msg)
+  print("-- " .. msg)
+  if failed > 0 then
+    print("-- Batch PTI->WAV+CUE failures:")
+    for _, f in ipairs(failures) do print("   - " .. f) end
+  end
+  print("------------")
+end
+
+function PakettiBatchPTIToWavCue()
+  local parent_folder = renoise.app():prompt_for_path(
+    "Select folder of .pti files to batch-convert to .wav with CUE (recurses subfolders)")
+  if not parent_folder or parent_folder == "" then
+    renoise.app():show_status("Batch PTI->WAV+CUE: No folder selected")
+    return
+  end
+
+  local pti_files = PakettiCollectPTIFilesRecursive(parent_folder)
+  if #pti_files == 0 then
+    renoise.app():show_status("Batch PTI->WAV+CUE: No .pti files found in folder or subfolders")
+    return
+  end
+
+  table.sort(pti_files, function(a, b) return a:lower() < b:lower() end)
+
+  local slicer, dialog, vb
+  slicer = ProcessSlicer(function()
+    PakettiBatchPTIToWavCueWorker(parent_folder, pti_files, function(text)
+      if dialog and dialog.visible and vb and vb.views.progress_text then
+        vb.views.progress_text.text = text
+      end
+    end)
+    if dialog and dialog.visible then dialog:close() end
+  end)
+  dialog, vb = slicer:create_dialog("Batch PTI -> WAV+CUE...")
+  slicer:start()
+end
+
 -- ── Registrations ───────────────────────────────────────────────────────
 local batch_export_formats = {
   { fmt = "WAV (with CUE)",    fn = PakettiBatchXRNIToWAV },
@@ -238,3 +465,15 @@ for _, e in ipairs(batch_export_formats) do
   PakettiAddMenuEntry{ name = "Disk Browser:Paketti:Import/Export:Batch Convert XRNI Folder to " .. e.fmt .. "...",
     invoke = e.fn }
 end
+
+-- .PTI folder -> .WAV (M8-safe embedded CUE) batch
+renoise.tool():add_keybinding{ name = "Global:Paketti:Batch Convert PTI Folder to WAV with CUE",
+  invoke = PakettiBatchPTIToWavCue }
+renoise.tool():add_midi_mapping{ name = "Paketti:Batch Convert PTI Folder to WAV with CUE",
+  invoke = function(message) if message:is_trigger() then PakettiBatchPTIToWavCue() end end }
+PakettiAddMenuEntry{ name = "Main Menu:File:Paketti Export:Batch Convert PTI Folder to WAV with CUE...",
+  invoke = PakettiBatchPTIToWavCue }
+PakettiAddMenuEntry{ name = "Disk Browser:Paketti:Import/Export:Batch Convert PTI Folder to WAV with CUE...",
+  invoke = PakettiBatchPTIToWavCue }
+PakettiAddMenuEntry{ name = "Instrument Box:Paketti:Instruments:Batch Convert PTI Folder to WAV with CUE...",
+  invoke = PakettiBatchPTIToWavCue }

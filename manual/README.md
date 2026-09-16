@@ -580,6 +580,12 @@ Format notes, for anyone writing their own converter: [`digitakt2-format.txt`](h
 Polyend Tracker Instrument Export Support
 Extrabonus: Also with 48 slice drumkit support - meaning, Renoise can be used to create a 48 drum drumchain sample with slices, straight to .PTI
 
+#### Batch Convert PTI Folder to WAV with CUE (.pti to .m8)
+
+`Main Menu:File:Paketti Export:Batch Convert PTI Folder to WAV with CUE...` (also `Disk Browser:Paketti:Import/Export:Batch Convert PTI Folder to WAV with CUE...`, `Instrument Box:Paketti:Instruments:Batch Convert PTI Folder to WAV with CUE...`; keybinding `Global:Paketti:Batch Convert PTI Folder to WAV with CUE`; MIDI mapping `Paketti:Batch Convert PTI Folder to WAV with CUE`).
+
+Point it at a folder of Polyend `.pti` files and it writes a `.wav` beside each one — recursing subfolders — with the PTI's slice markers embedded as WAV cue points in the chunk order the Dirtywave M8 loads (`fmt → LIST/adtl labels → data → cue`). This is the ".pti to .m8" path: an M8 reads those cue points as slices. Each `.pti` is read straight off disk as a binary transform — no Renoise instrument is created, no plugin is loaded, and your open song is left untouched — so the whole folder converts cleanly. PTIs with no slices export as a plain WAV; mono and stereo are both handled.
+
 #### Export OT
 
 Octatrack Instrument Export Support

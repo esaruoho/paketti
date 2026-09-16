@@ -8,6 +8,15 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-16 - Feature: Batch Convert PTI Folder to WAV with CUE (.pti to .m8)
+
+**Throw a folder of Polyend `.pti` files at Paketti and get a `.wav` beside each one, carrying the PTI's slice markers as WAV cue points - the layout the Dirtywave M8 loads.** Recurses subfolders. Each `.pti` is read directly from disk as a pure binary transform - no instrument is created, no plugin is loaded, and your song is never touched - so a whole folder converts without spinning anything up. Files with slices get the M8-safe chunk order (`fmt -> LIST/adtl labels -> data -> cue`), with one cue point per slice plus the implicit marker at the start; files without slices export as a plain WAV. Mono and stereo (planar) PTIs are both handled, and a PTI whose PCM is a few frames short of its declared length is zero-filled rather than rejected. Runs in a ProcessSlicer so Renoise stays responsive on large folders.
+- Menu: `Main Menu:File:Paketti Export:Batch Convert PTI Folder to WAV with CUE...`
+- Menu: `Disk Browser:Paketti:Import/Export:Batch Convert PTI Folder to WAV with CUE...`
+- Menu: `Instrument Box:Paketti:Instruments:Batch Convert PTI Folder to WAV with CUE...`
+- Keybinding: `Global:Paketti:Batch Convert PTI Folder to WAV with CUE`
+- MIDI Mapping: `Paketti:Batch Convert PTI Folder to WAV with CUE`
+
 ### 2026-09-16 - Feature: Korg, Reason and Roland Sampler Import - KSF/KMP/KSC, NN-XT (.sxt), MV-8000 (.mv0)
 
 **Korg Trinity/Triton, Reason NN-XT and Roland MV-8000 patches now import into Paketti.** These are vintage hardware-sampler formats that Paketti previously had no support for. They work both from the Renoise disk browser (drop the file or use File > Import) and from menu entries. Ported and modernised from Martin Bealby's 2011 "Additional File Formats" tool: keyzone mapping was rewritten to the current per-sample mapping API, sample audio is written as standard WAV (fixing wrong playback rates below 32768 Hz in the original), and every binary reader now guards against truncated files.
