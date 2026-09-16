@@ -452,6 +452,11 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportCSV = true,           -- CSV (.csv) import - PCMWriter
   pakettiImportEXE = true,           -- Raw binary (.exe, .dll, .bin, .sys, .dylib) import
   pakettiImportDWVW = true,          -- DWVW (.c01-.c12, .dwvw) import - Yamaha TX16W / Typhoon
+  pakettiImportKSF = true,           -- Korg Trinity/Triton (.ksf) sample import
+  pakettiImportKMP = true,           -- Korg Trinity/Triton (.kmp) multisample import
+  pakettiImportKSC = true,           -- Korg Trinity/Triton (.ksc) performance script import
+  pakettiImportSXT = true,           -- Reason NN-XT (.sxt) patch import
+  pakettiImportMV0 = true,           -- Roland MV-8000/8800 (.mv0) patch import
   -- DWVW export defaults (Yamaha TX16W / Typhoon .C01)
   pakettiDWVWSampleRate = 33333,     -- TX16W standard sample rate
   pakettiDWVWWordSize = 12,          -- TX16W native bit depth
@@ -4099,7 +4104,12 @@ function PakettiDeactivatorDialog()
           vb:row{vb:checkbox{value = preferences.pakettiImportImage.value, notifier = function(v) preferences.pakettiImportImage.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Image (.png, .jpg...)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportCSV.value, notifier = function(v) preferences.pakettiImportCSV.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "CSV (.csv)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportEXE.value, notifier = function(v) preferences.pakettiImportEXE.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Raw (.exe, .dll...)", width = 140}},
-          vb:row{vb:checkbox{value = preferences.pakettiImportDWVW.value, notifier = function(v) preferences.pakettiImportDWVW.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "DWVW (.c01, .dwvw)", width = 140}}
+          vb:row{vb:checkbox{value = preferences.pakettiImportDWVW.value, notifier = function(v) preferences.pakettiImportDWVW.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "DWVW (.c01, .dwvw)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportKSF.value, notifier = function(v) preferences.pakettiImportKSF.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Korg (.ksf)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportKMP.value, notifier = function(v) preferences.pakettiImportKMP.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Korg (.kmp)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportKSC.value, notifier = function(v) preferences.pakettiImportKSC.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Korg (.ksc)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportSXT.value, notifier = function(v) preferences.pakettiImportSXT.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Reason NN-XT (.sxt)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportMV0.value, notifier = function(v) preferences.pakettiImportMV0.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Roland MV (.mv0)", width = 140}}
         }
       },
       

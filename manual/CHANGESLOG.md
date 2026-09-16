@@ -8,6 +8,21 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-16 - Feature: Korg, Reason and Roland Sampler Import - KSF/KMP/KSC, NN-XT (.sxt), MV-8000 (.mv0)
+
+**Korg Trinity/Triton, Reason NN-XT and Roland MV-8000 patches now import into Paketti.** These are vintage hardware-sampler formats that Paketti previously had no support for. They work both from the Renoise disk browser (drop the file or use File > Import) and from menu entries. Ported and modernised from Martin Bealby's 2011 "Additional File Formats" tool: keyzone mapping was rewritten to the current per-sample mapping API, sample audio is written as standard WAV (fixing wrong playback rates below 32768 Hz in the original), and every binary reader now guards against truncated files.
+
+- Korg `.ksf` single sample - imports 16-bit PCM (byte-swapped from big-endian), sample rate, and loop points, as a sample.
+- Korg `.kmp` multisample - loads all referenced `.ksf` samples with their keyzones and fine-tune into one instrument (background-loaded with progress).
+- Korg `.ksc` performance script - loads every `.kmp` it lists.
+- Reason NN-XT `.sxt` - imports the sample references with their key range, base note and velocity range (partial: synth/modulation parameters are not translated).
+- Roland MV-8000/8800 `.mv0` - extracts the embedded WAVE audio into instrument sample slots (samples only).
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Load Korg Triton KMP Multisample...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Load Korg Triton KSC Script...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Load Reason NN-XT Patch...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Load Roland MV-8000 Patch...`
+- Each format has its own on/off toggle in the Import Hooks preferences dialog (Korg .ksf/.kmp/.ksc, Reason NN-XT .sxt, Roland MV .mv0).
+
 ### 2026-09-09 - Feature: Three New Tools - Automation Curve Interpolation, Randomize FX Values, and a Track DSP Device Copy Dialog
 
 **Automation Interpolation between two points, with curves (issue #423).** Select a range in an automation lane (or leave nothing selected to cover the whole pattern), pick a shape, and Paketti rewrites the points in between so the envelope travels from the value at the start of the selection to the value at the end along that shape. Unlike the existing Automation Curves stamps, this honours the two real endpoint values - it is Renoise's Ctrl+I with curve options. Seven shapes ship: Linear, Ease In, Ease Out, Ease In-Out, Exponential, Logarithmic, S-Curve. If the lane is empty it defaults to a clean 0-to-1 ramp so the command still does something sensible.

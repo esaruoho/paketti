@@ -1459,6 +1459,12 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiOTExport")
   timed_require("PakettiXIExport")
   timed_require("PakettiWTImport")
+  -- Foreign hardware-sampler importers (Korg / Reason / Roland). Support file
+  -- MUST load before the vendor loaders that use its shared readers.
+  timed_require("PakettiForeignFormatSupport")
+  timed_require("PakettiKorg")
+  timed_require("PakettiReasonNNXT")
+  timed_require("PakettiRolandMV8000")
 
   timed_require("PakettiProcess")
   timed_require("PakettiHexSliceLoop")

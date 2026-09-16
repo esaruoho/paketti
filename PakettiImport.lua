@@ -320,6 +320,61 @@ if should_register_hook("pakettiImportEXS24") then
   end
 end
 
+-- Korg Trinity/Triton KSF Import Hook (.ksf) - single sample
+if should_register_hook("pakettiImportKSF") then
+  if not renoise.tool():has_file_import_hook("sample", {"ksf"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"ksf"},
+      invoke = PakettiKorgKSFLoadSample
+    })
+  end
+end
+
+-- Korg Trinity/Triton KMP Import Hook (.kmp) - multisample instrument
+if should_register_hook("pakettiImportKMP") then
+  if not renoise.tool():has_file_import_hook("instrument", {"kmp"}) then
+    renoise.tool():add_file_import_hook({
+      category = "instrument",
+      extensions = {"kmp"},
+      invoke = PakettiKorgKMPImport
+    })
+  end
+end
+
+-- Korg Trinity/Triton KSC Import Hook (.ksc) - performance script
+if should_register_hook("pakettiImportKSC") then
+  if not renoise.tool():has_file_import_hook("instrument", {"ksc"}) then
+    renoise.tool():add_file_import_hook({
+      category = "instrument",
+      extensions = {"ksc"},
+      invoke = PakettiKorgKSCImport
+    })
+  end
+end
+
+-- Reason NN-XT Import Hook (.sxt) - instrument (partial: samples + keymap)
+if should_register_hook("pakettiImportSXT") then
+  if not renoise.tool():has_file_import_hook("instrument", {"sxt"}) then
+    renoise.tool():add_file_import_hook({
+      category = "instrument",
+      extensions = {"sxt"},
+      invoke = PakettiReasonNNXTImport
+    })
+  end
+end
+
+-- Roland MV-8000/8800 Import Hook (.mv0) - instrument (samples only)
+if should_register_hook("pakettiImportMV0") then
+  if not renoise.tool():has_file_import_hook("instrument", {"mv0"}) then
+    renoise.tool():add_file_import_hook({
+      category = "instrument",
+      extensions = {"mv0"},
+      invoke = PakettiRolandMV8000Import
+    })
+  end
+end
+
 -- OT Import Hook (.ot) - Octatrack
 if should_register_hook("pakettiImportOT") then
   if not renoise.tool():has_file_import_hook("sample", {"ot"}) then

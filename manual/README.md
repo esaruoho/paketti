@@ -421,6 +421,34 @@ The sample is loaded into a new instrument with your Paketti default instrument 
 
 Progress is shown in a dialog with a Cancel button, and Renoise stays usable while it runs.
 
+#### Import Korg Trinity / Triton (.ksf / .kmp / .ksc)
+
+Three related Korg hardware-sampler formats. Drop any of them onto Renoise, or use the menu.
+
+- `.ksf` - a single Korg sample. The 16-bit PCM (stored big-endian in the file) is byte-swapped and imported at its own sample rate, with its loop points and loop mode. Loaded like any other sample.
+- `.kmp` - a Korg multisample: a keymap plus a list of `.ksf` files. Paketti loads every referenced sample into one instrument, sets each one's key range, base note and fine-tune, and shows a progress status while it works. Samples the keymap marks as internal ROM sounds are reported as missing (they do not exist on disk).
+- `.ksc` - a Korg performance script that just lists `.kmp` files; Paketti loads each one it can find.
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Load Korg Triton KMP Multisample...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Load Korg Triton KSC Script...`
+
+When a patch's samples are not sitting next to the file, Paketti checks the usual sibling folders (`samples/`, `<name>-samples/`, etc.) and, failing that, asks you where they are. Each format has its own toggle in `Import Hooks Settings`.
+
+#### Import Reason NN-XT (.sxt)
+
+Propellerhead Reason NN-XT patch import (partial). Paketti reads the patch's sample references and, for each, its key range, base note and velocity range, and builds a mapped instrument. The synth/modulation parameters in the patch are not translated - this brings in the samples and their keyzones. Background-loaded with a progress status.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Load Reason NN-XT Patch...`
+- Toggle: `Reason NN-XT (.sxt)` under `Import Hooks Settings`.
+
+#### Import Roland MV-8000 / MV-8800 (.mv0)
+
+Roland MV-8000/8800 patch import (samples only). Paketti extracts the WAVE audio embedded in the `.mv0` file (44.1 kHz / 16-bit / stereo) into instrument sample slots. Keymaps are not translated.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Load Roland MV-8000 Patch...`
+- Toggle: `Roland MV (.mv0)` under `Import Hooks Settings`.
+
+These three importers (Korg, Reason, Roland) are ported and modernised from Martin Bealby's 2011 "Additional File Formats" tool, with the keyzone mapping rewritten to the current Renoise API and the sample-rate handling corrected.
+
 #### Import 4channel .MOD samples
 
 Both as separate instruments, and as "wavetable instrument" == all samples in one instrument, aka "sample chain".
