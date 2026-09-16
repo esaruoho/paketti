@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-16 - Feature: Transient BPM Detector (interactive)
+
+**A tunable, dialog-driven BPM detector for the selected sample.** Paketti already detects BPM from a sample's transients, but only with fixed settings and no way to adjust them per loop. This adds an interactive dialog that exposes the knobs: pick one of four detection profiles (Simple beats, Complex beats, Crowded beats, Fast crowded beats), or set Energy Threshold and Min Spacing (ms) by hand, then hit Detect BPM. Detection uses spectral-flux transient analysis on the selected sample; the detected transient count becomes the beat count (or tick "Beats in Sample (override)" to force your own count), and BPM is calculated from beats over the sample's duration, octave-folded into a musical range. A scrolling results readout shows transient count, detected BPM, and the nearest plausible whole-number BPM. An "Apply to Song BPM" button sets the project tempo to the detected value. Ported and expanded from Vincent Voois' "Sample BPM detector" tool.
+- Menu: `Main Menu:Tools:Paketti:!Sample Editor:Transient BPM Detector...`
+- Menu: `Sample Editor:Paketti:BPM:Transient BPM Detector...`
+- Menu: `Sample Editor Ruler:Paketti:BPM:Transient BPM Detector...`
+- Keybinding: `Global:Paketti:Transient BPM Detector Dialog...`
+- Keybinding: `Sample Editor:Paketti:Transient BPM Detector Dialog...`
+- MIDI Mapping: `Paketti:Transient BPM Detector Dialog`
+
 ### 2026-09-16 - Feature: Batch Convert PTI Folder to WAV with CUE (.pti to .m8)
 
 **Throw a folder of Polyend `.pti` files at Paketti and get a `.wav` beside each one, carrying the PTI's slice markers as WAV cue points - the layout the Dirtywave M8 loads.** Recurses subfolders. Each `.pti` is read directly from disk as a pure binary transform - no instrument is created, no plugin is loaded, and your song is never touched - so a whole folder converts without spinning anything up. Files with slices get the M8-safe chunk order (`fmt -> LIST/adtl labels -> data -> cue`), with one cue point per slice plus the implicit marker at the start; files without slices export as a plain WAV. Mono and stereo (planar) PTIs are both handled, and a PTI whose PCM is a few frames short of its declared length is zero-filled rather than rejected. Runs in a ProcessSlicer so Renoise stays responsive on large folders.

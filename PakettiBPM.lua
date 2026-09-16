@@ -587,3 +587,286 @@ renoise.tool():add_midi_mapping{name="Paketti:Halve BPM & Multiply LPB",invoke=f
 renoise.tool():add_midi_mapping{name="Paketti:Write Current BPM&LPB to Master Column",invoke=function(message) if message:is_trigger() then write_bpm() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Renoise Random BPM & Write BPM/LPB to Master",invoke=function(message) if message:is_trigger() then randomBPMMaster() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Random BPM (60-180)",invoke=function(message) if message:is_trigger() then randomBPM() end end}
+
+-- ── Transient BPM Detector (interactive) ──────────────────────────────────────
+-- Paketti already ships pakettiBPMDetectFromTransients() (same spectral-flux
+-- method) but with hardcoded params and no UI. This adds the tuning workflow
+-- that Vincent Voois' "Sample BPM detector" tool had and Paketti lacked: four
+-- preset profiles, live Energy Threshold + Min Spacing knobs, a manual
+-- Beats-in-Sample override, a scrolling results readout, and (a Paketti addition)
+-- an Apply-to-Song-BPM button. Engine reused, not duplicated: the detector is a
+-- parameterized flux scanner; the calc is Vincent's beats/duration method.
+
+-- Detection state (dialog-local, not persisted).
+local ptbpm_beats = 4
+local ptbpm_override = false
+local ptbpm_threshold = 0.52
+local ptbpm_spacing_ms = 150
+local ptbpm_preset = 2
+local ptbpm_last_bpm = nil
+local pakettiTransientBPMDialog = nil
+
+-- Preset profiles: energy threshold (fraction of peak) + min spacing (ms).
+local PAKETTI_TRANSIENT_BPM_PRESETS = {
+  {name = "Simple beats (one hit per beat)", threshold = 0.30, spacing = 155},
+  {name = "Complex beats",                   threshold = 0.52, spacing = 150},
+  {name = "Crowded beats",                   threshold = 0.88, spacing = 100},
+  {name = "Fast crowded beats",              threshold = 0.88, spacing = 30},
+}
+
+-- Parameterized spectral-flux transient scanner.
+-- Returns an array of frame positions (1-based) where transients were detected.
+function pakettiBPMDetectTransientPositions(buffer, energy_threshold, min_spacing_frames)
+  local frames = buffer.number_of_frames
+  local sample_rate = buffer.sample_rate
+  local channel = 1
+  local window_size = math.floor(sample_rate * 0.02) -- 20ms analysis window
+  if window_size < 1 then window_size = 1 end
+  local hop_size = math.floor(window_size / 2)
+  if hop_size < 1 then hop_size = 1 end
+
+  local flux_values = {}
+  local prev_sum = 0
+  local max_energy = 0
+  local count = 0
+  for pos = 1, frames - window_size, hop_size do
+    local sum = 0
+    local energy = 0
+    for i = 0, window_size - 1 do
+      local val = math.abs(buffer:sample_data(channel, pos + i))
+      sum = sum + val
+      energy = energy + (val * val)
+    end
+    local flux = math.max(0, sum - prev_sum)
+    count = count + 1
+    flux_values[count] = {pos = pos, flux = flux, energy = energy}
+    if energy > max_energy then max_energy = energy end
+    prev_sum = sum
+  end
+
+  if count < 2 then return {} end
+
+  local local_energy_threshold = max_energy * energy_threshold
+
+  local fluxes = {}
+  for i = 1, count do fluxes[i] = flux_values[i].flux end
+  table.sort(fluxes)
+  local median_flux = fluxes[math.floor(count / 2)] or 0
+  local flux_threshold = median_flux * 1.3
+
+  local transients = {}
+  local tcount = 0
+  local last_transient = -min_spacing_frames
+  for i = 1, count do
+    local v = flux_values[i]
+    if v.flux > flux_threshold and v.energy > local_energy_threshold
+       and (v.pos - last_transient) > min_spacing_frames then
+      tcount = tcount + 1
+      transients[tcount] = v.pos
+      last_transient = v.pos
+    end
+  end
+  return transients
+end
+
+-- Run detection on the selected sample. logfn(msg) receives progress lines.
+-- Returns bpm, beats, transient_count, nearest_plausible (or nil on failure).
+function pakettiTransientBPMAnalyze(logfn)
+  local song = renoise.song()
+  local sample = song.selected_sample
+  local buffer = sample and sample.sample_buffer
+  if not (buffer and buffer.has_sample_data) then
+    renoise.app():show_status("No sample selected or sample has no data")
+    if logfn then logfn("No sample selected or sample has no data.") end
+    return nil
+  end
+
+  local sample_rate = buffer.sample_rate
+  local duration_secs = buffer.number_of_frames / sample_rate
+  local min_spacing_frames = (ptbpm_spacing_ms / 1000) * sample_rate
+
+  local transients = pakettiBPMDetectTransientPositions(buffer, ptbpm_threshold, min_spacing_frames)
+  local tcount = #transients
+
+  if logfn then
+    logfn(string.format("Sample duration: %.4f s @ %d Hz", duration_secs, sample_rate))
+    logfn(string.format("Energy threshold: %.2f   Min spacing: %d ms", ptbpm_threshold, ptbpm_spacing_ms))
+    logfn(string.format("Transients detected: %d", tcount))
+  end
+
+  if tcount < 2 then
+    renoise.app():show_status("Not enough transients to estimate BPM.")
+    if logfn then logfn("Not enough transients (< 2). Try a lower Energy Threshold or smaller Min Spacing.") end
+    return nil
+  end
+
+  -- Beats: detected transient count, unless the user overrides it.
+  local beats
+  if ptbpm_override then
+    beats = ptbpm_beats
+    if logfn then logfn(string.format("Using manual Beats in Sample: %d", beats)) end
+  else
+    beats = tcount
+    ptbpm_beats = beats
+    if logfn then logfn(string.format("Estimated %d beats in sample", beats)) end
+  end
+
+  local bpm = (beats * 60) / duration_secs
+
+  -- Octave-fold into a musical range.
+  if bpm < 30 then bpm = bpm * 4
+  elseif bpm < 60 then bpm = bpm * 2
+  elseif bpm > 400 then bpm = bpm / 4
+  elseif bpm > 200 then bpm = bpm / 2 end
+
+  -- Nearest plausible whole BPM (60-200).
+  local nearest = bpm
+  local min_diff = math.huge
+  for p = 60, 200 do
+    local diff = math.abs(bpm - p)
+    if diff < min_diff then min_diff = diff nearest = p end
+  end
+
+  ptbpm_last_bpm = bpm
+  if logfn then
+    logfn(string.format("Detected BPM: %.2f  (nearest plausible: %d)", bpm, nearest))
+  end
+  renoise.app():show_status(string.format(
+    "Transient BPM: %.2f (nearest %d, %d transients, %d beats)", bpm, nearest, tcount, beats))
+  return bpm, beats, tcount, nearest
+end
+
+function pakettiShowTransientBPMDialog()
+  if pakettiTransientBPMDialog and pakettiTransientBPMDialog.visible then
+    pakettiTransientBPMDialog:close()
+    pakettiTransientBPMDialog = nil
+    return
+  end
+
+  vb = renoise.ViewBuilder()
+
+  local function results_log(msg)
+    local field = vb.views["ptbpm_results"]
+    if field then
+      field.text = field.text .. "\r\n" .. msg
+      field:scroll_to_last_line()
+    end
+  end
+
+  local preset_items = {}
+  for i, p in ipairs(PAKETTI_TRANSIENT_BPM_PRESETS) do preset_items[i] = p.name end
+
+  local content = vb:column{
+    margin = 10,
+    spacing = 8,
+    vb:row{
+      vb:checkbox{
+        value = ptbpm_override,
+        notifier = function(v) ptbpm_override = v end
+      },
+      vb:text{text = "Beats in Sample (override):"},
+      vb:valuebox{
+        id = "ptbpm_beats",
+        width = 80,
+        value = ptbpm_beats,
+        min = 1,
+        max = 512,
+        tostring = function(v) return string.format("%02d", v) end,
+        tonumber = function(s) return tonumber(s) end,
+        notifier = function(v) ptbpm_beats = v end
+      }
+    },
+    vb:row{
+      vb:text{text = "Detection Profile:", width = 120},
+      vb:popup{
+        id = "ptbpm_preset",
+        width = 220,
+        items = preset_items,
+        value = ptbpm_preset,
+        notifier = function(v)
+          ptbpm_preset = v
+          local p = PAKETTI_TRANSIENT_BPM_PRESETS[v]
+          ptbpm_threshold = p.threshold
+          ptbpm_spacing_ms = p.spacing
+          if vb.views["ptbpm_threshold"] then vb.views["ptbpm_threshold"].value = ptbpm_threshold end
+          if vb.views["ptbpm_spacing"] then vb.views["ptbpm_spacing"].value = ptbpm_spacing_ms end
+        end
+      }
+    },
+    vb:row{
+      vb:text{text = "Energy Threshold:", width = 120},
+      vb:valuebox{
+        id = "ptbpm_threshold",
+        width = 80,
+        value = ptbpm_threshold,
+        min = 0.1,
+        max = 1.0,
+        steps = {0.01, 0.1},
+        tostring = function(v) return string.format("%.2f", v) end,
+        tonumber = function(s) return tonumber(s) end,
+        notifier = function(v) ptbpm_threshold = v end
+      }
+    },
+    vb:row{
+      vb:text{text = "Min Spacing (ms):", width = 120},
+      vb:valuebox{
+        id = "ptbpm_spacing",
+        width = 80,
+        value = ptbpm_spacing_ms,
+        min = 10,
+        max = 200,
+        steps = {1, 10},
+        tostring = function(v) return string.format("%d", v) end,
+        tonumber = function(s) return tonumber(s) end,
+        notifier = function(v) ptbpm_spacing_ms = v end
+      }
+    },
+    vb:row{
+      vb:button{
+        text = "Detect BPM",
+        width = 120,
+        notifier = function()
+          vb.views["ptbpm_results"].text = "Analyzing..."
+          pakettiTransientBPMAnalyze(results_log)
+        end
+      },
+      vb:button{
+        text = "Apply to Song BPM",
+        width = 140,
+        notifier = function()
+          if not ptbpm_last_bpm then
+            renoise.app():show_status("Detect a BPM first.")
+            return
+          end
+          local applied = math.max(20, math.min(999, ptbpm_last_bpm))
+          renoise.song().transport.bpm = applied
+          results_log(string.format("Applied to Song BPM: %.2f", applied))
+          renoise.app():show_status(string.format("Song BPM set to %.2f", applied))
+        end
+      }
+    },
+    vb:text{text = "Results:"},
+    vb:multiline_textfield{
+      id = "ptbpm_results",
+      width = 420,
+      height = 160,
+      font = "mono",
+      active = false,
+      text = "Click 'Detect BPM' to analyze the selected sample..."
+    }
+  }
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return pakettiTransientBPMDialog end,
+    function(value) pakettiTransientBPMDialog = value end
+  )
+  pakettiTransientBPMDialog = renoise.app():show_custom_dialog(
+    "Paketti Transient BPM Detector", content, keyhandler)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Transient BPM Detector Dialog...", invoke = pakettiShowTransientBPMDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient BPM Detector Dialog...", invoke = pakettiShowTransientBPMDialog}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:BPM:Transient BPM Detector...", invoke = pakettiShowTransientBPMDialog}
+PakettiAddMenuEntry{name="Sample Editor Ruler:Paketti:BPM:Transient BPM Detector...", invoke = pakettiShowTransientBPMDialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Sample Editor:Transient BPM Detector...", invoke = pakettiShowTransientBPMDialog}
+renoise.tool():add_midi_mapping{name="Paketti:Transient BPM Detector Dialog", invoke=function(message) if message:is_trigger() then pakettiShowTransientBPMDialog() end end}
