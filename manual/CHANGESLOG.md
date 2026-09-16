@@ -16,6 +16,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 - Keybinding: `Global:Paketti:Multitimbral MIDI Input Setup...`
 - MIDI Mapping: `Paketti:Multitimbral MIDI Input Setup`
 
+### 2026-09-16 - Improvement: Interpolate Beyond - oscillation control, selection mode, preview dialog
+
+**Interpolate Beyond gets a real oscillation-count setting, a selection mode, and a curve-preview dialog.** Four upgrades over the initial port: (1) the number of oscillations for the wave shapes is now its own setting (persisted preference + a control in the dialog) instead of being taken from the Edit Step, so you can shape the curve without disturbing note entry; (2) Gradient Noise now re-seeds its randomness on every run, so each result is self-contained; (3) a new Selection mode - if a pattern selection exists, it interpolates the current sub-column across the marked block from its first value to its last (with no selection it still does the cross-pattern cursor search); (4) a preview dialog with a canvas that draws the chosen shape and updates live as you change shape or oscillations, plus an Apply button. (Undo already works as one step - Renoise coalesces the whole interpolation into a single undo.)
+- Menu: `Pattern Editor:Paketti:Interpolate Beyond:Dialog (Preview)...`
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Interpolate Beyond:Dialog (Preview)...`
+- Keybinding: `Pattern Editor:Paketti:Interpolate Beyond Dialog...`
+- MIDI Mapping: `Paketti:Interpolate Beyond Dialog`
+
 ### 2026-09-16 - Feature: Interpolate Beyond - cross-pattern, multi-shape column interpolation
 
 **Interpolate a column from the cursor, searching across pattern boundaries, with a choice of curve shapes.** Ported from GARBANZO's "Interpolate Beyond". Unlike Renoise's built-in interpolation (linear, within one pattern selection) and Paketti's own Interpolate Column Values (selection-based, linear/exponential), this works from the cursor with no selection: it finds the previous and next non-empty value in the current sub-column - searching across pattern boundaries along the sequence - and interpolates between them through the cursor. If only one point is found it extends to the start or end of the track. It works on the sub-column under the cursor (note-column volume / panning / delay / sample-effect amount, or effect-column amount) and offers ten interpolation shapes: Linear, Logarithmic In, Logarithmic Out, Sine, Square, Saw, Triangle, Bounce Out, Bounce In, and Gradient Noise. The number of oscillations for the wave shapes is taken from the current Edit Step.

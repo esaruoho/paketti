@@ -1,26 +1,43 @@
 -- PakettiInterpolateBeyond.lua
 -- Cross-pattern, multi-shape column interpolation, ported from GARBANZO's
--- "Interpolate Beyond" (rfgd.garbanzo.InterpolateBeyond).
+-- "Interpolate Beyond" (rfgd.garbanzo.InterpolateBeyond) and extended.
 --
--- Unlike Renoise's built-in interpolation (linear, within one pattern selection)
--- and Paketti's own Interpolate Column Values (selection-based, linear/exp), this
--- works from the CURSOR with no selection: it finds the previous and next
--- non-empty value in the current sub-column, searching ACROSS pattern boundaries
--- along the sequence ("Beyond"), and interpolates between them through the cursor.
--- If only one point is found it extends to the start or end of the track.
+-- Two modes, chosen automatically:
+--   * SELECTION mode — if there is a pattern selection, interpolate the current
+--     sub-column across the selection from its first value to its last value.
+--   * CURSOR mode ("Beyond") — with no selection, find the previous and next
+--     non-empty value in the current sub-column, searching ACROSS pattern
+--     boundaries along the sequence, and interpolate between them through the
+--     cursor. One point found -> extends to the start or end of the track.
 --
--- It offers a family of interpolation shapes — linear, log in/out, sine, square,
--- saw, triangle, bounce in/out, gradient noise — chosen per menu entry / keybind.
--- The number of oscillations for the wave shapes is taken from the Edit Step
--- (transport.edit_step), matching the original tool's behaviour.
---
--- Works on the sub-column under the cursor: note-column volume / panning / delay /
+-- Interpolation shapes: linear, log in/out, sine, square, saw, triangle,
+-- bounce in/out, gradient noise. Works on note-column volume / panning / delay /
 -- sample-effect amount, or effect-column amount.
+--
+-- Fixes over the original:
+--   1. Oscillation count is its own setting (preference + dialog control),
+--      decoupled from the Edit Step the original hijacked.
+--   2. Gradient Noise re-seeds its RNG on every run, so results are self-contained.
+--   4. Selection mode added (the original was cursor-only).
+--   5. A preview dialog draws the chosen shape on a canvas before you apply it.
+-- (Undo: Renoise already coalesces all edits of one invocation into a single undo
+--  step; there is no undo-transaction API to do more, so nothing to add there.)
 
--- Deliberate fixes vs. the original: functions are file-local (no global
--- pollution), the undeclared global write (end_effect_number_value) is scoped,
--- dead code (parameterOldFunc, isSample) is dropped, integer writes are rounded,
--- and a guard rejects note/instrument sub-columns where interpolation is meaningless.
+----------------------------------------------------------------------
+-- oscillation-count setting (decoupled from Edit Step)
+----------------------------------------------------------------------
+local function get_oscillations()
+  local ok, v = pcall(function() return preferences.pakettiInterpolateBeyondOscillations.value end)
+  if ok and type(v) == "number" then return v end
+  return 1
+end
+
+local function set_oscillations(v)
+  pcall(function()
+    preferences.pakettiInterpolateBeyondOscillations.value = v
+    preferences:save_as("preferences.xml")
+  end)
+end
 
 ----------------------------------------------------------------------
 -- sequence <-> pattern helpers
@@ -153,7 +170,7 @@ local function easeInBounce(x, f)
   return 1 - easeOutBounce(1 - x)
 end
 
--- Gradient noise keeps a small amount of state between steps.
+-- Gradient noise keeps a little state between steps; re-created each run (fix 2).
 local function thresholdRan()
   local poles = 0
   local poleRandomPrev = 2
@@ -178,7 +195,7 @@ local function thresholdRan()
   end
 end
 
-local poleRan = thresholdRan()
+local poleRan = thresholdRan()  -- reassigned per run in PakettiInterpolateBeyond
 
 local function GradientRan(t, f, startValue, endValue)
   local polesPlus = 1 / math.max(1, f + 1)
@@ -193,9 +210,9 @@ local function GradientRan(t, f, startValue, endValue)
   end
 end
 
-local function interpolate_with(waveFun, startValue, endValue, curStep, stepCounter, numOsc)
-  local t = curStep / (stepCounter + 1)
-  local wavyTime, flip = waveFun(t, numOsc, startValue, endValue)
+-- Core: map t (0..1) through a shape into a value between startValue and endValue.
+local function apply_wave(waveFun, startValue, endValue, t, osc)
+  local wavyTime, flip = waveFun(t, osc, startValue, endValue)
   if flip == nil or flip then
     return lerp(startValue, endValue, wavyTime)
   else
@@ -203,8 +220,69 @@ local function interpolate_with(waveFun, startValue, endValue, curStep, stepCoun
   end
 end
 
+local function interpolate_with(waveFun, startValue, endValue, curStep, stepCounter, osc)
+  return apply_wave(waveFun, startValue, endValue, curStep / (stepCounter + 1), osc)
+end
+
 ----------------------------------------------------------------------
--- point search across pattern boundaries
+-- shared sub-column read / write
+----------------------------------------------------------------------
+local function round_int(v) return math.floor(v + 0.5) end
+
+local function read_subcolumn_value(line, columnID, subColumnID)
+  local s = renoise.Song
+  if subColumnID == s.SUB_COLUMN_VOLUME then
+    return line.note_columns[columnID].volume_value
+  elseif subColumnID == s.SUB_COLUMN_PANNING then
+    return line.note_columns[columnID].panning_value
+  elseif subColumnID == s.SUB_COLUMN_DELAY then
+    return line.note_columns[columnID].delay_value
+  elseif subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+    return line.note_columns[columnID].effect_amount_value
+  else
+    return line.effect_columns[columnID].amount_value
+  end
+end
+
+local function write_subcolumn_value(line, columnID, subColumnID, value, effnum, deviceString)
+  local s = renoise.Song
+  value = round_int(value)
+  if subColumnID == s.SUB_COLUMN_VOLUME then
+    if value <= 128 then line.note_columns[columnID].volume_value = value end
+  elseif subColumnID == s.SUB_COLUMN_PANNING then
+    if value <= 128 then line.note_columns[columnID].panning_value = value end
+  elseif subColumnID == s.SUB_COLUMN_DELAY then
+    line.note_columns[columnID].delay_value = value
+  elseif subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+    if effnum then line.note_columns[columnID].effect_number_value = effnum end
+    line.note_columns[columnID].effect_amount_value = value
+  else
+    line.effect_columns[columnID].amount_value = value
+    if deviceString then line.effect_columns[columnID].number_string = deviceString end
+  end
+end
+
+local function subcolumn_is_interpolatable(subColumnID)
+  local s = renoise.Song
+  return subColumnID == s.SUB_COLUMN_VOLUME
+      or subColumnID == s.SUB_COLUMN_PANNING
+      or subColumnID == s.SUB_COLUMN_DELAY
+      or subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_NUMBER
+      or subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT
+      or subColumnID == s.SUB_COLUMN_EFFECT_NUMBER
+      or subColumnID == s.SUB_COLUMN_EFFECT_AMOUNT
+end
+
+local function column_for_subcolumn(song, subColumnID)
+  local s = renoise.Song
+  if subColumnID >= s.SUB_COLUMN_NOTE and subColumnID <= s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+    return song.selected_note_column_index
+  end
+  return song.selected_effect_column_index
+end
+
+----------------------------------------------------------------------
+-- cursor cross-pattern point search (the original "Beyond" algorithm)
 ----------------------------------------------------------------------
 local function lineIDAdder(lineID, seqID, patternLength)
   local lineIDNext = lineID + 1
@@ -328,31 +406,18 @@ local function findNextModulationPoint(lineDown, columnID, seqNext, trackID, seq
   return lineDown, seqNext, stepCounter, endOfProject
 end
 
-----------------------------------------------------------------------
--- read start/end values, write interpolated steps
-----------------------------------------------------------------------
-local function round_int(v) return math.floor(v + 0.5) end
-
 local function getParameterValues(seqID, seqNext, lineID, lineDown, trackID, columnID, beginningOfProject, endOfProject, subColumnID)
   local s = renoise.Song
   local song = renoise.song()
   local parameterStart, parameterEnd
   local start_effect_number_value
-  local end_effect_number_value   -- scoped local (the original wrote this as a global)
+  local end_effect_number_value   -- scoped local (the original wrote a global here)
   local line = song.patterns[patternID_from_sequenceID(seqID)]:track(trackID):line(lineID)
 
   if not beginningOfProject then
-    if subColumnID == s.SUB_COLUMN_VOLUME then
-      parameterStart = line.note_columns[columnID].volume_value
-    elseif subColumnID == s.SUB_COLUMN_PANNING then
-      parameterStart = line.note_columns[columnID].panning_value
-    elseif subColumnID == s.SUB_COLUMN_DELAY then
-      parameterStart = line.note_columns[columnID].delay_value
-    elseif subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
-      parameterStart = line.note_columns[columnID].effect_amount_value
+    parameterStart = read_subcolumn_value(line, columnID, subColumnID)
+    if subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
       start_effect_number_value = line.note_columns[columnID].effect_number_value
-    else
-      parameterStart = line.effect_columns[columnID].amount_value
     end
   else
     parameterStart = 0
@@ -363,17 +428,9 @@ local function getParameterValues(seqID, seqNext, lineID, lineDown, trackID, col
 
   line = song.patterns[patternID_from_sequenceID(seqNext)]:track(trackID):line(lineDown)
   if not endOfProject then
-    if subColumnID == s.SUB_COLUMN_VOLUME then
-      parameterEnd = line.note_columns[columnID].volume_value
-    elseif subColumnID == s.SUB_COLUMN_PANNING then
-      parameterEnd = line.note_columns[columnID].panning_value
-    elseif subColumnID == s.SUB_COLUMN_DELAY then
-      parameterEnd = line.note_columns[columnID].delay_value
-    elseif subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
-      parameterEnd = line.note_columns[columnID].effect_amount_value
+    parameterEnd = read_subcolumn_value(line, columnID, subColumnID)
+    if subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
       end_effect_number_value = line.note_columns[columnID].effect_number_value
-    else
-      parameterEnd = line.effect_columns[columnID].amount_value
     end
   else
     parameterEnd = 255
@@ -381,45 +438,26 @@ local function getParameterValues(seqID, seqNext, lineID, lineDown, trackID, col
       end_effect_number_value = line.note_columns[columnID].effect_number_value
     end
   end
-
   return parameterStart, parameterEnd, start_effect_number_value
 end
 
-local function processModulationPoints(columnID, seqNext, trackID, parameterStart, parameterEnd, stepCounter, curStep,
+local function processModulationPoints(columnID, trackID, parameterStart, parameterEnd, stepCounter, curStep,
                                        deviceString, seqCount, beginningOfProject, lineID, seqID, deviceStringEnd,
-                                       waveFun, subColumnID, numOsc, endOfProject, start_effect_number_value)
-  local s = renoise.Song
+                                       waveFun, subColumnID, osc, endOfProject, start_effect_number_value)
   local song = renoise.song()
   local lineDown = lineID + 1
-  seqNext = seqID
+  local seqNext = seqID
   local patternLength = song.patterns[patternID_from_sequenceID(seqID)].number_of_lines
   if lineDown > patternLength then lineDown = 1 seqNext = seqID + 1 end
   if beginningOfProject then lineDown = 1 curStep = 0 deviceString = deviceStringEnd end
 
   while curStep <= stepCounter do
-    local stepValue
-    if endOfProject then
-      stepValue = interpolate_with(waveFun, parameterStart, parameterEnd, curStep + 1, stepCounter, numOsc)
-    else
-      stepValue = interpolate_with(waveFun, parameterStart, parameterEnd, curStep, stepCounter, numOsc)
-    end
-    stepValue = round_int(stepValue)
+    local step = endOfProject and (curStep + 1) or curStep
+    local stepValue = interpolate_with(waveFun, parameterStart, parameterEnd, step, stepCounter, osc)
 
     patternLength = song.patterns[patternID_from_sequenceID(seqNext)].number_of_lines
     local line = song.patterns[patternID_from_sequenceID(seqNext)]:track(trackID):line(lineDown)
-    if subColumnID == s.SUB_COLUMN_VOLUME then
-      if parameterStart <= 128 and parameterEnd <= 128 then line.note_columns[columnID].volume_value = stepValue end
-    elseif subColumnID == s.SUB_COLUMN_PANNING then
-      if parameterStart <= 128 and parameterEnd <= 128 then line.note_columns[columnID].panning_value = stepValue end
-    elseif subColumnID == s.SUB_COLUMN_DELAY then
-      line.note_columns[columnID].delay_value = stepValue
-    elseif subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
-      line.note_columns[columnID].effect_number_value = start_effect_number_value
-      line.note_columns[columnID].effect_amount_value = stepValue
-    else
-      line.effect_columns[columnID].amount_value = stepValue
-      line.effect_columns[columnID].number_string = deviceString
-    end
+    write_subcolumn_value(line, columnID, subColumnID, stepValue, start_effect_number_value, deviceString)
 
     lineDown = lineDown + 1
     curStep = curStep + 1
@@ -428,37 +466,20 @@ local function processModulationPoints(columnID, seqNext, trackID, parameterStar
   end
 end
 
-----------------------------------------------------------------------
--- entry point
-----------------------------------------------------------------------
-local function PakettiInterpolateBeyond(waveFun)
+local function interpolate_cursor_cross_pattern(waveFun, osc)
   local s = renoise.Song
   local song = renoise.song()
   local subColumnID = song.selected_sub_column_type
-
-  -- Guard: only sub-columns that carry an interpolatable value.
-  local ok = (subColumnID == s.SUB_COLUMN_VOLUME
-           or subColumnID == s.SUB_COLUMN_PANNING
-           or subColumnID == s.SUB_COLUMN_DELAY
-           or subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_NUMBER
-           or subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT
-           or subColumnID == s.SUB_COLUMN_EFFECT_NUMBER
-           or subColumnID == s.SUB_COLUMN_EFFECT_AMOUNT)
-  if not ok then
+  if not subcolumn_is_interpolatable(subColumnID) then
     renoise.app():show_status("Interpolate Beyond: place the cursor on a volume, panning, delay, or effect sub-column.")
     return
   end
 
-  local numOsc = song.transport.edit_step
   local lineID = song.selected_line_index
   local trackID = song.selected_track_index
   local patternID = song.selected_pattern_index
   local seqID = song.selected_sequence_index
-  local columnID = song.selected_effect_column_index
-
-  if subColumnID >= s.SUB_COLUMN_NOTE and subColumnID <= s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
-    columnID = song.selected_note_column_index
-  end
+  local columnID = column_for_subcolumn(song, subColumnID)
   if columnID == 0 then
     renoise.app():show_status("Interpolate Beyond: no column selected under the cursor.")
     return
@@ -467,8 +488,7 @@ local function PakettiInterpolateBeyond(waveFun)
   local patternLength = song.patterns[patternID].number_of_lines
   local patternLengthPrev
   local seqCount = #song.sequencer.pattern_sequence
-  local beginningOfProject = false
-  local endOfProject = false
+  local beginningOfProject, endOfProject = false, false
   local lineDown = lineID + 1
   local seqNext = seqID
   local stepCounter = 0
@@ -496,14 +516,74 @@ local function PakettiInterpolateBeyond(waveFun)
     return
   end
 
-  processModulationPoints(columnID, seqNext, trackID, parameterStart, parameterEnd, stepCounter, curStep,
-    deviceString, seqCount, beginningOfProject, lineID, seqID, deviceStringEnd, waveFun, subColumnID, numOsc,
+  processModulationPoints(columnID, trackID, parameterStart, parameterEnd, stepCounter, curStep,
+    deviceString, seqCount, beginningOfProject, lineID, seqID, deviceStringEnd, waveFun, subColumnID, osc,
     endOfProject, start_effect_number_value)
-  renoise.app():show_status("Interpolate Beyond: interpolated across " .. (stepCounter + 1) .. " step(s).")
+  renoise.app():show_status("Interpolate Beyond (cursor): interpolated across " .. (stepCounter + 1) .. " step(s).")
 end
 
 ----------------------------------------------------------------------
--- registrations — one per shape
+-- selection mode (fix 4)
+----------------------------------------------------------------------
+local function interpolate_selection(waveFun, osc)
+  local s = renoise.Song
+  local song = renoise.song()
+  local sel = song.selection_in_pattern
+  local subColumnID = song.selected_sub_column_type
+  if not subcolumn_is_interpolatable(subColumnID) then
+    renoise.app():show_status("Interpolate Beyond: place the cursor on a volume, panning, delay, or effect sub-column.")
+    return
+  end
+
+  local trackID = song.selected_track_index
+  local columnID = column_for_subcolumn(song, subColumnID)
+  if columnID == 0 then
+    renoise.app():show_status("Interpolate Beyond: no column selected under the cursor.")
+    return
+  end
+
+  local ptrack = song:pattern(song.selected_pattern_index):track(trackID)
+  local start_line, end_line = sel.start_line, sel.end_line
+  local steps = end_line - start_line
+  if steps < 1 then
+    renoise.app():show_status("Interpolate Beyond: selection is too small to interpolate.")
+    return
+  end
+
+  local first_line = ptrack:line(start_line)
+  local startValue = read_subcolumn_value(first_line, columnID, subColumnID)
+  local endValue = read_subcolumn_value(ptrack:line(end_line), columnID, subColumnID)
+
+  local effnum, deviceString
+  if subColumnID == s.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+    effnum = first_line.note_columns[columnID].effect_number_value
+  elseif subColumnID == s.SUB_COLUMN_EFFECT_NUMBER or subColumnID == s.SUB_COLUMN_EFFECT_AMOUNT then
+    deviceString = first_line.effect_columns[columnID].number_string
+  end
+
+  for k = 0, steps do
+    local v = apply_wave(waveFun, startValue, endValue, k / steps, osc)
+    write_subcolumn_value(ptrack:line(start_line + k), columnID, subColumnID, v, effnum, deviceString)
+  end
+  renoise.app():show_status("Interpolate Beyond (selection): interpolated " .. (steps + 1) .. " line(s).")
+end
+
+----------------------------------------------------------------------
+-- dispatcher
+----------------------------------------------------------------------
+function PakettiInterpolateBeyond(waveFun)
+  poleRan = thresholdRan()  -- fix 2: fresh noise generator each run
+  local osc = get_oscillations()
+  local song = renoise.song()
+  if song.selection_in_pattern then
+    interpolate_selection(waveFun, osc)
+  else
+    interpolate_cursor_cross_pattern(waveFun, osc)
+  end
+end
+
+----------------------------------------------------------------------
+-- shapes
 ----------------------------------------------------------------------
 local SHAPES = {
   {"Linear",          lin},
@@ -518,6 +598,94 @@ local SHAPES = {
   {"Gradient Noise",  GradientRan},
 }
 
+----------------------------------------------------------------------
+-- preview dialog with canvas (fix 5)
+----------------------------------------------------------------------
+local ib_dialog = nil
+local ib_preview_shape = 1  -- index into SHAPES
+
+local function ib_render_preview(ctx)
+  local CW, CH = 360, 150
+  local pad = 8
+  ctx:clear_rect(0, 0, CW, CH)
+  ctx.fill_color = {28, 28, 32, 255}
+  ctx:fill_rect(0, 0, CW, CH)
+
+  -- grid at 0 / 0.5 / 1
+  ctx.stroke_color = {64, 64, 72, 255}
+  ctx.line_width = 1
+  for _, gy in ipairs({0, 0.5, 1}) do
+    local y = pad + gy * (CH - 2 * pad)
+    ctx:begin_path() ctx:move_to(0, y) ctx:line_to(CW, y) ctx:stroke()
+  end
+
+  local fn = SHAPES[ib_preview_shape][2]
+  local osc = get_oscillations()
+  if fn == GradientRan then poleRan = thresholdRan() end
+
+  ctx.stroke_color = {120, 200, 120, 255}
+  ctx.line_width = 2
+  ctx:begin_path()
+  for x = 0, CW do
+    local t = x / CW
+    local v = apply_wave(fn, 0, 255, t, osc) / 255
+    if v < 0 then v = 0 elseif v > 1 then v = 1 end
+    local y = pad + (1 - v) * (CH - 2 * pad)
+    if x == 0 then ctx:move_to(x, y) else ctx:line_to(x, y) end
+  end
+  ctx:stroke()
+end
+
+function PakettiInterpolateBeyondDialog()
+  if ib_dialog and ib_dialog.visible then
+    ib_dialog:close()
+    ib_dialog = nil
+    return
+  end
+  local vb = renoise.ViewBuilder()
+  local canvas_id = "ib_canvas_" .. tostring(math.random(2, 30000))
+  local shape_items = {}
+  for i, e in ipairs(SHAPES) do shape_items[i] = e[1] end
+
+  local mode_text = renoise.song().selection_in_pattern
+    and "Mode: Selection (interpolate the marked block)"
+    or  "Mode: Cursor (search across patterns from the cursor)"
+
+  local content = vb:column{
+    margin = 10, spacing = 8,
+    vb:text{text = "Interpolate Beyond", font = "bold"},
+    vb:text{text = mode_text},
+    vb:row{
+      vb:text{text = "Shape:", width = 80},
+      vb:popup{id = "ib_shape", width = 200, items = shape_items, value = ib_preview_shape,
+        notifier = function(v) ib_preview_shape = v vb.views[canvas_id]:invalidate() end},
+    },
+    vb:row{
+      vb:text{text = "Oscillations:", width = 80},
+      vb:valuebox{width = 80, min = 0, max = 16, value = get_oscillations(),
+        notifier = function(v) set_oscillations(v) vb.views[canvas_id]:invalidate() end},
+    },
+    vb:canvas{id = canvas_id, width = 360, height = 150, mode = "plain", render = ib_render_preview},
+    vb:row{
+      vb:button{text = "Apply", width = 100, notifier = function()
+        PakettiInterpolateBeyond(SHAPES[ib_preview_shape][2])
+      end},
+      vb:button{text = "Close", width = 100, notifier = function()
+        if ib_dialog and ib_dialog.visible then ib_dialog:close() ib_dialog = nil end
+      end},
+    },
+  }
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return ib_dialog end,
+    function(value) ib_dialog = value end
+  )
+  ib_dialog = renoise.app():show_custom_dialog("Paketti Interpolate Beyond", content, keyhandler)
+end
+
+----------------------------------------------------------------------
+-- registrations — one per shape + the preview dialog
+----------------------------------------------------------------------
 for _, entry in ipairs(SHAPES) do
   local name, fn = entry[1], entry[2]
   local invoke = function() PakettiInterpolateBeyond(fn) end
@@ -525,3 +693,8 @@ for _, entry in ipairs(SHAPES) do
   PakettiAddMenuEntry{name="Pattern Editor:Paketti:Interpolate Beyond:" .. name, invoke=invoke}
   PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Interpolate Beyond:" .. name, invoke=invoke}
 end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Beyond Dialog...", invoke=PakettiInterpolateBeyondDialog}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Interpolate Beyond:Dialog (Preview)...", invoke=PakettiInterpolateBeyondDialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Interpolate Beyond:Dialog (Preview)...", invoke=PakettiInterpolateBeyondDialog}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Beyond Dialog", invoke=function(m) if m:is_trigger() then PakettiInterpolateBeyondDialog() end end}

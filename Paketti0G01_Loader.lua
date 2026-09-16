@@ -458,6 +458,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportSXT = true,           -- Reason NN-XT (.sxt) patch import
   pakettiImportMV0 = true,           -- Roland MV-8000/8800 (.mv0) patch import
   pakettiImportAkai = true,          -- Akai (.s/.snd/.akp/.p/.pgm) sample+program import
+  pakettiInterpolateBeyondOscillations = 1, -- Interpolate Beyond wave-shape oscillation count (decoupled from Edit Step)
   -- DWVW export defaults (Yamaha TX16W / Typhoon .C01)
   pakettiDWVWSampleRate = 33333,     -- TX16W standard sample rate
   pakettiDWVWWordSize = 12,          -- TX16W native bit depth
