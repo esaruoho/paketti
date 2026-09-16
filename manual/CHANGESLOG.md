@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-16 - Feature: Multitimbral MIDI Input Setup
+
+**Wire one MIDI device to many instruments in one shot, one channel per instrument.** Pick a MIDI input device and Paketti assigns it to every instrument (up to 16, since MIDI has 16 channels), giving instrument 1 channel 01, instrument 2 channel 02, and so on. Optionally route each instrument to its matching track and prefix its name with `[CHxx]`. This is the fast way to set up a multitimbral rig where one external keyboard or controller drives many instruments, each on its own channel - it retro-fits the assignment onto instruments that already exist (Paketti's MIDI Populator does the same wiring while creating instruments). If you have more than 16 instruments, the ones past 16 are left untouched and the status bar says so.
+- Menu: `Main Menu:Tools:Paketti:Instruments:Multitimbral MIDI Input Setup...`
+- Menu: `Instrument Box:Paketti:Multitimbral MIDI Input Setup...`
+- Keybinding: `Global:Paketti:Multitimbral MIDI Input Setup...`
+- MIDI Mapping: `Paketti:Multitimbral MIDI Input Setup`
+
 ### 2026-09-16 - Feature: Interpolate Beyond - cross-pattern, multi-shape column interpolation
 
 **Interpolate a column from the cursor, searching across pattern boundaries, with a choice of curve shapes.** Ported from GARBANZO's "Interpolate Beyond". Unlike Renoise's built-in interpolation (linear, within one pattern selection) and Paketti's own Interpolate Column Values (selection-based, linear/exponential), this works from the cursor with no selection: it finds the previous and next non-empty value in the current sub-column - searching across pattern boundaries along the sequence - and interpolates between them through the cursor. If only one point is found it extends to the start or end of the track. It works on the sub-column under the cursor (note-column volume / panning / delay / sample-effect amount, or effect-column amount) and offers ten interpolation shapes: Linear, Logarithmic In, Logarithmic Out, Sine, Square, Saw, Triangle, Bounce Out, Bounce In, and Gradient Noise. The number of oscillations for the wave shapes is taken from the current Edit Step.
