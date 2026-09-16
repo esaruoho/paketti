@@ -8,6 +8,45 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-16 - Feature: Marks - named GUI-location bookmarks
+
+**Save where you are in Renoise under a key, jump back to it instantly.** A mark snapshots your whole layout - which frames are showing, the selected instrument/sample/track/device, the pattern position and cursor, the pattern selection, and every track's collapse state - stored under a single key (a-z, 0-9). Jump to a mark and Renoise snaps back to that layout. Three accuracy levels decide how much a jump restores: `view` (just the window frames), `pattern` (plus instrument/sample/track/device/sequence), or `cursor` (plus line/columns/selection/collapse - the default). Marks are saved per-song (serialised into the song's comments, so they travel with the song and survive save/reload) and auto-reload when you open a song. In the Marks dialog, press a key to jump, Shift+key to save, Alt+key to clear. Ported from aklt's "Marks" tool.
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Marks...`
+- Menu: `Pattern Editor:Paketti:Marks...`
+- Keybinding: `Global:Paketti:Marks Dialog...`, `Global:Paketti:Marks Cycle Accuracy`
+- MIDI Mapping: `Paketti:Marks Dialog`
+
+### 2026-09-16 - Feature: Collapse-aware Track Navigation
+
+**Jump between tracks while skipping collapsed ones, with optional auto-collapse of empty tracks.** Ported from Hex's HexTools. Jump to the next/previous active track (skipping collapsed tracks), jump to the next/previous collapsed track, or jump with solo (mutes every other sequencer track). "Auto-collapse before jump" (on by default) tidies the pattern down to only tracks that carry notes before it jumps; "auto-collapse on focus loss" (off by default) re-collapses a track you jumped to but left empty. Unlike the original, Paketti does not recolour your tracks.
+- Menu: `Main Menu:Tools:Paketti:Pattern Editor:Track Navigation:` (Jump To Next/Previous Track (Skip Collapsed), Jump To Next/Previous Collapsed Track, Jump To Next/Previous Track (With Solo), Collapse Unused Tracks in Pattern, Toggle Auto-Collapse Before Jump, Toggle Auto-Collapse On Focus Loss)
+- Keybindings: `Pattern Editor:Paketti:Jump To Next Track (Skip Collapsed)` and the matching Previous / Collapsed / With Solo / Collapse Unused / Toggle entries
+- MIDI Mappings: `Paketti:Jump To Next Track (Skip Collapsed)` and Previous / Next Collapsed / Previous Collapsed
+
+### 2026-09-16 - Feature: Persistent Sample Clipboard
+
+**Copy one sample and paste it into any instrument, across instrument and song switches.** Renoise's own sample copy/paste is buffer-only and tied to the Sample Editor; this keeps a sample (its audio plus volume, panning, transpose, finetune, loop and playback properties) parked in a clipboard for the length of the session. Copy from the selected sample, paste into a new sample slot of any instrument. Ported in spirit from Hex's HexTools.
+- Menu: `Main Menu:Tools:Paketti:!Sample Editor:Sample Clipboard:` (Copy Sample to Clipboard, Paste Sample from Clipboard, Clear Sample Clipboard)
+- Menu: `Sample Editor:Paketti:Copy Sample to Clipboard`, `...:Paste Sample from Clipboard`, `Instrument Box:Paketti:Paste Sample from Clipboard`
+- Keybindings: `Sample Editor:Paketti:Copy Sample to Clipboard` / `...:Paste Sample from Clipboard`, `Global:Paketti:Copy Sample to Clipboard` / `Paste Sample from Clipboard` / `Clear Sample Clipboard`
+- MIDI Mappings: `Paketti:Copy Sample to Clipboard`, `Paketti:Paste Sample from Clipboard`
+
+### 2026-09-16 - Feature: Find Duplicate Instruments (by Audio)
+
+**Detect instruments whose samples are the same audio, so you can clean up accidental duplicates.** Paketti's "Duplicate Instrument" creates a copy; this is the opposite - a detector that reports which existing instruments are audio-identical. It only reports; nothing is deleted. Each sample is fingerprinted (length, channels, rate, and a checksum over sampled frames) and instruments are grouped by their sample fingerprints, so it stays fast even on long samples. Ported in spirit from Hex's HexTools.
+- Menu: `Main Menu:Tools:Paketti:Instruments:Find Duplicate Instruments (by Audio)...`
+- Menu: `Instrument Box:Paketti:Find Duplicate Instruments (by Audio)...`
+- Keybinding: `Global:Paketti:Find Duplicate Instruments (by Audio)`
+- MIDI Mapping: `Paketti:Find Duplicate Instruments (by Audio)`
+
+### 2026-09-16 - Feature: Convert Volume Automation <-> Pattern Volume Column
+
+**Move values between a track's volume automation and its note-column volumes across the pattern selection.** Convert Volume Automation to Pattern reads the track's pre-FX volume automation over the selection and writes the interpolated value into each note's volume column; Convert Pattern to Volume Automation reads note-column volumes over the selection and builds a volume automation envelope. Ported in spirit from Hex's HexTools pattern<->automation converter, scoped to track volume - the path that works reliably (Renoise has no generic effect-column to DSP-parameter mapping).
+- Menu: `Pattern Editor:Paketti:Convert Volume Automation to Pattern`, `...:Convert Pattern to Volume Automation`
+- Menu: `Main Menu:Tools:Paketti:Automation:Convert Volume Automation to Pattern`, `...:Convert Pattern to Volume Automation`
+- Keybindings: `Pattern Editor:Paketti:Convert Volume Automation to Pattern`, `Pattern Editor:Paketti:Convert Pattern to Volume Automation`
+- MIDI Mappings: `Paketti:Convert Volume Automation to Pattern`, `Paketti:Convert Pattern to Volume Automation`
+
 ### 2026-09-16 - Feature: Transient BPM Detector (interactive)
 
 **A tunable, dialog-driven BPM detector for the selected sample.** Paketti already detects BPM from a sample's transients, but only with fixed settings and no way to adjust them per loop. This adds an interactive dialog that exposes the knobs: pick one of four detection profiles (Simple beats, Complex beats, Crowded beats, Fast crowded beats), or set Energy Threshold and Min Spacing (ms) by hand, then hit Detect BPM. Detection uses spectral-flux transient analysis on the selected sample; the detected transient count becomes the beat count (or tick "Beats in Sample (override)" to force your own count), and BPM is calculated from beats over the sample's duration, octave-folded into a musical range. A scrolling results readout shows transient count, detected BPM, and the nearest plausible whole-number BPM. An "Apply to Song BPM" button sets the project tempo to the detected value. Ported and expanded from Vincent Voois' "Sample BPM detector" tool.

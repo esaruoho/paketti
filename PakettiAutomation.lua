@@ -4433,3 +4433,103 @@ function PakettiShowAutomatedParametersInMixer()
   renoise.app():show_status("Exposed " .. count .. " automated parameters in mixer for " .. device.display_name)
 end
 
+-- ── Convert Volume Automation <-> Pattern Volume Column ───────────────────────
+-- Ported in spirit from Hex's HexTools pattern<->automation converter, but scoped
+-- to TRACK VOLUME only — the one path that actually works. Renoise has no generic
+-- effect-column <-> DSP-parameter mapping, so the HexTools generic branch was
+-- hardcoded (0x11) and half-finished; that is deliberately not ported. This pair
+-- moves values between a track's pre-FX volume automation and its note-column
+-- volumes across the current pattern selection.
+
+-- Interpolate an automation point list (each has .time = line, .value = 0..1).
+local function paketti_interp_automation(points, line)
+  local n = #points
+  if n == 0 then return nil end
+  if n == 1 then return points[1].value end
+  if line <= points[1].time then return points[1].value end
+  if line >= points[n].time then return points[n].value end
+  for i = 1, n - 1 do
+    local a, b = points[i], points[i + 1]
+    if line == a.time then return a.value end
+    if line == b.time then return b.value end
+    if line > a.time and line < b.time then
+      local t = (line - a.time) / (b.time - a.time)
+      return a.value + (b.value - a.value) * t
+    end
+  end
+  return points[n].value
+end
+
+function PakettiConvertVolumeAutomationToPattern()
+  local song = renoise.song()
+  local sel = song.selection_in_pattern
+  if not sel then renoise.app():show_status("No selection in pattern editor.") return end
+  local ti = song.selected_track_index
+  local ptrack = song:pattern(song.selected_pattern_index):track(ti)
+  local param = song.tracks[ti].prefx_volume
+  local auto = ptrack:find_automation(param)
+  if not auto or #auto.points == 0 then
+    renoise.app():show_status("No track-volume automation in this pattern/track.")
+    return
+  end
+  local points = auto.points
+  local wrote = 0
+  for line_idx = sel.start_line, sel.end_line do
+    local v = paketti_interp_automation(points, line_idx)
+    if v then
+      local line = ptrack:line(line_idx)
+      local vol127 = math.max(0, math.min(127, math.floor(v * 127 + 0.5)))
+      for nc = 1, #line.note_columns do
+        local col = line.note_columns[nc]
+        if not col.is_empty then
+          col.volume_value = vol127
+          wrote = wrote + 1
+        end
+      end
+    end
+  end
+  renoise.app():show_status(string.format(
+    "Wrote track-volume automation into %d note-column volume(s).", wrote))
+end
+
+function PakettiConvertPatternToVolumeAutomation()
+  local song = renoise.song()
+  local sel = song.selection_in_pattern
+  if not sel then renoise.app():show_status("No selection in pattern editor.") return end
+  local ti = song.selected_track_index
+  local ptrack = song:pattern(song.selected_pattern_index):track(ti)
+  local param = song.tracks[ti].prefx_volume
+  local auto = ptrack:find_automation(param) or ptrack:create_automation(param)
+  local last_val = nil
+  local added = 0
+  for line_idx = sel.start_line, sel.end_line do
+    local line = ptrack:line(line_idx)
+    local maxvol = nil
+    for nc = 1, #line.note_columns do
+      local vv = line.note_columns[nc].volume_value
+      if vv >= 0 and vv <= 127 then   -- 255 == empty, skip
+        maxvol = maxvol and math.max(maxvol, vv) or vv
+      end
+    end
+    if maxvol then
+      local value = maxvol / 127
+      if line_idx == sel.start_line or value ~= last_val then
+        auto:add_point_at(line_idx, value)   -- overwrites any point already on this line
+        last_val = value
+        added = added + 1
+      end
+    end
+  end
+  renoise.app():show_status(string.format(
+    "Created %d volume-automation point(s) from note-column volumes.", added))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert Volume Automation to Pattern", invoke=PakettiConvertVolumeAutomationToPattern}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert Pattern to Volume Automation", invoke=PakettiConvertPatternToVolumeAutomation}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Convert Volume Automation to Pattern", invoke=PakettiConvertVolumeAutomationToPattern}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Convert Pattern to Volume Automation", invoke=PakettiConvertPatternToVolumeAutomation}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Automation:Convert Volume Automation to Pattern", invoke=PakettiConvertVolumeAutomationToPattern}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Automation:Convert Pattern to Volume Automation", invoke=PakettiConvertPatternToVolumeAutomation}
+renoise.tool():add_midi_mapping{name="Paketti:Convert Volume Automation to Pattern", invoke=function(m) if m:is_trigger() then PakettiConvertVolumeAutomationToPattern() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Convert Pattern to Volume Automation", invoke=function(m) if m:is_trigger() then PakettiConvertPatternToVolumeAutomation() end end}
+
