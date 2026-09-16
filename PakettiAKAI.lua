@@ -1034,15 +1034,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Import AKP File...",invoke = importAKPFile}
 
--- File import hook for .akp files
-local akp_integration = {
-  name = "Akai AKP Program File",
-  category = "sample",
-  extensions = { "akp" },
-  invoke = importAKPFile
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "akp" }) then
-  renoise.tool():add_file_import_hook(akp_integration)
-end
+-- .akp import hook is registered centrally in PakettiImport.lua (gated by the
+-- pakettiImportAkai preference), so it is not registered here.
 

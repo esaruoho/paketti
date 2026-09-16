@@ -462,14 +462,7 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Import S900/S950 Sample..."
 renoise.tool():add_keybinding{name = "Global:Paketti:Export S900/S950 Sample...",invoke = exportS900Sample}
 
 
--- File import hook for S900/S950 samples  
-local s900_integration = {
-  name = "Akai S900/S950 Sample",
-  category = "sample", 
-  extensions = { "s" },
-  invoke = importS900Sample
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "s" }) then
-  renoise.tool():add_file_import_hook(s900_integration)
-end 
+-- The .s import hook is registered centrally in PakettiImport.lua (gated by the
+-- pakettiImportAkai preference). S900/S950 samples share the .s extension with
+-- S1000/S3000; importS1000Sample auto-detects and routes here when appropriate,
+-- and this format also has its own keybinding/menu entry.

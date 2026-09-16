@@ -449,6 +449,28 @@ Roland MV-8000/8800 patch import (samples only). Paketti extracts the WAVE audio
 
 These three importers (Korg, Reason, Roland) are ported and modernised from Martin Bealby's 2011 "Additional File Formats" tool, with the keyzone mapping rewritten to the current Renoise API and the sample-rate handling corrected.
 
+#### Import Akai (S900/S950, S1000, S3000, MPC2000 .snd, Programs .p/.pgm, AKP .akp)
+
+Paketti imports the classic Akai sampler formats. Drop a file onto Renoise, or use the menu.
+
+- **Akai `.s` samples (S900/S950, S1000, S1100, S3000).** All three generations use the `.s` extension, so Paketti reads the file's header and auto-detects which one it is, then routes to the matching parser. If you want to force a specific parser, the menu has separate `Akai S900/S950 Sample (.s)...` and `Akai S1000/S3000 Sample (.s)...` entries.
+- **Akai MPC2000/2000XL `.snd` samples.**
+- **Akai programs `.p` (S1000) and `.pgm` (MPC1000/MPC2000)** - keygroups / pad assignments / sample mappings.
+- **Akai `.akp` programs (S5000/S6000/Z4/Z8).**
+
+Two convenience actions: **Import Any Akai Sample** detects the format for you, and **Import Akai Folder (Batch)** loads every Akai file in a folder in one go. There is also export back to each Akai format via **Export Sample as Akai Format...**, and an **Akai Formats Info...** dialog describing every supported format.
+
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Import Any Akai Sample...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Import Akai Folder (Batch)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Akai S900/S950 Sample (.s)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Akai S1000/S3000 Sample (.s)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Akai MPC2000 SND Sample (.snd)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Akai Program (.p/.pgm)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Akai AKP Program (.akp)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Export:Export Sample as Akai Format...`
+- Keyboard shortcuts: `Global:Paketti:Import Any Akai Sample...`, `Global:Paketti:Import Akai Folder (Batch)...`, plus per-format import/export shortcuts for S900/S950, S1000, S3000, MPC2000 SND, Programs and AKP.
+- All of the disk-browser import hooks can be switched off with the `Akai (.s/.snd/.akp/.p/.pgm)` toggle under `Import Hooks Settings`.
+
 #### Import 4channel .MOD samples
 
 Both as separate instruments, and as "wavetable instrument" == all samples in one instrument, aka "sample chain".

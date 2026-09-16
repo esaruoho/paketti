@@ -1465,6 +1465,17 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiKorg")
   timed_require("PakettiReasonNNXT")
   timed_require("PakettiRolandMV8000")
+  -- Akai hardware-sampler importers. The parser files MUST load before
+  -- PakettiAkaiFormats (the umbrella), whose "Import Any" dispatch and menu
+  -- entries call the per-format globals. Disk-browser hooks are registered in
+  -- PakettiImport.lua, gated by the pakettiImportAkai preference.
+  timed_require("PakettiAkaiS900")
+  timed_require("PakettiAkaiS1000")
+  timed_require("PakettiAkaiS3000")
+  timed_require("PakettiAkaiMPC2000")
+  timed_require("PakettiAkaiPrograms")
+  timed_require("PakettiAKAI")
+  timed_require("PakettiAkaiFormats")
 
   timed_require("PakettiProcess")
   timed_require("PakettiHexSliceLoop")

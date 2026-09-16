@@ -476,14 +476,5 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Export MPC2000 SND Sample..
 
 
 
--- File import hook for MPC2000 samples
-local mpc2000_integration = {
-  name = "MPC2000 SND Sample",
-  category = "sample", 
-  extensions = { "snd" },
-  invoke = importMPC2000Sample
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "snd" }) then
-  renoise.tool():add_file_import_hook(mpc2000_integration)
-end 
+-- .snd import hook is registered centrally in PakettiImport.lua (gated by the
+-- pakettiImportAkai preference), so it is not registered here.

@@ -817,14 +817,5 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Import Akai Program...",inv
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Akai Program...",invoke = exportAkaiProgram}
 
 
--- File import hooks for program formats
-local program_integration = {
-  name = "Akai Program Files",
-  category = "sample",
-  extensions = { "p", "pgm" },
-  invoke = importAkaiProgram
-}
-
-if not renoise.tool():has_file_import_hook("sample", { "p", "pgm" }) then
-  renoise.tool():add_file_import_hook(program_integration)
-end 
+-- .p / .pgm import hook is registered centrally in PakettiImport.lua (gated by
+-- the pakettiImportAkai preference), so it is not registered here.

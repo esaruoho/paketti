@@ -2,7 +2,31 @@
 
 **Date:** 2026-09-16
 **Author:** Claude (Opus 4.8) session with Esa
-**Status:** NOT SHIPPED — three Akai importer files exist in the repo but are **dead code** (never `timed_require`d in `main.lua`). This document is the plan to make them ship.
+**Status:** ✅ SHIPPED 2026-09-16 (same day) — all seven Akai files are now wired in. See "Resolution" below; the original plan is kept for the record.
+
+---
+
+## RESOLUTION (2026-09-16)
+
+The handoff undercounted the files: there are **seven**, not three. Full set, all previously dead, now all `timed_require`d in `main.lua`:
+`PakettiAkaiS900.lua`, `PakettiAkaiS1000.lua`, `PakettiAkaiS3000.lua`, `PakettiAkaiMPC2000.lua`, `PakettiAkaiPrograms.lua`, `PakettiAKAI.lua` (AKP), `PakettiAkaiFormats.lua` (umbrella, loaded last).
+
+**The `.s` three-way collision was resolved for free:** `importS1000Sample` already contains a header-sniffing dispatcher (`detect_akai_s_format`) that routes to the S900 / S1000 / S3000 parser. So a single `.s` import hook → `importS1000Sample` handles all three correctly. No new sniffer had to be written.
+
+**Registration scheme (crash-free, verified by `.spine/check.py` → `✅ clean`):**
+- Removed the self-registered `add_file_import_hook` block from every parser file **and** the umbrella's universal multi-extension hook (it had a triple-`s` dedup bug and competed with the specific hooks).
+- Added four centralised hooks in `PakettiImport.lua`, gated by `should_register_hook("pakettiImportAkai")`, one owner per extension: `.s`→`importS1000Sample`, `.snd`→`importMPC2000Sample`, `.akp`→`importAKPFile`, `.p`/`.pgm`→`importAkaiProgram`.
+- Kept every per-format keybinding in its own file; added menu entries (`PakettiAddMenuEntry`) in the umbrella for Import Any / Batch / per-format / Export / Info.
+- New pref `pakettiImportAkai` in `Paketti0G01_Loader.lua` Document.create + a checkbox in the Import Hooks dialog.
+- No load-time `renoise.song()` in any of the seven (audited).
+
+**⚠️ Not live-tested.** No binary Akai test files exist locally (Bealby's `com.mxb.FileFormats.xrnx` ships only `.lua`), and PakettiMCP would not connect this session (Renoise not running the tool). The wire-up is proven crash-free by the harness, but byte-level import correctness against real `.s/.snd/.akp/.p/.pgm/.akp` files is UNVERIFIED. First person with real Akai files should drop one of each onto the disk browser and confirm audio + keyzones. If a `.s` file mis-detects, the fix is in `detect_akai_s_format` in `PakettiAkaiS1000.lua`.
+
+---
+
+## (Original plan follows — kept for the record)
+
+**Status when written:** NOT SHIPPED — three Akai importer files exist in the repo but are **dead code** (never `timed_require`d in `main.lua`). This document is the plan to make them ship.
 
 Companion work shipped in the same session: Korg (`.ksf/.kmp/.ksc`), Reason NN-XT (`.sxt`) and Roland MV-8000 (`.mv0`) import — commit `58650ed9`. Those were ported fresh from Martin Bealby's 2011 `com.mxb.FileFormats` tool. The Akai side is **different**: Paketti already has its own Akai code, so this is a *wire-up + de-conflict + test* job, not a port.
 

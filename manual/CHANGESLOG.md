@@ -17,6 +17,21 @@ Every changelog entry below represents hours of development time. Paketti is fre
 - Keybinding: `Global:Paketti:Batch Convert PTI Folder to WAV with CUE`
 - MIDI Mapping: `Paketti:Batch Convert PTI Folder to WAV with CUE`
 
+### 2026-09-16 - Feature: Akai Sampler Import - S900/S950, S1000, S3000, MPC2000 (.snd), Programs (.p/.pgm), AKP (.akp)
+
+**Akai hardware-sampler import is now live in Paketti.** A family of Akai importers had been sitting in the repo unused (never loaded); this wires them all in, resolves the format conflicts, and puts them behind menu entries and a preference toggle. Import works from the Renoise disk browser (drop the file) and from menu entries.
+
+- Akai S900/S950, S1000 and S3000 samples all use the `.s` extension. Dropping a `.s` file auto-detects which of the three it is (by header) and routes to the right parser. Menu entries also let you force S900/S950 or S1000/S3000 explicitly.
+- Akai MPC2000/2000XL `.snd` samples.
+- Akai S1000 programs `.p` and MPC1000/MPC2000 programs `.pgm` (keygroups / pad assignments / sample mappings).
+- Akai S5000/S6000/Z4/Z8 `.akp` programs.
+- "Import Any Akai Sample" (auto-detects the format) and "Import Akai Folder (Batch)" for loading a whole folder at once.
+- Export back to Akai formats (S900/S1000/S3000 samples, MPC2000 SND, AKP, Program) via "Export Sample as Akai Format...".
+- Menu: `Main Menu:Tools:Paketti:Instruments:Import:Import Any Akai Sample...`, `...:Import Akai Folder (Batch)...`, `...:Akai S900/S950 Sample (.s)...`, `...:Akai S1000/S3000 Sample (.s)...`, `...:Akai MPC2000 SND Sample (.snd)...`, `...:Akai Program (.p/.pgm)...`, `...:Akai AKP Program (.akp)...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Export:Export Sample as Akai Format...`, `Main Menu:Tools:Paketti:Instruments:Akai Formats Info...`
+- Keybindings: `Global:Paketti:Import Any Akai Sample...`, `Global:Paketti:Import Akai Folder (Batch)...`, `Global:Paketti:Export as Akai Format...`, and per-format `Global:Paketti:Import/Export S900/S950 Sample...`, `...S1000 Sample...`, `...S3000 Sample...`, `...MPC2000 SND Sample...`, `...Akai Program...`, `Import AKP File...`, `Export Current Sample as AKP...`
+- Toggle: `Akai (.s/.snd/.akp/.p/.pgm)` under `Import Hooks Settings`.
+
 ### 2026-09-16 - Feature: Korg, Reason and Roland Sampler Import - KSF/KMP/KSC, NN-XT (.sxt), MV-8000 (.mv0)
 
 **Korg Trinity/Triton, Reason NN-XT and Roland MV-8000 patches now import into Paketti.** These are vintage hardware-sampler formats that Paketti previously had no support for. They work both from the Renoise disk browser (drop the file or use File > Import) and from menu entries. Ported and modernised from Martin Bealby's 2011 "Additional File Formats" tool: keyzone mapping was rewritten to the current per-sample mapping API, sample audio is written as standard WAV (fixing wrong playback rates below 32768 Hz in the original), and every binary reader now guards against truncated files.

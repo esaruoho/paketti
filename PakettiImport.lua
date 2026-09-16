@@ -375,6 +375,41 @@ if should_register_hook("pakettiImportMV0") then
   end
 end
 
+-- Akai Import Hooks (.s / .snd / .akp / .p / .pgm) - one owner per extension.
+-- .s routes to importS1000Sample, which sniffs the header and auto-dispatches
+-- to the S900 / S1000 / S3000 parser. Parsers live in PakettiAkai*.lua /
+-- PakettiAKAI.lua and are loaded before this runs.
+if should_register_hook("pakettiImportAkai") then
+  if not renoise.tool():has_file_import_hook("sample", {"s"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"s"},
+      invoke = importS1000Sample
+    })
+  end
+  if not renoise.tool():has_file_import_hook("sample", {"snd"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"snd"},
+      invoke = importMPC2000Sample
+    })
+  end
+  if not renoise.tool():has_file_import_hook("sample", {"akp"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"akp"},
+      invoke = importAKPFile
+    })
+  end
+  if not renoise.tool():has_file_import_hook("sample", {"p", "pgm"}) then
+    renoise.tool():add_file_import_hook({
+      category = "sample",
+      extensions = {"p", "pgm"},
+      invoke = importAkaiProgram
+    })
+  end
+end
+
 -- OT Import Hook (.ot) - Octatrack
 if should_register_hook("pakettiImportOT") then
   if not renoise.tool():has_file_import_hook("sample", {"ot"}) then

@@ -457,6 +457,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportKSC = true,           -- Korg Trinity/Triton (.ksc) performance script import
   pakettiImportSXT = true,           -- Reason NN-XT (.sxt) patch import
   pakettiImportMV0 = true,           -- Roland MV-8000/8800 (.mv0) patch import
+  pakettiImportAkai = true,          -- Akai (.s/.snd/.akp/.p/.pgm) sample+program import
   -- DWVW export defaults (Yamaha TX16W / Typhoon .C01)
   pakettiDWVWSampleRate = 33333,     -- TX16W standard sample rate
   pakettiDWVWWordSize = 12,          -- TX16W native bit depth
@@ -4109,7 +4110,8 @@ function PakettiDeactivatorDialog()
           vb:row{vb:checkbox{value = preferences.pakettiImportKMP.value, notifier = function(v) preferences.pakettiImportKMP.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Korg (.kmp)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportKSC.value, notifier = function(v) preferences.pakettiImportKSC.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Korg (.ksc)", width = 140}},
           vb:row{vb:checkbox{value = preferences.pakettiImportSXT.value, notifier = function(v) preferences.pakettiImportSXT.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Reason NN-XT (.sxt)", width = 140}},
-          vb:row{vb:checkbox{value = preferences.pakettiImportMV0.value, notifier = function(v) preferences.pakettiImportMV0.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Roland MV (.mv0)", width = 140}}
+          vb:row{vb:checkbox{value = preferences.pakettiImportMV0.value, notifier = function(v) preferences.pakettiImportMV0.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Roland MV (.mv0)", width = 140}},
+          vb:row{vb:checkbox{value = preferences.pakettiImportAkai.value, notifier = function(v) preferences.pakettiImportAkai.value = v preferences:save_as("preferences.xml") end}, vb:text{text = "Akai (.s/.snd/.akp/.p/.pgm)", width = 140}}
         }
       },
       
