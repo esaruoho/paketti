@@ -1417,6 +1417,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiStacker")
   timed_require("PakettiRecorder")
   timed_require("PakettiBeatDetect")
+  timed_require("PakettiTransientNavigation")
   timed_require("PakettiAudioProcessing")
   timed_require("PakettiPatternEditorCheatSheet")
   timed_require("PakettiGater")

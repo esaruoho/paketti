@@ -1108,6 +1108,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   -- MIDI Import Settings
   pakettiMidiImportLPB = 8,
   pakettiMidiImportUseDelay = true,
+  -- Transient Navigation: unified Next/Previous behaviour. false = place a point cursor, true = select the chunk up to the next transient.
+  pakettiTransientNavSelectMode = false,
   -- Automate Last Touched Parameter Settings
   pakettiAutomateLastTouched = {
     AutoOpenExternalEditor = true, -- Auto-open VST/AU external editor when watching starts
