@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**27 card conversations** plugged in:
+**28 card conversations** plugged in:
 
 ### `53b19b22-eb03-4403-baf6-29d78603187b`  (2026-08-18 → 2026-08-25)
 - Resume: `claude --resume 53b19b22-eb03-4403-baf6-29d78603187b`
@@ -146,3 +146,9 @@
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/efa32348-13a5-4ede-ab98-4eb87ef5351d.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (2): TEMPLATE.feature, song-lifecycle-safety.feature
+
+### `4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`  (2026-09-17)
+- Resume: `claude --resume 4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/4e43b9eb-84a0-4c2c-b97f-a6e24189f16d.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (3): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, song-lifecycle-safety.feature
