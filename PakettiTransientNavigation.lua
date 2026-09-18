@@ -191,16 +191,25 @@ end
 local function tn_set_display(buffer, disp_start, disp_len)
   local nframes = buffer.number_of_frames
   disp_len = math.max(1, math.min(disp_len, nframes))
-  disp_start = math.max(1, math.min(disp_start, nframes - disp_len + 1))
   tn_ensure_sample_editor()
-  -- When fully zoomed out (display_length == number_of_frames) Renoise refuses to
-  -- set display_start ("no display_start's are available"). So bring display_start
-  -- back to 1 ONLY while zoomed in, then set the (smaller) length, which makes
-  -- display_start settable again, then move it. Every step keeps
-  -- display_start + display_length - 1 <= number_of_frames.
-  if buffer.display_length < nframes then buffer.display_start = 1 end
-  buffer.display_length = disp_len
-  if disp_len < nframes then buffer.display_start = disp_start end
+  -- Wrapped in pcall so a display quirk can never crash navigation.
+  pcall(function()
+    -- When fully zoomed out (display_length == number_of_frames) Renoise refuses
+    -- to set display_start ("no display_start's are available"). Bring it back to 1
+    -- ONLY while zoomed in, then set the (smaller) length, which makes display_start
+    -- settable again.
+    if buffer.display_length < nframes then buffer.display_start = 1 end
+    buffer.display_length = disp_len
+    -- The valid max for display_start is number_of_frames - display_length (NOT
+    -- +1, confirmed live) - one over gives "invalid display_start index" near the
+    -- end of the sample (the crash le(m)on hit on the last transient). Read the
+    -- length back in case Renoise adjusted it, and clamp against nframes - length.
+    local actual_len = buffer.display_length
+    if actual_len < nframes then
+      local max_start = math.max(1, nframes - actual_len)
+      buffer.display_start = math.max(1, math.min(disp_start, max_start))
+    end
+  end)
 end
 
 -- Scroll the zoomed waveform so `frame` is visible (centred) when off-screen.
