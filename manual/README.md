@@ -1020,18 +1020,22 @@ If the diff reports several changed bytes, the message probably carries a checks
 
 ### Transient Navigation ("Tab to Transient")
 
-Jump the Sample Editor cursor straight to the next or previous attack transient — the "tab to transient" workflow from Pro Tools, REAPER and Acon Acoustica — **without** filling the sample with slice markers. Paketti runs its Beat Detector engine over the sample once (combined lowpass + highpass detection, snapped to zero-crossings), caches the detected positions, and moves the selection to them. The zoomed waveform scrolls to follow, so you never have to zoom in and out to find the true start of a hit.
+Step through a sample by attack transient the way Renoise lets you step through slices — but **without** filling the sample with slice markers. The "tab to transient" workflow from Pro Tools, REAPER and Acon Acoustica. Assign **Next / Previous Transient** to any key (Tab is unused in the sample editor) and jump straight to the next detected attack, snapped to a zero-crossing, so you never have to zoom in and out to find the true start of a hit.
 
-Two cursor styles drive the unified **Next / Previous Transient** commands, switchable with **Toggle Next/Previous Select Mode**:
+Detection uses Paketti's Beat Detector engine (combined lowpass + highpass) and runs in the **background** — the first Next/Previous shows a progress %, then jumps when ready; everything after that is instant from a per-sample cache. Run **Re-detect Transients** after you edit a sample's audio to refresh.
 
-- **Point Cursor** — places a zero-width cursor exactly on the transient (the classic Tab feel).
-- **Select Chunk** — highlights the region from one transient to the next, so pressing Next walks you hit-to-hit (or, at low sensitivity, single-cycle to single-cycle).
+Two zoom styles drive the unified **Next / Previous Transient** commands, switchable with **Toggle Next/Previous Mode**:
 
-Once the cursor is where you want it: **Slice at Cursor** drops one slice marker there; **Delete Left of Cursor** and **Delete Right of Cursor** destructively crop the sample to one side of the cursor (Pro Tools' `a` / `s`), remapping surviving slice markers and loop points. Isolate a drum hit entirely from the keyboard: tab to the hit, Delete Left, tab past the hit, Delete Right. After editing a sample's audio, run **Re-detect Transients** to refresh the cached positions.
+- **Zoom to Onset** — puts the cursor on the transient and zooms in close on the attack, for precise cutting.
+- **In Full (Zoom to Fit Region)** — selects the whole drumbeat from one transient to the next and zooms the view to fit it (like stepping through slices).
 
-- **Menu:** `Sample Editor → Paketti → Transient Navigation →` (Next Transient, Previous Transient, Next/Previous Transient (Point Cursor), Next/Previous Transient (Select Chunk), Toggle Next/Previous Select Mode, Slice at Cursor, Delete Left of Cursor, Delete Right of Cursor, Re-detect Transients)
-- **Keybindings:** `Sample Editor:Paketti:Transient Next`, `Sample Editor:Paketti:Transient Previous`, `Sample Editor:Paketti:Transient Next Point Cursor`, `Sample Editor:Paketti:Transient Previous Point Cursor`, `Sample Editor:Paketti:Transient Next Select Chunk`, `Sample Editor:Paketti:Transient Previous Select Chunk`, `Sample Editor:Paketti:Transient Toggle Select Mode`, `Sample Editor:Paketti:Transient Slice at Cursor`, `Sample Editor:Paketti:Transient Delete Left of Cursor`, `Sample Editor:Paketti:Transient Delete Right of Cursor`, `Sample Editor:Paketti:Transient Re-detect`
-- **MIDI mappings:** `Paketti:Transient Next`, `Paketti:Transient Previous`, `Paketti:Transient Toggle Select Mode`, `Paketti:Transient Slice at Cursor`, `Paketti:Transient Delete Left of Cursor`, `Paketti:Transient Delete Right of Cursor`
+A plain **Point Cursor (No Zoom)** mode is also available for when you don't want the view to change.
+
+Once the cursor is where you want it: **Slice at Cursor** drops one slice marker there; **Delete Left of Cursor** and **Delete Right of Cursor** destructively crop the sample to one side of the cursor (Pro Tools' `a` / `s`), remapping surviving slice markers and loop points. Isolate a drum hit entirely from the keyboard: tab to the hit, Delete Left, tab past the hit, Delete Right.
+
+- **Menu:** `Sample Editor → Paketti → Transient Navigation →` (Next/Previous Transient, Next/Previous Transient (Zoom to Onset), Next/Previous Transient in Full (Zoom to Fit Region), Next/Previous Transient (Point Cursor, No Zoom), Toggle Next/Previous Mode (Region/Point), Slice at Cursor, Delete Left of Cursor, Delete Right of Cursor, Re-detect Transients)
+- **Keybindings:** `Sample Editor:Paketti:Transient Next`, `Sample Editor:Paketti:Transient Previous`, `Sample Editor:Paketti:Transient Next Zoom Onset`, `Sample Editor:Paketti:Transient Previous Zoom Onset`, `Sample Editor:Paketti:Transient Next in Full Zoom Region`, `Sample Editor:Paketti:Transient Previous in Full Zoom Region`, `Sample Editor:Paketti:Transient Next Point Cursor`, `Sample Editor:Paketti:Transient Previous Point Cursor`, `Sample Editor:Paketti:Transient Toggle Mode`, `Sample Editor:Paketti:Transient Slice at Cursor`, `Sample Editor:Paketti:Transient Delete Left of Cursor`, `Sample Editor:Paketti:Transient Delete Right of Cursor`, `Sample Editor:Paketti:Transient Re-detect`
+- **MIDI mappings:** `Paketti:Transient Next`, `Paketti:Transient Previous`, `Paketti:Transient Toggle Mode`, `Paketti:Transient Slice at Cursor`, `Paketti:Transient Delete Left of Cursor`, `Paketti:Transient Delete Right of Cursor`
 
 ### Trim Selected Sample to Selection and Normalize
 

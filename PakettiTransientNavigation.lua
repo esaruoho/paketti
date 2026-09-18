@@ -193,9 +193,14 @@ local function tn_set_display(buffer, disp_start, disp_len)
   disp_len = math.max(1, math.min(disp_len, nframes))
   disp_start = math.max(1, math.min(disp_start, nframes - disp_len + 1))
   tn_ensure_sample_editor()
-  buffer.display_start = 1
+  -- When fully zoomed out (display_length == number_of_frames) Renoise refuses to
+  -- set display_start ("no display_start's are available"). So bring display_start
+  -- back to 1 ONLY while zoomed in, then set the (smaller) length, which makes
+  -- display_start settable again, then move it. Every step keeps
+  -- display_start + display_length - 1 <= number_of_frames.
+  if buffer.display_length < nframes then buffer.display_start = 1 end
   buffer.display_length = disp_len
-  buffer.display_start = disp_start
+  if disp_len < nframes then buffer.display_start = disp_start end
 end
 
 -- Scroll the zoomed waveform so `frame` is visible (centred) when off-screen.
@@ -282,6 +287,28 @@ local function tn_current_chunk_index(B, ref)
   return 1
 end
 
+-- When no explicit selection is made, Renoise reports the selection as the WHOLE
+-- sample (selection_start = 1, selection_end = number_of_frames). That must be
+-- treated as "no cursor yet", not "at both ends", or Next/Previous always report
+-- being at the last/first transient. (This is the bug le(m)on hit.)
+local function tn_selection_is_whole(buffer)
+  return buffer.selection_start <= 1 and buffer.selection_end >= buffer.number_of_frames
+end
+
+-- Reference frame for stepping FORWARD: before-everything when no cursor,
+-- otherwise the right edge of the current selection/point.
+local function tn_ref_next(buffer)
+  if tn_selection_is_whole(buffer) then return 0 end
+  return math.max(buffer.selection_start, buffer.selection_end)
+end
+
+-- Reference frame for stepping BACKWARD: after-everything when no cursor,
+-- otherwise the left edge of the current selection/point.
+local function tn_ref_prev(buffer)
+  if tn_selection_is_whole(buffer) then return buffer.number_of_frames + 1 end
+  return math.min(buffer.selection_start, buffer.selection_end)
+end
+
 --------------------------------------------------------------------------------
 -- Region navigation (select + zoom to fit) - the primary "next slice, but
 -- transient" behaviour.
@@ -292,7 +319,8 @@ function PakettiTransientNextRegion()
   local buffer = sample.sample_buffer
   local B = tn_boundaries(sample)
   if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
-  local k = tn_current_chunk_index(B, buffer.selection_start)
+  local ref = tn_selection_is_whole(buffer) and 0 or buffer.selection_start
+  local k = tn_current_chunk_index(B, ref)
   k = math.min(k + 1, #B - 1)
   tn_show_region(buffer, B[k], B[k + 1])
   renoise.app():show_status(string.format("Transient Nav: region %d/%d  frames %d..%d (%d)",
@@ -305,7 +333,8 @@ function PakettiTransientPreviousRegion()
   local buffer = sample.sample_buffer
   local B = tn_boundaries(sample)
   if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
-  local k = tn_current_chunk_index(B, buffer.selection_start)
+  local ref = tn_selection_is_whole(buffer) and (buffer.number_of_frames + 1) or buffer.selection_start
+  local k = tn_current_chunk_index(B, ref)
   k = math.max(k - 1, 1)
   tn_show_region(buffer, B[k], B[k + 1])
   renoise.app():show_status(string.format("Transient Nav: region %d/%d  frames %d..%d (%d)",
@@ -322,7 +351,7 @@ function PakettiTransientNextOnset()
   local buffer = sample.sample_buffer
   local B = tn_boundaries(sample)
   if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
-  local ref = math.max(buffer.selection_start, buffer.selection_end)
+  local ref = tn_ref_next(buffer)
   local ti = nil
   for i = 1, #B do if B[i] > ref then ti = i break end end
   if not ti then renoise.app():show_status("Transient Nav: already at the last transient."); return end
@@ -337,7 +366,7 @@ function PakettiTransientPreviousOnset()
   local buffer = sample.sample_buffer
   local B = tn_boundaries(sample)
   if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
-  local ref = math.min(buffer.selection_start, buffer.selection_end)
+  local ref = tn_ref_prev(buffer)
   local ti = nil
   for i = #B, 1, -1 do if B[i] < ref then ti = i break end end
   if not ti then renoise.app():show_status("Transient Nav: already at the first transient."); return end
@@ -356,7 +385,7 @@ function PakettiTransientNextPoint()
   local buffer = sample.sample_buffer
   local positions = tn_cached_positions
   if #positions == 0 then renoise.app():show_status("Transient Nav: no transients detected."); return end
-  local ref = math.max(buffer.selection_start, buffer.selection_end)
+  local ref = tn_ref_next(buffer)
   local target = nil
   for _, p in ipairs(positions) do if p > ref then target = p break end end
   if not target then renoise.app():show_status("Transient Nav: already at the last transient."); return end
@@ -370,7 +399,7 @@ function PakettiTransientPreviousPoint()
   local buffer = sample.sample_buffer
   local positions = tn_cached_positions
   if #positions == 0 then renoise.app():show_status("Transient Nav: no transients detected."); return end
-  local ref = math.min(buffer.selection_start, buffer.selection_end)
+  local ref = tn_ref_prev(buffer)
   local target = nil
   for i = #positions, 1, -1 do if positions[i] < ref then target = positions[i] break end end
   if not target then renoise.app():show_status("Transient Nav: already at the first transient."); return end
