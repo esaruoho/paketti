@@ -3411,6 +3411,359 @@ function PakettiPhraseValueProcessorInterpolate(mode, mask, use_selection)
   renoise.app():show_status(string.format("Paketti Phrase Value Processor: %s interpolation wrote %d field(s)", mode, changed))
 end
 
+--------------------------------------------------------------------------
+-- Paketti Phrase Value Processor - pitch/timing transforms + region clipboard
+-- (note-event helpers reuse the Fields/GetBounds/Clamp scaffolding above)
+--------------------------------------------------------------------------
+
+-- Snapshot every real note / note-off event in a single note column across a
+-- line range. Position is line + delay/256; empty delay reads as 0.
+local function PakettiPhraseValueProcessorCollectNoteEvents(phrase, start_line, end_line, column_index)
+  local events = {}
+  for line_index = start_line, end_line do
+    local column = phrase:line(line_index):note_column(column_index)
+    local note_value = column.note_value
+    if PakettiPhraseValueProcessorIsRealNote(note_value) or note_value == renoise.PatternLine.NOTE_OFF then
+      events[#events + 1] = {
+        line = line_index,
+        note_value = note_value,
+        instrument_value = column.instrument_value,
+        volume_value = column.volume_value,
+        panning_value = column.panning_value,
+        delay_value = column.delay_value,
+        effect_number_value = column.effect_number_value,
+        effect_amount_value = column.effect_amount_value,
+        is_off = note_value == renoise.PatternLine.NOTE_OFF
+      }
+    end
+  end
+  return events
+end
+
+local function PakettiPhraseValueProcessorPlaceEvent(phrase, column_index, event, new_line, new_delay)
+  local column = phrase:line(new_line):note_column(column_index)
+  column.note_value = event.note_value
+  column.instrument_value = event.instrument_value
+  column.volume_value = event.volume_value
+  column.panning_value = event.panning_value
+  column.delay_value = new_delay
+  column.effect_number_value = event.effect_number_value
+  column.effect_amount_value = event.effect_amount_value
+end
+
+local function PakettiPhraseValueProcessorPosToLineDelay(pos)
+  local line = math.floor(pos)
+  local delay = math.floor((pos - line) * 256 + 0.5)
+  if delay >= 256 then line = line + 1 delay = delay - 256 end
+  if delay < 0 then delay = 0 end
+  return line, delay
+end
+
+-- Shared engine for Flip / Shrink / Expand. transform_fn maps a source position
+-- (in lines, fractional = delay) to a destination position. Plans all moves
+-- first so Safe mode can veto before anything is written.
+local function PakettiPhraseValueProcessorTimingTransform(use_selection, safe_mode, transform_fn, label)
+  local song = renoise.song()
+  if not song then return end
+  local phrase = song.selected_phrase
+  if not phrase then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selected") return end
+  local start_line, end_line, start_column, end_column = PakettiPhraseValueProcessorGetBounds(song, phrase, use_selection)
+  if not start_line then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selection") return end
+
+  local plan = {}
+  for column_index = 1, phrase.visible_note_columns do
+    if PakettiPhraseValueProcessorColumnIncluded(column_index, start_column, end_column) then
+      local events = PakettiPhraseValueProcessorCollectNoteEvents(phrase, start_line, end_line, column_index)
+      local targets = {}
+      for i, event in ipairs(events) do
+        local pos = event.line + event.delay_value / 256
+        local new_line, new_delay = PakettiPhraseValueProcessorPosToLineDelay(transform_fn(pos, start_line, end_line))
+        targets[i] = {line = new_line, delay = new_delay, dropped = new_line < 1 or new_line > phrase.number_of_lines}
+      end
+      plan[#plan + 1] = {column_index = column_index, events = events, targets = targets}
+    end
+  end
+
+  if safe_mode then
+    for _, col in ipairs(plan) do
+      for _, target in ipairs(col.targets) do
+        if target.dropped then
+          renoise.app():show_status("Paketti Phrase Value Processor: Safe mode - " .. label .. " would move notes out of range")
+          return
+        end
+      end
+    end
+  end
+
+  song:describe_undo("Paketti Phrase Value Processor " .. label)
+  local moved, dropped = 0, 0
+  for _, col in ipairs(plan) do
+    for _, event in ipairs(col.events) do
+      phrase:line(event.line):note_column(col.column_index):clear()
+    end
+    for i, event in ipairs(col.events) do
+      local target = col.targets[i]
+      if target.dropped then
+        dropped = dropped + 1
+      else
+        PakettiPhraseValueProcessorPlaceEvent(phrase, col.column_index, event, target.line, target.delay)
+        moved = moved + 1
+      end
+    end
+  end
+  renoise.app():show_status(string.format("Paketti Phrase Value Processor: %s moved %d note(s)%s", label, moved,
+    dropped > 0 and string.format(", dropped %d out of range", dropped) or ""))
+end
+
+-- Flip: reverse note-event timing around the region center (delay-aware).
+function PakettiPhraseValueProcessorFlip(use_selection, safe_mode)
+  PakettiPhraseValueProcessorTimingTransform(use_selection, safe_mode,
+    function(pos, start_line, end_line) return start_line + end_line - pos end, "Flip")
+end
+
+-- Shrink: halve each note's distance from the region start (delay-aware).
+function PakettiPhraseValueProcessorShrink(use_selection, safe_mode)
+  PakettiPhraseValueProcessorTimingTransform(use_selection, safe_mode,
+    function(pos, start_line) return start_line + (pos - start_line) / 2 end, "Shrink")
+end
+
+-- Expand: double each note's distance from the region start (delay-aware).
+function PakettiPhraseValueProcessorExpand(use_selection, safe_mode)
+  PakettiPhraseValueProcessorTimingTransform(use_selection, safe_mode,
+    function(pos, start_line) return start_line + (pos - start_line) * 2 end, "Expand")
+end
+
+-- Mirror: invert note pitch around a center note. Out-of-range mirrors clamp to
+-- 0..119 (Safe mode aborts instead so no pitch relationship is silently bent).
+function PakettiPhraseValueProcessorMirror(center, use_selection, safe_mode)
+  local song = renoise.song()
+  if not song then return end
+  local phrase = song.selected_phrase
+  if not phrase then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selected") return end
+  center = PakettiPhraseValueProcessorClamp(center, 0, 119)
+  local start_line, end_line, start_column, end_column = PakettiPhraseValueProcessorGetBounds(song, phrase, use_selection)
+  if not start_line then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selection") return end
+
+  if safe_mode then
+    for line_index = start_line, end_line do
+      for column_index = 1, phrase.visible_note_columns do
+        if PakettiPhraseValueProcessorColumnIncluded(column_index, start_column, end_column) then
+          local note_value = phrase:line(line_index):note_column(column_index).note_value
+          if PakettiPhraseValueProcessorIsRealNote(note_value) then
+            local mirrored = center * 2 - note_value
+            if mirrored < 0 or mirrored > 119 then
+              renoise.app():show_status("Paketti Phrase Value Processor: Safe mode - Mirror would move a note out of range")
+              return
+            end
+          end
+        end
+      end
+    end
+  end
+
+  song:describe_undo("Paketti Phrase Value Processor Mirror")
+  local changed = 0
+  for line_index = start_line, end_line do
+    for column_index = 1, phrase.visible_note_columns do
+      if PakettiPhraseValueProcessorColumnIncluded(column_index, start_column, end_column) then
+        local column = phrase:line(line_index):note_column(column_index)
+        if PakettiPhraseValueProcessorIsRealNote(column.note_value) then
+          column.note_value = PakettiPhraseValueProcessorClamp(center * 2 - column.note_value, 0, 119)
+          changed = changed + 1
+        end
+      end
+    end
+  end
+  renoise.app():show_status(string.format("Paketti Phrase Value Processor: Mirror around %s changed %d note(s)",
+    PakettiPhraseEditorNoteValueToString(center), changed))
+end
+
+-- Quantize: snap note events toward the nearest line, delay-aware.
+-- strength 0..256 = 0..100% pull toward the grid. Preserve Lengths leaves
+-- note-offs in place so note durations do not shift.
+function PakettiPhraseValueProcessorQuantize(strength, preserve_lengths, use_selection, safe_mode)
+  local song = renoise.song()
+  if not song then return end
+  local phrase = song.selected_phrase
+  if not phrase then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selected") return end
+  local start_line, end_line, start_column, end_column = PakettiPhraseValueProcessorGetBounds(song, phrase, use_selection)
+  if not start_line then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selection") return end
+
+  local fraction = PakettiPhraseValueProcessorClamp(strength, 0, 256) / 256
+
+  local plan = {}
+  for column_index = 1, phrase.visible_note_columns do
+    if PakettiPhraseValueProcessorColumnIncluded(column_index, start_column, end_column) then
+      local events = PakettiPhraseValueProcessorCollectNoteEvents(phrase, start_line, end_line, column_index)
+      local targets = {}
+      for i, event in ipairs(events) do
+        if preserve_lengths and event.is_off then
+          targets[i] = {line = event.line, delay = event.delay_value, dropped = false}
+        else
+          local pos = event.line + event.delay_value / 256
+          local target = math.floor(pos + 0.5)
+          local new_line, new_delay = PakettiPhraseValueProcessorPosToLineDelay(pos + (target - pos) * fraction)
+          targets[i] = {line = new_line, delay = new_delay, dropped = new_line < 1 or new_line > phrase.number_of_lines}
+        end
+      end
+      plan[#plan + 1] = {column_index = column_index, events = events, targets = targets}
+    end
+  end
+
+  if safe_mode then
+    for _, col in ipairs(plan) do
+      for _, target in ipairs(col.targets) do
+        if target.dropped then
+          renoise.app():show_status("Paketti Phrase Value Processor: Safe mode - Quantize would move notes out of range")
+          return
+        end
+      end
+    end
+  end
+
+  song:describe_undo("Paketti Phrase Value Processor Quantize")
+  local moved, dropped = 0, 0
+  for _, col in ipairs(plan) do
+    for _, event in ipairs(col.events) do
+      phrase:line(event.line):note_column(col.column_index):clear()
+    end
+    for i, event in ipairs(col.events) do
+      local target = col.targets[i]
+      if target.dropped then
+        dropped = dropped + 1
+      else
+        PakettiPhraseValueProcessorPlaceEvent(phrase, col.column_index, event, target.line, target.delay)
+        moved = moved + 1
+      end
+    end
+  end
+  renoise.app():show_status(string.format("Paketti Phrase Value Processor: Quantized %d note(s)%s%s", moved,
+    preserve_lengths and " (preserve lengths)" or "",
+    dropped > 0 and string.format(", dropped %d", dropped) or ""))
+end
+
+--------------------------------------------------------------------------
+-- Region clipboard (mask-aware). Combined column index: 1..visible_note_columns
+-- are note columns, then visible_effect_columns effect columns follow.
+--------------------------------------------------------------------------
+
+PakettiPhraseValueProcessorClipboard = {data = nil, width = 0, height = 0}
+
+local function PakettiPhraseValueProcessorReadCell(phrase, line_index, combined_col)
+  local line = phrase:line(line_index)
+  if combined_col <= phrase.visible_note_columns then
+    local c = line:note_column(combined_col)
+    return {kind = "note",
+      note_value = c.note_value, instrument_value = c.instrument_value,
+      volume_value = c.volume_value, panning_value = c.panning_value,
+      delay_value = c.delay_value, effect_number_value = c.effect_number_value,
+      effect_amount_value = c.effect_amount_value}
+  end
+  local c = line:effect_column(combined_col - phrase.visible_note_columns)
+  return {kind = "effect", number_value = c.number_value, amount_value = c.amount_value}
+end
+
+local function PakettiPhraseValueProcessorClearCellMasked(phrase, line_index, combined_col, mask)
+  local line = phrase:line(line_index)
+  if combined_col <= phrase.visible_note_columns then
+    local c = line:note_column(combined_col)
+    if mask.note then c.note_value = renoise.PatternLine.EMPTY_NOTE end
+    if mask.instrument then c.instrument_value = renoise.PatternLine.EMPTY_INSTRUMENT end
+    if mask.volume then c.volume_value = renoise.PatternLine.EMPTY_VOLUME end
+    if mask.panning then c.panning_value = renoise.PatternLine.EMPTY_PANNING end
+    if mask.delay then c.delay_value = renoise.PatternLine.EMPTY_DELAY end
+    if mask.sample_fx_number then c.effect_number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER end
+    if mask.sample_fx_amount then c.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT end
+  else
+    local c = line:effect_column(combined_col - phrase.visible_note_columns)
+    if mask.effect_number then c.number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER end
+    if mask.effect_amount then c.amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT end
+  end
+end
+
+local function PakettiPhraseValueProcessorWriteCellMasked(phrase, line_index, combined_col, cell, mask)
+  if not cell then return end
+  local line = phrase:line(line_index)
+  if combined_col <= phrase.visible_note_columns then
+    if cell.kind ~= "note" then return end
+    local c = line:note_column(combined_col)
+    if mask.note then c.note_value = cell.note_value end
+    if mask.instrument then c.instrument_value = cell.instrument_value end
+    if mask.volume then c.volume_value = cell.volume_value end
+    if mask.panning then c.panning_value = cell.panning_value end
+    if mask.delay then c.delay_value = cell.delay_value end
+    if mask.sample_fx_number then c.effect_number_value = cell.effect_number_value end
+    if mask.sample_fx_amount then c.effect_amount_value = cell.effect_amount_value end
+  else
+    if cell.kind ~= "effect" then return end
+    local c = line:effect_column(combined_col - phrase.visible_note_columns)
+    if mask.effect_number then c.number_value = cell.number_value end
+    if mask.effect_amount then c.amount_value = cell.amount_value end
+  end
+end
+
+function PakettiPhraseValueProcessorCopy(cut, mask, use_selection)
+  local song = renoise.song()
+  if not song then return end
+  local phrase = song.selected_phrase
+  if not phrase then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selected") return end
+  local start_line, end_line, start_column, end_column = PakettiPhraseValueProcessorGetBounds(song, phrase, use_selection)
+  if not start_line then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selection") return end
+
+  local data = {}
+  for line_index = start_line, end_line do
+    local row = {}
+    for combined_col = start_column, end_column do
+      row[combined_col - start_column + 1] = PakettiPhraseValueProcessorReadCell(phrase, line_index, combined_col)
+    end
+    data[line_index - start_line + 1] = row
+  end
+  PakettiPhraseValueProcessorClipboard.data = data
+  PakettiPhraseValueProcessorClipboard.width = end_column - start_column + 1
+  PakettiPhraseValueProcessorClipboard.height = end_line - start_line + 1
+
+  if cut then
+    song:describe_undo("Paketti Phrase Value Processor Cut")
+    for line_index = start_line, end_line do
+      for combined_col = start_column, end_column do
+        PakettiPhraseValueProcessorClearCellMasked(phrase, line_index, combined_col, mask)
+      end
+    end
+  end
+  renoise.app():show_status(string.format("Paketti Phrase Value Processor: %s %dx%d region",
+    cut and "Cut" or "Copied", PakettiPhraseValueProcessorClipboard.width, PakettiPhraseValueProcessorClipboard.height))
+end
+
+function PakettiPhraseValueProcessorPaste(mask, use_selection)
+  local song = renoise.song()
+  if not song then return end
+  local phrase = song.selected_phrase
+  if not phrase then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selected") return end
+  local clip = PakettiPhraseValueProcessorClipboard
+  if not clip.data or clip.width == 0 or clip.height == 0 then
+    renoise.app():show_status("Paketti Phrase Value Processor: Clipboard is empty")
+    return
+  end
+  local start_line, _, start_column = PakettiPhraseValueProcessorGetBounds(song, phrase, use_selection)
+  if not start_line then renoise.app():show_status("Paketti Phrase Value Processor: No phrase selection") return end
+
+  local max_line = phrase.number_of_lines
+  local max_column = phrase.visible_note_columns + phrase.visible_effect_columns
+  song:describe_undo("Paketti Phrase Value Processor Paste")
+  for src_line = 1, clip.height do
+    local target_line = start_line + src_line - 1
+    if target_line <= max_line then
+      for src_col = 1, clip.width do
+        local target_col = start_column + src_col - 1
+        if target_col <= max_column then
+          PakettiPhraseValueProcessorWriteCellMasked(phrase, target_line, target_col, clip.data[src_line][src_col], mask)
+        end
+      end
+    end
+  end
+  renoise.app():show_status(string.format("Paketti Phrase Value Processor: Pasted %dx%d region", clip.width, clip.height))
+end
+
 function PakettiPhraseValueProcessorDialogShow()
   if PakettiPhraseValueProcessorDialog and PakettiPhraseValueProcessorDialog.visible then
     PakettiPhraseValueProcessorDialog:close()
@@ -3452,6 +3805,20 @@ function PakettiPhraseValueProcessorDialogShow()
 
   local function current_value()
     return tonumber(vb.views.paketti_phrase_value_amount.value) or 0
+  end
+
+  local function use_selection() return vb.views.paketti_phrase_value_selection.value end
+  local function safe_mode() return vb.views.paketti_phrase_value_safe.value end
+
+  local note_name_to_value_map = {C=0,D=2,E=4,F=5,G=7,A=9,B=11}
+  local function note_name_to_value(text)
+    local letter, accidental, octave = string.match(tostring(text), "^([A-Ga-g])([#%-]?)(%-?%d+)$")
+    local base = letter and note_name_to_value_map[letter:upper()]
+    if base then
+      if accidental == "#" then base = base + 1 end
+      return PakettiPhraseValueProcessorClamp(base + tonumber(octave) * 12, 0, 119)
+    end
+    return tonumber(text) or 60
   end
 
   local note_rows = {spacing = 2}
@@ -3500,9 +3867,47 @@ function PakettiPhraseValueProcessorDialogShow()
       vb:button{text = "Exp", width = 48, pressed = function() PakettiPhraseValueProcessorInterpolate("exponential", current_mask(), vb.views.paketti_phrase_value_selection.value) end}
     },
     vb:row{
-      spacing = 4,
-      vb:checkbox{id = "paketti_phrase_value_selection", value = true},
-      vb:text{text = "Selection only", width = 120}
+      spacing = 8,
+      vb:row{spacing = 4, vb:checkbox{id = "paketti_phrase_value_selection", value = true}, vb:text{text = "Selection only", width = 100}},
+      vb:row{spacing = 4, vb:checkbox{id = "paketti_phrase_value_safe", value = false}, vb:text{text = "Safe mode", width = 80}}
+    },
+    vb:column{
+      style = "group", margin = 6, spacing = 4, width = "100%",
+      vb:text{text = "Timing", font = "bold"},
+      vb:row{
+        spacing = 6,
+        vb:button{text = "Flip", width = 70, tooltip = "Reverse note timing around the region center", pressed = function() PakettiPhraseValueProcessorFlip(use_selection(), safe_mode()) end},
+        vb:button{text = "Shrink", width = 70, tooltip = "Halve note distances from region start", pressed = function() PakettiPhraseValueProcessorShrink(use_selection(), safe_mode()) end},
+        vb:button{text = "Expand", width = 70, tooltip = "Double note distances from region start", pressed = function() PakettiPhraseValueProcessorExpand(use_selection(), safe_mode()) end}
+      },
+      vb:row{
+        spacing = 6,
+        vb:text{text = "Quantize", width = 60},
+        vb:valuebox{id = "paketti_phrase_value_quantize", min = 0, max = 256, value = 256, width = 58, tooltip = "Grid pull strength (00=none, 100=full)", tostring = function(v) return string.format("%d%%", math.floor(v / 256 * 100 + 0.5)) end, tonumber = function(s) return math.floor((tonumber((s:gsub("%%",""))) or 0) / 100 * 256 + 0.5) end},
+        vb:checkbox{id = "paketti_phrase_value_preserve", value = true},
+        vb:text{text = "Preserve Lengths", width = 110},
+        vb:button{text = "Apply", width = 60, pressed = function() PakettiPhraseValueProcessorQuantize(vb.views.paketti_phrase_value_quantize.value, vb.views.paketti_phrase_value_preserve.value, use_selection(), safe_mode()) end}
+      }
+    },
+    vb:column{
+      style = "group", margin = 6, spacing = 4, width = "100%",
+      vb:text{text = "Pitch", font = "bold"},
+      vb:row{
+        spacing = 6,
+        vb:text{text = "Mirror around", width = 90},
+        vb:valuebox{id = "paketti_phrase_value_center", min = 0, max = 119, value = 60, width = 58, tostring = function(v) return PakettiPhraseEditorNoteValueToString(v) end, tonumber = function(s) return note_name_to_value(s) end},
+        vb:button{text = "Mirror", width = 70, tooltip = "Invert note pitch around the center note", pressed = function() PakettiPhraseValueProcessorMirror(vb.views.paketti_phrase_value_center.value, use_selection(), safe_mode()) end}
+      }
+    },
+    vb:column{
+      style = "group", margin = 6, spacing = 4, width = "100%",
+      vb:text{text = "Region Clipboard (mask-aware)", font = "bold"},
+      vb:row{
+        spacing = 6,
+        vb:button{text = "Cut", width = 70, tooltip = "Copy region, then clear masked fields", pressed = function() PakettiPhraseValueProcessorCopy(true, current_mask(), use_selection()) end},
+        vb:button{text = "Copy", width = 70, pressed = function() PakettiPhraseValueProcessorCopy(false, current_mask(), use_selection()) end},
+        vb:button{text = "Paste", width = 70, tooltip = "Write masked fields from the region clipboard", pressed = function() PakettiPhraseValueProcessorPaste(current_mask(), use_selection()) end}
+      }
     },
     vb:row{
       spacing = 8,
@@ -3529,3 +3934,30 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Phrase Value Processor Dia
 
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Phrases:Paketti Phrase Value Processor Dialog...", invoke=function() PakettiPhraseValueProcessorDialogShow() end}
 PakettiAddMenuEntry{name="Phrase Editor:Paketti:Paketti Phrase Value Processor Dialog...", invoke=function() PakettiPhraseValueProcessorDialogShow() end}
+
+-- Standalone triggers for the Phrase Value Processor transforms.
+-- Full-mask, selection-first defaults; open the dialog for center/strength/mask control.
+local function PakettiPhraseValueProcessorFullMask()
+  local mask = {}
+  for _, field in ipairs(PakettiPhraseValueProcessorFields) do mask[field.id] = true end
+  return mask
+end
+local function PakettiPhraseValueProcessorSelectionFirst()
+  local song = renoise.song()
+  return song ~= nil and song.selection_in_phrase ~= nil
+end
+
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Value Processor Flip Notes",invoke=function() PakettiPhraseValueProcessorFlip(PakettiPhraseValueProcessorSelectionFirst(), false) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Value Processor Shrink Notes",invoke=function() PakettiPhraseValueProcessorShrink(PakettiPhraseValueProcessorSelectionFirst(), false) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Value Processor Expand Notes",invoke=function() PakettiPhraseValueProcessorExpand(PakettiPhraseValueProcessorSelectionFirst(), false) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Value Processor Mirror Notes",invoke=function() PakettiPhraseValueProcessorMirror(60, PakettiPhraseValueProcessorSelectionFirst(), false) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Value Processor Quantize Notes",invoke=function() PakettiPhraseValueProcessorQuantize(256, true, PakettiPhraseValueProcessorSelectionFirst(), false) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Value Processor Cut Region",invoke=function() PakettiPhraseValueProcessorCopy(true, PakettiPhraseValueProcessorFullMask(), PakettiPhraseValueProcessorSelectionFirst()) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Value Processor Copy Region",invoke=function() PakettiPhraseValueProcessorCopy(false, PakettiPhraseValueProcessorFullMask(), PakettiPhraseValueProcessorSelectionFirst()) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Value Processor Paste Region",invoke=function() PakettiPhraseValueProcessorPaste(PakettiPhraseValueProcessorFullMask(), PakettiPhraseValueProcessorSelectionFirst()) end}
+
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Phrases:Phrase Value Processor Flip Notes", invoke=function() PakettiPhraseValueProcessorFlip(PakettiPhraseValueProcessorSelectionFirst(), false) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Phrases:Phrase Value Processor Shrink Notes", invoke=function() PakettiPhraseValueProcessorShrink(PakettiPhraseValueProcessorSelectionFirst(), false) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Phrases:Phrase Value Processor Expand Notes", invoke=function() PakettiPhraseValueProcessorExpand(PakettiPhraseValueProcessorSelectionFirst(), false) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Phrases:Phrase Value Processor Mirror Notes", invoke=function() PakettiPhraseValueProcessorMirror(60, PakettiPhraseValueProcessorSelectionFirst(), false) end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Phrases:Phrase Value Processor Quantize Notes", invoke=function() PakettiPhraseValueProcessorQuantize(256, true, PakettiPhraseValueProcessorSelectionFirst(), false) end}

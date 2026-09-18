@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**28 card conversations** plugged in:
+**29 card conversations** plugged in:
 
 ### `53b19b22-eb03-4403-baf6-29d78603187b`  (2026-08-18 → 2026-08-25)
 - Resume: `claude --resume 53b19b22-eb03-4403-baf6-29d78603187b`
@@ -147,8 +147,14 @@
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (2): TEMPLATE.feature, song-lifecycle-safety.feature
 
-### `4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`  (2026-09-17)
+### `4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`  (2026-09-17 → 2026-09-18)
 - Resume: `claude --resume 4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/4e43b9eb-84a0-4c2c-b97f-a6e24189f16d.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (3): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, song-lifecycle-safety.feature
+
+### `ef275634-1c66-4f6d-b15c-50d016222d15`  (2026-09-18)
+- Resume: `claude --resume ef275634-1c66-4f6d-b15c-50d016222d15`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/ef275634-1c66-4f6d-b15c-50d016222d15.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (2): TEMPLATE.feature, song-lifecycle-safety.feature

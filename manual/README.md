@@ -1286,6 +1286,20 @@ there's a method of creating 16 new tracks with 16 midi input channels and 16 mi
 This allows you to set your Phrase Preferences - i.e., when you use the Paketti -specific shortcut for creating or modifying current Phrase, the settings will be added.
 
 ![](attachments/phrase_settings_dialog.png)
+
+### Phrase Value Processor
+
+An Advanced-Edit style panel for the currently selected phrase, reached from `Main Menu:Tools:Paketti:Phrases:Paketti Phrase Value Processor Dialog...` (also on `Phrase Editor:Paketti:Paketti Phrase Value Processor Dialog...` and the keybinding `Global:Paketti:Paketti Phrase Value Processor Dialog...`). It works on either the selection in the phrase or the whole phrase (the "Selection only" toggle), and a Content Mask decides which note/effect columns each operation touches.
+
+- **Modify** — Set, Add, Sub, Mul, Div, Humanize, Expand, Compress the masked values, with a hex amount box.
+- **Interpolate** — Linear, Logarithmic, Exponential across the masked columns.
+- **Timing** (delay-aware) — **Flip** reverses note timing around the region centre; **Shrink** halves and **Expand** doubles each note's distance from the region start (phrase length stays fixed; notes pushed past the end are dropped and reported); **Quantize** pulls notes toward the nearest line with an adjustable strength (0-100%) and an optional **Preserve Lengths** so note-offs stay put and durations don't shift.
+- **Pitch** — **Mirror** inverts note pitch around a chosen centre note (default C-5).
+- **Region Clipboard** — **Cut / Copy / Paste** a rectangular block of note and effect columns, written back through the Content Mask (e.g. copy a block and paste only its volume).
+- **Safe mode** — aborts any Mirror/Flip/Shrink/Expand/Quantize move that would push notes out of range, instead of clamping or dropping them.
+
+Standalone menu entries and keybindings exist for Flip, Shrink, Expand, Mirror and Quantize (e.g. `Phrase Editor:Paketti:Phrase Value Processor Flip Notes`) plus Cut/Copy/Paste Region, using full-mask, selection-first defaults; open the dialog when you need to set the mirror centre, quantize strength or a partial mask.
+
 ### eSpeak Text-to-Speech speechsynthesizer
 
 This uses `espeak-ng` for creating spoken word samples using text-to-speech synthesis.
