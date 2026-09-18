@@ -8,6 +8,10 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-18 - Improvement: Transient Navigation - Next/Previous wrap around
+
+Next Transient now wraps from the last transient back to the first (and Previous wraps from the first round to the last) instead of stopping with "already at the last/first transient". Applies to all navigation modes (Zoom to Onset, In Full, Point Cursor).
+
 ### 2026-09-18 - Fix: Transient Navigation - crash on the last transient, and navigation from no selection
 
 Two fixes to Transient Navigation. (1) Next/Previous no longer report "already at the last/first transient" when you haven't made a selection: with no selection Renoise reports the selection as the whole sample, which was read as being at both ends at once - a whole-sample selection is now treated as "no cursor yet". (2) Zooming to the last transient no longer crashes with "invalid display_start index": the valid maximum for display_start is number_of_frames - display_length (not +1), and the zoom is now clamped correctly and wrapped so a display quirk can never abort navigation.

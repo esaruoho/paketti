@@ -329,8 +329,8 @@ function PakettiTransientNextRegion()
   local B = tn_boundaries(sample)
   if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
   local ref = tn_selection_is_whole(buffer) and 0 or buffer.selection_start
-  local k = tn_current_chunk_index(B, ref)
-  k = math.min(k + 1, #B - 1)
+  local k = tn_current_chunk_index(B, ref) + 1
+  if k > #B - 1 then k = 1 end   -- wrap past the last region back to the first
   tn_show_region(buffer, B[k], B[k + 1])
   renoise.app():show_status(string.format("Transient Nav: region %d/%d  frames %d..%d (%d)",
     k, #B - 1, B[k], B[k + 1], B[k + 1] - B[k] + 1))
@@ -343,8 +343,8 @@ function PakettiTransientPreviousRegion()
   local B = tn_boundaries(sample)
   if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
   local ref = tn_selection_is_whole(buffer) and (buffer.number_of_frames + 1) or buffer.selection_start
-  local k = tn_current_chunk_index(B, ref)
-  k = math.max(k - 1, 1)
+  local k = tn_current_chunk_index(B, ref) - 1
+  if k < 1 then k = #B - 1 end   -- wrap before the first region round to the last
   tn_show_region(buffer, B[k], B[k + 1])
   renoise.app():show_status(string.format("Transient Nav: region %d/%d  frames %d..%d (%d)",
     k, #B - 1, B[k], B[k + 1], B[k + 1] - B[k] + 1))
@@ -358,30 +358,30 @@ function PakettiTransientNextOnset()
   local sample = tn_current_sample(); if not sample then return end
   if not tn_ensure_positions(sample, PakettiTransientNextOnset) then return end
   local buffer = sample.sample_buffer
-  local B = tn_boundaries(sample)
-  if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
+  local positions = tn_cached_positions
+  if #positions == 0 then renoise.app():show_status("Transient Nav: no transients detected."); return end
   local ref = tn_ref_next(buffer)
-  local ti = nil
-  for i = 1, #B do if B[i] > ref then ti = i break end end
-  if not ti then renoise.app():show_status("Transient Nav: already at the last transient."); return end
-  local region_end = B[ti + 1] or buffer.number_of_frames
-  tn_show_onset(buffer, B[ti], region_end)
-  renoise.app():show_status(string.format("Transient Nav: onset at frame %d (zoomed)", B[ti]))
+  local j = nil
+  for i = 1, #positions do if positions[i] > ref then j = i break end end
+  if not j then j = 1 end   -- wrap past the last transient back to the first
+  local region_end = positions[j + 1] or buffer.number_of_frames
+  tn_show_onset(buffer, positions[j], region_end)
+  renoise.app():show_status(string.format("Transient Nav: onset %d/%d at frame %d (zoomed)", j, #positions, positions[j]))
 end
 
 function PakettiTransientPreviousOnset()
   local sample = tn_current_sample(); if not sample then return end
   if not tn_ensure_positions(sample, PakettiTransientPreviousOnset) then return end
   local buffer = sample.sample_buffer
-  local B = tn_boundaries(sample)
-  if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
+  local positions = tn_cached_positions
+  if #positions == 0 then renoise.app():show_status("Transient Nav: no transients detected."); return end
   local ref = tn_ref_prev(buffer)
-  local ti = nil
-  for i = #B, 1, -1 do if B[i] < ref then ti = i break end end
-  if not ti then renoise.app():show_status("Transient Nav: already at the first transient."); return end
-  local region_end = B[ti + 1] or buffer.number_of_frames
-  tn_show_onset(buffer, B[ti], region_end)
-  renoise.app():show_status(string.format("Transient Nav: onset at frame %d (zoomed)", B[ti]))
+  local j = nil
+  for i = #positions, 1, -1 do if positions[i] < ref then j = i break end end
+  if not j then j = #positions end   -- wrap before the first transient round to the last
+  local region_end = positions[j + 1] or buffer.number_of_frames
+  tn_show_onset(buffer, positions[j], region_end)
+  renoise.app():show_status(string.format("Transient Nav: onset %d/%d at frame %d (zoomed)", j, #positions, positions[j]))
 end
 
 --------------------------------------------------------------------------------
@@ -397,7 +397,7 @@ function PakettiTransientNextPoint()
   local ref = tn_ref_next(buffer)
   local target = nil
   for _, p in ipairs(positions) do if p > ref then target = p break end end
-  if not target then renoise.app():show_status("Transient Nav: already at the last transient."); return end
+  if not target then target = positions[1] end   -- wrap past the last back to the first
   tn_show_point(buffer, target)
   renoise.app():show_status(string.format("Transient Nav: cursor at frame %d", target))
 end
@@ -411,7 +411,7 @@ function PakettiTransientPreviousPoint()
   local ref = tn_ref_prev(buffer)
   local target = nil
   for i = #positions, 1, -1 do if positions[i] < ref then target = positions[i] break end end
-  if not target then renoise.app():show_status("Transient Nav: already at the first transient."); return end
+  if not target then target = positions[#positions] end   -- wrap before the first round to the last
   tn_show_point(buffer, target)
   renoise.app():show_status(string.format("Transient Nav: cursor at frame %d", target))
 end
