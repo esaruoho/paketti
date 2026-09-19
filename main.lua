@@ -1427,6 +1427,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiFill")
   timed_require("PakettiLoaders")
   timed_require("PakettiPatternEditor")
+  timed_require("PakettiPatternNoteTransforms")
   timed_require("PakettiTkna")
   timed_require("PakettiSamples")
   timed_require("PakettiStemLoader")

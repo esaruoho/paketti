@@ -2569,6 +2569,126 @@ renoise.tool():add_midi_mapping{name="Paketti:Dynamic Scale Automation",
 
 ---
 
+--------------------------------------------------------------------------
+-- Paketti Automation - point-TIME transforms (ported from the note transforms).
+-- Value-axis transforms already exist above: Flip Vertical (mirror values),
+-- Scale 50/90/110/200% (scale values), Flip Horizontal (reverse time). These add
+-- the missing time-axis moves: Quantize snaps point times to the line grid, and
+-- Shrink/Expand scale point times around the selection start. Automation points
+-- live on integer lines, so results round to the nearest line.
+--------------------------------------------------------------------------
+
+local function PakettiAutomationGetSelectedEnvelope()
+  local song = renoise.song()
+  local automation_parameter = song.selected_automation_parameter
+  if not automation_parameter or not automation_parameter.is_automatable then
+    renoise.app():show_status("Please select an automatable parameter.")
+    return nil
+  end
+  local track_automation = song:pattern(song.selected_pattern_index):track(song.selected_track_index)
+  local envelope = track_automation:find_automation(automation_parameter)
+  if not envelope then
+    renoise.app():show_status("No automation envelope exists for the selected parameter.")
+    return nil
+  end
+  return envelope
+end
+
+local function PakettiAutomationGetRange(envelope)
+  local selection = envelope.selection_range
+  if selection then return selection[1], selection[2] end
+  local song = renoise.song()
+  return 1, song.patterns[song.selected_pattern_index].number_of_lines
+end
+
+local function PakettiAutomationCollectPoints(envelope, start_line, end_line)
+  local points = {}
+  for _, point in ipairs(envelope.points) do
+    if point.time >= start_line and point.time <= end_line then
+      points[#points + 1] = {time = point.time, value = point.value, scaling = point.scaling}
+    end
+  end
+  table.sort(points, function(a, b) return a.time < b.time end)
+  return points
+end
+
+local function PakettiAutomationAddPoint(envelope, time, value, scaling)
+  value = math.max(0.0, math.min(1.0, value))
+  local ok = pcall(function() envelope:add_point_at(time, value, scaling or 0.0) end)
+  if not ok then envelope:add_point_at(time, value) end
+end
+
+function PakettiAutomationQuantizeSelection(grid_lines)
+  local envelope = PakettiAutomationGetSelectedEnvelope()
+  if not envelope then return end
+  grid_lines = math.max(1, math.floor((grid_lines or 1) + 0.5))
+  local song = renoise.song()
+  local start_line, end_line = PakettiAutomationGetRange(envelope)
+  if start_line >= end_line then renoise.app():show_status("Invalid selection range.") return end
+
+  local points = PakettiAutomationCollectPoints(envelope, start_line, end_line)
+  if #points == 0 then renoise.app():show_status("No automation points in range.") return end
+
+  song:describe_undo("Paketti: Quantize Automation Times")
+  -- clear_range is end-exclusive, so +1 to clear the point sitting on end_line too
+  envelope:clear_range(start_line, math.min(end_line + 1, song.patterns[song.selected_pattern_index].number_of_lines + 1))
+  local seen, written = {}, 0
+  for _, point in ipairs(points) do
+    local snapped = start_line + math.floor((point.time - start_line) / grid_lines + 0.5) * grid_lines
+    snapped = math.max(start_line, math.min(end_line, snapped))
+    if not seen[snapped] then seen[snapped] = true written = written + 1 end
+    PakettiAutomationAddPoint(envelope, snapped, point.value, point.scaling)
+  end
+  renoise.app():show_status(string.format("Paketti: Quantized automation to every %d line(s) - %d point(s)", grid_lines, written))
+end
+
+local function PakettiAutomationTimeScale(factor, label)
+  local envelope = PakettiAutomationGetSelectedEnvelope()
+  if not envelope then return end
+  local song = renoise.song()
+  local start_line, end_line = PakettiAutomationGetRange(envelope)
+  if start_line >= end_line then renoise.app():show_status("Invalid selection range.") return end
+
+  local points = PakettiAutomationCollectPoints(envelope, start_line, end_line)
+  if #points == 0 then renoise.app():show_status("No automation points in range.") return end
+
+  song:describe_undo("Paketti: " .. label .. " Automation Time")
+  -- clear_range is end-exclusive, so +1 to clear the point sitting on end_line too
+  envelope:clear_range(start_line, math.min(end_line + 1, song.patterns[song.selected_pattern_index].number_of_lines + 1))
+  local seen, written, dropped = {}, 0, 0
+  for _, point in ipairs(points) do
+    local new_time = math.floor(start_line + (point.time - start_line) * factor + 0.5)
+    if new_time >= start_line and new_time <= end_line then
+      if not seen[new_time] then seen[new_time] = true written = written + 1 end
+      PakettiAutomationAddPoint(envelope, new_time, point.value, point.scaling)
+    else
+      dropped = dropped + 1
+    end
+  end
+  renoise.app():show_status(string.format("Paketti: %s automation time - %d point(s)%s", label, written,
+    dropped > 0 and string.format(", dropped %d out of range", dropped) or ""))
+end
+
+function PakettiAutomationShrinkTime() PakettiAutomationTimeScale(0.5, "Shrink") end
+function PakettiAutomationExpandTime() PakettiAutomationTimeScale(2.0, "Expand") end
+
+renoise.tool():add_keybinding{name="Track Automation:Paketti:Quantize Automation Times to Grid",invoke=function() PakettiAutomationQuantizeSelection(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Quantize Automation Times to Grid",invoke=function() PakettiAutomationQuantizeSelection(1) end}
+renoise.tool():add_keybinding{name="Track Automation:Paketti:Shrink Automation Time (Halve)",invoke=function() PakettiAutomationShrinkTime() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Shrink Automation Time (Halve)",invoke=function() PakettiAutomationShrinkTime() end}
+renoise.tool():add_keybinding{name="Track Automation:Paketti:Expand Automation Time (Double)",invoke=function() PakettiAutomationExpandTime() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Expand Automation Time (Double)",invoke=function() PakettiAutomationExpandTime() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Quantize Automation Times to Grid",invoke=function(message) if message:is_trigger() then PakettiAutomationQuantizeSelection(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Automation Time (Halve)",invoke=function(message) if message:is_trigger() then PakettiAutomationShrinkTime() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Expand Automation Time (Double)",invoke=function(message) if message:is_trigger() then PakettiAutomationExpandTime() end end}
+
+PakettiAddMenuEntry{name="Track Automation:Paketti:Quantize Automation Times to Grid",invoke=function() PakettiAutomationQuantizeSelection(1) end}
+PakettiAddMenuEntry{name="Track Automation:Paketti:Shrink Automation Time (Halve)",invoke=function() PakettiAutomationShrinkTime() end}
+PakettiAddMenuEntry{name="Track Automation:Paketti:Expand Automation Time (Double)",invoke=function() PakettiAutomationExpandTime() end}
+
+---
+
 function FlipAutomationVertical()
   local song=renoise.song()
   song:describe_undo("Paketti: Flip Automation Vertical")

@@ -1327,6 +1327,12 @@ And midimapping for select start and end of automation and also mapping for chan
 And also flood fill of selection in automation parameter to end of pattern
 And a shortcut for cycling through all automation parameters that have been defined by user (written to)
 
+There are also value-axis transforms (Flip Automation Horizontally/Vertically, Scale Automation to 50/90/110/200%) and, on the time axis, **Quantize Automation Times to Grid** (snap each point to the nearest line), **Shrink Automation Time (Halve)** and **Expand Automation Time (Double)** (scale point times around the selection start). These work on the automation selection range, or the whole pattern if nothing is selected, and are on `Track Automation:Paketti:` menu entries plus `Global:Paketti:` keybindings and MIDI mappings.
+
+### Pattern Note Transforms
+
+The note transforms from the Phrase Value Processor are also available directly on the Pattern Editor selection, across multiple tracks and note columns, from `Main Menu:Tools:Paketti:Pattern Editor:Pattern Note Transforms Dialog...` (also `Pattern Editor:Paketti:Pattern Note Transforms Dialog...`). **Mirror** inverts note pitch around a centre note; **Flip** reverses note-event timing around the selection centre (delay-aware); **Quantize** pulls notes toward the nearest line with an adjustable strength and an optional Preserve Lengths. **Safe mode** aborts any move that would push a note out of range instead of clamping or dropping it. Standalone entries exist too: `Pattern Editor:Paketti:Pattern Mirror Notes in Selection`, `...Pattern Flip Notes in Selection`, `...Pattern Quantize Notes in Selection` (with matching MIDI mappings).
+
 ### 0G01 Loader
 
 This uses the `G01` (Glide to note) trick to allow for playing really long samples, even if the pattern would be shorter than the length of the sample. The sample will play until the end, and then replay again at the start of the next replay. This means you can have a 4 second drumloop but play 20 minutes of pads on top of it.
