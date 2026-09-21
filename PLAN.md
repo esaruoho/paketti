@@ -172,7 +172,17 @@ links: [fileformats]
   by: claude
   from: agent
 
+## Control every track's GlobalGainer {#globalgainer-dialog}
+tech: PakettiRequests.lua shared GlobalGainer setter, compact ViewBuilder slider and chain-placement selector
+files: [PakettiRequests.lua, PakettiMenuConfig.lua, manual/CHANGESLOG.md]
+
+- [x] Control all GlobalGainers from a dialog slider {#globalgainer-dialog-slider}
+  by: copilot
+  from: agent
+
 ## decisions
+
+- The GlobalGainer dialog will use the same value setter as the existing MIDI mappings, with an explicit start/end-chain selector so missing gainers are created consistently.
 
 - Ableton FileRef is resolved through RelativePathType, not the absolute Path: 1 means
   relative to the preset file, 5 a Live Pack, 6 the User Library, 7 Live's own resources,

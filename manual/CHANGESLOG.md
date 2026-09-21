@@ -8,6 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-21 - Feature: GlobalGainer control dialog
+
+**Control every track's `GlobalGainer` from one slider.** The dialog reads the current GlobalGainer value without changing the song on open; moving its 0.00-4.00 gain slider creates any missing GlobalGainers and writes the chosen value to every sequencer track. Its placement selector determines whether newly created gainers go at the start or end of a device chain. MIDI knob mappings and the dialog share one setter, so they always apply the same gain and creation behavior.
+- Menu: `Mixer:Paketti:GlobalGainer Dialog...`
+- Keybinding: `Global:Paketti:Open GlobalGainer Dialog...`
+- MIDI Mappings: `Paketti:Open GlobalGainer Dialog...`, `Paketti:GlobalGainer Knob Control (start chain)`, `Paketti:GlobalGainer Knob Control (end chain)`
+
 ### 2026-09-19 - Feature: Automation - Quantize / Shrink / Expand point times (time-axis transforms)
 
 **The automation tools already flip and scale values; these add the missing time axis.** Working on the selected automation envelope (the selection range, or the whole pattern if nothing is selected): **Quantize Automation Times to Grid** snaps every point's time to the nearest line; **Shrink Automation Time (Halve)** and **Expand Automation Time (Double)** scale point times around the selection start, so a shape plays back twice as fast or twice as slow. Automation points live on integer lines, so results round to the nearest line; on Expand, points pushed past the selection end are dropped and reported. Per-point curve scaling is preserved. (Complements the existing Flip Horizontal/Vertical and Scale 50/90/110/200%.)

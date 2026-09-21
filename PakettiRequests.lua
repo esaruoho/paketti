@@ -9354,30 +9354,127 @@ function PopulateGainersOnEachTrack(placement)
   end
 end
 
-function map_knob_to_gainer(knob_value, placement)
+local function find_global_gainer_value()
   local song=renoise.song()
-  
-  PopulateGainersOnEachTrack(placement)
-  
-  local scaled_value = (knob_value / 127) * 4
-  
   for i = 1, song.sequencer_track_count do
     local track = song:track(i)
-    
     for j = 2, #track.devices do
       local device = track.devices[j]
       if device.display_name == "GlobalGainer" then
-        device.parameters[1].value = scaled_value
+        return device.parameters[1].value
+      end
+    end
+  end
+  return 1
+end
+
+local function set_global_gainer_value(value, placement)
+  local song=renoise.song()
+  local clamped_value = math.max(0, math.min(4, value))
+  local updated_count = 0
+
+  PopulateGainersOnEachTrack(placement)
+
+  for i = 1, song.sequencer_track_count do
+    local track = song:track(i)
+    for j = 2, #track.devices do
+      local device = track.devices[j]
+      if device.display_name == "GlobalGainer" then
+        device.parameters[1].value = clamped_value
+        updated_count = updated_count + 1
         break
       end
     end
   end
+  return clamped_value, updated_count
+end
+
+function map_knob_to_gainer(knob_value, placement)
+  set_global_gainer_value((knob_value / 127) * 4, placement)
+end
+
+local global_gainer_dialog = nil
+
+function pakettiGlobalGainerDialog()
+  if global_gainer_dialog and global_gainer_dialog.visible then
+    global_gainer_dialog:close()
+    global_gainer_dialog = nil
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local placement = "start"
+  local initial_value = find_global_gainer_value()
+  local value_display = vb:text{
+    text = string.format("%.2f", initial_value),
+    width = 55,
+    style = "strong"
+  }
+
+  local function apply_value(value)
+    local applied_value, updated_count = set_global_gainer_value(value, placement)
+    value_display.text = string.format("%.2f", applied_value)
+    renoise.app():show_status(
+      string.format("GlobalGainer set to %.2f on %d tracks", applied_value, updated_count)
+    )
+  end
+
+  local content = vb:column{
+    margin = 10,
+    spacing = 6,
+    vb:text{text = "Set every track's GlobalGainer gain."},
+    vb:row{
+      vb:text{text = "Missing gainer placement:", width = 160},
+      vb:popup{
+        items = {"Start of device chain", "End of device chain"},
+        value = 1,
+        notifier = function(value)
+          placement = value == 1 and "start" or "end"
+        end
+      }
+    },
+    vb:row{
+      vb:text{text = "Gain:", width = 160},
+      vb:slider{
+        min = 0,
+        max = 4,
+        value = initial_value,
+        width = 240,
+        notifier = apply_value
+      },
+      value_display
+    },
+    vb:button{
+      text = "Close",
+      notifier = function()
+        if global_gainer_dialog and global_gainer_dialog.visible then
+          global_gainer_dialog:close()
+          global_gainer_dialog = nil
+        end
+      end
+    }
+  }
+
+  global_gainer_dialog = renoise.app():show_custom_dialog(
+    "Paketti GlobalGainer",
+    content,
+    function(dialog, key)
+      if key.name == "esc" then
+        dialog:close()
+        global_gainer_dialog = nil
+        return nil
+      end
+      return key
+    end
+  )
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Populate GlobalGainers on Each Track (start chain)",invoke=function() PopulateGainersOnEachTrack("start") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Populate GlobalGainers on Each Track (end chain)",invoke=function() PopulateGainersOnEachTrack("end") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Open GlobalGainer Dialog...",invoke=pakettiGlobalGainerDialog}
 renoise.tool():add_midi_mapping{name="Paketti:GlobalGainer Knob Control (start chain)",invoke=function(midi_message) map_knob_to_gainer(midi_message.int_value, "start") end}
 renoise.tool():add_midi_mapping{name="Paketti:GlobalGainer Knob Control (end chain)",invoke=function(midi_message) map_knob_to_gainer(midi_message.int_value, "end") end}
+renoise.tool():add_midi_mapping{name="Paketti:Open GlobalGainer Dialog...",invoke=function(message) if message:is_trigger() then pakettiGlobalGainerDialog() end end}
 --------
 function AddGainerCrossfadeSelectedTrack(name)
   local song=renoise.song()
