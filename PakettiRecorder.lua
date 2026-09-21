@@ -155,6 +155,8 @@ local monitor_has_printed = nil
 local record_use_metronome = false
 local record_use_lineinput = false
 local record_max_columns = 12  -- default to 12 columns if not specified
+local record_skip_row1_note = false
+local record_pattern_sync_mode = true
 
 -- Pattern-sync state for the current Overdub session (Renoise 3.5+ only).
 -- record_used_sync   : did THIS take actually record with pattern sync on?
@@ -278,22 +280,27 @@ function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
     record_used_sync = false
     record_prev_sync = pakettiSampleRecordingSyncGet()   -- nil on pre-3.5
 
-    -- ALWAYS on. Overdub records into a pattern, so the take must be quantized
-    -- to that pattern — there is no sensible Overdub that isn't sync'd. This is
-    -- deliberately not a preference and not a separate command variant.
-    if pakettiSampleRecordingSyncSet(true) then
-      record_used_sync = true
-      print("  Pattern Sync: ON")
-      -- Pattern sync only quantizes against a running transport.
-      if not t.playing then
-        t:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
-        print("  Started playback (Pattern Sync requires playback)")
+    if record_pattern_sync_mode == true then
+      if pakettiSampleRecordingSyncSet(true) then
+        record_used_sync = true
+        print("  Pattern Sync: ON")
+        -- Pattern sync only quantizes against a running transport.
+        if not t.playing then
+          t:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
+          print("  Started playback (Pattern Sync requires playback)")
+        end
+      else
+        -- Pre-3.5 only: no sync property exists, so we record unsynced and the
+        -- manual tail trim in finalrecord() stays in play, exactly as before.
+        print("  Pattern Sync unavailable on this Renoise (needs 3.5+) — recording unsynced.")
+        renoise.app():show_status("Overdub: Pattern Sync needs Renoise 3.5+ — recording unsynced.")
       end
-    else
-      -- Pre-3.5 only: no sync property exists, so we record unsynced and the
-      -- manual tail trim in finalrecord() stays in play, exactly as before.
-      print("  Pattern Sync unavailable on this Renoise (needs 3.5+) — recording unsynced.")
-      renoise.app():show_status("Overdub: Pattern Sync needs Renoise 3.5+ — recording unsynced.")
+    elseif record_pattern_sync_mode == false then
+      if pakettiSampleRecordingSyncSet(false) then
+        print("  Pattern Sync: OFF")
+      else
+        print("  Pattern Sync unavailable on this Renoise (needs 3.5+) — recording unsynced.")
+      end
     end
 
     -- 7) Start Renoise's sample recording
@@ -322,6 +329,41 @@ function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
       print("  No recording_instrument set; unexpected scenario.")
     end
   end
+end
+
+-- REPORT-CARD >> features/pedal-record.feature
+function PakettiRecordToCurrentTrackIsRecording()
+  return am_i_recording
+end
+
+function PakettiRecordToCurrentTrackSkipDefaultRow1Note(skip_note)
+  record_skip_row1_note = (skip_note == true)
+end
+
+function PakettiRecordToCurrentTrackPatternSyncMode(sync_mode)
+  record_pattern_sync_mode = sync_mode
+end
+
+function PakettiRecordToCurrentTrackStart(use_metronome, use_lineinput, max_columns)
+  if am_i_recording then
+    return false
+  end
+
+  recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
+  if not am_i_recording then
+    record_skip_row1_note = false
+    record_pattern_sync_mode = true
+  end
+  return am_i_recording
+end
+
+function PakettiRecordToCurrentTrackStop()
+  if not am_i_recording then
+    return false
+  end
+
+  recordtocurrenttrack(record_use_metronome, record_use_lineinput, record_max_columns)
+  return true
 end
 
 
@@ -536,7 +578,7 @@ function finalrecord()
   end
 
   -- If target_column > record_max_columns => row1 is "full"
-  if target_column > record_max_columns then
+  if target_column > record_max_columns and not record_skip_row1_note then
     local new_track_index = curr_track_idx + 1
     if new_track_index > (#s.tracks + 1) then
       new_track_index = #s.tracks + 1
@@ -587,12 +629,17 @@ function finalrecord()
         ))
 
   else
-    -- Not full => place note in the old track at target_column
-    s.tracks[curr_track_idx].visible_note_columns = target_column
-    line1.note_columns[target_column].note_string      = "C-4"
-    line1.note_columns[target_column].instrument_value = right_instrument_value
-    line1.effect_columns[1].number_string             = "0G"
-    line1.effect_columns[1].amount_string             = "01"
+    -- Not full => place note in the old track at target_column, unless a caller
+    -- has already written the trigger row itself.
+    if record_skip_row1_note then
+      print("  Skipped final row1 C-4 placement; caller already wrote the trigger row.")
+    else
+      s.tracks[curr_track_idx].visible_note_columns = target_column
+      line1.note_columns[target_column].note_string      = "C-4"
+      line1.note_columns[target_column].instrument_value = right_instrument_value
+      line1.effect_columns[1].number_string             = "0G"
+      line1.effect_columns[1].amount_string             = "01"
+    end
 
     ----------------------------------------------------------------------------
     -- Measure first, THEN trim only if there is actually extra on the tail.
@@ -699,14 +746,19 @@ function finalrecord()
       ("Overdub%02d PTN:%d BPM:%d LPB:%d"):format(col_count, pat_length, current_bpm, current_lpb)
     s.instruments[s.selected_instrument_index].name = new_instr_name
 
-    print(("  Placed C-4 (instrument %d) in col %d of old track's row1. " ..
-           "Renamed track to '%s', instrument to '%s'."):
-      format(
-        right_instrument_value,
-        target_column,
-        s.tracks[curr_track_idx].name,
-        new_instr_name
-      ))
+    if record_skip_row1_note then
+      print(("  Row1 placement suppressed. Renamed track to '%s', instrument to '%s'."):
+        format(s.tracks[curr_track_idx].name, new_instr_name))
+    else
+      print(("  Placed C-4 (instrument %d) in col %d of old track's row1. " ..
+             "Renamed track to '%s', instrument to '%s'."):
+        format(
+          right_instrument_value,
+          target_column,
+          s.tracks[curr_track_idx].name,
+          new_instr_name
+        ))
+    end
   end
 
   -- E) Cleanup
@@ -745,6 +797,8 @@ function cleanupMonitorAndVars()
   record_use_metronome = false
   record_use_lineinput = false
   record_max_columns   = 12
+  record_skip_row1_note = false
+  record_pattern_sync_mode = true
   record_used_sync     = false
   record_prev_sync     = nil
 end

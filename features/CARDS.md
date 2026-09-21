@@ -26,6 +26,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
 - [Pattern and song row jumps](#pattern-song-jumps) — `pattern-song-jumps.feature`
 - [Pattern transform shortcuts](#pattern-transform-shortcuts) — `pattern-transform-shortcuts.feature`
+- [Pedal Record](#pedal-record) — `pedal-record.feature`
 - [Quick edit navigation commands](#quick-edit-navigation) — `quick-edit-navigation.feature`
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
 - [Sample slice selection range](#sample-slice-selection) — `sample-slice-selection.feature`
@@ -448,6 +449,29 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `interpolate_current_subcolumn_exponential`, `PakettiExpandPatternLPB1ToLPB4`, `PakettiTransposeNotesInSelectionOrRow` · **Source files:** `PakettiRequests.lua`, `PakettiMenuConfig.lua`, `PakettiPatternEditor.lua`, `PakettiMidi.lua`
 
 **Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3
+
+
+<a id="pedal-record"></a>
+## Pedal Record
+
+`features/pedal-record.feature` · [session](pedal-record.session.md)
+
+**What it does:** As a Paketti user with a sustain-style MIDI pedal, I want Record to Current Track to run only while the pedal is fully down, So that releasing the pedal reliably stops the recording.
+
+**Behaviour (8 scenarios):**
+
+- Pedal value 127 starts Record to Current Track — `@shipped @code-verified @runtime-untested`
+- Any pedal value other than 127 stops recording — `@shipped @code-verified @runtime-untested`
+- The original toggle mapping remains available — `@stock`
+- Pattern Sync pedal alias is findable under Record to Current Track — `@shipped @code-verified @runtime-untested`
+- Row pedal writes C-4 with the current instrument immediately — `@shipped @code-verified @runtime-untested`
+- New Track Row Pedal always records on a fresh sequencer track — `@shipped @code-verified @runtime-untested`
+- Pattern Sync recording is available as a single keyboard shortcut — `@shipped @code-verified @runtime-untested`
+- Current-row non-sync recording is available as a single keyboard shortcut — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiPedalRecord`, `PakettiPedalRecordAndWriteRow`, `PakettiPedalRecordNewTrackAndWriteRow`, `PakettiRecordToCurrentTrackPatternSyncShortcut`, `PakettiRecordToCurrentTrackAndRowShortcut`, `PakettiRecordToCurrentTrackStart`, `PakettiRecordToCurrentTrackStop`, `PakettiRecordToCurrentTrackSkipDefaultRow1Note`, `PakettiRecordToCurrentTrackPatternSyncMode` · **Source files:** `PakettiMidi.lua`, `PakettiRecorder.lua`, `PakettiMIDIMappings.lua`
+
+**Grade:** @code-verified ×7 · @runtime-untested ×7 · @shipped ×7 · @stock ×1
 
 
 <a id="quick-edit-navigation"></a>

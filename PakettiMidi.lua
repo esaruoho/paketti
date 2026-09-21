@@ -305,8 +305,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Sample Loop to 2 Forward 
 renoise.tool():add_midi_mapping{name="Paketti:Selected Sample Loop to 3 Backward x[Toggle]",invoke=function() toggleSelectedSampleLoopTo(3) end}
 renoise.tool():add_midi_mapping{name="Paketti:Selected Sample Loop to 4 PingPong x[Toggle]",invoke=function() toggleSelectedSampleLoopTo(4) end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track x[Toggle]",invoke=function() 
-  recordtocurrenttrack()
+local function PakettiRecordToCurrentTrackTransportSetup()
   local t=renoise.song().transport
   if t.playing==false then t.playing=true end
   t.loop_block_enabled=false
@@ -319,7 +318,190 @@ renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track x[Toggle]"
   -- startpos.sequence = renoise.song().selected_sequence_index
   -- t.playback_pos = startpos
   -- t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track x[Toggle]",invoke=function() 
+  recordtocurrenttrack()
+  PakettiRecordToCurrentTrackTransportSetup()
 end}
+
+-- REPORT-CARD >> features/pedal-record.feature
+function PakettiRecordToCurrentTrackPatternSyncShortcut()
+  if PakettiRecordToCurrentTrackIsRecording() then
+    if PakettiRecordToCurrentTrackStop() then
+      renoise.app():show_status("Record to Current Track (Pattern Sync): stopped")
+    end
+    return
+  end
+
+  PakettiRecordToCurrentTrackPatternSyncMode(true)
+  if PakettiRecordToCurrentTrackStart() then
+    PakettiRecordToCurrentTrackTransportSetup()
+    renoise.app():show_status("Record to Current Track (Pattern Sync): recording")
+  end
+end
+
+function PakettiRecordToCurrentTrackAndRowShortcut()
+  if PakettiRecordToCurrentTrackIsRecording() then
+    if PakettiRecordToCurrentTrackStop() then
+      renoise.app():show_status("Record to Current Track and Row: stopped")
+    end
+    return
+  end
+
+  PakettiRecordToCurrentTrackSkipDefaultRow1Note(true)
+  PakettiRecordToCurrentTrackPatternSyncMode(false)
+  if PakettiRecordToCurrentTrackStart() then
+    PakettiRecordToCurrentTrackTransportSetup()
+    PakettiRecordToCurrentTrackWriteCurrentRow()
+  end
+end
+
+local function PakettiPedalRecordMidiValue(message)
+  if not message then
+    return nil
+  end
+
+  if message.int_value ~= nil then
+    return message.int_value
+  end
+
+  if message.value ~= nil then
+    return math.floor((message.value * 127) + 0.5)
+  end
+
+  if message.boolean_value ~= nil then
+    return message.boolean_value and 127 or 0
+  end
+
+  return nil
+end
+
+function PakettiPedalRecord(message)
+  local value = PakettiPedalRecordMidiValue(message)
+  if value == nil then
+    return
+  end
+
+  if value == 127 then
+    if PakettiRecordToCurrentTrackStart() then
+      PakettiRecordToCurrentTrackTransportSetup()
+      renoise.app():show_status("Pedal Record: recording")
+    end
+  else
+    if PakettiRecordToCurrentTrackStop() then
+      renoise.app():show_status("Pedal Record: stopped")
+    end
+  end
+end
+
+function PakettiRecordToCurrentTrackWriteCurrentRow()
+  local song = renoise.song()
+  local track = song.selected_track
+
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Record to Current Track and Row: select a sequencer track")
+    return false
+  end
+
+  if track.visible_note_columns < 1 then
+    track.visible_note_columns = 1
+  end
+
+  local column_index = song.selected_note_column_index
+  if not column_index or column_index < 1 then
+    column_index = 1
+    song.selected_note_column_index = 1
+  end
+
+  if column_index > track.visible_note_columns then
+    track.visible_note_columns = column_index
+  end
+
+  local line = song.selected_pattern.tracks[song.selected_track_index].lines[song.selected_line_index]
+  local note_column = line.note_columns[column_index]
+  note_column.note_string = "C-4"
+  note_column.instrument_value = song.selected_instrument_index - 1
+
+  renoise.app():show_status(string.format(
+    "Record to Current Track and Row: wrote C-4 %02X",
+    song.selected_instrument_index - 1))
+  return true
+end
+
+function PakettiRecordToCurrentTrackCreateFreshSequencerTrack()
+  local song = renoise.song()
+  local insert_index
+
+  if song.selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    insert_index = math.min(song.selected_track_index + 1, song.sequencer_track_count + 1)
+  else
+    insert_index = song.sequencer_track_count + 1
+  end
+
+  song:insert_track_at(insert_index)
+  song.selected_track_index = insert_index
+  song.selected_track.visible_note_columns = 1
+  renoise.app():show_status(string.format(
+    "Record to Current Track and Row: created sequencer track %02d",
+    insert_index))
+  return insert_index
+end
+
+function PakettiPedalRecordAndWriteRow(message)
+  local value = PakettiPedalRecordMidiValue(message)
+  if value == nil then
+    return
+  end
+
+  if value == 127 then
+    if not PakettiRecordToCurrentTrackIsRecording() then
+      PakettiRecordToCurrentTrackSkipDefaultRow1Note(true)
+      PakettiRecordToCurrentTrackPatternSyncMode(false)
+    end
+
+    if PakettiRecordToCurrentTrackStart() then
+      PakettiRecordToCurrentTrackTransportSetup()
+      PakettiRecordToCurrentTrackWriteCurrentRow()
+    end
+  else
+    if PakettiRecordToCurrentTrackStop() then
+      renoise.app():show_status("Record to Current Track and Row: stopped")
+    end
+  end
+end
+
+function PakettiPedalRecordNewTrackAndWriteRow(message)
+  local value = PakettiPedalRecordMidiValue(message)
+  if value == nil then
+    return
+  end
+
+  if value == 127 then
+    if not PakettiRecordToCurrentTrackIsRecording() then
+      PakettiRecordToCurrentTrackCreateFreshSequencerTrack()
+      PakettiRecordToCurrentTrackSkipDefaultRow1Note(true)
+      PakettiRecordToCurrentTrackPatternSyncMode(false)
+    end
+
+    if PakettiRecordToCurrentTrackStart() then
+      PakettiRecordToCurrentTrackTransportSetup()
+      PakettiRecordToCurrentTrackWriteCurrentRow()
+    end
+  else
+    if PakettiRecordToCurrentTrackStop() then
+      renoise.app():show_status("Record to Current Track and Row New Track: stopped")
+    end
+  end
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pedal) x[Knob]",invoke=function(message) PakettiPedalRecord(message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pattern Sync) (Pedal) x[Knob]",invoke=function(message) PakettiPedalRecord(message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row Pedal x[Knob]",invoke=function(message) PakettiPedalRecordAndWriteRow(message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row New Track Pedal x[Knob]",invoke=function(message) PakettiPedalRecordNewTrackAndWriteRow(message) end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track (Pattern Sync)",invoke=function() PakettiRecordToCurrentTrackPatternSyncShortcut() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track and Row",invoke=function() PakettiRecordToCurrentTrackAndRowShortcut() end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Simple Play Record Follow",invoke=function() simpleplayrecordfollow() end}
 
