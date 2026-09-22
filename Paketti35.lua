@@ -744,6 +744,48 @@ function SetDiskBrowserCategory(category)
   else renoise.app():show_warning("Invalid category. Must be between 1 and 4.") end
 end
 
+-- REPORT-CARD >> features/disk-browser-refresh.feature
+local paketti_disk_browser_refresh_restore_timer = nil
+local paketti_disk_browser_refresh_restore_category = nil
+
+function PakettiRefreshDiskBrowser()
+  EnsureDiskBrowserVisible()
+
+  local window = renoise.app().window
+  local ok, current_category = pcall(function()
+    return window.disk_browser_category
+  end)
+
+  if not ok or type(current_category) ~= "number" then
+    renoise.app():show_status("Disk Browser refresh needs Renoise API 6.2 disk browser category support")
+    return
+  end
+
+  local restore_category = paketti_disk_browser_refresh_restore_category or current_category
+  local nudge_category = current_category + 1
+  if nudge_category > 4 then nudge_category = 1 end
+
+  window.disk_browser_category = nudge_category
+
+  if paketti_disk_browser_refresh_restore_timer and
+     renoise.tool():has_timer(paketti_disk_browser_refresh_restore_timer) then
+    renoise.tool():remove_timer(paketti_disk_browser_refresh_restore_timer)
+  end
+
+  paketti_disk_browser_refresh_restore_category = restore_category
+  paketti_disk_browser_refresh_restore_timer = function()
+    if renoise.tool():has_timer(paketti_disk_browser_refresh_restore_timer) then
+      renoise.tool():remove_timer(paketti_disk_browser_refresh_restore_timer)
+    end
+    window.disk_browser_category = paketti_disk_browser_refresh_restore_category or current_category
+    paketti_disk_browser_refresh_restore_category = nil
+    paketti_disk_browser_refresh_restore_timer = nil
+    renoise.app():show_status("Disk Browser refreshed")
+  end
+
+  renoise.tool():add_timer(paketti_disk_browser_refresh_restore_timer, 100)
+end
+
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Disk Browser",invoke=function() 
@@ -801,6 +843,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 2 (Small)", invoke=function() SetInstrumentBoxSlotSize(2) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 3 (Large)", invoke=function() SetInstrumentBoxSlotSize(3) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Refresh Disk Browser", invoke=function() PakettiRefreshDiskBrowser() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Songs", invoke=function() SetDiskBrowserCategory(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Samples", invoke=function() SetDiskBrowserCategory(3) end}

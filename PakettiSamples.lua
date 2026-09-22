@@ -3900,6 +3900,438 @@ function PakettiInjectApplyLoaderSettings(sample)
   print(string.format("Applied Paketti loader settings to sample: %s", sample.name))
 end
 
+--------------------------------------------------------------------------------
+-- NetDrive folder watcher: load newly recorded files into Renoise.
+-- REPORT-CARD >> features/netdrive-2logic-watcher.feature
+--------------------------------------------------------------------------------
+
+local PakettiNetDriveWatcher = {
+  known = {},
+  pending = {},
+  running = false,
+  folder = nil
+}
+
+local function PakettiNetDriveWatcherDefaultFolder()
+  return "/private/tmp/netdrive/2logic"
+end
+
+local function PakettiNetDriveWatcherGetFolder()
+  if preferences and preferences.pakettiNetDriveWatcherFolder then
+    local folder = preferences.pakettiNetDriveWatcherFolder.value
+    if folder and folder ~= "" then return folder end
+  end
+  return PakettiNetDriveWatcherDefaultFolder()
+end
+
+local function PakettiNetDriveWatcherStableSeconds()
+  if preferences and preferences.pakettiNetDriveWatcherStableSeconds then
+    return math.max(0, tonumber(preferences.pakettiNetDriveWatcherStableSeconds.value) or 1)
+  end
+  return 1
+end
+
+local function PakettiNetDriveWatcherIsLoadable(path)
+  if not path or path == "" then return false end
+  local name = path:match("([^/\\]+)$") or path
+  if name:match("^%.") then return false end
+  local lower = name:lower()
+  if lower:match("%.tmp$") or lower:match("%.part$") or lower:match("%.crdownload$") then
+    return false
+  end
+  return lower:match("%.wav$") or lower:match("%.aif$") or lower:match("%.aiff$")
+      or lower:match("%.flac$") or lower:match("%.mp3$") or lower:match("%.ogg$")
+end
+
+local function PakettiNetDriveWatcherJoin(folder, filename)
+  if folder:match("[/\\]$") then return folder .. filename end
+  return folder .. separator .. filename
+end
+
+local function PakettiNetDriveWatcherList(folder)
+  local files = {}
+  local ok, names = pcall(os.filenames, folder, "*")
+  if not ok or not names then return files end
+
+  for _, name in ipairs(names) do
+    local path = PakettiNetDriveWatcherJoin(folder, name)
+    if PakettiNetDriveWatcherIsLoadable(path) then
+      table.insert(files, path)
+    end
+  end
+  table.sort(files)
+  return files
+end
+
+local function PakettiNetDriveWatcherStat(path)
+  if io.stat then
+    local ok, stat = pcall(io.stat, path)
+    if ok and stat then return stat end
+  end
+  if io.exists and io.exists(path) then
+    local handle = io.open(path, "rb")
+    if handle then
+      local size = handle:seek("end") or 0
+      handle:close()
+      return { size = size, mtime = 0 }
+    end
+  end
+  return nil
+end
+
+local function PakettiNetDriveWatcherSignature(path, stat)
+  stat = stat or PakettiNetDriveWatcherStat(path)
+  if not stat then return path .. "|missing" end
+  return string.format("%s|%s|%s", path, tostring(stat.size or 0), tostring(stat.mtime or 0))
+end
+
+local function PakettiNetDriveWatcherBasename(path)
+  local filename = path:match("([^/\\]+)$") or path
+  return filename:gsub("%.[^%.]+$", "")
+end
+
+function PakettiNetDriveWatcherLoadFile(path)
+  local ok, err = pcall(function()
+    local song = renoise.song()
+    local new_index = song.selected_instrument_index + 1
+    if not safeInsertInstrumentAt(song, new_index) then return false end
+    song.selected_instrument_index = new_index
+
+    if type(pakettiPreferencesDefaultInstrumentLoader) == "function" then
+      pakettiPreferencesDefaultInstrumentLoader()
+    end
+
+    local instrument = song.selected_instrument
+    if #instrument.samples == 0 then
+      instrument:insert_sample_at(1)
+    end
+    song.selected_sample_index = 1
+
+    local sample = instrument.samples[1]
+    local sample_name = PakettiNetDriveWatcherBasename(path)
+    if not sample.sample_buffer:load_from(path) then
+      return false
+    end
+
+    sample.name = sample_name
+    instrument.name = sample_name
+    PakettiInjectApplyLoaderSettings(sample)
+    if preferences and preferences.pakettiNetDriveWatcherLastLoadedSignature then
+      preferences.pakettiNetDriveWatcherLastLoadedSignature.value =
+        PakettiNetDriveWatcherSignature(path)
+      preferences:save_as("preferences.xml")
+    end
+    renoise.app().window.active_middle_frame =
+      renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    renoise.app():show_status("NetDrive watcher loaded: " .. sample_name)
+    return true
+  end)
+
+  if not ok then
+    renoise.app():show_status("NetDrive watcher failed: " .. tostring(err))
+    return false
+  end
+  return err == true
+end
+
+function PakettiNetDriveWatcherTick()
+  local state = PakettiNetDriveWatcher
+  if not state.running then return end
+
+  -- Re-entry guard: temporarily remove timer while we process this tick
+  if renoise.tool():has_timer(PakettiNetDriveWatcherTick) then
+    renoise.tool():remove_timer(PakettiNetDriveWatcherTick)
+  end
+
+  local ok, err = pcall(function()
+    local folder = state.folder or PakettiNetDriveWatcherGetFolder()
+    local files = PakettiNetDriveWatcherList(folder)
+    local now = os.time()
+    local stable_seconds = PakettiNetDriveWatcherStableSeconds()
+
+    -- Categorize files to minimize disk/network stats
+    local new_files = {}
+    local pending_files = {}
+    local known_files = {}
+
+    for _, path in ipairs(files) do
+      if state.pending[path] then
+        table.insert(pending_files, path)
+      elseif not state.known[path] then
+        table.insert(new_files, path)
+      else
+        table.insert(known_files, path)
+      end
+    end
+
+    -- Select at most 5 known files per tick to check for overwrites/modifications
+    local max_known_stats_per_tick = 5
+    local selected_known = {}
+    if #known_files > 0 then
+      state.stagger_index = state.stagger_index or 1
+      if state.stagger_index > #known_files then
+        state.stagger_index = 1
+      end
+
+      local count = 0
+      while count < max_known_stats_per_tick and count < #known_files do
+        local idx = state.stagger_index
+        table.insert(selected_known, known_files[idx])
+        state.stagger_index = state.stagger_index + 1
+        if state.stagger_index > #known_files then
+          state.stagger_index = 1
+        end
+        count = count + 1
+      end
+    end
+
+    -- Only stat files that are: new, pending, or selected for staggered check
+    local files_to_stat = {}
+    for _, path in ipairs(new_files) do
+      table.insert(files_to_stat, path)
+    end
+    for _, path in ipairs(pending_files) do
+      table.insert(files_to_stat, path)
+    end
+    for _, path in ipairs(selected_known) do
+      table.insert(files_to_stat, path)
+    end
+
+    for _, path in ipairs(files_to_stat) do
+      local stat = PakettiNetDriveWatcherStat(path)
+      if stat then
+        local size = stat.size or 0
+        local mtime = stat.mtime or 0
+        local signature = PakettiNetDriveWatcherSignature(path, stat)
+        local pending = state.pending[path]
+
+        local prev_signature = state.known[path]
+        if prev_signature ~= signature then
+          -- If this file was marked known at startup and we are statting it for the first time:
+          if prev_signature and prev_signature:match("|known_at_startup$") then
+            -- Just update the known signature without loading it
+            state.known[path] = signature
+          else
+            -- Genuine new or overwritten/modified file
+            if not pending or pending.signature ~= signature then
+              state.pending[path] = {
+                signature = signature,
+                size = size,
+                mtime = mtime,
+                seen_at = now,
+                retries = 0
+              }
+            elseif pending.size == size and pending.mtime == mtime
+                and (now - pending.seen_at) >= stable_seconds then
+              if PakettiNetDriveWatcherLoadFile(path) then
+                state.known[path] = signature
+                state.pending[path] = nil
+              else
+                pending.retries = (pending.retries or 0) + 1
+                pending.seen_at = now
+                if pending.retries >= 3 then
+                  state.known[path] = signature
+                  state.pending[path] = nil
+                  renoise.app():show_status("NetDrive watcher skipped after 3 failed loads: " .. path)
+                end
+              end
+            else
+              pending.size = size
+              pending.mtime = mtime
+              pending.seen_at = now
+            end
+          end
+        end
+      end
+    end
+  end)
+
+  if not ok then
+    print("-- Paketti Error in NetDriveWatcherTick: " .. tostring(err))
+  end
+
+  -- Safely re-add timer if the watcher is still running
+  if state.running then
+    renoise.tool():add_timer(PakettiNetDriveWatcherTick, 1000)
+  end
+end
+
+function PakettiNetDriveWatcherStart(is_manual)
+  local state = PakettiNetDriveWatcher
+  local folder = PakettiNetDriveWatcherGetFolder()
+  local sanitized = sanitizeFolderPath(folder)
+  if not sanitized then
+    if is_manual then
+      local choice = renoise.app():show_prompt(
+        "Automatically Sync Folder to Samples",
+        "The configured watch folder '" .. tostring(folder) .. "' is offline or does not exist.\n\nWould you like to select a different folder to watch?",
+        {"Select Folder", "Cancel"}
+      )
+      if choice == "Select Folder" then
+        PakettiNetDriveWatcherSetFolder()
+        return false
+      end
+    end
+
+    -- The folder does not exist or is offline! Disable the watcher to prevent UI freezes.
+    if renoise.tool():has_timer(PakettiNetDriveWatcherTick) then
+      renoise.tool():remove_timer(PakettiNetDriveWatcherTick)
+    end
+    state.running = false
+    state.pending = {}
+    if preferences and preferences.pakettiNetDriveWatcherEnabled then
+      preferences.pakettiNetDriveWatcherEnabled.value = false
+      preferences:save_as("preferences.xml")
+    end
+    renoise.app():show_status("NetDrive Watcher: Folder '" .. tostring(folder) .. "' offline or missing. Watcher disabled.")
+    return false
+  end
+
+  if renoise.tool():has_timer(PakettiNetDriveWatcherTick) then
+    renoise.tool():remove_timer(PakettiNetDriveWatcherTick)
+  end
+
+  state.known = {}
+  state.pending = {}
+  state.running = true
+  state.folder = sanitized
+  state.stagger_index = 1
+
+  local files = PakettiNetDriveWatcherList(sanitized)
+  
+  -- To make startup instant, only stat the last 50 files (alphabetically sorted,
+  -- so the newest recordings are at the end) to find the newest path.
+  local max_startup_stats = 50
+  local start_idx = math.max(1, #files - max_startup_stats + 1)
+
+  local newest_path = nil
+  local newest_stat = nil
+  local newest_signature = nil
+  local file_stats = {}
+
+  for i = start_idx, #files do
+    local path = files[i]
+    local stat = PakettiNetDriveWatcherStat(path)
+    if stat then
+      file_stats[path] = stat
+      if not newest_stat
+          or (stat.mtime or 0) > (newest_stat.mtime or 0)
+          or ((stat.mtime or 0) == (newest_stat.mtime or 0) and path > newest_path) then
+        newest_path = path
+        newest_stat = stat
+      end
+    end
+  end
+
+  if newest_path and newest_stat then
+    newest_signature = PakettiNetDriveWatcherSignature(newest_path, newest_stat)
+  end
+
+  local last_loaded_signature = ""
+  if preferences and preferences.pakettiNetDriveWatcherLastLoadedSignature then
+    last_loaded_signature = preferences.pakettiNetDriveWatcherLastLoadedSignature.value or ""
+  end
+
+  for _, path in ipairs(files) do
+    local stat = file_stats[path]
+    if stat then
+      -- We statted this file during startup, use its actual signature
+      local signature = PakettiNetDriveWatcherSignature(path, stat)
+      if path ~= newest_path or newest_signature == last_loaded_signature then
+        state.known[path] = signature
+      end
+    else
+      -- Skip statting older files; mark them known using a placeholder signature.
+      -- If they are accessed by staggered check, we'll update their signature.
+      state.known[path] = path .. "|known_at_startup"
+    end
+  end
+
+  if preferences and preferences.pakettiNetDriveWatcherFolder then
+    preferences.pakettiNetDriveWatcherFolder.value = sanitized
+  end
+  if preferences and preferences.pakettiNetDriveWatcherEnabled then
+    preferences.pakettiNetDriveWatcherEnabled.value = true
+    preferences:save_as("preferences.xml")
+  end
+
+  renoise.tool():add_timer(PakettiNetDriveWatcherTick, 1000)
+  renoise.app():show_status("NetDrive watcher started: " .. sanitized)
+  return true
+end
+
+function PakettiNetDriveWatcherStop()
+  local state = PakettiNetDriveWatcher
+  if renoise.tool():has_timer(PakettiNetDriveWatcherTick) then
+    renoise.tool():remove_timer(PakettiNetDriveWatcherTick)
+  end
+  state.running = false
+  state.pending = {}
+  if preferences and preferences.pakettiNetDriveWatcherEnabled then
+    preferences.pakettiNetDriveWatcherEnabled.value = false
+    preferences:save_as("preferences.xml")
+  end
+  renoise.app():show_status("NetDrive watcher stopped")
+end
+
+function PakettiNetDriveWatcherIsRunning()
+  return PakettiNetDriveWatcher and PakettiNetDriveWatcher.running
+end
+
+function PakettiNetDriveWatcherToggle(is_manual)
+  if PakettiNetDriveWatcher.running then
+    PakettiNetDriveWatcherStop()
+  else
+    PakettiNetDriveWatcherStart(is_manual)
+  end
+end
+
+function PakettiNetDriveWatcherSetFolder()
+  local path = renoise.app():prompt_for_path("Select folder to watch for recorded audio")
+  if not path or path == "" then
+    renoise.app():show_status("NetDrive watcher folder unchanged")
+    return
+  end
+
+  local sanitized = sanitizeFolderPath(path)
+  if not sanitized then
+    renoise.app():show_status("NetDrive watcher folder not valid: " .. tostring(path))
+    return
+  end
+
+  preferences.pakettiNetDriveWatcherFolder.value = sanitized
+  preferences:save_as("preferences.xml")
+  
+  -- Always automatically start/enable the watcher once a valid folder is set
+  PakettiNetDriveWatcherStart()
+end
+
+renoise.tool():add_keybinding{
+  name="Global:Paketti:NetDrive 2logic Watcher Toggle",
+  invoke=function() PakettiNetDriveWatcherToggle(true) end
+}
+renoise.tool():add_midi_mapping{
+  name="Paketti:NetDrive 2logic Watcher Toggle [Trigger]",
+  invoke=function(message) if message:is_trigger() then PakettiNetDriveWatcherToggle(true) end end
+}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:NetDrive 2logic Watcher Toggle",
+  invoke=function() PakettiNetDriveWatcherToggle(true) end,
+  selected=function() return PakettiNetDriveWatcher.running end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Set NetDrive Watch Folder...",
+  invoke=function() PakettiNetDriveWatcherSetFolder() end}
+
+if preferences and preferences.pakettiNetDriveWatcherEnabled
+    and preferences.pakettiNetDriveWatcherEnabled.value then
+  local netdrive_start_timer = nil
+  netdrive_start_timer = function()
+    if renoise.tool():has_timer(netdrive_start_timer) then
+      renoise.tool():remove_timer(netdrive_start_timer)
+    end
+    PakettiNetDriveWatcherStart()
+  end
+  renoise.tool():add_timer(netdrive_start_timer, 500)
+end
+
 --------------
 function PakettiInjectDefaultXRNI()
   local instVol = renoise.song().selected_instrument.volume
@@ -7052,13 +7484,15 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Loop Range (Selection)",invoke=pakettiToggleLoopRangeSelection}
 
 ---
+-- REPORT-CARD >> features/sample-slice-selection.feature
 function pakettiSampleEditorSelectionClear()
-if renoise.song().selected_sample ~= nil then 
+  local selected_sample = renoise.song().selected_sample
+  if not selected_sample or not selected_sample.sample_buffer or not selected_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample data to clear selection from.")
+    return
+  end
 
-  renoise.song().selected_sample.sample_buffer.selection_range={}
-else
-  renoise.app():show_status("No sample selected.")
-end
+  selected_sample.sample_buffer.selection_range = {}
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Unmark / Clear Selection",invoke=pakettiSampleEditorSelectionClear}

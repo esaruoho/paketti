@@ -1663,6 +1663,7 @@ if PAKETTI_API >= 6.2 then
   end
   if preferences.pakettiMenuConfig.DiskBrowserFiles.value then
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
+    renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Refresh Disk Browser", invoke=function() PakettiRefreshDiskBrowser() end}
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
     renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Samples", invoke=function() SetDiskBrowserCategory(3) end}
@@ -1674,6 +1675,7 @@ if PAKETTI_API >= 6.2 then
       renoise.app().window.disk_browser_is_visible=true
     end end}    
     renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
+    renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Refresh Disk Browser", invoke=function() PakettiRefreshDiskBrowser() end}
     renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
     renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
     renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Set to Samples", invoke=function() SetDiskBrowserCategory(3) end}
@@ -3694,6 +3696,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:Selection Follow to End To
 renoise.tool():add_menu_entry{name="Main Menu:Options:Show Automated Parameters in Mixer for Selected Device",invoke=PakettiShowAutomatedParametersInMixer}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Automated Parameters in Mixer for Selected Device",invoke=PakettiShowAutomatedParametersInMixer}
 renoise.tool():add_midi_mapping{name="Paketti:Mixer:Show Automated Parameters in Mixer for Selected Device",invoke=function(message) if message:is_trigger() then PakettiShowAutomatedParametersInMixer() end end}
+renoise.tool():add_menu_entry{name="--Main Menu:Options:Automatically Sync Folder to Samples Toggle",
+  invoke=function() if type(PakettiNetDriveWatcherToggle) == "function" then PakettiNetDriveWatcherToggle(true) end end,
+  selected=function() if type(PakettiNetDriveWatcherIsRunning) == "function" then return PakettiNetDriveWatcherIsRunning() end return false end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Set Folder to Automatically Sync...",
+  invoke=function() if type(PakettiNetDriveWatcherSetFolder) == "function" then PakettiNetDriveWatcherSetFolder() end end}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Paketti Preferences...",invoke=pakettiPreferences}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Menu Configuration...",invoke=pakettiMenuConfigDialog}
 

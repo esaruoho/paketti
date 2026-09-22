@@ -17,6 +17,7 @@
 # WATCH: PakettiRefreshDiskBrowser
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-22  direct-commit  touched: PakettiRefreshDiskBrowser
 # =============================================================================
 
 Feature: Disk Browser refresh nudge
