@@ -17,6 +17,7 @@
 | clipboard-pattern-to-phrase | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
+| disk-browser-refresh | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | eq10-keyboard-controls | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | groovebox-8120-default-instrument-slots | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
@@ -29,13 +30,14 @@
 | mcp-claude-bridge | 11 | ✓ | — | ✓ | @built @code-verified @hw-verified @untested |
 | mlx-renoise-bridge | 10 | ✓ | — | ✓ | @built @code-verified @designed @hw-verified |
 | music-mouse | 36 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @stock @user-verified |
+| netdrive-2logic-watcher | 6 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
 | pattern-song-jumps | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | pattern-transform-shortcuts | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | pedal-record | 8 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | quick-edit-navigation | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
-| sample-slice-selection | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| sample-slice-selection | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | section-loop-immediate-switch | 5 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | section-loop-midi-capture | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | selection-reversed-instrument | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
@@ -44,8 +46,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 30
-- Build-verified: 28
+- Cards: 32
+- Build-verified: 30
 - Runtime-verified: 3 full + 1 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

@@ -16,6 +16,7 @@ Derived views — GENERATED, never hand-edit:
 | `clipboard-pattern-to-phrase.feature` | Clipboard paste from Pattern Editor into Phrase Editor clears pattern instrument values instead of treating them as phrase sample selectors | `clipboard-pattern-to-phrase.session.md` | worktree |
 | `device-hotswap-missing-to-actual.feature` | Device hotswap — missing plugins → actually-installed equivalents | — | `bc06819a` `2300b421` |
 | `device-toggle-automation.feature` | Device Control NN enable/disable/toggle records bypass automation | `device-toggle-automation.session.md` | worktree |
+| `disk-browser-refresh.feature` | Disk Browser refresh nudge by switching category away and restoring it | `disk-browser-refresh.session.md` | worktree |
 | `eq10-keyboard-controls.feature` | Shift+number/QWERTY gain controls for the EQ10 dialog | `eq10-keyboard-controls.session.md` | worktree |
 | `issue-followup-utilities.feature` | Phrase delay visibility, automation reversal, eSpeak menu gating, and per-line output | `issue-followup-utilities.session.md` | worktree |
 | `execute-command-slots.feature` | 128 labeled os.execute command slots with shortcut, MIDI, and $s sample-range support | `execute-command-slots.session.md` | pending |
@@ -28,6 +29,7 @@ Derived views — GENERATED, never hand-edit:
 | `mcp-claude-bridge.feature` | Paketti × Claude MCP + probe bridges (Renoise ↔ Claude) | — | `4bc8daab` `26c583a5` `bc06819a` |
 | `mlx-renoise-bridge.feature` | Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens) | — | `4bc8daab` `26c583a5` `bc06819a` |
 | `music-mouse.feature` | Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise | `music-mouse.session.md` | `37f054b1` `c3465c5d` `ab144dc2` |
+| `netdrive-2logic-watcher.feature` | Watch /private/tmp/netdrive/2logic and load new stable audio files as Paketti instruments | `netdrive-2logic-watcher.session.md` | worktree |
 | `parameter-editor-mixer-and-config.feature` | Parameter Editor exposes on the Mixer the parameter you're modifying | `parameter-editor-mixer-and-config.session.md` | `bc06819a` `b4a43b27` `94e4c343` |
 | `pattern-song-jumps.feature` | Pattern fraction jumps and reversible last row-jump commands for pattern/song navigation | `pattern-song-jumps.session.md` | worktree |
 | `pattern-transform-shortcuts.feature` | Exponential interpolation menus, LPB1-to-LPB4 pattern expansion, and selection-or-row note transpose controls | `pattern-transform-shortcuts.session.md` | worktree |

@@ -4,9 +4,9 @@
 
 **Intent:** As a Sample Editor user, I want one command that selects the current slice boundaries, So that loop and beat-sync work can start from the exact slice range.
 
-**Grades:** @code-verified × 2 · @runtime-untested × 2 · @shipped × 2 · @stock × 1
+**Grades:** @code-verified × 3 · @runtime-untested × 3 · @shipped × 3 · @stock × 1
 
-**Scenarios: 3**
+**Scenarios: 4**
 
 
 ---
@@ -37,7 +37,20 @@
 <sub>cite: PakettiSlice.lua command registrations (~line 129) — keybinding and MIDI mapping · PakettiMenuConfig.lua Sample Editor Wipe&Slice menu (~line 2190) — menu entry</sub>
 
 
-## 3. Existing slice marker deletion remains separate
+## 3. Clearing sample selection after deleting a sample is harmless
+
+`@shipped @code-verified @runtime-untested`
+
+
+- Given the Sample Editor has focus after the selected sample was deleted
+- When the user triggers Unmark / Clear Selection
+- Then Paketti reports that no sample data is available for selection clearing
+- And it does not dereference an empty sample buffer
+
+<sub>cite: PakettiSamples.lua pakettiSampleEditorSelectionClear (~line 7055) — validates selected sample and buffer data before clearing selection_range</sub>
+
+
+## 4. Existing slice marker deletion remains separate
 
 `@stock`
 

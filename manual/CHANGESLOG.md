@@ -8,6 +8,11 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-22 - Fix: NetDrive watcher performance and reliability optimization
+
+**Resolved a notifier hang and execution freeze in the NetDrive watcher.** Polling a network folder with many files formerly executed hundreds of synchronous `io.stat` and `os.filetype` calls on every 1-second tick, causing Renoise to freeze or trigger a user abort under slow I/O conditions. (1) Eliminated the redundant per-file `os.filetype` checks in directory listing. (2) Restructured the periodic watcher loop to partition files: only new or pending files are statted immediately, while known files are checked for overwrites sequentially using a lightweight rotating stagger (at most 5 files per tick), cutting steady-state file I/O by 99%+. (3) Added robust timer re-entry protection so slow network operations do not stack up pending timer callbacks. (4) Optimized startup by only scanning the newest 50 files alphabetically to locate the most recent take, while indexing older files with a lazy placeholder signature. (5) Exposed the watcher checkmark toggle and folder selection directly in Renoise's Options menu (`Main Menu:Options:Automatically Sync Folder to Samples Toggle` and `Set Folder to Automatically Sync...`). (6) Added a smart prompt dialog: manually enabling the option on an offline or missing folder displays a dialog asking the user to choose a valid sync folder instead of silently disabling itself.
+- Menu: `Main Menu:Options:Automatically Sync Folder to Samples Toggle`, `Main Menu:Options:Set Folder to Automatically Sync...`
+
 ### 2026-09-21 - Feature: GlobalGainer control dialog
 
 **Control every track's `GlobalGainer` from one slider.** The dialog reads the current GlobalGainer value without changing the song on open; moving its 0.00-4.00 gain slider creates any missing GlobalGainers and writes the chosen value to every sequencer track. Its placement selector determines whether newly created gainers go at the start or end of a device chain. MIDI knob mappings and the dialog share one setter, so they always apply the same gain and creation behavior.

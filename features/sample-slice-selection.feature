@@ -2,19 +2,20 @@
 # WIKI PAGE / REPORT CARD: Sample slice selection range
 #
 # WHAT THIS CARD SPAWNS:
-#   codespace  — PakettiSlice.lua selected-slice boundary helper and Sample Editor menu entry
+#   codespace  — PakettiSlice.lua selected-slice boundary helper, PakettiSamples.lua clear-selection guard, and Sample Editor menu entries
 #   thinkspace — sample-slice-selection.session.md
-#   areaspace  — OWNS: sample-buffer selection range changes for the current slice
+#   areaspace  — OWNS: sample-buffer selection range changes and safe selection clearing
 #                MUST NOT TOUCH: slice marker creation/deletion, sample audio data, or pattern notes
 #
 # Innards linked back to this card (grep "features/sample-slice-selection.feature"):
 #   PakettiSlice.lua - PakettiSelectCurrentSliceRange finds slice boundaries and selects the sample range
+#   PakettiSamples.lua - pakettiSampleEditorSelectionClear clears sample-buffer selection only when sample data exists
 #   PakettiMenuConfig.lua - Sample Editor Wipe&Slice menu entry exposes the command
 #
 # SESSION:      sample-slice-selection.session.md
 # RESULT:       Worktree delivery; direct-push/PR not yet known
 #
-# WATCH: PakettiSelectCurrentSliceRange
+# WATCH: PakettiSelectCurrentSliceRange pakettiSampleEditorSelectionClear
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
 #   2026-09-04  direct-commit  touched: PakettiSelectCurrentSliceRange
@@ -38,6 +39,14 @@ Feature: Sample slice selection range
     Given Paketti has loaded its Sample Editor tools
     When the user looks for slice selection commands
     Then the command is available as Sample Editor and Global keybindings, MIDI mapping, and Sample Editor menu entry
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Clearing sample selection after deleting a sample is harmless
+    # cite: PakettiSamples.lua pakettiSampleEditorSelectionClear (~line 7055) — validates selected sample and buffer data before clearing selection_range
+    Given the Sample Editor has focus after the selected sample was deleted
+    When the user triggers Unmark / Clear Selection
+    Then Paketti reports that no sample data is available for selection clearing
+    And it does not dereference an empty sample buffer
 
   @stock
   Scenario: Existing slice marker deletion remains separate

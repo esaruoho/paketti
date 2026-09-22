@@ -21,6 +21,14 @@ Feature: Sample slice selection range
     When the user looks for slice selection commands
     Then the command is available as Sample Editor and Global keybindings, MIDI mapping, and Sample Editor menu entry
 
+  @shipped @code-verified @runtime-untested
+  Scenario: Clearing sample selection after deleting a sample is harmless
+    # cite: PakettiSamples.lua pakettiSampleEditorSelectionClear (~line 7055) — validates selected sample and buffer data before clearing selection_range
+    Given the Sample Editor has focus after the selected sample was deleted
+    When the user triggers Unmark / Clear Selection
+    Then Paketti reports that no sample data is available for selection clearing
+    And it does not dereference an empty sample buffer
+
   @stock
   Scenario: Existing slice marker deletion remains separate
     # cite: PakettiSlice.lua pakettiDeleteSliceMarkersInSelection (~line 1) — pre-existing deletion command

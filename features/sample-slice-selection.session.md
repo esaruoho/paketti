@@ -24,3 +24,11 @@ The command is exposed as Sample Editor and Global keybindings, as a MIDI trigge
 - `luac -p PakettiMenuConfig.lua` passed
 
 Runtime verification in Renoise was not performed from this shell session.
+
+## 2026-09-22 Follow-up: Clear Selection After Sample Delete
+
+Esa reported that pressing Cmd-U / Unmark Sample Selection immediately after deleting a sample opened an unrelated-looking Personal Semantic Space window because there was no usable sample left to display or clear.
+
+I updated `pakettiSampleEditorSelectionClear()` in `PakettiSamples.lua` so it validates the selected sample, its sample buffer, and `has_sample_data` before assigning `selection_range`. If the selected slot has no sample data, Paketti now reports `No sample data to clear selection from.` and exits without touching the buffer.
+
+The card now includes the regression scenario, and `PakettiSamples.lua` has a back-link to `features/sample-slice-selection.feature`.

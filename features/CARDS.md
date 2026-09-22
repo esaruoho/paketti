@@ -10,6 +10,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Clipboard Pattern to Phrase conversion](#clipboard-pattern-to-phrase) — `clipboard-pattern-to-phrase.feature`
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
 - [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
+- [Disk Browser refresh nudge](#disk-browser-refresh) — `disk-browser-refresh.feature`
 - [EQ10 keyboard controls](#eq10-keyboard-controls) — `eq10-keyboard-controls.feature`
 - [Execute configurable shell commands](#execute-command-slots) — `execute-command-slots.feature`
 - [Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open](#groovebox-8120-default-instrument-slots) — `groovebox-8120-default-instrument-slots.feature`
@@ -22,6 +23,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Paketti × Claude MCP + probe bridges (Renoise ↔ Claude)](#mcp-claude-bridge) — `mcp-claude-bridge.feature`
 - [Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens)](#mlx-renoise-bridge) — `mlx-renoise-bridge.feature`
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
+- [NetDrive 2logic watcher](#netdrive-2logic-watcher) — `netdrive-2logic-watcher.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
 - [Pattern and song row jumps](#pattern-song-jumps) — `pattern-song-jumps.feature`
@@ -112,6 +114,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiDeviceBypass`, `PakettiRecordDeviceBypassAutomation`, `PakettiWriteDeviceBypassPatternCommand`, `PakettiWriteDeviceBypassGraphicalAutomation` · **Source files:** `PakettiRequests.lua`
 
 **Grade:** @built ×3 · @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+
+
+<a id="disk-browser-refresh"></a>
+## Disk Browser refresh nudge
+
+`features/disk-browser-refresh.feature` · [session](disk-browser-refresh.session.md)
+
+**What it does:** As a Paketti user, I want a command that nudges Renoise's Disk Browser to reload its listing, So that newly-created or changed files can appear without manually cycling browser categories.
+
+**Behaviour (3 scenarios):**
+
+- Refresh command nudges the Disk Browser category away and back — `@shipped @code-verified @runtime-untested`
+- Refresh command is reachable from shortcuts and menus — `@shipped @code-verified @runtime-untested`
+- Existing Disk Browser category controls keep their behaviour — `@stock`
+
+**How it does it:** **Key procs:** `PakettiRefreshDiskBrowser` · **Source files:** `Paketti35.lua`, `PakettiMenuConfig.lua`
+
+**Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
 
 
 <a id="eq10-keyboard-controls"></a>
@@ -381,6 +401,27 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @built ×29 · @runtime-verified ×6 · @stock ×1
 
 
+<a id="netdrive-2logic-watcher"></a>
+## NetDrive 2logic watcher
+
+`features/netdrive-2logic-watcher.feature` · [session](netdrive-2logic-watcher.session.md)
+
+**What it does:** As a Paketti user recording audio into a known handoff folder, I want Paketti to notice new files under /private/tmp/netdrive/2logic, So that Renoise can load each completed take without a manual file picker.
+
+**Behaviour (6 scenarios):**
+
+- Keep the global default off while allowing Esa's local preference to arm it — `@shipped @code-verified @runtime-untested`
+- Watch the default 2logic folder when armed — `@shipped @code-verified @runtime-untested`
+- Ignore old existing files and load changed file signatures — `@shipped @code-verified @runtime-untested`
+- Load each arrival as a fresh Paketti instrument — `@shipped @code-verified @runtime-untested`
+- Expose manual control for the watcher — `@shipped @code-verified @runtime-untested`
+- Existing sample loaders remain separate — `@stock`
+
+**How it does it:** **Key procs:** `PakettiNetDriveWatcher`, `PakettiNetDriveWatcherStart`, `PakettiNetDriveWatcherTick`, `PakettiNetDriveWatcherLoadFile`, `pakettiNetDriveWatcherFolder` · **Source files:** `Paketti0G01_Loader.lua`, `preferences.xml`, `PakettiSamples.lua`
+
+**Grade:** @code-verified ×5 · @runtime-untested ×5 · @shipped ×5 · @stock ×1
+
+
 <a id="parameter-editor-mixer-and-config"></a>
 ## Parameter Editor exposes on the Mixer the parameter you're modifying
 
@@ -520,15 +561,16 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Sample Editor user, I want one command that selects the current slice boundaries, So that loop and beat-sync work can start from the exact slice range.
 
-**Behaviour (3 scenarios):**
+**Behaviour (4 scenarios):**
 
 - Select the current slice range — `@shipped @code-verified @runtime-untested`
 - Expose the slice range command — `@shipped @code-verified @runtime-untested`
+- Clearing sample selection after deleting a sample is harmless — `@shipped @code-verified @runtime-untested`
 - Existing slice marker deletion remains separate — `@stock`
 
-**How it does it:** **Key procs:** `PakettiSelectCurrentSliceRange` · **Source files:** `PakettiSlice.lua`, `PakettiMenuConfig.lua`
+**How it does it:** **Key procs:** `PakettiSelectCurrentSliceRange`, `pakettiSampleEditorSelectionClear` · **Source files:** `PakettiSlice.lua`, `PakettiMenuConfig.lua`, `PakettiSamples.lua`
 
-**Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
 
 
 <a id="section-loop-immediate-switch"></a>
