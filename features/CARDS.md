@@ -499,7 +499,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user with a sustain-style MIDI pedal, I want Record to Current Track to run only while the pedal is fully down, So that releasing the pedal reliably stops the recording.
 
-**Behaviour (8 scenarios):**
+**Behaviour (9 scenarios):**
 
 - Pedal value 127 starts Record to Current Track — `@shipped @code-verified @runtime-untested`
 - Any pedal value other than 127 stops recording — `@shipped @code-verified @runtime-untested`
@@ -509,10 +509,11 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - New Track Row Pedal always records on a fresh sequencer track — `@shipped @code-verified @runtime-untested`
 - Pattern Sync recording is available as a single keyboard shortcut — `@shipped @code-verified @runtime-untested`
 - Current-row non-sync recording is available as a single keyboard shortcut — `@shipped @code-verified @runtime-untested`
+- New-track current-row recording is available as a single keyboard shortcut — `@shipped @code-verified @runtime-untested`
 
-**How it does it:** **Key procs:** `PakettiPedalRecord`, `PakettiPedalRecordAndWriteRow`, `PakettiPedalRecordNewTrackAndWriteRow`, `PakettiRecordToCurrentTrackPatternSyncShortcut`, `PakettiRecordToCurrentTrackAndRowShortcut`, `PakettiRecordToCurrentTrackStart`, `PakettiRecordToCurrentTrackStop`, `PakettiRecordToCurrentTrackSkipDefaultRow1Note`, `PakettiRecordToCurrentTrackPatternSyncMode` · **Source files:** `PakettiMidi.lua`, `PakettiRecorder.lua`, `PakettiMIDIMappings.lua`
+**How it does it:** **Key procs:** `PakettiPedalRecord`, `PakettiPedalRecordAndWriteRow`, `PakettiPedalRecordNewTrackAndWriteRow`, `PakettiRecordToCurrentTrackPatternSyncShortcut`, `PakettiRecordToCurrentTrackAndRowShortcut`, `PakettiRecordToCurrentTrackAndRowNewTrackShortcut`, `PakettiRecordToCurrentTrackStart`, `PakettiRecordToCurrentTrackStop`, `PakettiRecordToCurrentTrackSkipDefaultRow1Note`, `PakettiRecordToCurrentTrackPatternSyncMode` · **Source files:** `PakettiMidi.lua`, `PakettiRecorder.lua`, `PakettiMIDIMappings.lua`
 
-**Grade:** @code-verified ×7 · @runtime-untested ×7 · @shipped ×7 · @stock ×1
+**Grade:** @code-verified ×8 · @runtime-untested ×8 · @shipped ×8 · @stock ×1
 
 
 <a id="quick-edit-navigation"></a>

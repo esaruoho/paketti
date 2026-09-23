@@ -14,6 +14,7 @@
 #   PakettiRecorder.lua - PakettiRecordToCurrentTrackPatternSyncMode selects sync-on or sync-off per take
 #   PakettiMidi.lua - PakettiRecordToCurrentTrackPatternSyncShortcut exposes one-shot pattern-sync keyboard control
 #   PakettiMidi.lua - PakettiRecordToCurrentTrackAndRowShortcut exposes one-shot non-sync current-row keyboard control
+#   PakettiMidi.lua - PakettiRecordToCurrentTrackAndRowNewTrackShortcut exposes shortcut-bindable new-track current-row recording
 #   PakettiMidi.lua - PakettiPedalRecord maps MIDI value 127 to start and any other value to stop
 #   PakettiMidi.lua - PakettiPedalRecordAndWriteRow writes C-4/current instrument immediately on pedal-down
 #   PakettiMidi.lua - PakettiPedalRecordNewTrackAndWriteRow creates a fresh sequencer track before recording
@@ -22,7 +23,7 @@
 # SESSION:      pedal-record.session.md
 # RESULT:       Worktree delivery; direct-push/PR not yet known
 #
-# WATCH: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackPatternSyncShortcut PakettiRecordToCurrentTrackAndRowShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
+# WATCH: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackPatternSyncShortcut PakettiRecordToCurrentTrackAndRowShortcut PakettiRecordToCurrentTrackAndRowNewTrackShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
 #   2026-09-21  direct-commit  touched: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackPatternSyncShortcut PakettiRecordToCurrentTrackAndRowShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
@@ -101,4 +102,15 @@ Feature: Pedal Record
     When the shortcut is pressed while no Record to Current Track take is active
     Then Paketti starts Record to Current Track with Sample Recorder Pattern Sync off
     And it immediately writes `C-4` with the current selected instrument to the current row
+    And pressing the same shortcut again stops the take
+
+  @shipped @code-verified @runtime-untested
+  Scenario: New-track current-row recording is available as a single keyboard shortcut
+    # cite: PakettiMidi.lua PakettiRecordToCurrentTrackAndRowNewTrackShortcut (~line 365) — creates a fresh sequencer track, disables Pattern Sync, starts recording, and writes C-4/current instrument
+    # cite: PakettiMidi.lua keybinding registration (~line 520) — exposes the command as `Global:Paketti:Record to Current Track and Row New Track`
+    Given the user binds `Global:Paketti:Record to Current Track and Row New Track`
+    When the shortcut is pressed while no Record to Current Track take is active
+    Then Paketti creates and selects a new normal sequencer track
+    And it starts Record to Current Track with Sample Recorder Pattern Sync off
+    And it immediately writes `C-4` with the current selected instrument to the current row on that new track
     And pressing the same shortcut again stops the take

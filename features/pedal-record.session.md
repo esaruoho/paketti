@@ -63,3 +63,11 @@ I added:
 - `luac -p PakettiRecorder.lua PakettiMidi.lua PakettiMIDIMappings.lua` passed.
 - Load order checked in `main.lua`: `PakettiRecorder` is required before `PakettiMidi`.
 - Runtime verification in Renoise was not performed from this shell session.
+
+## Follow-up: New-Track Row Recording as a Real Keyboard Shortcut
+
+Esa pointed at the attempted keybinding for `Record to Current Track and Row New Track Pedal x[Knob]` and asked for it to be an accessible shortcut. The existing line registered a Global keybinding, but it called `PakettiPedalRecordNewTrackAndWriteRow()` without a MIDI message. That pedal handler intentionally exits when there is no CC value, so the shortcut was visible but inert.
+
+I added `PakettiRecordToCurrentTrackAndRowNewTrackShortcut()` as the keyboard path. When not already recording, it creates a fresh sequencer track, disables Pattern Sync for the take, suppresses the recorder finalizer's default row-1 note, starts Record to Current Track, performs the usual transport/window setup, and writes `C-4` with the selected instrument into the current row on the new track. When recording is already active, the same shortcut stops the take.
+
+The Global binding is now `Global:Paketti:Record to Current Track and Row New Track`, without the MIDI-only `x[Knob]` suffix, and calls the new shortcut function directly.

@@ -8,26 +8,12 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**29 card conversations** plugged in:
+**26 card conversations** plugged in:
 
 ### `53b19b22-eb03-4403-baf6-29d78603187b`  (2026-08-18 → 2026-08-25)
 - Resume: `claude --resume 53b19b22-eb03-4403-baf6-29d78603187b`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/53b19b22-eb03-4403-baf6-29d78603187b.jsonl
 - Cards touched (2): groovebox-8120-record-pakettified-instrument.feature, song-lifecycle-safety.feature
-
-### `2468b3ae-f1c4-4b8e-aee2-fea2c03748f4`  (2026-08-22 → 2026-08-23)
-- Resume: `claude --resume 2468b3ae-f1c4-4b8e-aee2-fea2c03748f4`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/2468b3ae-f1c4-4b8e-aee2-fea2c03748f4.jsonl
-- Tooling touched: INDEX.md
-
-### `01eef212-eac8-4fe5-8038-b5edaf0605cd`  (2026-08-23)
-- Resume: `claude --resume 01eef212-eac8-4fe5-8038-b5edaf0605cd`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/01eef212-eac8-4fe5-8038-b5edaf0605cd.jsonl
-
-### `91c1b970-5a25-404c-8d0c-b960186c6f2a`  (2026-08-23)
-- Resume: `claude --resume 91c1b970-5a25-404c-8d0c-b960186c6f2a`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/91c1b970-5a25-404c-8d0c-b960186c6f2a.jsonl
-- Tooling touched: INDEX.md
 
 ### `27b3fa3c-3bf7-468c-b8f0-797696bb9b23`  (2026-08-24)
 - Resume: `claude --resume 27b3fa3c-3bf7-468c-b8f0-797696bb9b23`

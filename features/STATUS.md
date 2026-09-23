@@ -34,7 +34,7 @@
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
 | pattern-song-jumps | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | pattern-transform-shortcuts | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
-| pedal-record | 8 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| pedal-record | 9 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | quick-edit-navigation | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-slice-selection | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
