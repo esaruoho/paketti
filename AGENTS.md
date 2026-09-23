@@ -12,3 +12,10 @@ Maintain PLAN.md as the living plan. It is read by the project OWNER, not by you
 - open tasks carry an indented `from:` line naming their provenance — `from: agent` when YOU are declaring it as your own imminent build intent (the owner corrects these on sight if wrong), `from: roadmap` when it comes from planning documents (durable intent, backloggable); omit when neither
 - before ending a session, graduate your plan-worthy completed todos into PLAN.md as `[x]` tasks (with `by:`) — housekeeping todos stay out of the plan
 - record any plan-affecting decision under `## decisions` BEFORE implementing it
+
+## Renoise Menu Checkmark / Toggle Idiom
+When registering checkbox/checkmark menu options in Renoise:
+- **Always provide a `selected` function callback** that returns a strict boolean value (`true` or `false`).
+- **Do not return `nil` or execute unchecked dynamic helper functions** that could resolve to non-booleans.
+- **Prefer direct boolean preference properties** (e.g., `preferences.myProperty.value`) or strict evaluations like `my_state and true or false`.
+- If Renoise receives `nil` or a non-boolean from `selected()`, it may completely omit the checkbox/checkmark visual indicator on various platforms (e.g., macOS).

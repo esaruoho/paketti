@@ -157,7 +157,7 @@ These extend the rules already in the `paketti` skill (which you've read). The o
 
 1. **Keybinding names: exactly 3 colon-separated parts.** `Global:Paketti:Plugin Slots:Toggle Slot 1` crashes Renoise at boot and prevents the **entire tool** from loading. Menu entries can have multi-colon subcategories; keybindings cannot. Flatten subcategories into the name part using spaces. (Real incident: Feb 2026, broke Paketti for all users overnight.)
 
-2. **Use `PakettiAddMenuEntry{}`, not `renoise.tool():add_menu_entry{}`** for menu entries. The wrapper handles sortable ordering across all ~500 entries.
+2. **Use `PakettiAddMenuEntry{}`, not `renoise.tool():add_menu_entry{}`** for menu entries. The wrapper handles sortable ordering across all ~500 entries. For toggle options (checkboxes/checkmarks), always provide a `selected` callback returning a strict boolean (e.g. `preferences.myProperty.value` or `my_state_variable and true or false`). NEVER return `nil` or perform dynamic runtime function checks that can resolve to non-booleans, as this causes Renoise on some operating systems to omit the checkbox/checkmark visual indicator entirely.
 
 3. **Preferences need TWO things**: declared in `Paketti0G01_Loader.lua`'s `renoise.Document.create("ScriptingToolPreferences")` block AND saved via `preferences:save_as("preferences.xml")` after every change. `add_property()` alone does NOT persist.
 

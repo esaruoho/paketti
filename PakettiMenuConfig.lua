@@ -3700,7 +3700,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show Automated Parameters in 
 renoise.tool():add_midi_mapping{name="Paketti:Mixer:Show Automated Parameters in Mixer for Selected Device",invoke=function(message) if message:is_trigger() then PakettiShowAutomatedParametersInMixer() end end}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Automatically Sync Folder to Samples Toggle",
   invoke=function() if type(PakettiNetDriveWatcherToggle) == "function" then PakettiNetDriveWatcherToggle(true) end end,
-  selected=function() if type(PakettiNetDriveWatcherIsRunning) == "function" then return PakettiNetDriveWatcherIsRunning() end return false end}
+  selected=function() return preferences.pakettiNetDriveWatcherEnabled.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Set Folder to Automatically Sync...",
   invoke=function() if type(PakettiNetDriveWatcherSetFolder) == "function" then PakettiNetDriveWatcherSetFolder() end end}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Paketti Preferences...",invoke=pakettiPreferences}
