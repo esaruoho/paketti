@@ -26,6 +26,7 @@
 # WATCH: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackPatternSyncShortcut PakettiRecordToCurrentTrackAndRowShortcut PakettiRecordToCurrentTrackAndRowNewTrackShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-23  direct-commit  touched: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackAndRowNewTrackShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
 #   2026-09-21  direct-commit  touched: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackPatternSyncShortcut PakettiRecordToCurrentTrackAndRowShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
 # =============================================================================
 

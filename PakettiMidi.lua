@@ -357,6 +357,23 @@ function PakettiRecordToCurrentTrackAndRowShortcut()
   end
 end
 
+function PakettiRecordToCurrentTrackAndRowNewTrackShortcut()
+  if PakettiRecordToCurrentTrackIsRecording() then
+    if PakettiRecordToCurrentTrackStop() then
+      renoise.app():show_status("Record to Current Track and Row New Track: stopped")
+    end
+    return
+  end
+
+  PakettiRecordToCurrentTrackCreateFreshSequencerTrack()
+  PakettiRecordToCurrentTrackSkipDefaultRow1Note(true)
+  PakettiRecordToCurrentTrackPatternSyncMode(false)
+  if PakettiRecordToCurrentTrackStart() then
+    PakettiRecordToCurrentTrackTransportSetup()
+    PakettiRecordToCurrentTrackWriteCurrentRow()
+  end
+end
+
 local function PakettiPedalRecordMidiValue(message)
   if not message then
     return nil
@@ -500,8 +517,16 @@ renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pattern S
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row Pedal x[Knob]",invoke=function(message) PakettiPedalRecordAndWriteRow(message) end}
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row New Track Pedal x[Knob]",invoke=function(message) PakettiPedalRecordNewTrackAndWriteRow(message) end}
 
+
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pedal) (2nd) x[Knob]",invoke=function(message) PakettiPedalRecord(message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pattern Sync) (Pedal) (2nd) x[Knob]",invoke=function(message) PakettiPedalRecord(message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row Pedal (2nd) x[Knob]",invoke=function(message) PakettiPedalRecordAndWriteRow(message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row New Track Pedal (2nd) x[Knob]",invoke=function(message) PakettiPedalRecordNewTrackAndWriteRow(message) end}
+
+
 renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track (Pattern Sync)",invoke=function() PakettiRecordToCurrentTrackPatternSyncShortcut() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track and Row",invoke=function() PakettiRecordToCurrentTrackAndRowShortcut() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track and Row New Track",invoke=function() PakettiRecordToCurrentTrackAndRowNewTrackShortcut() end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Simple Play Record Follow",invoke=function() simpleplayrecordfollow() end}
 
