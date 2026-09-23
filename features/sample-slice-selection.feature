@@ -2,22 +2,25 @@
 # WIKI PAGE / REPORT CARD: Sample slice selection range
 #
 # WHAT THIS CARD SPAWNS:
-#   codespace  — PakettiSlice.lua selected-slice boundary helper, PakettiSamples.lua clear-selection guard, and Sample Editor menu entries
+#   codespace  — PakettiSlice.lua selected-slice boundary helper, PakettiSamples.lua clear-selection guard, sample-buffer MIDI point selection, and Sample Editor menu entries
 #   thinkspace — sample-slice-selection.session.md
-#   areaspace  — OWNS: sample-buffer selection range changes and safe selection clearing
+#   areaspace  — OWNS: sample-buffer selection range changes, MIDI selection positioning, and safe selection clearing
 #                MUST NOT TOUCH: slice marker creation/deletion, sample audio data, or pattern notes
 #
 # Innards linked back to this card (grep "features/sample-slice-selection.feature"):
 #   PakettiSlice.lua - PakettiSelectCurrentSliceRange finds slice boundaries and selects the sample range
 #   PakettiSamples.lua - pakettiSampleEditorSelectionClear clears sample-buffer selection only when sample data exists
+#   PakettiMidi.lua - PakettiMidiSampleBufferPointSelection maps absolute MIDI CC values to one-frame sample-buffer selection points
+#   PakettiMIDIMappings.lua - mapping discovery includes the MIDI point-selection command
 #   PakettiMenuConfig.lua - Sample Editor Wipe&Slice menu entry exposes the command
 #
 # SESSION:      sample-slice-selection.session.md
 # RESULT:       Worktree delivery; direct-push/PR not yet known
 #
-# WATCH: PakettiSelectCurrentSliceRange pakettiSampleEditorSelectionClear
+# WATCH: PakettiSelectCurrentSliceRange pakettiSampleEditorSelectionClear PakettiMidiSampleBufferPointSelection
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-23  direct-commit  touched: PakettiMidiSampleBufferPointSelection
 #   2026-09-04  direct-commit  touched: PakettiSelectCurrentSliceRange
 # =============================================================================
 
@@ -39,6 +42,16 @@ Feature: Sample slice selection range
     Given Paketti has loaded its Sample Editor tools
     When the user looks for slice selection commands
     Then the command is available as Sample Editor and Global keybindings, MIDI mapping, and Sample Editor menu entry
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Map a MIDI knob to a one-frame sample-buffer selection
+    # cite: PakettiMidi.lua PakettiMidiSampleBufferPointSelection (~line 911) — validates selected sample, focuses Sample Editor, and writes selection_range = {frame, frame}
+    # cite: PakettiMIDIMappings.lua PakettiMidiMappings (~line 157) — exposes the mapping in discovery
+    Given the selected sample has sample data
+    When the user moves Sample Editor:Paketti:Sample Buffer Selection Point 0-127 x[Knob]
+    Then Paketti maps MIDI value 0 to frame 1 and MIDI value 127 to the sample buffer's final frame
+    And Paketti focuses the Sample Editor
+    And the sample-buffer selection is exactly one frame long
 
   @shipped @code-verified @runtime-untested
   Scenario: Clearing sample selection after deleting a sample is harmless

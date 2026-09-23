@@ -154,6 +154,7 @@ local PakettiMidiMappings = {
   "Paketti:Midi Change Selected Sample Loop 02 End x[Knob]",
   "Sample Editor:Paketti:Sample Buffer Selection 01 Start x[Knob]",
   "Sample Editor:Paketti:Sample Buffer Selection 02 End x[Knob]",
+  "Sample Editor:Paketti:Sample Buffer Selection Point 0-127 x[Knob]",
   "Track Automation:Paketti:Midi Automation Curve Draw Selection x[Knob]",
   "Paketti:Midi Automation Selection 01 Start x[Knob]",
   "Paketti:Midi Automation Selection 02 End x[Knob]",

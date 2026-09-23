@@ -906,6 +906,29 @@ renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Select
       midiValues(1, renoise.song().selected_sample.sample_buffer.number_of_frames, renoise.song().selected_sample.sample_buffer, 'selection_end', message)
     end
 end}
+
+-- REPORT-CARD >> features/sample-slice-selection.feature
+function PakettiMidiSampleBufferPointSelection(message)
+  if not message:is_abs_value() then return end
+
+  local sample = renoise.song().selected_sample
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample buffer empty")
+    return
+  end
+
+  focus_sample_editor()
+
+  local buffer = sample.sample_buffer
+  local frame = math.floor(scaleValue(message.int_value, 0, 127, 1, buffer.number_of_frames))
+  frame = math.max(1, math.min(frame, buffer.number_of_frames))
+  buffer.selection_range = {frame, frame}
+end
+
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Selection Point 0-127 x[Knob]",
+  invoke=function(message)
+    PakettiMidiSampleBufferPointSelection(message)
+  end}
 ----------
 -- List of available automation curve functions
 local automation_curves = {

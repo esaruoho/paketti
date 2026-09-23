@@ -562,16 +562,17 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Sample Editor user, I want one command that selects the current slice boundaries, So that loop and beat-sync work can start from the exact slice range.
 
-**Behaviour (4 scenarios):**
+**Behaviour (5 scenarios):**
 
 - Select the current slice range — `@shipped @code-verified @runtime-untested`
 - Expose the slice range command — `@shipped @code-verified @runtime-untested`
+- Map a MIDI knob to a one-frame sample-buffer selection — `@shipped @code-verified @runtime-untested`
 - Clearing sample selection after deleting a sample is harmless — `@shipped @code-verified @runtime-untested`
 - Existing slice marker deletion remains separate — `@stock`
 
-**How it does it:** **Key procs:** `PakettiSelectCurrentSliceRange`, `pakettiSampleEditorSelectionClear` · **Source files:** `PakettiSlice.lua`, `PakettiMenuConfig.lua`, `PakettiSamples.lua`
+**How it does it:** **Key procs:** `PakettiSelectCurrentSliceRange`, `pakettiSampleEditorSelectionClear`, `PakettiMidiSampleBufferPointSelection` · **Source files:** `PakettiSlice.lua`, `PakettiMenuConfig.lua`, `PakettiMidi.lua`, `PakettiMIDIMappings.lua`, `PakettiSamples.lua`
 
-**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+**Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
 
 
 <a id="section-loop-immediate-switch"></a>
