@@ -2655,6 +2655,8 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:Delay Output:Reset Delay Outpu
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Create Identical Track",invoke=create_identical_track}
 
 renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:GlobalGainer Dialog...",invoke=pakettiGlobalGainerDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:GlobalGainer Dialog...",invoke=pakettiGlobalGainerDialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:GlobalGainer Dialog...",invoke=pakettiGlobalGainerDialog}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Populate GlobalGainers on Each Track (start chain)",invoke=function() PopulateGainersOnEachTrack("start") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Populate GlobalGainers on Each Track (end chain)",invoke=function() PopulateGainersOnEachTrack("end") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
