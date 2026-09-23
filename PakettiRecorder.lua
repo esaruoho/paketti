@@ -165,6 +165,26 @@ local record_pattern_sync_mode = true
 local record_used_sync = false
 local record_prev_sync = nil
 
+local function pakettiRecordInstrumentHasMidiOutput(instrument)
+  local midi_output = instrument.midi_output_properties
+  return midi_output.device_name ~= "" and midi_output.channel ~= nil
+end
+
+local function pakettiRecordInstrumentIsFree(instrument)
+  return #instrument.samples == 0
+    and not instrument.plugin_properties.plugin_loaded
+    and not pakettiRecordInstrumentHasMidiOutput(instrument)
+end
+
+local function pakettiRecordFindFreeInstrumentAfter(song, index)
+  for candidate_index = index + 1, #song.instruments do
+    if pakettiRecordInstrumentIsFree(song.instruments[candidate_index]) then
+      return candidate_index
+    end
+  end
+  return nil
+end
+
 
 --------------------------------------------------------------------------------
 -- recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
@@ -240,17 +260,32 @@ function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
       end
     end
 
-    -- 5) Check if the current instrument is empty; if not, create a new instrument
+    -- 5) Never record into an instrument routed to external MIDI.
     local curr_instr_idx = s.selected_instrument_index
     local curr_instr = s.instruments[curr_instr_idx]
-    local is_empty_instrument =
-      (#curr_instr.samples == 0) and
-      (not curr_instr.plugin_properties.plugin_loaded)
-
-    if not is_empty_instrument then
+    if pakettiRecordInstrumentHasMidiOutput(curr_instr) then
+      local free_instr_idx = pakettiRecordFindFreeInstrumentAfter(s, curr_instr_idx)
+      if free_instr_idx then
+        s.selected_instrument_index = free_instr_idx
+        print(("  Selected free instrument at index %d after MIDI instrument."):
+          format(free_instr_idx))
+      else
+        if not canInsertInstrument() then
+          renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+          am_i_recording = false
+          return
+        end
+        local new_instr_idx = #s.instruments + 1
+        s:insert_instrument_at(new_instr_idx)
+        s.selected_instrument_index = new_instr_idx
+        print(("  No free instrument after MIDI instrument; created instr at index %d."):
+          format(new_instr_idx))
+      end
+    elseif not pakettiRecordInstrumentIsFree(curr_instr) then
       -- Check instrument limit before creating
       if not canInsertInstrument() then
         renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
+        am_i_recording = false
         return
       end
       -- Insert a new instrument at "current index + 1"
