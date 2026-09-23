@@ -8,11 +8,11 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-09-23 - Fix: Pattern Sync recording preserves external MIDI instruments
+### 2026-09-23 - Fix: Recording preserves external MIDI instruments
 
-**Record to Current Track (Pattern Sync) now protects the selected external-MIDI instrument.** When its MIDI output port and channel are configured, Paketti scans subsequent instrument slots for the first unused instrument and records there instead; if none is unused, it appends a new instrument. This leaves the MIDI routing intact rather than overwriting it with the recorded sample.
-- Keybinding: `Global:Paketti:Record to Current Track (Pattern Sync)`
-- MIDI Mapping: `Paketti:Record to Current Track (Pattern Sync) (Pedal) x[Knob]`
+**Every Record to Current Track workflow now protects the selected external-MIDI instrument.** The shared recorder checks its MIDI output port and channel, scans subsequent slots for the first unused instrument, and appends one if none is unused. Pattern Sync, current-row, new-track, pedal, menu, and Overdub commands all use this same destination selection, leaving MIDI routing intact rather than overwriting it with a recorded sample.
+- Keybindings: `Global:Paketti:Record to Current Track (Pattern Sync)`, `Global:Paketti:Record to Current Track and Row`, `Global:Paketti:Record to Current Track and Row New Track`, and all `Global:Paketti:Paketti Overdub ...` commands
+- MIDI Mappings: `Paketti:Record to Current Track ...`, `Paketti:Record to Current Track ... (Pedal) ...`, and all `Paketti:Paketti Overdub ...` commands
 
 ### 2026-09-22 - Fix: NetDrive watcher performance and reliability optimization
 
