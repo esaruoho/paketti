@@ -345,23 +345,8 @@ function pakettiCalculatorDialog()
   paketti_calc_dialog = renoise.app():show_custom_dialog("Paketti Calculator", content, key_handler)
 end
 
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Calculator...",
-  invoke = pakettiCalculatorDialog
-}
-PakettiAddMenuEntry{
-  name = "Pattern Editor:Paketti:Calculator...",
-  invoke = pakettiCalculatorDialog
-}
-PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:Calculator...",
-  invoke = pakettiCalculatorDialog
-}
-PakettiAddMenuEntry{
-  name = "Instrument Box:Paketti:Calculator...",
-  invoke = pakettiCalculatorDialog
-}
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Calculator Dialog",
-  invoke = pakettiCalculatorDialog
-}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti Gadgets:Calculator Dialog...",invoke = pakettiCalculatorDialog}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti Gadgets:Calculator Dialog...",invoke = pakettiCalculatorDialog}
+PakettiAddMenuEntry{name="Sample Editor:Paketti Gadgets:Calculator Dialog...",invoke = pakettiCalculatorDialog}
+PakettiAddMenuEntry{name="Instrument Box:Paketti Gadgets:Calculator Dialog...",invoke = pakettiCalculatorDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Calculator Dialog...",invoke = pakettiCalculatorDialog}

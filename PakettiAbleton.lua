@@ -1769,9 +1769,9 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Ablet
   invoke=function() PakettiAbletonExportSimplerDialog() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Ableton:Export Instrument as Drum Rack (.adg)...",
   invoke=function() PakettiAbletonExportDrumRackDialog() end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:Ableton:Export Instrument as Simpler (.adv)...",
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Ableton:Export Instrument as Simpler (.adv)...",
   invoke=function() PakettiAbletonExportSimplerDialog() end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:Ableton:Export Instrument as Drum Rack (.adg)...",
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Ableton:Export Instrument as Drum Rack (.adg)...",
   invoke=function() PakettiAbletonExportDrumRackDialog() end}
 
 renoise.tool():add_keybinding{

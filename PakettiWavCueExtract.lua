@@ -1284,6 +1284,5 @@ end
 --------------------------------------------------------------------------------
 -- Keybindings for Batch OT to WAV+CUE (Menu entries in PakettiMenuConfig.lua)
 --------------------------------------------------------------------------------
-PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Batch Convert .ot to CUE Files...",invoke=PakettiBatchOTToWavCue}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Convert:Octatrack:Batch Convert .ot to CUE Files...",invoke=PakettiBatchOTToWavCue}
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert .ot to CUE Files",invoke=PakettiBatchOTToWavCue}
-

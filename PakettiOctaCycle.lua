@@ -743,9 +743,9 @@ function PakettiOctaCycleExport()
 end
 
 -- Menu entries
-PakettiAddMenuEntry{name="--Sample Editor:Paketti:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
+PakettiAddMenuEntry{name="--Sample Editor:Paketti:Export:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
 
 PakettiAddMenuEntry{name="--Sample Mappings:Paketti:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
 PakettiAddMenuEntry{name="Sample Mappings:Paketti:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}

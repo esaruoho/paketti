@@ -31,6 +31,8 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Pedal Record](#pedal-record) — `pedal-record.feature`
 - [Quick edit navigation commands](#quick-edit-navigation) — `quick-edit-navigation.feature`
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
+- [Sample Editor export menus live under Export](#sample-editor-export-menu-grouping) — `sample-editor-export-menu-grouping.feature`
+- [Sample Editor slice menus live under Slices](#sample-slice-menu-grouping) — `sample-slice-menu-grouping.feature`
 - [Sample slice selection range](#sample-slice-selection) — `sample-slice-selection.feature`
 - [Section loop switches trigger immediately](#section-loop-immediate-switch) — `section-loop-immediate-switch.feature`
 - [Section loop and MIDI capture](#section-loop-midi-capture) — `section-loop-midi-capture.feature`
@@ -554,6 +556,44 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiFindOrInsertRepeater`, `PakettiRepeaterSetActive`, `PakettiRepeaterToggleActive`, `PakettiRepeaterSetMode`, `PakettiRepeaterSetDivision`, `PakettiRepeaterAddActionKeybindings`, `PakettiRepeaterAddActionMidiMappings`, `PakettiRepeaterAddPresetMidiMappings` · **Source files:** `PakettiMidi.lua`
 
 **Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
+
+
+<a id="sample-editor-export-menu-grouping"></a>
+## Sample Editor export menus live under Export
+
+`features/sample-editor-export-menu-grouping.feature` · [session](sample-editor-export-menu-grouping.session.md)
+
+**What it does:** As a Paketti user, I want save/export/Ableton/Octatrack export commands in one Export branch, So that Sample Editor menus are scannable and conversion commands have a predictable home.
+
+**Behaviour (4 scenarios):**
+
+- Save and Ableton export actions are consolidated under Export — `@shipped @code-verified @runtime-untested`
+- Batch conversion actions live under Export Convert — `@shipped @code-verified @runtime-untested`
+- Octatrack commands are inside Export — `@shipped @code-verified @runtime-untested`
+- Non-Sample-Editor command surfaces keep their existing homes — `@stock`
+
+**How it does it:** **Key procs:** `PakettiExportMenus`, `PakettiAbletonExportSimplerDialog`, `PakettiRX2ExportDialog`, `PakettiOTExport`, `PakettiOctaCycle`, `PakettiBatchRX2ToOT`, `PakettiBatchOTToWavCue`, `PakettiDWVWExportSelectedSample`, `PakettiXRNIToWAVBatchDialog`, `PakettiMODToXRNIBatchDialog`, `PakettiBatchRX2ToXRNI`, `PakettiBatchSF2ToXRNI`, `PakettiBatchSF2ToWAV` · **Source files:** `PakettiMenuConfig.lua`, `PakettiAbleton.lua`, `PakettiRX2Encode.lua`, `PakettiSlicedImport.lua`, `PakettiDWVW.lua`, `PakettiMODToXRNI.lua`, `PakettiXRNIToWAV.lua`, `PakettiMODLoader.lua`, `PakettiRX2Loader.lua`, `PakettiSF2Loader.lua`, `PakettiOTExport.lua`, `PakettiOctaCycle.lua`, `PakettiWavCueExtract.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+
+
+<a id="sample-slice-menu-grouping"></a>
+## Sample Editor slice menus live under Slices
+
+`features/sample-slice-menu-grouping.feature` · [session](sample-slice-menu-grouping.session.md)
+
+**What it does:** As a Paketti user, I want every Sample Editor slice command under one Slices branch, So that the menu is scannable and Renoise sees separator-prefixed entries correctly.
+
+**Behaviour (4 scenarios):**
+
+- Direct Sample Editor slice actions are grouped under Slices — `@shipped @code-verified @runtime-untested`
+- Slice tool families remain separate inside Slices — `@shipped @code-verified @runtime-untested`
+- Oldschool, manual, and beatsync slice tools are also under Slices — `@shipped @code-verified @runtime-untested`
+- Non-menu command surfaces keep their existing names — `@stock`
+
+**How it does it:** **Key procs:** `PakettiSliceMenus`, `PakettiSliceFadeDialog`, `SliceSafelyDialog`, `PakettiSliceToolsDialog`, `SliceProApplyOrConfig`, `PakettiCurvedSliceCreator`, `isolate_slices_play_all_together`, `paketti_manual_slicer`, `PakettiBeatsyncSeamlessAutoChop` · **Source files:** `PakettiMenuConfig.lua`, `PakettiSlice.lua`, `PakettiSamples.lua`, `PakettiSliceFades.lua`, `PakettiSliceSafely.lua`, `PakettiSliceToolsDialog.lua`, `PakettiSlicePro.lua`, `PakettiManualSlicer.lua`, `PakettiBeatsyncSeamless.lua`, `PakettiOldschoolSlicePitch.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
 
 
 <a id="sample-slice-selection"></a>

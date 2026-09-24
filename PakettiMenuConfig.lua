@@ -44,10 +44,10 @@ if preferences.pakettiMenuConfig.SampleEditor.value then
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as 8SVX...",invoke = saveCurrentSampleAs8SVX}
 renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Save Current Sample as 16SV...",invoke = saveCurrentSampleAs16SV}
-renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Export:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert IFF/8SVX/16SV to WAV...",invoke = batchConvertIFFToWAV}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Batch Convert WAV to IFF...",invoke = batchConvertWAVToIFF}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:Export:Convert:Batch Convert WAV/AIFF to 8SVX...",invoke = batchConvertToIFF}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Convert:Batch Convert WAV/AIFF to 16SV...",invoke = batchConvertTo16SV}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Convert:Batch Convert IFF/8SVX/16SV to WAV...",invoke = batchConvertIFFToWAV}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Export:Convert:Batch Convert WAV to IFF...",invoke = batchConvertWAVToIFF}
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
@@ -185,7 +185,8 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Real-Time Slice Moni
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slices:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Real-Time Slice Monitoring (Toggle)",invoke=function() pakettiRealtimeSliceToggle() end}
 end
 
@@ -385,7 +386,8 @@ renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Gadgets:Transpose
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slice:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slices:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pick Up Slices",invoke=function() PakettiPickupSlices() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Apply Slices with Same Relative Positioning",invoke=function() PakettiApplySlicesBasedOnSampleRate() end}
@@ -912,8 +914,9 @@ end
 
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Oldschool Slice Pitch:Detect Gaps", invoke = pakettiOldschoolSlicePitchDetectGaps}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Oldschool Slice Pitch:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+renoise.tool():add_menu_entry {name = "--Sample Editor:Paketti:Slices:Oldschool Slice Pitch:Detect Gaps", invoke = pakettiOldschoolSlicePitchDetectGaps}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Oldschool Slice Pitch:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
 renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Xperimental/WIP:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
 end
 
@@ -922,12 +925,13 @@ renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti:Xperimental/WIP:D
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Oldschool Slice Pitch:Fill Selected Gap (Reversed)", invoke = pakettiOldschoolSlicePitchFillSelectedGap}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Oldschool Slice Pitch:Fill Selected Gap (Copied)", invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Oldschool Slice Pitch:Fill All Gaps (Reversed)", invoke = pakettiOldschoolSlicePitchFillAllGaps}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Oldschool Slice Pitch:Fill All Gaps (Copied)", invoke = pakettiOldschoolSlicePitchFillAllGapsCopied}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Oldschool Slice Pitch:Fill Selected Gap (PingPong)", invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Oldschool Slice Pitch:Fill All Gaps (PingPong)", invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong}
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+renoise.tool():add_menu_entry {name = "--Sample Editor:Paketti:Slices:Oldschool Slice Pitch:Fill Selected Gap (Reversed)", invoke = pakettiOldschoolSlicePitchFillSelectedGap}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Oldschool Slice Pitch:Fill Selected Gap (Copied)", invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Oldschool Slice Pitch:Fill All Gaps (Reversed)", invoke = pakettiOldschoolSlicePitchFillAllGaps}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Oldschool Slice Pitch:Fill All Gaps (Copied)", invoke = pakettiOldschoolSlicePitchFillAllGapsCopied}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Oldschool Slice Pitch:Fill Selected Gap (PingPong)", invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Oldschool Slice Pitch:Fill All Gaps (PingPong)", invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong}
 end
 
 if preferences.pakettiMenuConfig.PatternEditor.value then
@@ -939,8 +943,9 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Slices to Pattern 
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+renoise.tool():add_menu_entry {name = "--Sample Editor:Paketti:Slices:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
 end
 
 if preferences.pakettiMenuConfig.PatternEditor.value then
@@ -948,7 +953,7 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Slices to Pattern 
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatsyncOnly}
+renoise.tool():add_menu_entry {name = "--Sample Editor:Paketti:Slices:Slices to Pattern (beat sync only)", invoke = pakettiSlicesToPatternBeatsyncOnly}
 end
 
 if preferences.pakettiMenuConfig.PatternEditor.value then
@@ -957,8 +962,8 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Slices to Pattern 
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
+renoise.tool():add_menu_entry {name = "--Sample Editor:Paketti:Slices:Slices to Pattern Evenly (from first row)", invoke = function() pakettiSlicesToPatternEvenly(true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Slices to Pattern Evenly (from current row)", invoke = function() pakettiSlicesToPatternEvenly(false) end}
 end
 
 if preferences.pakettiMenuConfig.PatternEditor.value then
@@ -967,8 +972,8 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Slices to Phrase (
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
+renoise.tool():add_menu_entry {name = "--Sample Editor:Paketti:Slices:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
 end
 
 -- Enhanced versions with BPM detection
@@ -978,8 +983,8 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Slices to Pattern 
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
+renoise.tool():add_menu_entry {name = "--Sample Editor:Paketti:Slices:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
 end
 
 if preferences.pakettiMenuConfig.PatternEditor.value then
@@ -988,8 +993,8 @@ renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Slices to Phrase (
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
-renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
+renoise.tool():add_menu_entry {name = "--Sample Editor:Paketti:Slices:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti:Slices:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
 end
 
 if preferences.pakettiMenuConfig.PatternEditor.value then
@@ -2125,15 +2130,15 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Load:Load .MOD as Sa
 
 
 
--- Sample Editor Save
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Save:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Save:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Save:Paketti Save Selected Sample Range .WAV",invoke=function() pakettiSaveSampleRange("WAV") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Save:Paketti Save Selected Sample Range .FLAC",invoke=function() pakettiSaveSampleRange("FLAC") end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Save:Export .PTI Instrument",invoke=pti_savesample}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Save:Duplicate, Maximize, Convert to 16Bit, and Save as .WAV",invoke=function() DuplicateMaximizeConvertAndSave("wav") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Save:Duplicate, Maximize, Convert to 16Bit, and Save as .FLAC",invoke=function() DuplicateMaximizeConvertAndSave("flac") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Save:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
+-- Sample Editor Export
+-- REPORT-CARD >> features/sample-editor-export-menu-grouping.feature
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Export:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Export:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Export:Paketti Save Selected Sample Range .WAV",invoke=function() pakettiSaveSampleRange("WAV") end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Export:Paketti Save Selected Sample Range .FLAC",invoke=function() pakettiSaveSampleRange("FLAC") end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Export:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Export:Convert:Duplicate, Maximize, Convert to 16Bit, and Save as .WAV",invoke=function() DuplicateMaximizeConvertAndSave("wav") end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Export:Convert:Duplicate, Maximize, Convert to 16Bit, and Save as .FLAC",invoke=function() DuplicateMaximizeConvertAndSave("flac") end}
 
 
 -- Sample Editor Record
@@ -2223,25 +2228,26 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Select Beat
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Auto-Slice every 8 beats",invoke=function() auto_slice_every_8_beats() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Whole Hog (Complete Workflow)",invoke=function() whole_hog_complete_workflow() end}
 
--- Sample Editor Beatsync/Slices
--- Fixed: doubleBeatsyncLines()/halveBeatsyncLines() never existed (broken menu entries);
--- point them at the real Selected-sample variants.
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Double Beatsync Line",invoke=function() doubleBeatsyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Halve Beatsync Line",invoke=function() halveBeatsyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Analyze Slice Markers",invoke=function() analyze_slice_markers() end}
+  -- Sample Editor Slices:Beatsync/Slices
+  -- Fixed: doubleBeatsyncLines()/halveBeatsyncLines() never existed (broken menu entries);
+  -- point them at the real Selected-sample variants.
+  -- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+  renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slices:Beatsync/Slices:Double Beatsync Line",invoke=function() doubleBeatsyncLinesSelected() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slices:Beatsync/Slices:Halve Beatsync Line",invoke=function() halveBeatsyncLinesSelected() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slices:Beatsync/Slices:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slices:Beatsync/Slices:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
+  renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slices:Beatsync/Slices:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slices:Beatsync/Slices:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slices:Beatsync/Slices:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slices:Beatsync/Slices:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
+  renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slices:Beatsync/Slices:Analyze Slice Markers",invoke=function() analyze_slice_markers() end}
 
 -- Sample Editor Instruments
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Instruments:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Set Selected Instrument Velocity Tracking On",invoke=function()  selectedInstrumentVelocityTracking(1) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Set Selected Instrument Velocity Tracking Off",invoke=function() selectedInstrumentVelocityTracking(0) end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Beatsync/Slices:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
+  renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slices:Beatsync/Slices:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
 
 -- Sample Editor Experimental/WIP
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Detect Zero Crossings",invoke=detect_zero_crossings}
@@ -2299,7 +2305,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Group Samp
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Instruments:Wipe Song Retain Sample",invoke=function() WipeRetain() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Beatsync/Slices:Smart Beatsync from Selection",invoke=function() BeatsyncFromSelection() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Slices:Beatsync/Slices:Smart Beatsync from Selection",invoke=function() BeatsyncFromSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Instruments:Paketti Groovebox 8120 Eight 120-fy Instrument",invoke=function() PakettiEight120fy() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}

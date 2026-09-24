@@ -38,6 +38,8 @@ Derived views — GENERATED, never hand-edit:
 | `quick-edit-navigation.feature` | Repeated chunk selection, delay increment MIDI mappings, and triplet quantize | `quick-edit-navigation.session.md` | worktree |
 | `repeater-control.feature` | Repeater selected-track/master keybindings and MIDI controls | `repeater-control.session.md` | worktree |
 | `sample-slice-selection.feature` | Select the current sample slice's exact buffer range | `sample-slice-selection.session.md` | worktree |
+| `sample-slice-menu-grouping.feature` | Sample Editor slice menu entries grouped under Paketti:Slices with separator prefixes preserved | `sample-slice-menu-grouping.session.md` | worktree |
+| `sample-editor-export-menu-grouping.feature` | Sample Editor save/export/Ableton/Octatrack menu entries consolidated under Export and Export:Convert | `sample-editor-export-menu-grouping.session.md` | worktree |
 | `section-loop-midi-capture.feature` | Section loop scheduling/immediate switching and static MIDI automation capture | `section-loop-midi-capture.session.md` | worktree |
 | `selection-reversed-instrument.feature` | Reverse-duplicate selected instrument and retarget selected pattern notes to it | `selection-reversed-instrument.session.md` | worktree |
 | `section-loop-immediate-switch.feature` | Section-loop next/previous commands that switch immediately instead of scheduling | `section-loop-immediate-switch.session.md` | worktree |

@@ -4848,5 +4848,6 @@ function PakettiCurvedSliceApply()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Curved Slice Creator", invoke = PakettiCurvedSliceCreator}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:Curved Slice Creator", invoke = PakettiCurvedSliceCreator}
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+PakettiAddMenuEntry{name="--Sample Editor:Paketti:Slices:Curved Slice Creator", invoke = PakettiCurvedSliceCreator}
 renoise.tool():add_midi_mapping{name="Paketti:Curved Slice Creator", invoke = function(message) if message:is_trigger() then PakettiCurvedSliceCreator() end end}

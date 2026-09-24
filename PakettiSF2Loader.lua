@@ -2369,13 +2369,13 @@ end
 -- Menu entry and keybinding for Batch SF2 → XRNI
 --------------------------------------------------------------------------------
 PakettiAddMenuEntry{
-  name   = "Sample Editor:Paketti:Batch Convert SF2 to XRNI (Per Preset)...",
+  name   = "--Sample Editor:Paketti:Export:Convert:Batch Convert SF2 to XRNI (Per Preset)...",
   invoke = PakettiBatchSF2ToXRNI}
 PakettiAddMenuEntry{
   name   = "Main Menu:File:Paketti Export:Batch Convert SF2 to XRNI (Per Preset)...",
   invoke = PakettiBatchSF2ToXRNI}
 PakettiAddMenuEntry{
-  name   = "Sample Editor:Paketti:Batch Export SF2 Samples to WAV...",
+  name   = "Sample Editor:Paketti:Export:Convert:Batch Export SF2 Samples to WAV...",
   invoke = PakettiBatchSF2ToWAV}
 PakettiAddMenuEntry{
   name   = "Main Menu:File:Paketti Export:Batch Export SF2 Samples to WAV...",

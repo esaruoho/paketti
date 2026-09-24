@@ -763,7 +763,7 @@ for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
     PakettiAddMenuEntry{name="Sample Navigator:Paketti:Save:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
     PakettiAddMenuEntry{name="Sample Mappings:Paketti:Save:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
-    PakettiAddMenuEntry{name="Sample Editor:Paketti:Save:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
+    PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
     renoise.tool():add_midi_mapping{name="Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function(message) if message:is_trigger() then saveSampleToSmartFolder(i) end end}
 end
 

@@ -1493,18 +1493,19 @@ renoise.tool():add_midi_mapping{
 -- Menu Entries
 --------------------------------------------------------------------------------
 
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
 PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:SlicePro:SlicePro Apply",
+  name = "--Sample Editor:Paketti:Slices:SlicePro:SlicePro Apply",
   invoke = SliceProApplyOrConfig
 }
 
 PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:SlicePro:SlicePro Config...",
+  name = "Sample Editor:Paketti:Slices:SlicePro:SlicePro Config...",
   invoke = SliceProConfigDialog
 }
 
 PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:SlicePro:SlicePro Silent Apply",
+  name = "Sample Editor:Paketti:Slices:SlicePro:SlicePro Silent Apply",
   invoke = SliceProSilentApply
 }
 
@@ -1803,17 +1804,16 @@ renoise.tool():add_midi_mapping{
 }
 
 -- Menu entries
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
 PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:SlicePro:Create Beat-Synced Phrases",
+  name = "--Sample Editor:Paketti:Slices:SlicePro:Create Beat-Synced Phrases",
   invoke = PakettiSliceProCreateBeatsyncedPhrases
 }
 
 PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:SlicePro:Create Uniform Phrases",
+  name = "Sample Editor:Paketti:Slices:SlicePro:Create Uniform Phrases",
   invoke = PakettiSliceProCreateUniformPhrases
 }
 
 print("PakettiSlicePro.lua loaded (v3 - with overrides, fallback, progress, phrase integration)")
-
-
 

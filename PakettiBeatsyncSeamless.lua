@@ -315,7 +315,7 @@ renoise.tool():add_menu_entry{
   invoke = function() PakettiBeatsyncSeamlessAutoChop() end
 }
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Process:Beatsync Seamless (Auto-Chop Long Sample)",
+  name = "--Sample Editor:Paketti:Slices:Beatsync Seamless:Beatsync Seamless (Auto-Chop Long Sample)",
   invoke = function() PakettiBeatsyncSeamlessAutoChop() end
 }
 renoise.tool():add_keybinding{
@@ -332,7 +332,7 @@ renoise.tool():add_menu_entry{
   invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end
 }
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Process:Beatsync Seamless (Auto-Chop to Multiple Patterns)",
+  name = "Sample Editor:Paketti:Slices:Beatsync Seamless:Beatsync Seamless (Auto-Chop to Multiple Patterns)",
   invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end
 }
 renoise.tool():add_keybinding{

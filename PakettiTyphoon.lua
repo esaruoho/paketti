@@ -3082,7 +3082,7 @@ end
 
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Sample Mappings:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
@@ -3110,7 +3110,7 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Create TX16W Filter Table",
 
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Send Sample to Sampler over MIDI (SDS)...", invoke = function() PakettiTyphoonSDSDialog() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Send Sample over MIDI SDS", invoke = function() PakettiTyphoonSDSDialog() end}
 renoise.tool():add_midi_mapping{name = "Paketti:Send Sample over MIDI SDS", invoke = function(message) if message:is_trigger() then PakettiTyphoonSDSDialog() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Export Song to Yamaha TX16W", invoke = function(message) if message:is_trigger() then PakettiTyphoonExportSong() end end}

@@ -1249,9 +1249,9 @@ PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Batch Convert WAV/AIFF
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Import:Batch Convert Folder to DWVW (.C01) with Saved Settings...", invoke = PakettiDWVWBatchConvertFolder}
 
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Load:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Batch Convert WAV/AIFF to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Save:Batch Convert Folder to DWVW (.C01) with Saved Settings...", invoke = PakettiDWVWBatchConvertFolder}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Convert:Batch Convert WAV/AIFF to DWVW (.C01)...", invoke = PakettiDWVWBatchConvertDialog}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Convert:Batch Convert Folder to DWVW (.C01) with Saved Settings...", invoke = PakettiDWVWBatchConvertFolder}
 
 PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Load:Import DWVW Sample (.C01)...", invoke = PakettiDWVWImportDialog}
 PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Export:Export DWVW Sample (.C01)...", invoke = PakettiDWVWExportSelectedSample}

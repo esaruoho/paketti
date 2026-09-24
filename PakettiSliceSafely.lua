@@ -213,15 +213,16 @@ end
 -- Menu Entries
 --------------------------------------------------------------------------------
 
-PakettiAddMenuEntry{name="Sample Editor:Paketti:SliceSafely:SliceSafely Dialog...", invoke=SliceSafelyDialog}
-PakettiAddMenuEntry{name="--Sample Editor:Paketti:SliceSafely:SliceSafely (002)", invoke=function() SliceSafelyWipeAndSlice(2) end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:SliceSafely:SliceSafely (004)", invoke=function() SliceSafelyWipeAndSlice(4) end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:SliceSafely:SliceSafely (008)", invoke=function() SliceSafelyWipeAndSlice(8) end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:SliceSafely:SliceSafely (016)", invoke=function() SliceSafelyWipeAndSlice(16) end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:SliceSafely:SliceSafely (032)", invoke=function() SliceSafelyWipeAndSlice(32) end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:SliceSafely:SliceSafely (064)", invoke=function() SliceSafelyWipeAndSlice(64) end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:SliceSafely:SliceSafely (128)", invoke=function() SliceSafelyWipeAndSlice(128) end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:SliceSafely:SliceSafely (256)", invoke=function() SliceSafelyWipeAndSlice(256) end}
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+PakettiAddMenuEntry{name="--Sample Editor:Paketti:Slices:SliceSafely:SliceSafely Dialog...", invoke=SliceSafelyDialog}
+PakettiAddMenuEntry{name="--Sample Editor:Paketti:Slices:SliceSafely:SliceSafely (002)", invoke=function() SliceSafelyWipeAndSlice(2) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:SliceSafely:SliceSafely (004)", invoke=function() SliceSafelyWipeAndSlice(4) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:SliceSafely:SliceSafely (008)", invoke=function() SliceSafelyWipeAndSlice(8) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:SliceSafely:SliceSafely (016)", invoke=function() SliceSafelyWipeAndSlice(16) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:SliceSafely:SliceSafely (032)", invoke=function() SliceSafelyWipeAndSlice(32) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:SliceSafely:SliceSafely (064)", invoke=function() SliceSafelyWipeAndSlice(64) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:SliceSafely:SliceSafely (128)", invoke=function() SliceSafelyWipeAndSlice(128) end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Slices:SliceSafely:SliceSafely (256)", invoke=function() SliceSafelyWipeAndSlice(256) end}
 
 PakettiAddMenuEntry{name="Instrument Box:Paketti:SliceSafely:SliceSafely Dialog...", invoke=SliceSafelyDialog}
 PakettiAddMenuEntry{name="--Instrument Box:Paketti:SliceSafely:SliceSafely (002)", invoke=function() SliceSafelyWipeAndSlice(2) end}
@@ -247,8 +248,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:SliceSafely Dialog...", invok
 renoise.tool():add_midi_mapping{name="Paketti:SliceSafely Dialog...", invoke=function(message) if message:is_trigger() then SliceSafelyDialog() end end}
 
 print("PakettiSliceSafely.lua loaded")
-
-
 
 
 

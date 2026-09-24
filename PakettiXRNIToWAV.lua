@@ -399,7 +399,7 @@ end
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Batch Convert .XRNI to .WAV...",invoke=function() PakettiXRNIToWAVBatchDialog() end}
 PakettiAddMenuEntry{name="--Main Menu:File:Paketti Import:Batch Convert .XRNI to .WAV...",invoke=function() PakettiXRNIToWAVBatchDialog() end}
 PakettiAddMenuEntry{name="Instrument Box:Paketti:Load:Batch Convert .XRNI to .WAV...",invoke=function() PakettiXRNIToWAVBatchDialog() end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Batch Convert .XRNI to .WAV...",invoke=function() PakettiXRNIToWAVBatchDialog() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Convert:Batch Convert .XRNI to .WAV...",invoke=function() PakettiXRNIToWAVBatchDialog() end}
 PakettiAddMenuEntry{name="Disk Browser Files:Paketti:Import/Export:Batch Convert .XRNI to .WAV...",invoke=function() PakettiXRNIToWAVBatchDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert .XRNI to .WAV",invoke=function() PakettiXRNIToWAVBatchDialog() end}

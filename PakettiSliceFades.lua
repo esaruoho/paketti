@@ -190,7 +190,8 @@ end
 
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Slice Tools:Slice Fades Dialog...",
   invoke = function() PakettiSliceFadeDialog() end}
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slice Fades:Slice Fades Dialog...",
+-- REPORT-CARD >> features/sample-slice-menu-grouping.feature
+PakettiAddMenuEntry{name = "--Sample Editor:Paketti:Slices:Slice Fades:Slice Fades Dialog...",
   invoke = function() PakettiSliceFadeDialog() end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Slice Fades:Slice Fades Dialog...",
   invoke = function() PakettiSliceFadeDialog() end}
@@ -204,9 +205,9 @@ for _, ms in ipairs({0.5, 1, 2, 5, 10, 20}) do
   local label = string.format("%gms", ms)
   PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Slice Tools:Fade Out Slice Ends " .. label,
     invoke = function() PakettiSliceFadeOut(ms) end}
-  PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slice Fades:Fade Out Slice Ends " .. label,
+  PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slices:Slice Fades:Fade Out Slice Ends " .. label,
     invoke = function() PakettiSliceFadeOut(ms) end}
-  PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slice Fades:Fade Both Slice Ends " .. label,
+  PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slices:Slice Fades:Fade Both Slice Ends " .. label,
     invoke = function() PakettiSliceFadeBothEnds(ms) end}
   renoise.tool():add_keybinding{name = "Global:Paketti:Fade Out Slice Ends " .. label,
     invoke = function() PakettiSliceFadeOut(ms) end}
