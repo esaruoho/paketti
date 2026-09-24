@@ -4,7 +4,7 @@
 # WHAT THIS CARD SPAWNS:
 #   codespace  — PakettiSamples.lua folder watcher/load path and Paketti0G01_Loader.lua watcher preferences
 #   thinkspace — netdrive-2logic-watcher.session.md
-#   areaspace  — OWNS: detecting new audio files in the configured NetDrive folder and loading them as Paketti instruments
+#   areaspace  — OWNS: detecting new audio files in the configured NetDrive folder, loading them as Paketti instruments, and creating their pattern trigger tracks
 #                MUST NOT TOUCH: audio recording itself, external DAW output, existing random-sample loaders, or pre-existing files in the folder
 #
 # Innards linked back to this card (grep "features/netdrive-2logic-watcher.feature"):
@@ -17,6 +17,7 @@
 # WATCH: PakettiNetDriveWatcher PakettiNetDriveWatcherStart PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile pakettiNetDriveWatcherFolder
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-24  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-23  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-22  direct-commit  touched: PakettiNetDriveWatcher PakettiNetDriveWatcherStart PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile pakettiNetDriveWatcherFolder
 # =============================================================================
@@ -59,6 +60,17 @@ Feature: NetDrive 2logic watcher
     Then Paketti inserts a new instrument after the current instrument
     And it loads the file into sample slot 1
     And it names the sample and instrument from the audio filename
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Create an adjacent sequencer trigger track for each loaded arrival
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherCreateTriggerTrack (~line 4014) — inserts the new track beside the current sequencer track and writes C-4 + 0G01
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherFindSequencerTrack (~line 3993) — resolves non-sequencer selections to a real sequencer-track anchor
+    Given a new audio file has loaded from the watch folder
+    When Paketti creates the playback trigger
+    Then it inserts a new sequencer track directly after the current sequencer-track anchor
+    And it never uses a group, master, or send track as the trigger track
+    And row 1 of the current pattern contains C-4 for the loaded instrument
+    And effect column 1 on that row contains 0G01
 
   @shipped @code-verified @runtime-untested
   Scenario: Expose manual control for the watcher

@@ -3990,6 +3990,49 @@ local function PakettiNetDriveWatcherBasename(path)
   return filename:gsub("%.[^%.]+$", "")
 end
 
+local function PakettiNetDriveWatcherFindSequencerTrack(song, start_index)
+  if song.tracks[start_index]
+      and song.tracks[start_index].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    return start_index
+  end
+
+  for track_index = start_index - 1, 1, -1 do
+    if song.tracks[track_index].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      return track_index
+    end
+  end
+
+  for track_index = 1, #song.tracks do
+    if song.tracks[track_index].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      return track_index
+    end
+  end
+
+  return nil
+end
+
+local function PakettiNetDriveWatcherCreateTriggerTrack(song, instrument_index, track_name)
+  local anchor_track_index = PakettiNetDriveWatcherFindSequencerTrack(song, song.selected_track_index)
+  if not anchor_track_index then return nil end
+
+  local new_track_index = math.min(anchor_track_index + 1, song.sequencer_track_count + 1)
+  song:insert_track_at(new_track_index)
+  song.selected_track_index = new_track_index
+
+  local track = song.tracks[new_track_index]
+  track.name = track_name
+  track.visible_note_columns = math.max(1, track.visible_note_columns)
+  track.visible_effect_columns = math.max(1, track.visible_effect_columns)
+
+  local line = song.patterns[song.selected_pattern_index].tracks[new_track_index]:line(1)
+  line.note_columns[1].note_string = "C-4"
+  line.note_columns[1].instrument_value = instrument_index - 1
+  line.effect_columns[1].number_string = "0G"
+  line.effect_columns[1].amount_string = "01"
+
+  return new_track_index
+end
+
 function PakettiNetDriveWatcherLoadFile(path)
   local ok, err = pcall(function()
     local song = renoise.song()
@@ -4016,6 +4059,7 @@ function PakettiNetDriveWatcherLoadFile(path)
     sample.name = sample_name
     instrument.name = sample_name
     PakettiInjectApplyLoaderSettings(sample)
+    local trigger_track_index = PakettiNetDriveWatcherCreateTriggerTrack(song, new_index, sample_name)
     if preferences and preferences.pakettiNetDriveWatcherLastLoadedSignature then
       preferences.pakettiNetDriveWatcherLastLoadedSignature.value =
         PakettiNetDriveWatcherSignature(path)
@@ -4023,7 +4067,11 @@ function PakettiNetDriveWatcherLoadFile(path)
     end
     renoise.app().window.active_middle_frame =
       renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-    renoise.app():show_status("NetDrive watcher loaded: " .. sample_name)
+    if trigger_track_index then
+      renoise.app():show_status("NetDrive watcher loaded: " .. sample_name .. " to trigger track " .. tostring(trigger_track_index))
+    else
+      renoise.app():show_status("NetDrive watcher loaded: " .. sample_name .. " (no sequencer track available for trigger)")
+    end
     return true
   end)
 
