@@ -7,7 +7,7 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Paketti StemLoader (Slice to 
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Import/Export:Export Instrument to ITI...",invoke = function() pakettiITIExportDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Impulse Tracker:Toggle Marker Position (CTRL-F7)",invoke = function() PakettiCaptureMarkerPosition() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Matrix Overview",invoke = function() createMatrixOverview() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus Step Sequencer",invoke = function() createStepSequencerDialog() end}
@@ -27,9 +27,9 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:eSpeak:Generate Drum
 end
 
 if preferences.pakettiMenuConfig.InstrumentBox.value then
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Wavetable Control...", invoke = show_wavetable_dialog}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Import Wavetable...", invoke = paketti_import_wavetable}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:.WT:Export Wavetable...", invoke = paketti_export_wavetable}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Import/Export:.WT:Wavetable Control...", invoke = show_wavetable_dialog}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Import/Export:.WT:Import Wavetable...", invoke = paketti_import_wavetable}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Import/Export:.WT:Export Wavetable...", invoke = paketti_export_wavetable}
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
@@ -109,7 +109,7 @@ renoise.tool():add_menu_entry{name = "Pattern Sequencer:Paketti Gadgets:Sectioni
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Open Paketti Pattern / Phrase Init Preferences...", invoke = function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Pattern / Phrase Init Preferences...", invoke = function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Apply Pattern Init Settings to Current Track", invoke = function() pakettiTrackSettingsApplyTrackSettings() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 end
@@ -168,7 +168,7 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Slice to Pat
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:BPM-Based Sample Slicer Dialog...",invoke = showBPMBasedSliceDialog}
 end
 
 if preferences.pakettiMenuConfig.SampleEditor.value then
@@ -1967,11 +1967,11 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Stepp
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Steppers:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Flood Fill Pattern with Phrase",invoke=function() PakettiFloodFillPatternWithPhrase() end}
 end
@@ -3751,8 +3751,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Randomize BPM Now (60-220, Be
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumns(false) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
 if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
@@ -4252,7 +4251,7 @@ end
 --- Phrase Editor Config
 if preferences.pakettiMenuConfig.PhraseEditor.value then
   debugPrint("Phrase Editor Menus Are Enabled")
-renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Apply Phrase Init Settings to Current Phrase",invoke=function() pakettiPhraseSettingsApplyPhraseSettings() end}
 if PAKETTI_HAS_PHRASES then
   renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}

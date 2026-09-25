@@ -8,6 +8,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
 - [Clipboard Pattern to Phrase conversion](#clipboard-pattern-to-phrase) — `clipboard-pattern-to-phrase.feature`
+- [Command Wheel adjustments use one router](#command-wheel-adjustments) — `command-wheel-adjustments.feature`
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
 - [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
 - [Disk Browser refresh nudge](#disk-browser-refresh) — `disk-browser-refresh.feature`
@@ -21,6 +22,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Paketti Master Bandpass audition filter](#master-bandpass) — `master-bandpass.feature`
 - [Master Low-Cut 200Hz punch toggle](#master-low-cut-200hz) — `master-low-cut-200hz.feature`
 - [Paketti × Claude MCP + probe bridges (Renoise ↔ Claude)](#mcp-claude-bridge) — `mcp-claude-bridge.feature`
+- [Menu registration skips exact duplicates](#menu-registration-duplicates) — `menu-registration-duplicates.feature`
 - [Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens)](#mlx-renoise-bridge) — `mlx-renoise-bridge.feature`
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
 - [NetDrive 2logic watcher](#netdrive-2logic-watcher) — `netdrive-2logic-watcher.feature`
@@ -39,6 +41,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
 - [Subcolumn-only pattern inversion](#subcolumn-only-invert) — `subcolumn-only-invert.feature`
+- [Tree menu map generator](#treemenu) — `treemenu.feature`
 - [TX16W IMG exports use Cyclone-compatible item identity](#tx16w-cyclone-images) — `tx16w-cyclone-images.feature`
 
 
@@ -75,6 +78,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `write_note_column_data_to_phrase`, `prepare_phrase_clipboard_paste`, `analyze_phrase_clipboard_payload`, `get_selected_phrase_line_index`, `paste_phrase_from_clipboard`, `paste_phrase_by_editstep`, `mix_paste_phrase_from_clipboard`, `flood_fill_phrase_from_clipboard`, `wonked_paste_phrase_from_clipboard`, `transposed_paste_phrase_from_clipboard`, `swap_phrase_selection_with_clipboard` · **Source files:** `PakettiClipboard.lua`
 
 **Grade:** @code-verified ×6 · @runtime-untested ×6 · @shipped ×6 · @stock ×1
+
+
+<a id="command-wheel-adjustments"></a>
+## Command Wheel adjustments use one router
+
+`features/command-wheel-adjustments.feature` · [session](command-wheel-adjustments.session.md)
+
+**What it does:** As a Paketti maintainer, I want Command Wheel index and value nudges to share one adjustment path, So that adding new deltas does not require bespoke functions and repeated keybinding registrations.
+
+**Behaviour (3 scenarios):**
+
+- Index and value keybindings share one adjustment router — `@shipped @code-verified @runtime-untested`
+- Existing internal wrapper names remain callable — `@shipped @code-verified @runtime-untested`
+- Index adjustment wraps through the valid index range — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiCommandWheelAdjust`, `PakettiCommandWheelAdjustIndex`, `PakettiCommandWheelAdjustValue`, `PakettiCommandWheelMakeAdjustInvoke`, `paketti_command_wheel_adjust_keybindings` · **Source files:** `PakettiCommandWheel.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3
 
 
 <a id="device-hotswap-missing-to-actual"></a>
@@ -327,6 +348,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Talk to a Claude /loop session from a Renoise dialog — `@built @untested`
 
 **Grade:** @built ×11 · @hw-verified ×4 · @untested ×7
+
+
+<a id="menu-registration-duplicates"></a>
+## Menu registration skips exact duplicates
+
+`features/menu-registration-duplicates.feature` · [session](menu-registration-duplicates.session.md)
+
+**What it does:** As a Paketti maintainer, I want exact duplicate menu registrations to be detected before Renoise sees them, So that one duplicate path cannot abort Paketti startup.
+
+**Behaviour (3 scenarios):**
+
+- Duplicate pending menu names are skipped during sorted flush — `@shipped @code-verified @runtime-untested`
+- Existing menu entries are not registered again — `@shipped @code-verified @runtime-untested`
+- Pattern/Phrase Init Preferences keeps one Preferences path — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiFlushMenuEntries`, `Paketti`, `Pattern`, `/`, `Phrase`, `Init`, `Preferences` · **Source files:** `Paketti0G01_Loader.lua`, `PakettiMenuConfig.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3
 
 
 <a id="mlx-renoise-bridge"></a>
@@ -707,6 +746,28 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `invert_content_subcolumn` · **Source files:** `PakettiRequests.lua`, `PakettiMenuConfig.lua`
 
 **Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+
+
+<a id="treemenu"></a>
+## Tree menu map generator
+
+`features/treemenu.feature` · [session](treemenu.session.md)
+
+**What it does:** As a Paketti maintainer, I want Lua menu registrations rendered as a grouped tree, So that menu organization can be inspected without manually grepping thousands of add_menu_entry calls.
+
+**Behaviour (7 scenarios):**
+
+- Literal menu registrations become an exact static tree — `@shipped @code-verified @runtime-untested`
+- Separator markers group under the real menu root — `@shipped @code-verified @runtime-untested`
+- Dynamic paths are visible without polluting the exact tree — `@shipped @code-verified @runtime-untested`
+- Simple Lua loops expand into concrete menu rows — `@shipped @code-verified @runtime-untested`
+- One root branch can be inspected alone — `@shipped @code-verified @runtime-untested`
+- The report can refresh repeatedly while source files are edited — `@shipped @code-verified @runtime-untested`
+- Duplicate exact menu paths expose real registration bugs — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `treemenu`, `extract_entries`, `build_report`, `collect_string_constants`, `clean_menu_path` · **Source files:** `PakettiMenuConfig.lua`
+
+**Grade:** @code-verified ×7 · @runtime-untested ×7 · @shipped ×7
 
 
 <a id="tx16w-cyclone-images"></a>

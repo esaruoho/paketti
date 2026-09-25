@@ -475,5 +475,5 @@ PakettiAddMenuEntry{ name = "Main Menu:File:Paketti Export:Batch Convert PTI Fol
   invoke = PakettiBatchPTIToWavCue }
 PakettiAddMenuEntry{ name = "Disk Browser:Paketti:Import/Export:Batch Convert PTI Folder to WAV with CUE...",
   invoke = PakettiBatchPTIToWavCue }
-PakettiAddMenuEntry{ name = "Instrument Box:Paketti:Instruments:Batch Convert PTI Folder to WAV with CUE...",
+PakettiAddMenuEntry{ name = "Instrument Box:Paketti:Import/Export:Batch Convert PTI Folder to WAV with CUE...",
   invoke = PakettiBatchPTIToWavCue }

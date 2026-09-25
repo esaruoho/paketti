@@ -2101,7 +2101,7 @@ function PakettiBatchSF2ToXRNI_Worker(sf2_files, output_folder, dialog, vb)
 
     if dialog and dialog.visible then
       vb.views.progress_text.text = string.format(
-        "File %d/%d: %s – reading…", i, #sf2_files, sf2_filename)
+        "File %d/%d: %s – reading...", i, #sf2_files, sf2_filename)
     end
     renoise.app():show_status(string.format(
       "Batch SF2->XRNI: %d/%d – %s", i, #sf2_files, sf2_filename))
@@ -2130,7 +2130,7 @@ function PakettiBatchSF2ToXRNI_Worker(sf2_files, output_folder, dialog, vb)
           -- ── Parse SF2 structure ───────────────────────────────────
           if dialog and dialog.visible then
             vb.views.progress_text.text = string.format(
-              "File %d/%d: %s – reading headers…", i, #sf2_files, sf2_filename)
+              "File %d/%d: %s – reading headers...", i, #sf2_files, sf2_filename)
           end
           local headers = PakettiSF2ReadSampleHeaders(data)
           if not headers or #headers == 0 then
@@ -2140,14 +2140,14 @@ function PakettiBatchSF2ToXRNI_Worker(sf2_files, output_folder, dialog, vb)
             coroutine.yield()
             if dialog and dialog.visible then
               vb.views.progress_text.text = string.format(
-                "File %d/%d: %s – reading instruments…", i, #sf2_files, sf2_filename)
+                "File %d/%d: %s – reading instruments...", i, #sf2_files, sf2_filename)
             end
             local instruments_zones = PakettiSF2ReadInstruments(data, nil)
             coroutine.yield()
 
             if dialog and dialog.visible then
               vb.views.progress_text.text = string.format(
-                "File %d/%d: %s – reading presets…", i, #sf2_files, sf2_filename)
+                "File %d/%d: %s – reading presets...", i, #sf2_files, sf2_filename)
             end
             local presets = PakettiSF2ReadPresets(data, nil)
             if not presets or #presets == 0 then

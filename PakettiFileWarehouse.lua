@@ -215,7 +215,7 @@ local function fw_truncate(text, avail_w, size)
   if maxc < 1 then maxc = 1 end
   if #text <= maxc then return text end
   if maxc <= 1 then return text:sub(1, 1) end
-  return text:sub(1, maxc - 1) .. "…"
+  return text:sub(1, maxc - 1) .. "..."
 end
 
 -- The canvas font draws glyphs with ctx:stroke(), so the TEXT color is the
@@ -712,7 +712,7 @@ end
 local function fw_toggle_mode()
   fw_mode = (fw_mode == "music") and "files" or "music"
   if fw_mode == "music" then
-    renoise.app():show_status("File Warehouse: probing .xrns songs for the music graph…")
+    renoise.app():show_status("File Warehouse: probing .xrns songs for the music graph...")
     fw_build_music_graph()
     if fw_status_text then
       fw_status_text.text = string.format("Music graph: %d songs, %d samples (click a sample to see which songs use it)",
@@ -787,7 +787,7 @@ function PakettiFileWarehouseShow()
     vb:button{ text = "◀ Back", width = 64, notifier = fw_go_back },
     vb:button{ text = "Fwd ▶", width = 64, notifier = fw_go_forward },
     vb:button{ text = "Up", width = 44, notifier = fw_go_up },
-    vb:button{ text = "Open Folder…", width = 100, notifier = function()
+    vb:button{ text = "Open Folder...", width = 100, notifier = function()
       local p = renoise.app():prompt_for_path("Open folder in File Warehouse")
       if p and p ~= "" then
         -- prompt_for_path returns a trailing slash; normalize
@@ -825,5 +825,5 @@ end
 --------------------------------------------------------------------------------
 -- Registration
 --------------------------------------------------------------------------------
-PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:File Warehouse…", invoke = PakettiFileWarehouseShow }
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Xperimental/WIP:File Warehouse...", invoke = PakettiFileWarehouseShow }
 renoise.tool():add_keybinding{ name = "Global:Paketti:File Warehouse", invoke = function() PakettiFileWarehouseShow() end }

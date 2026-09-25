@@ -2714,11 +2714,11 @@ function pakettiPatternPhraseInitDialog()
 end
 
 -- Keybindings for combined dialog
-renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
-renoise.tool():add_midi_mapping{name="Paketti:Open Paketti Pattern / Phrase Init Preferences...",invoke=function(message) if message:is_trigger() then pakettiPatternPhraseInitDialog() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern / Phrase Init Preferences...",invoke=function() pakettiPatternPhraseInitDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Pattern / Phrase Init Preferences...",invoke=function(message) if message:is_trigger() then pakettiPatternPhraseInitDialog() end end}
 
 -- Keybindings for applying Pattern Init settings to current track
 renoise.tool():add_keybinding{name="Global:Paketti:Apply Pattern Init Settings to Current Track",invoke=function() pakettiTrackSettingsApplyTrackSettings() end}

@@ -14,6 +14,7 @@ Derived views — GENERATED, never hand-edit:
 | `2026-06-11-groovebox-controller-follow-and-menu.feature` | AKAI controller debug/demo entries moved out of the Groovebox menu | `2026-06-11-groovebox-controller-follow-and-menu.session.md` | `37f054b1` `aae34805` `5483d3e3` |
 | `2026-06-11-ui-fixes-and-menu-config.feature` | Groovebox 8120 Kit loader status column alignment | `2026-06-11-ui-fixes-and-menu-config.session.md` | `47e81a77` `bc06819a` `2a1bce7a` |
 | `clipboard-pattern-to-phrase.feature` | Clipboard paste from Pattern Editor into Phrase Editor clears pattern instrument values instead of treating them as phrase sample selectors | `clipboard-pattern-to-phrase.session.md` | worktree |
+| `command-wheel-adjustments.feature` | Command Wheel index/value nudges share one parameterized adjustment router | `command-wheel-adjustments.session.md` | worktree |
 | `device-hotswap-missing-to-actual.feature` | Device hotswap — missing plugins → actually-installed equivalents | — | `bc06819a` `2300b421` |
 | `device-toggle-automation.feature` | Device Control NN enable/disable/toggle records bypass automation | `device-toggle-automation.session.md` | worktree |
 | `disk-browser-refresh.feature` | Disk Browser refresh nudge by switching category away and restoring it | `disk-browser-refresh.session.md` | worktree |
@@ -26,6 +27,7 @@ Derived views — GENERATED, never hand-edit:
 | `groovebox-8120-record-pakettified-instrument.feature` | Groovebox 8120 Record button records into a Pakettified instrument | — | `1797e45a` `34fac2d3` `bc06819a` |
 | `master-low-cut-200hz.feature` | Master Low-Cut 200Hz punch toggle | — | `bc06819a` `d348b0be` |
 | `master-bandpass.feature` | Paketti Master Bandpass audition filter | `master-bandpass.session.md` | worktree |
+| `menu-registration-duplicates.feature` | Startup menu flush skips exact duplicate menu registrations instead of aborting Paketti | `menu-registration-duplicates.session.md` | worktree |
 | `mcp-claude-bridge.feature` | Paketti × Claude MCP + probe bridges (Renoise ↔ Claude) | — | `4bc8daab` `26c583a5` `bc06819a` |
 | `mlx-renoise-bridge.feature` | Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens) | — | `4bc8daab` `26c583a5` `bc06819a` |
 | `music-mouse.feature` | Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise | `music-mouse.session.md` | `37f054b1` `c3465c5d` `ab144dc2` |
@@ -46,3 +48,4 @@ Derived views — GENERATED, never hand-edit:
 | `song-lifecycle-safety.feature` | Song-lifecycle safety for canvas dialogs and song observers | — | `bc06819a` `3d2cd863` `83526e80` |
 | `subcolumn-only-invert.feature` | Volume/panning/delay/sample-FX-only note subcolumn inversion | `subcolumn-only-invert.session.md` | worktree |
 | `tx16w-cyclone-images.feature` | TX16W IMG exports use Cyclone-compatible boot sectors | `tx16w-cyclone-images.session.md` | worktree |
+| `treemenu.feature` | Static Lua menu registrations rendered as grouped menu tree reports | `treemenu.session.md` | worktree |

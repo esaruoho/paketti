@@ -3085,7 +3085,7 @@ PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Exp
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Sample Mappings:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Save:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
-PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:Import/Export:Export Instrument to Yamaha TX16W (.C01+.O01+720K disks)...", invoke = function() PakettiTyphoonExportDialog() end}
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Instrument to Yamaha TX16W", invoke = function() PakettiTyphoonExportDialog() end}
 renoise.tool():add_midi_mapping{name = "Paketti:Export Instrument to Yamaha TX16W", invoke = function(message) if message:is_trigger() then PakettiTyphoonExportDialog() end end}
@@ -3101,7 +3101,7 @@ renoise.tool():add_keybinding{name = "Global:Paketti:TX16W Modulation Table", in
 
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:File Formats:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
-PakettiAddMenuEntry{name = "Disk Browser:Paketti:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:Import/Export:Export Song to Yamaha TX16W (setup + performance + voices)...", invoke = function() PakettiTyphoonExportSong() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Song to Yamaha TX16W", invoke = function() PakettiTyphoonExportSong() end}
 
 PakettiAddMenuEntry{name = "Main Menu:File:Paketti Export:Create TX16W Filter Table (.T18)...", invoke = function() PakettiTyphoonExportFilterTable() end}
@@ -3134,8 +3134,8 @@ for _, where in ipairs({
   PakettiAddMenuEntry{name = where .. VOICE_LABEL, invoke = function() PakettiTyphoonImportVoiceFile() end}
   PakettiAddMenuEntry{name = where .. FOLDER_LABEL, invoke = function() PakettiTyphoonImportFolder() end}
 end
-PakettiAddMenuEntry{name = "Disk Browser:Paketti:" .. IMPORT_LABEL, invoke = function() PakettiTyphoonImportDiskImage() end}
-PakettiAddMenuEntry{name = "Disk Browser:Paketti:" .. FOLDER_LABEL, invoke = function() PakettiTyphoonImportFolder() end}
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:Import/Export" .. IMPORT_LABEL, invoke = function() PakettiTyphoonImportDiskImage() end}
+PakettiAddMenuEntry{name = "Disk Browser:Paketti:Import/Export" .. FOLDER_LABEL, invoke = function() PakettiTyphoonImportFolder() end}
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Import TX16W Disk Image", invoke = function() PakettiTyphoonImportDiskImage() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Import Typhoon Voice", invoke = function() PakettiTyphoonImportVoiceFile() end}

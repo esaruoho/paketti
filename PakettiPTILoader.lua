@@ -2781,7 +2781,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Batch Convert XRNI Folder to 
 renoise.tool():add_midi_mapping{name="Paketti:Batch Convert XRNI Folder to PTI",invoke=function(message) if message:is_trigger() then PakettiBatchXRNIToPTI() end end}
 PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:Polyend (PTI) Batch Convert XRNI Folder to PTI...",invoke = PakettiBatchXRNIToPTI}
 PakettiAddMenuEntry{name="Disk Browser:Paketti:Import/Export:Batch Convert XRNI Folder to PTI...",invoke = PakettiBatchXRNIToPTI}
-PakettiAddMenuEntry{name="Instrument Box:Paketti:Instruments:Batch Convert XRNI Folder to PTI...",invoke = PakettiBatchXRNIToPTI}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Import/Export:Batch Convert XRNI Folder to PTI...",invoke = PakettiBatchXRNIToPTI}
 
 
 

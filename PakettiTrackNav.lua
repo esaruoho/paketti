@@ -8,7 +8,7 @@
 --     the pattern down to only the tracks that carry notes.
 --   * Optional "auto-collapse on focus loss": when you leave a track that was
 --     empty when you jumped to it, it re-collapses itself.
---   * "…and solo" variants that mute every other sequencer track.
+--   * "...and solo" variants that mute every other sequencer track.
 --
 -- Deliberate deviations from the HexTools original (to protect the user's song):
 --   * The original recolours tracks (blue/grey/red) to signal active/null/focus.

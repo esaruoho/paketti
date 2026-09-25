@@ -17,7 +17,7 @@
 -- caller (same contract as the 8bit glyph functions).
 --
 -- Anything not defined here automatically falls back to the 8bit glyph (handled
--- in PakettiCanvasFont.lua), so exotic characters (⌘ ⌥ ↑ ä …) keep rendering.
+-- in PakettiCanvasFont.lua), so exotic characters (⌘ ⌥ ↑ ä ...) keep rendering.
 
 -- The section between HOTPATCH-START / HOTPATCH-END is self-contained Lua: it
 -- (re)builds the monospace glyph table. It can be extracted and pushed to a

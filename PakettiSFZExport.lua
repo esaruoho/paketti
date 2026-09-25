@@ -420,25 +420,13 @@ function PakettiSFZBatchConvertFolderPath(folder)
   slicer:start()
 end
 
-PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:SFZ Export Current Instrument...",
-  invoke=function() PakettiSFZExportDialog() end}
-PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:SFZ Export All Instruments in Song...",
-  invoke=function() PakettiSFZExportAllInstruments() end}
-PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:SFZ Batch Convert Folder (.xrni/.wav/.mp3/.flac)...",
-  invoke=function() PakettiSFZBatchConvertFolder() end}
-PakettiAddMenuEntry{name="Disk Browser:Paketti:Import/Export:SFZ Batch Convert Folder...",
-  invoke=function() PakettiSFZBatchConvertFolder() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export All Instruments as SFZ...",
-  invoke=function() PakettiSFZExportAllInstruments() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:SFZ Batch Convert Folder...",
-  invoke=function() PakettiSFZBatchConvertFolder() end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:SFZ Export Current Instrument...",invoke=function() PakettiSFZExportDialog() end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:SFZ Export All Instruments in Song...",invoke=function() PakettiSFZExportAllInstruments() end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:SFZ Batch Convert Folder (.xrni/.wav/.mp3/.flac)...",invoke=function() PakettiSFZBatchConvertFolder() end}
+PakettiAddMenuEntry{name="Disk Browser:Paketti:Import/Export:SFZ Batch Convert Folder...",invoke=function() PakettiSFZBatchConvertFolder() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Import/ExportExport All Instruments as SFZ...",invoke=function() PakettiSFZExportAllInstruments() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Import/Export:SFZ Batch Convert Folder...",invoke=function() PakettiSFZBatchConvertFolder() end}
 
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Export All Instruments as SFZ",
-  invoke = function() PakettiSFZExportAllInstruments() end }
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:SFZ Batch Convert Folder",
-  invoke = function() PakettiSFZBatchConvertFolder() end }
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Export All Instruments as SFZ",
-  invoke = function(message) if message:is_trigger() then PakettiSFZExportAllInstruments() end end }
+renoise.tool():add_keybinding{name = "Global:Paketti:Export All Instruments as SFZ",invoke = function() PakettiSFZExportAllInstruments() end }
+renoise.tool():add_keybinding{name = "Global:Paketti:SFZ Batch Convert Folder",invoke = function() PakettiSFZBatchConvertFolder() end }
+renoise.tool():add_midi_mapping{name = "Paketti:Export All Instruments as SFZ",invoke = function(message) if message:is_trigger() then PakettiSFZExportAllInstruments() end end }

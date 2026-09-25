@@ -280,7 +280,7 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
     renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
     pakettiSampleRecordingStart()
     gbx_record_phase[row_index] = 1
-    renoise.app():show_status(string.format("8120 Row %02d: Recording… Press Record again to stop.", row_index))
+    renoise.app():show_status(string.format("8120 Row %02d: Recording... Press Record again to stop.", row_index))
     return
   end
 
@@ -314,7 +314,7 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
     gbx_record_phase[row_index] = 0
     gbx_prev_sample_count[row_index] = 0
     gbx_record_instrument_index[row_index] = 0
-    renoise.app():show_status(string.format("8120 Row %02d: Recording stopped. Mapping sample…", row_index))
+    renoise.app():show_status(string.format("8120 Row %02d: Recording stopped. Mapping sample...", row_index))
     return
   end
 end
@@ -503,7 +503,7 @@ function PakettiEightOneTwentyInitializeDefaultSlots()
     return
   end
   if type(pakettiPreferencesDefaultInstrumentLoader) ~= "function" then return end
-  renoise.app():show_status("Groovebox 8120: loading Paketti Default Instrument into 8 slots…")
+  renoise.app():show_status("Groovebox 8120: loading Paketti Default Instrument into 8 slots...")
   for i = 1, 8 do
     if #song.instruments < i then
       if not safeInsertInstrumentAt(song, i) then break end
@@ -5407,7 +5407,7 @@ end
 -- Select Row (Knob) — ONE absolute knob/fader (0..127) split evenly across the
 -- 8 rows: sweeping it min→max walks the selection through rows 1→8, each setting
 -- that row's track AND instrument and focusing it (so the Selected Row Step
--- buttons + MidiMix LEDs follow). 16 values per row (0-15 = row 1 … 112-127 = row 8).
+-- buttons + MidiMix LEDs follow). 16 values per row (0-15 = row 1 ... 112-127 = row 8).
 renoise.tool():add_midi_mapping{
   name = "Paketti:Paketti Groovebox 8120:Select Row (Knob 01-08)",
   invoke = function(message)
@@ -6156,7 +6156,7 @@ end
 -- note-numbers and the LED colour map differ between mk1 (red/green/yellow, set
 -- by velocity) and mk2 (RGB) and must NOT be guessed. This probe proves the two
 -- things we need and gathers the real data: (1) we can READ the pads — open it
--- and every press prints "APC IN: …" to the terminal; (2) we can LIGHT them —
+-- and every press prints "APC IN: ..." to the terminal; (2) we can LIGHT them —
 -- the LED test walks notes 0..39 with cycling velocities so we see the palette.
 local paketti_apc_in  = nil
 local paketti_apc_out = nil
@@ -6239,7 +6239,7 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:!Preferences:Debug:MidiControl
 -- APC-style bidirectional grid (Renoise paints step state onto the controller)
 -- has no documented counterpart. This probe settles the two things the manual
 -- can't: (1) the exact CoreMIDI port name(s) Renoise sees, and the real pad/enc
--- note+CC map (open it, every incoming message prints "HAPAX IN: …"); and (2)
+-- note+CC map (open it, every incoming message prints "HAPAX IN: ..."); and (2)
 -- whether ANY host MIDI lights ANYTHING on the grid (the LED test blasts note-ons
 -- across notes and channels while Josh watches the pads). If nothing lights, the
 -- documented "NO" is confirmed on hardware.
@@ -7532,16 +7532,16 @@ renoise.tool():add_midi_mapping{
   invoke = function(message) if message:is_trigger() then paketti_8120_clever_load_all_safe() end end }
 
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Groovebox:Sequential Load (8 folders)…",
+  name = "Main Menu:Tools:Paketti:Groovebox:Sequential Load (8 folders)...",
   invoke = paketti_8120_sequential_load_safe }
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Groovebox:Sequential RandomLoad (8 folders, random sample each)…",
+  name = "Main Menu:Tools:Paketti:Groovebox:Sequential RandomLoad (8 folders, random sample each)...",
   invoke = paketti_8120_sequential_random_safe }
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Groovebox:Sequential RandomLoadAll (1 folder, all 8 rows)…",
+  name = "Main Menu:Tools:Paketti:Groovebox:Sequential RandomLoadAll (1 folder, all 8 rows)...",
   invoke = paketti_8120_sequential_random_all_safe }
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Groovebox:Kit (1 folder, sorted into 8 drum categories)…",
+  name = "Main Menu:Tools:Paketti:Groovebox:Kit (1 folder, sorted into 8 drum categories)...",
   invoke = paketti_8120_clever_load_all_safe }
 
 -- Toggle the empty-song auto-fill (Feature 2). Persisted to preferences.xml.

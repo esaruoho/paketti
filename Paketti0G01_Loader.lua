@@ -4625,6 +4625,8 @@ end
 function PakettiFlushMenuEntries()
   local pending = PakettiPendingMenuEntries
   local count = #pending
+  local registered_names = {}
+  local skipped_duplicates = 0
   -- Sort alphabetically by name (strip leading "--" for comparison).
   -- The sort key is computed ONCE per entry, not inside the comparator: with ~6,900
   -- entries table.sort runs ~89,000 comparisons, so a comparator that did the gsub +
@@ -4648,14 +4650,22 @@ function PakettiFlushMenuEntries()
   PakettiFlushingInProgress = true
   -- Register all entries in sorted order (goes through proxy for hint injection)
   for i = 1, count do
-    renoise.tool():add_menu_entry(pending[order[i]])
+    local entry = pending[order[i]]
+    local name = entry and entry.name
+    if name and (registered_names[name] or renoise.tool():has_menu_entry(name)) then
+      skipped_duplicates = skipped_duplicates + 1
+      print("PakettiFlushMenuEntries: skipped duplicate menu entry: " .. name)
+    else
+      if name then registered_names[name] = true end
+      renoise.tool():add_menu_entry(entry)
+    end
   end
   PakettiFlushingInProgress = false
   PakettiPendingMenuEntries = {}
   -- All boot-time registrations have now passed the gate; freeze the per-context
   -- tally so later live re-registrations don't inflate the Menu Configuration counts.
   PakettiMenuTallyFrozen = true
-  print(string.format("PakettiFlushMenuEntries: Registered %d menu entries (sorted)", count))
+  print(string.format("PakettiFlushMenuEntries: Registered %d menu entries (sorted, skipped %d duplicates)", count - skipped_duplicates, skipped_duplicates))
 end
 
 -- ============================================================================

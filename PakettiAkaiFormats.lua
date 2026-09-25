@@ -336,12 +336,12 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Export as Akai Format...",i
 -- preference); this file only supplies the convenience actions below. The
 -- per-format importers (S900/S1000/S3000/MPC2000/AKP/Program) each keep their
 -- own keybinding in their own file for explicit format selection.
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Import:Import Any Akai Sample...", invoke = function() importAnyAkaiSample() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Import:Import Akai Folder (Batch)...", invoke = function() importAkaiFolderBatch() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Import:Akai S900/S950 Sample (.s)...", invoke = function() importS900Sample() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Import:Akai S1000/S3000 Sample (.s)...", invoke = function() importS1000Sample() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Import:Akai MPC2000 SND Sample (.snd)...", invoke = function() importMPC2000Sample() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Import:Akai Program (.p/.pgm)...", invoke = function() importAkaiProgram() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Import:Akai AKP Program (.akp)...", invoke = function() importAKPFile() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Export:Export Sample as Akai Format...", invoke = function() exportCurrentSampleAsAkai() end}
-PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Instruments:Akai Formats Info...", invoke = function() showAkaiFormatsInfo() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Import Any Akai Sample...", invoke = function() importAnyAkaiSample() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Import Akai Folder (Batch)...", invoke = function() importAkaiFolderBatch() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Akai S900/S950 Sample (.s)...", invoke = function() importS900Sample() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Akai S1000/S3000 Sample (.s)...", invoke = function() importS1000Sample() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Akai MPC2000 SND Sample (.snd)...", invoke = function() importMPC2000Sample() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Akai Program (.p/.pgm)...", invoke = function() importAkaiProgram() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Akai AKP Program (.akp)...", invoke = function() importAKPFile() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Export Sample as Akai Format...", invoke = function() exportCurrentSampleAsAkai() end}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Akai Formats Info...", invoke = function() showAkaiFormatsInfo() end}

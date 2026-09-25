@@ -279,9 +279,5 @@ local function prompt_and_load(exts, title, loader)
   if file and file ~= "" then loader(file) end
 end
 
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:Import:Load Korg Triton KMP Multisample...",
-  invoke = function() prompt_and_load({ "*.kmp" }, "Load Korg Triton KMP", PakettiKorgKMPImport) end }
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:Import:Load Korg Triton KSC Script...",
-  invoke = function() prompt_and_load({ "*.ksc" }, "Load Korg Triton KSC", PakettiKorgKSCImport) end }
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Import/Export:Load Korg Triton KMP Multisample...",invoke = function() prompt_and_load({ "*.kmp" }, "Load Korg Triton KMP", PakettiKorgKMPImport) end }
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Import/Export:Load Korg Triton KSC Script...",invoke = function() prompt_and_load({ "*.ksc" }, "Load Korg Triton KSC", PakettiKorgKSCImport) end }

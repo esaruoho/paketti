@@ -577,13 +577,15 @@ end
 --------------------------------------------------------------------------------
 -- INDEX NAVIGATION
 --------------------------------------------------------------------------------
-function PakettiCommandWheelIndexNext()
+function PakettiCommandWheelAdjustIndex(delta)
   local state = PakettiCommandWheelState
   local max_index = PakettiCommandWheelGetMaxIndex()
   
-  state.index = state.index + 1
+  state.index = state.index + delta
   if state.index > max_index then
-    state.index = 1
+    state.index = ((state.index - 1) % max_index) + 1
+  elseif state.index < 1 then
+    state.index = ((state.index - 1) % max_index) + 1
   end
   
   if state.mode == PAKETTI_COMMAND_WHEEL_MODE_DEVICE then
@@ -600,27 +602,20 @@ function PakettiCommandWheelIndexNext()
   renoise.app():show_status("Command Wheel: " .. PakettiCommandWheelGetIndexName())
 end
 
+function PakettiCommandWheelAdjust(target, delta)
+  if target == "index" then
+    PakettiCommandWheelAdjustIndex(delta)
+  elseif target == "value" then
+    PakettiCommandWheelAdjustValue(delta)
+  end
+end
+
+function PakettiCommandWheelIndexNext()
+  PakettiCommandWheelAdjust("index", 1)
+end
+
 function PakettiCommandWheelIndexPrev()
-  local state = PakettiCommandWheelState
-  local max_index = PakettiCommandWheelGetMaxIndex()
-  
-  state.index = state.index - 1
-  if state.index < 1 then
-    state.index = max_index
-  end
-  
-  if state.mode == PAKETTI_COMMAND_WHEEL_MODE_DEVICE then
-    PakettiCommandWheelSyncDeviceValue()
-  elseif state.mode == PAKETTI_COMMAND_WHEEL_MODE_MACRO then
-    PakettiCommandWheelSyncMacroValue()
-  elseif state.mode == PAKETTI_COMMAND_WHEEL_MODE_MIDI_CC then
-    PakettiCommandWheelSyncMidiCCValue()
-  else
-    state.value = 0
-  end
-  
-  PakettiCommandWheelUpdateDisplay()
-  renoise.app():show_status("Command Wheel: " .. PakettiCommandWheelGetIndexName())
+  PakettiCommandWheelAdjust("index", -1)
 end
 
 --------------------------------------------------------------------------------
@@ -734,19 +729,19 @@ function PakettiCommandWheelAdjustValue(delta)
 end
 
 function PakettiCommandWheelValueUp1()
-  PakettiCommandWheelAdjustValue(1)
+  PakettiCommandWheelAdjust("value", 1)
 end
 
 function PakettiCommandWheelValueDown1()
-  PakettiCommandWheelAdjustValue(-1)
+  PakettiCommandWheelAdjust("value", -1)
 end
 
 function PakettiCommandWheelValueUp10()
-  PakettiCommandWheelAdjustValue(10)
+  PakettiCommandWheelAdjust("value", 10)
 end
 
 function PakettiCommandWheelValueDown10()
-  PakettiCommandWheelAdjustValue(-10)
+  PakettiCommandWheelAdjust("value", -10)
 end
 
 --------------------------------------------------------------------------------
@@ -1649,68 +1644,38 @@ renoise.tool():add_keybinding{
   invoke = function() PakettiCommandWheelSetModeDevice() end
 }
 
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Index +1",
-  invoke = function() PakettiCommandWheelIndexNext() end
+local paketti_command_wheel_adjust_keybindings = {
+  {"Index", 1},
+  {"Index", -1},
+  {"Value", 1},
+  {"Value", -1},
+  {"Value", 10},
+  {"Value", -10}
 }
 
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Index -1",
-  invoke = function() PakettiCommandWheelIndexPrev() end
-}
+local function PakettiCommandWheelMakeAdjustInvoke(target, delta)
+  return function() PakettiCommandWheelAdjust(target, delta) end
+end
 
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Value +1",
-  invoke = function() PakettiCommandWheelValueUp1() end
-}
+for _, binding in ipairs(paketti_command_wheel_adjust_keybindings) do
+  local target = binding[1]:lower()
+  local delta = binding[2]
+  local sign = delta > 0 and "+" or ""
+  renoise.tool():add_keybinding{
+    name = "Global:Paketti:Command Wheel " .. binding[1] .. " " .. sign .. tostring(delta),
+    invoke = PakettiCommandWheelMakeAdjustInvoke(target, delta)
+  }
+end
 
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Value -1",
-  invoke = function() PakettiCommandWheelValueDown1() end
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Value +10",
-  invoke = function() PakettiCommandWheelValueUp10() end
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Value -10",
-  invoke = function() PakettiCommandWheelValueDown10() end
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Toggle Placement Policy",
-  invoke = function() PakettiCommandWheelTogglePlacementPolicy() end
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Write to Pattern",
-  invoke = function() PakettiCommandWheelWriteToPattern() end
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Command Wheel Toggle Write on Scroll",
-  invoke = function() PakettiCommandWheelToggleWriteOnScroll() end
-}
-
+renoise.tool():add_keybinding{name = "Global:Paketti:Command Wheel Toggle Placement Policy",invoke = function() PakettiCommandWheelTogglePlacementPolicy() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Command Wheel Write to Pattern",invoke = function() PakettiCommandWheelWriteToPattern() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Command Wheel Toggle Write on Scroll",invoke = function() PakettiCommandWheelToggleWriteOnScroll() end}
 --------------------------------------------------------------------------------
 -- MENU ENTRIES
 --------------------------------------------------------------------------------
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Instruments:Command Wheel...",
-  invoke = function() PakettiCommandWheelShowDialog() end
-}
-
-PakettiAddMenuEntry{
-  name = "Pattern Editor:Paketti:Command Wheel...",
-  invoke = function() PakettiCommandWheelShowDialog() end
-}
-
-PakettiAddMenuEntry{
-  name = "Phrase Editor:Paketti:Command Wheel...",
-  invoke = function() PakettiCommandWheelShowDialog() end
-}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti Gadgets:Command Wheel...",invoke = function() PakettiCommandWheelShowDialog() end}
+PakettiAddMenuEntry{name = "Pattern Editor:Paketti Gadgets:Command Wheel...",invoke = function() PakettiCommandWheelShowDialog() end}
+PakettiAddMenuEntry{name = "Phrase Editor:Paketti Gadgets:Command Wheel...",invoke = function() PakettiCommandWheelShowDialog() end}
 
 --------------------------------------------------------------------------------
 -- MIDI MAPPINGS

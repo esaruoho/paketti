@@ -836,7 +836,7 @@ end
 local function truncate(s, n)
   if not s then return "" end
   if #s <= n then return s end
-  return s:sub(1, n - 1) .. "…"
+  return s:sub(1, n - 1) .. "..."
 end
 
 local function lane_strip_left(row)
@@ -968,21 +968,21 @@ local function build_view()
     vb:button{ text="copy",  width=50, notifier = verb_copy },
     vb:button{ text="paste", width=50, notifier = verb_paste },
     vb:text{ text=" |", style="disabled" },
-    vb:button{ text="euclid…",      width=72, notifier = show_euclid_dialog },
-    vb:button{ text="apply curve…", width=110, notifier = show_curve_dialog },
+    vb:button{ text="euclid...",      width=72, notifier = show_euclid_dialog },
+    vb:button{ text="apply curve...", width=110, notifier = show_curve_dialog },
     vb:text{ text=" |", style="disabled" },
     -- Sequential Load family — populates actual song instruments via 8120's
     -- existing functions. Always available so you don't have to bounce
     -- dialogs to load samples.
-    vb:button{ text="Load…",          width=70,  notifier = function()
+    vb:button{ text="Load...",          width=70,  notifier = function()
       if loadSequentialSamplesWithFolderPrompts then loadSequentialSamplesWithFolderPrompts()
       else renoise.app():show_status("loadSequentialSamplesWithFolderPrompts not available") end
     end },
-    vb:button{ text="RandomLoad…",    width=110, notifier = function()
+    vb:button{ text="RandomLoad...",    width=110, notifier = function()
       if loadSequentialDrumkitSamples then loadSequentialDrumkitSamples()
       else renoise.app():show_status("loadSequentialDrumkitSamples not available") end
     end },
-    vb:button{ text="RandomLoadAll…", width=130, notifier = function()
+    vb:button{ text="RandomLoadAll...", width=130, notifier = function()
       if loadSequentialRandomLoadAll then loadSequentialRandomLoadAll()
       else renoise.app():show_status("loadSequentialRandomLoadAll not available") end
     end },
@@ -1059,9 +1059,9 @@ function PakettiGroovebox8ch960sampShow()
   -- pull external 8120 changes when needed.
 end
 
-PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Groovebox:Groovebox 8ch960samp (MK2 prototype)…",
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Groovebox:Groovebox 8ch960samp (MK2 prototype)...",
   invoke = PakettiGroovebox8ch960sampShow }
-PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:Groovebox 8ch960samp (MK2 prototype)…",
+PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:Groovebox 8ch960samp (MK2 prototype)...",
   invoke = PakettiGroovebox8ch960sampShow }
 
 renoise.tool():add_keybinding{

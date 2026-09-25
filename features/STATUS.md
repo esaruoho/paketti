@@ -15,6 +15,7 @@
 | 2026-06-11-groovebox-controller-follow-and-menu | 9 | ✓ | — | ✗ | @built @code-verified @hw-untested @logic-verified @superseded |
 | 2026-06-11-ui-fixes-and-menu-config | 8 | ✓ | ✓ | — | @built @code-verified @logic-verified @runtime-verified |
 | clipboard-pattern-to-phrase | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| command-wheel-adjustments | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | disk-browser-refresh | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
@@ -28,6 +29,7 @@
 | master-bandpass | 4 | ✓ | ✗ | — | @build-verified @runtime-untested @shipped |
 | master-low-cut-200hz | 3 | ✗ | — | ✓ | @hw-verified |
 | mcp-claude-bridge | 11 | ✓ | — | ✓ | @built @code-verified @hw-verified @untested |
+| menu-registration-duplicates | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | mlx-renoise-bridge | 10 | ✓ | — | ✓ | @built @code-verified @designed @hw-verified |
 | music-mouse | 36 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @stock @user-verified |
 | netdrive-2logic-watcher | 9 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
@@ -45,11 +47,12 @@
 | selection-reversed-instrument | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 | subcolumn-only-invert | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| treemenu | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 34
-- Build-verified: 32
+- Cards: 37
+- Build-verified: 35
 - Runtime-verified: 3 full + 1 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 
