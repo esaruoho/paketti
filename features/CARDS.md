@@ -12,6 +12,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
 - [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
 - [Disk Browser refresh nudge](#disk-browser-refresh) — `disk-browser-refresh.feature`
+- [Dynamic Macro Toolbar action safety](#dynamic-toolbar-actions) — `dynamic-toolbar-actions.feature`
 - [EQ10 keyboard controls](#eq10-keyboard-controls) — `eq10-keyboard-controls.feature`
 - [Execute configurable shell commands](#execute-command-slots) — `execute-command-slots.feature`
 - [Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open](#groovebox-8120-default-instrument-slots) — `groovebox-8120-default-instrument-slots.feature`
@@ -155,6 +156,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiRefreshDiskBrowser` · **Source files:** `Paketti35.lua`, `PakettiMenuConfig.lua`
 
 **Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+
+
+<a id="dynamic-toolbar-actions"></a>
+## Dynamic Macro Toolbar action safety
+
+`features/dynamic-toolbar-actions.feature` · [session](dynamic-toolbar-actions.session.md)
+
+**What it does:** As a Paketti user, I want Dynamic Macro Toolbar slots to handle dialog action names safely, So that internal Groovebox sub-dialogs are not surfaced as standalone dialogs and missing helpers do not crash Renoise.
+
+**Behaviour (3 scenarios):**
+
+- Missing string action names report status instead of throwing strict-global errors — `@shipped @built @code-verified @runtime-untested`
+- Groovebox-only Euclidean Fill is not advertised as a standalone toolbar action — `@shipped @built @code-verified @runtime-untested`
+- Valid global dialog functions still execute from toolbar slots — `@stock`
+
+**How it does it:** **Key procs:** `execute_action`, `create_button_list`, `DynamicMacroToolbar`, `show_euclid_dialog` · **Source files:** `PakettiDynamicMacroToolbar.lua`, `PakettiMainMenuEntries.lua`
+
+**Grade:** @built ×2 · @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
 
 
 <a id="eq10-keyboard-controls"></a>
@@ -449,13 +468,14 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user recording audio into a known handoff folder, I want Paketti to notice new files under /private/tmp/netdrive/2logic, So that Renoise can load each completed take without a manual file picker.
 
-**Behaviour (9 scenarios):**
+**Behaviour (10 scenarios):**
 
 - Keep the global default off while allowing Esa's local preference to arm it — `@shipped @code-verified @runtime-untested`
 - Watch the default 2logic folder when armed — `@shipped @code-verified @runtime-untested`
 - Ignore old existing files and load changed file signatures — `@shipped @code-verified @runtime-untested`
 - Poll at the selected interval and prioritize newest takes — `@shipped @code-verified @runtime-untested`
 - Pause safely when the watched volume disconnects — `@shipped @code-verified @runtime-untested`
+- Accept a readable NetDrive folder only after the mount root exists — `@shipped @code-verified @runtime-untested`
 - Load each arrival as a fresh Paketti instrument — `@shipped @code-verified @runtime-untested`
 - Create an adjacent sequencer trigger track for each loaded arrival — `@shipped @code-verified @runtime-untested`
 - Expose manual control for the watcher — `@shipped @code-verified @runtime-untested`
@@ -463,7 +483,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **How it does it:** **Key procs:** `PakettiNetDriveWatcher`, `PakettiNetDriveWatcherStart`, `PakettiNetDriveWatcherTick`, `PakettiNetDriveWatcherLoadFile`, `PakettiNetDriveWatcherRefreshTimer`, `pakettiNetDriveWatcherFolder`, `pakettiNetDriveWatcherPollSeconds` · **Source files:** `Paketti0G01_Loader.lua`, `preferences.xml`, `PakettiSamples.lua`
 
-**Grade:** @code-verified ×8 · @runtime-untested ×8 · @shipped ×8 · @stock ×1
+**Grade:** @code-verified ×9 · @runtime-untested ×9 · @shipped ×9 · @stock ×1
 
 
 <a id="parameter-editor-mixer-and-config"></a>

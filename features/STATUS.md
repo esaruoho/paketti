@@ -19,6 +19,7 @@
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | disk-browser-refresh | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| dynamic-toolbar-actions | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | eq10-keyboard-controls | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | groovebox-8120-default-instrument-slots | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
@@ -51,8 +52,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 37
-- Build-verified: 35
+- Cards: 38
+- Build-verified: 36
 - Runtime-verified: 3 full + 1 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

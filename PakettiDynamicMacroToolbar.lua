@@ -54,6 +54,7 @@ end
 -- Execute an action by its stored key
 ------------------------------------------------------------------------
 local function execute_action(action_key)
+  -- FEATURE-CARD >> features/dynamic-toolbar-actions.feature
   if not action_key or action_key == "" then
     renoise.app():show_status("Dynamic Macro Toolbar: Empty slot")
     return
@@ -70,7 +71,7 @@ local function execute_action(action_key)
     local ok, err = pcall(func_ref)
     if not ok then renoise.app():show_status("Error: " .. tostring(err)) end
   elseif type(func_ref) == "string" then
-    local fn = _G[func_ref]
+    local fn = rawget(_G, func_ref)
     if type(fn) == "function" then
       local ok, err = pcall(fn)
       if not ok then renoise.app():show_status("Error: " .. tostring(err)) end

@@ -275,6 +275,7 @@ local dialog_of_dialogs=nil
 
 -- Function to create the button list dynamically based on API version
 function create_button_list()
+  -- FEATURE-CARD >> features/dynamic-toolbar-actions.feature
   local buttons = {
     {"About Paketti/Donations", "pakettiAboutDonations"},
     {"Paketti Preferences", "pakettiPreferences"},
@@ -402,7 +403,6 @@ function create_button_list()
   table.insert(buttons, {"Digitakt Sample Chain", "PakettiDigitaktDialog"})
   table.insert(buttons, {"Dynamic Macro Toolbar", "PakettiDynamicMacroToolbarToggle"})
   table.insert(buttons, {"Effect Column Curve Fill", "PakettiEffectColumnCurveFill"})
-  table.insert(buttons, {"Euclidean Fill", "show_euclid_dialog"})
   table.insert(buttons, {"Effect Details", "pakettiDebugDeviceInfoDialog"})
   table.insert(buttons, {"Frame Calculator Song Length", "PakettiFrameCalculatorShowSongLengthDialog"})
   table.insert(buttons, {"Frame Calculator", "PakettiFrameCalculatorDialog"})
