@@ -3965,16 +3965,34 @@ local function PakettiNetDriveWatcherVolumeName(path)
   return path:match("^/Volumes/([^/]+)")
 end
 
+local function PakettiNetDriveWatcherPathExists(path)
+  if not path or path == "" then return false end
+  if io.exists then
+    local ok, exists = pcall(io.exists, path)
+    if ok and exists then return true end
+  end
+  return false
+end
+
 local function PakettiNetDriveWatcherVolumeMounted(path)
   local volume_name = PakettiNetDriveWatcherVolumeName(path)
   if not volume_name then return true end
+  local volume_path = "/Volumes/" .. volume_name
 
   local ok, names = pcall(os.filenames, "/Volumes", "*")
-  if not ok or not names then return false end
-  for _, name in ipairs(names) do
-    if name == volume_name then return true end
+  if ok and names then
+    for _, name in ipairs(names) do
+      local mounted_name = tostring(name):gsub("[/\\]*$", "")
+      if mounted_name == volume_name then return true end
+    end
   end
-  return false
+
+  -- Some FUSE/network mounts are reachable at their full path even when
+  -- Renoise's /Volumes listing does not report the mount name reliably.
+  -- First prove the mount root exists, so a disconnected volume does not make
+  -- us repeatedly touch a stale child path such as /Volumes/netdrive/2logic.
+  if not PakettiNetDriveWatcherPathExists(volume_path) then return false end
+  return PakettiNetDriveWatcherPathExists(path)
 end
 
 local function PakettiNetDriveWatcherShowOffline(folder)
@@ -4126,6 +4144,8 @@ function PakettiNetDriveWatcherLoadFile(path)
     sample.name = sample_name
     instrument.name = sample_name
     PakettiInjectApplyLoaderSettings(sample)
+    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.autoseek = true
     local trigger_track_index = PakettiNetDriveWatcherCreateTriggerTrack(song, new_index, sample_name)
     if preferences and preferences.pakettiNetDriveWatcherLastLoadedSignature then
       preferences.pakettiNetDriveWatcherLastLoadedSignature.value =

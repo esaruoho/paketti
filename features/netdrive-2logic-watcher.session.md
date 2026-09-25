@@ -10,6 +10,8 @@
 
 ## Request
 
+On 2026-09-25, Esa recommended that samples loaded automatically by the watcher have Forward Loop enabled. After reporting that Loop still appeared Off, Esa clarified that watcher loads must explicitly use Forward Loop and Autoseek On.
+
 Esa asked for the “meat of the matter”: define a folder that is caught when a new recorded file appears there, and have Renoise load that file through Paketti. The concrete folder named in the request was `/private/tmp/netdrive/2logic`.
 
 On 2026-09-23 at 23:18 EEST, Esa asked for one additional behavior on the “Automatically Sync Folder to Samples Toggle”: when a new sample appears in the sync folder, Paketti should create a new sequencer track beside the current track and write a `C-4` trigger plus `0G01` to row 1 of the current pattern for the loaded sample.
@@ -33,6 +35,7 @@ At 15:22 EEST, Esa disconnected the NetDrive and Renoise showed the scripting wa
 - `/Volumes/...` watcher paths are preflighted by checking the local `/Volumes` listing for the mount name before touching the watched folder. If the volume is absent or a scan fails, the watcher stays armed but pauses on a 10-second offline backoff.
 - Each new file is loaded into a fresh Paketti instrument after the current selection, using the default XRNI and existing loader settings.
 - Each newly loaded file also gets a trigger track. The trigger track must be a sequencer track, not a group, master, or send track.
+- After applying the general Paketti loader settings, the watcher explicitly sets the newly loaded sample to Forward Loop and Autoseek On, so these watcher settings win over the global loader preferences. Renoise exposes loop state as one `loop_mode` enum; Forward is the enabled loop mode (there is no separate sample `loop_enabled` property).
 - If the current selection is not a sequencer track, the watcher anchors beside the nearest earlier sequencer track, falling back to the first sequencer track.
 - The trigger is always written to row 1 of the current pattern, with visible note/effect columns ensured before writing.
 

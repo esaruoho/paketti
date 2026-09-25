@@ -17,6 +17,7 @@
 # WATCH: PakettiNetDriveWatcher PakettiNetDriveWatcherStart PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile PakettiNetDriveWatcherRefreshTimer pakettiNetDriveWatcherFolder pakettiNetDriveWatcherPollSeconds
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-25  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-25  direct-commit  touched: PakettiNetDriveWatcher PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile PakettiNetDriveWatcherRefreshTimer pakettiNetDriveWatcherFolder pakettiNetDriveWatcherPollSeconds
 #   2026-09-24  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-23  direct-commit  touched: PakettiNetDriveWatcher
@@ -69,7 +70,7 @@ Feature: NetDrive 2logic watcher
 
   @shipped @code-verified @runtime-untested
   Scenario: Pause safely when the watched volume disconnects
-    # cite: PakettiSamples.lua PakettiNetDriveWatcherVolumeMounted (~line 3967) — checks /Volumes for the mount name before touching the watched path
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherVolumeMounted (~line 3977) — proves the /Volumes mount root before touching the configured child folder
     # cite: PakettiSamples.lua PakettiNetDriveWatcherTick (~line 4140) — backs off for disconnected or failed folder scans
     # cite: PakettiSamples.lua PakettiNetDriveWatcherStart (~line 4349) — starts in paused/offline mode when the configured /Volumes mount is absent
     Given the watched folder is on a /Volumes mount
@@ -79,12 +80,27 @@ Feature: NetDrive 2logic watcher
     And the Paketti script remains armed so the watcher can resume when the volume returns
 
   @shipped @code-verified @runtime-untested
+  Scenario: Accept a readable NetDrive folder only after the mount root exists
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherPathExists (~line 3968) — safely checks existence behind pcall before using fallback paths
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherVolumeMounted (~line 3977) — treats trailing-slash mount names as mounted, then falls back via /Volumes/netdrive before /Volumes/netdrive/2logic
+    # cite: preferences.xml pakettiNetDriveWatcherFolder (~line 1140) — stores Esa's /Volumes/netdrive/2logic folder selection
+    Given the configured watch folder is /Volumes/netdrive/2logic
+    And the /Volumes/netdrive mount root exists
+    And the 2logic folder exists and is readable
+    When Renoise's /Volumes listing does not report the netdrive mount exactly
+    Then the watcher still treats the configured folder as available
+    And it proceeds to scan the folder for loadable audio files
+    But if /Volumes/netdrive is absent, the watcher does not probe /Volumes/netdrive/2logic
+
+  @shipped @code-verified @runtime-untested
   Scenario: Load each arrival as a fresh Paketti instrument
-    # cite: PakettiSamples.lua PakettiNetDriveWatcherLoadFile (~line 3988) — inserts a new instrument, applies the default XRNI, loads the sample, and applies loader settings
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherLoadFile (~line 4121) — inserts a new instrument, loads the sample, applies loader settings, then forces Forward Loop and Autoseek
     Given a new audio file appears in the watch folder
     When the file is stable and loadable by Renoise
     Then Paketti inserts a new instrument after the current instrument
     And it loads the file into sample slot 1
+    And it sets the loaded sample loop mode to Forward Loop after applying loader settings, which is Renoise's enabled loop state
+    And it enables Autoseek regardless of the general loader preference
     And it names the sample and instrument from the audio filename
 
   @shipped @code-verified @runtime-untested
