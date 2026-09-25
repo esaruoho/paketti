@@ -647,9 +647,7 @@ for _, n in ipairs(presets) do
     invoke = function() paketti_hack_set_beatsync_lines(n) end
   }
   PakettiAddMenuEntry{
-    name = "Sample Editor:Paketti:BeatSyncHack:Set BeatSyncLines " .. label,
-    invoke = function() paketti_hack_set_beatsync_lines(n) end
-  }
+    name = "Sample Editor:Paketti:BeatSync:Set BeatSyncLines " .. label,invoke = function() paketti_hack_set_beatsync_lines(n) end}
   PakettiAddMenuEntry{
     name = "Instrument Box:Paketti:BeatSyncHack:Set BeatSyncLines " .. label,
     invoke = function() paketti_hack_set_beatsync_lines(n) end
@@ -665,7 +663,7 @@ PakettiAddMenuEntry{
   invoke = pakettiBeatSyncHackDialog
 }
 PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:BeatSyncHack:Set BeatSyncLines Dialog...",
+  name = "Sample Editor:Paketti:BeatSync:Set BeatSyncLines Dialog...",
   invoke = pakettiBeatSyncHackDialog
 }
 PakettiAddMenuEntry{

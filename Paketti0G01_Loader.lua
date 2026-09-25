@@ -250,6 +250,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiNetDriveWatcherEnabled=false,
   pakettiNetDriveWatcherFolder="/private/tmp/netdrive/2logic",
   pakettiNetDriveWatcherStableSeconds=1,
+  pakettiNetDriveWatcherPollSeconds=1,
   pakettiNetDriveWatcherLastLoadedSignature="",
   pakettiLoaderDontCreateAutomationDevice=false,
   pakettiWipeExplodedTrack=false,
@@ -1464,6 +1465,22 @@ function pakettiPreferences()
     text = string.format("%.0f MB (%d frames)", preferences.pakettiMaxFrameSize.value / 1000000, preferences.pakettiMaxFrameSize.value)
   }
 
+  local netdrive_poll_values = {0.5, 1, 5, 10}
+  local netdrive_poll_items = {"0.5 sec", "1 sec", "5 sec", "10 sec"}
+  local function netdrive_poll_index()
+    local current = tonumber(preferences.pakettiNetDriveWatcherPollSeconds.value) or 1
+    local best_index = 2
+    local best_delta = math.abs(current - netdrive_poll_values[best_index])
+    for index, value in ipairs(netdrive_poll_values) do
+      local delta = math.abs(current - value)
+      if delta < best_delta then
+        best_index = index
+        best_delta = delta
+      end
+    end
+    return best_index
+  end
+
 
     local blend_value_label = vb:text{width=30,
       text = tostring(math.floor(preferences.pakettiBlendValue.value))
@@ -1616,6 +1633,25 @@ function pakettiPreferences()
                   preferences.RandomBPMMax.value=value
                 end
               },
+            },
+            vb:row{
+              vb:text{text="Sync Folder Poll",width=150,tooltip="How often Automatically Sync Folder to Samples checks the watched folder."},
+              vb:popup{
+                items=netdrive_poll_items,
+                value=netdrive_poll_index(),
+                width=100,
+                tooltip="How often Automatically Sync Folder to Samples checks the watched folder.",
+                notifier=function(value)
+                  preferences.pakettiNetDriveWatcherPollSeconds.value = netdrive_poll_values[value]
+                  preferences:save_as("preferences.xml")
+                  if type(PakettiNetDriveWatcherRefreshTimer) == "function" then
+                    PakettiNetDriveWatcherRefreshTimer()
+                  end
+                  renoise.app():show_status("Sync Folder poll interval: " .. netdrive_poll_items[value])
+                end
+              },
+              vb:space{width=checkbox_spacing},
+              vb:text{text="Newest files are checked first",width=250,tooltip="The watcher prioritizes the newest-looking filenames before its slow background sweep of old files."}
             },
             
               vb:row{

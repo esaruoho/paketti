@@ -410,19 +410,21 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user recording audio into a known handoff folder, I want Paketti to notice new files under /private/tmp/netdrive/2logic, So that Renoise can load each completed take without a manual file picker.
 
-**Behaviour (7 scenarios):**
+**Behaviour (9 scenarios):**
 
 - Keep the global default off while allowing Esa's local preference to arm it — `@shipped @code-verified @runtime-untested`
 - Watch the default 2logic folder when armed — `@shipped @code-verified @runtime-untested`
 - Ignore old existing files and load changed file signatures — `@shipped @code-verified @runtime-untested`
+- Poll at the selected interval and prioritize newest takes — `@shipped @code-verified @runtime-untested`
+- Pause safely when the watched volume disconnects — `@shipped @code-verified @runtime-untested`
 - Load each arrival as a fresh Paketti instrument — `@shipped @code-verified @runtime-untested`
 - Create an adjacent sequencer trigger track for each loaded arrival — `@shipped @code-verified @runtime-untested`
 - Expose manual control for the watcher — `@shipped @code-verified @runtime-untested`
 - Existing sample loaders remain separate — `@stock`
 
-**How it does it:** **Key procs:** `PakettiNetDriveWatcher`, `PakettiNetDriveWatcherStart`, `PakettiNetDriveWatcherTick`, `PakettiNetDriveWatcherLoadFile`, `pakettiNetDriveWatcherFolder` · **Source files:** `Paketti0G01_Loader.lua`, `preferences.xml`, `PakettiSamples.lua`
+**How it does it:** **Key procs:** `PakettiNetDriveWatcher`, `PakettiNetDriveWatcherStart`, `PakettiNetDriveWatcherTick`, `PakettiNetDriveWatcherLoadFile`, `PakettiNetDriveWatcherRefreshTimer`, `pakettiNetDriveWatcherFolder`, `pakettiNetDriveWatcherPollSeconds` · **Source files:** `Paketti0G01_Loader.lua`, `preferences.xml`, `PakettiSamples.lua`
 
-**Grade:** @code-verified ×6 · @runtime-untested ×6 · @shipped ×6 · @stock ×1
+**Grade:** @code-verified ×8 · @runtime-untested ×8 · @shipped ×8 · @stock ×1
 
 
 <a id="parameter-editor-mixer-and-config"></a>

@@ -3909,7 +3909,10 @@ local PakettiNetDriveWatcher = {
   known = {},
   pending = {},
   running = false,
-  folder = nil
+  folder = nil,
+  timer_ms = 1000,
+  offline_until = 0,
+  offline_notice_shown = false
 }
 
 local function PakettiNetDriveWatcherDefaultFolder()
@@ -3931,6 +3934,60 @@ local function PakettiNetDriveWatcherStableSeconds()
   return 1
 end
 
+local function PakettiNetDriveWatcherPollSeconds()
+  if preferences and preferences.pakettiNetDriveWatcherPollSeconds then
+    local seconds = tonumber(preferences.pakettiNetDriveWatcherPollSeconds.value) or 1
+    if seconds <= 0.75 then return 0.5 end
+    if seconds <= 3 then return 1 end
+    if seconds <= 7.5 then return 5 end
+    return 10
+  end
+  return 1
+end
+
+local function PakettiNetDriveWatcherTimerMs()
+  return math.max(500, math.floor(PakettiNetDriveWatcherPollSeconds() * 1000))
+end
+
+local function PakettiNetDriveWatcherAddUnique(target, seen, path)
+  if not seen[path] then
+    table.insert(target, path)
+    seen[path] = true
+  end
+end
+
+local function PakettiNetDriveWatcherOfflineBackoffMs()
+  return 10000
+end
+
+local function PakettiNetDriveWatcherVolumeName(path)
+  if not path then return nil end
+  return path:match("^/Volumes/([^/]+)")
+end
+
+local function PakettiNetDriveWatcherVolumeMounted(path)
+  local volume_name = PakettiNetDriveWatcherVolumeName(path)
+  if not volume_name then return true end
+
+  local ok, names = pcall(os.filenames, "/Volumes", "*")
+  if not ok or not names then return false end
+  for _, name in ipairs(names) do
+    if name == volume_name then return true end
+  end
+  return false
+end
+
+local function PakettiNetDriveWatcherShowOffline(folder)
+  local state = PakettiNetDriveWatcher
+  if state.offline_notice_shown then return end
+  state.offline_notice_shown = true
+  renoise.app():show_status("NetDrive watcher paused: folder unavailable: " .. tostring(folder))
+end
+
+local function PakettiNetDriveWatcherClearOffline()
+  PakettiNetDriveWatcher.offline_notice_shown = false
+end
+
 local function PakettiNetDriveWatcherIsLoadable(path)
   if not path or path == "" then return false end
   local name = path:match("([^/\\]+)$") or path
@@ -3948,10 +4005,20 @@ local function PakettiNetDriveWatcherJoin(folder, filename)
   return folder .. separator .. filename
 end
 
+local function PakettiNetDriveWatcherNormalizeFolder(path)
+  if not path then return nil end
+  local sanitized = tostring(path):gsub("[/\\]*$", "")
+  if sanitized:match("^%a:$") then
+    sanitized = sanitized .. "\\"
+  end
+  if sanitized == "" then return nil end
+  return sanitized
+end
+
 local function PakettiNetDriveWatcherList(folder)
   local files = {}
   local ok, names = pcall(os.filenames, folder, "*")
-  if not ok or not names then return files end
+  if not ok or not names then return nil end
 
   for _, name in ipairs(names) do
     local path = PakettiNetDriveWatcherJoin(folder, name)
@@ -4091,11 +4158,71 @@ function PakettiNetDriveWatcherTick()
     renoise.tool():remove_timer(PakettiNetDriveWatcherTick)
   end
 
+  local function rearm(ms)
+    if PakettiNetDriveWatcher.running then
+      PakettiNetDriveWatcher.timer_ms = ms or PakettiNetDriveWatcherTimerMs()
+      renoise.tool():add_timer(PakettiNetDriveWatcherTick, PakettiNetDriveWatcher.timer_ms)
+    end
+  end
+
   local ok, err = pcall(function()
     local folder = state.folder or PakettiNetDriveWatcherGetFolder()
-    local files = PakettiNetDriveWatcherList(folder)
     local now = os.time()
+
+    if state.offline_until and state.offline_until > now then
+      rearm(PakettiNetDriveWatcherOfflineBackoffMs())
+      return
+    end
+
+    if not PakettiNetDriveWatcherVolumeMounted(folder) then
+      state.offline_until = now + 10
+      PakettiNetDriveWatcherShowOffline(folder)
+      rearm(PakettiNetDriveWatcherOfflineBackoffMs())
+      return
+    end
+
+    local files = PakettiNetDriveWatcherList(folder)
+    if not files then
+      state.offline_until = now + 10
+      PakettiNetDriveWatcherShowOffline(folder)
+      rearm(PakettiNetDriveWatcherOfflineBackoffMs())
+      return
+    end
+
+    state.offline_until = 0
+    PakettiNetDriveWatcherClearOffline()
+
     local stable_seconds = PakettiNetDriveWatcherStableSeconds()
+
+    local function queue_or_load_changed_file(path, signature, size, mtime, pending)
+      if not pending or pending.signature ~= signature then
+        state.pending[path] = {
+          signature = signature,
+          size = size,
+          mtime = mtime,
+          seen_at = now,
+          retries = 0
+        }
+      elseif pending.size == size and pending.mtime == mtime
+          and (now - pending.seen_at) >= stable_seconds then
+        if PakettiNetDriveWatcherLoadFile(path) then
+          state.known[path] = signature
+          state.pending[path] = nil
+        else
+          pending.retries = (pending.retries or 0) + 1
+          pending.seen_at = now
+          if pending.retries >= 3 then
+            state.known[path] = signature
+            state.pending[path] = nil
+            renoise.app():show_status("NetDrive watcher skipped after 3 failed loads: " .. path)
+          end
+        end
+      else
+        pending.size = size
+        pending.mtime = mtime
+        pending.seen_at = now
+      end
+    end
 
     -- Categorize files to minimize disk/network stats
     local new_files = {}
@@ -4112,7 +4239,16 @@ function PakettiNetDriveWatcherTick()
       end
     end
 
-    -- Select at most 5 known files per tick to check for overwrites/modifications
+    -- Always check the newest-looking known filenames first. This keeps fresh
+    -- takes responsive even when the folder has thousands of older files.
+    local max_recent_known_stats_per_tick = 25
+    local recent_known = {}
+    local recent_start = math.max(1, #known_files - max_recent_known_stats_per_tick + 1)
+    for i = #known_files, recent_start, -1 do
+      table.insert(recent_known, known_files[i])
+    end
+
+    -- Select a few older known files per tick for overwrite/modification checks.
     local max_known_stats_per_tick = 5
     local selected_known = {}
     if #known_files > 0 then
@@ -4135,14 +4271,18 @@ function PakettiNetDriveWatcherTick()
 
     -- Only stat files that are: new, pending, or selected for staggered check
     local files_to_stat = {}
+    local files_to_stat_seen = {}
     for _, path in ipairs(new_files) do
-      table.insert(files_to_stat, path)
+      PakettiNetDriveWatcherAddUnique(files_to_stat, files_to_stat_seen, path)
     end
     for _, path in ipairs(pending_files) do
-      table.insert(files_to_stat, path)
+      PakettiNetDriveWatcherAddUnique(files_to_stat, files_to_stat_seen, path)
+    end
+    for _, path in ipairs(recent_known) do
+      PakettiNetDriveWatcherAddUnique(files_to_stat, files_to_stat_seen, path)
     end
     for _, path in ipairs(selected_known) do
-      table.insert(files_to_stat, path)
+      PakettiNetDriveWatcherAddUnique(files_to_stat, files_to_stat_seen, path)
     end
 
     for _, path in ipairs(files_to_stat) do
@@ -4155,39 +4295,19 @@ function PakettiNetDriveWatcherTick()
 
         local prev_signature = state.known[path]
         if prev_signature ~= signature then
-          -- If this file was marked known at startup and we are statting it for the first time:
           if prev_signature and prev_signature:match("|known_at_startup$") then
-            -- Just update the known signature without loading it
-            state.known[path] = signature
-          else
-            -- Genuine new or overwritten/modified file
-            if not pending or pending.signature ~= signature then
-              state.pending[path] = {
-                signature = signature,
-                size = size,
-                mtime = mtime,
-                seen_at = now,
-                retries = 0
-              }
-            elseif pending.size == size and pending.mtime == mtime
-                and (now - pending.seen_at) >= stable_seconds then
-              if PakettiNetDriveWatcherLoadFile(path) then
-                state.known[path] = signature
-                state.pending[path] = nil
-              else
-                pending.retries = (pending.retries or 0) + 1
-                pending.seen_at = now
-                if pending.retries >= 3 then
-                  state.known[path] = signature
-                  state.pending[path] = nil
-                  renoise.app():show_status("NetDrive watcher skipped after 3 failed loads: " .. path)
-                end
-              end
+            -- Baseline genuinely old startup files, but do not swallow a file
+            -- that was written/overwritten after the watcher started.
+            local changed_after_start = (mtime or 0) > 0
+              and state.started_at
+              and mtime >= state.started_at
+            if changed_after_start then
+              queue_or_load_changed_file(path, signature, size, mtime, pending)
             else
-              pending.size = size
-              pending.mtime = mtime
-              pending.seen_at = now
+              state.known[path] = signature
             end
+          else
+            queue_or_load_changed_file(path, signature, size, mtime, pending)
           end
         end
       end
@@ -4200,14 +4320,21 @@ function PakettiNetDriveWatcherTick()
 
   -- Safely re-add timer if the watcher is still running
   if state.running then
-    renoise.tool():add_timer(PakettiNetDriveWatcherTick, 1000)
+    if not renoise.tool():has_timer(PakettiNetDriveWatcherTick) then
+      rearm(PakettiNetDriveWatcherTimerMs())
+    end
   end
 end
 
 function PakettiNetDriveWatcherStart(is_manual)
   local state = PakettiNetDriveWatcher
   local folder = PakettiNetDriveWatcherGetFolder()
-  local sanitized = sanitizeFolderPath(folder)
+  local sanitized
+  if PakettiNetDriveWatcherVolumeName(folder) then
+    sanitized = PakettiNetDriveWatcherNormalizeFolder(folder)
+  else
+    sanitized = sanitizeFolderPath(folder)
+  end
   if not sanitized then
     if is_manual then
       local choice = renoise.app():show_prompt(
@@ -4235,6 +4362,31 @@ function PakettiNetDriveWatcherStart(is_manual)
     return false
   end
 
+  if not PakettiNetDriveWatcherVolumeMounted(sanitized) then
+    if renoise.tool():has_timer(PakettiNetDriveWatcherTick) then
+      renoise.tool():remove_timer(PakettiNetDriveWatcherTick)
+    end
+    state.known = {}
+    state.pending = {}
+    state.running = true
+    state.folder = sanitized
+    state.stagger_index = 1
+    state.timer_ms = PakettiNetDriveWatcherOfflineBackoffMs()
+    state.started_at = os.time()
+    state.offline_until = state.started_at + 10
+    state.offline_notice_shown = false
+    PakettiNetDriveWatcherShowOffline(sanitized)
+    renoise.tool():add_timer(PakettiNetDriveWatcherTick, state.timer_ms)
+    if preferences and preferences.pakettiNetDriveWatcherFolder then
+      preferences.pakettiNetDriveWatcherFolder.value = sanitized
+    end
+    if preferences and preferences.pakettiNetDriveWatcherEnabled then
+      preferences.pakettiNetDriveWatcherEnabled.value = true
+      preferences:save_as("preferences.xml")
+    end
+    return true
+  end
+
   if renoise.tool():has_timer(PakettiNetDriveWatcherTick) then
     renoise.tool():remove_timer(PakettiNetDriveWatcherTick)
   end
@@ -4244,8 +4396,13 @@ function PakettiNetDriveWatcherStart(is_manual)
   state.running = true
   state.folder = sanitized
   state.stagger_index = 1
+  state.timer_ms = PakettiNetDriveWatcherTimerMs()
+  state.started_at = os.time()
+  state.offline_until = 0
+  state.offline_notice_shown = false
 
   local files = PakettiNetDriveWatcherList(sanitized)
+  if not files then files = {} end
   
   -- To make startup instant, only stat the last 50 files (alphabetically sorted,
   -- so the newest recordings are at the end) to find the newest path.
@@ -4303,7 +4460,7 @@ function PakettiNetDriveWatcherStart(is_manual)
     preferences:save_as("preferences.xml")
   end
 
-  renoise.tool():add_timer(PakettiNetDriveWatcherTick, 1000)
+  renoise.tool():add_timer(PakettiNetDriveWatcherTick, state.timer_ms)
   renoise.app():show_status("NetDrive watcher started: " .. sanitized)
   return true
 end
@@ -4324,6 +4481,16 @@ end
 
 function PakettiNetDriveWatcherIsRunning()
   return PakettiNetDriveWatcher and PakettiNetDriveWatcher.running
+end
+
+function PakettiNetDriveWatcherRefreshTimer()
+  local state = PakettiNetDriveWatcher
+  if not state or not state.running then return end
+  if renoise.tool():has_timer(PakettiNetDriveWatcherTick) then
+    renoise.tool():remove_timer(PakettiNetDriveWatcherTick)
+  end
+  state.timer_ms = PakettiNetDriveWatcherTimerMs()
+  renoise.tool():add_timer(PakettiNetDriveWatcherTick, state.timer_ms)
 end
 
 function PakettiNetDriveWatcherToggle(is_manual)

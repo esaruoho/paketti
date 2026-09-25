@@ -9,14 +9,15 @@
 #
 # Innards linked back to this card (grep "features/netdrive-2logic-watcher.feature"):
 #   PakettiSamples.lua - PakettiNetDriveWatcher* functions poll the watch folder, debounce new files, and load them
-#   Paketti0G01_Loader.lua - pakettiNetDriveWatcher* preferences persist enable state, path, and stability delay
+#   Paketti0G01_Loader.lua - pakettiNetDriveWatcher* preferences persist enable state, path, stability delay, and poll interval
 #
 # SESSION:      netdrive-2logic-watcher.session.md
 # RESULT:       Worktree delivery; direct-push/PR not yet known
 #
-# WATCH: PakettiNetDriveWatcher PakettiNetDriveWatcherStart PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile pakettiNetDriveWatcherFolder
+# WATCH: PakettiNetDriveWatcher PakettiNetDriveWatcherStart PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile PakettiNetDriveWatcherRefreshTimer pakettiNetDriveWatcherFolder pakettiNetDriveWatcherPollSeconds
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-25  direct-commit  touched: PakettiNetDriveWatcher PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile PakettiNetDriveWatcherRefreshTimer pakettiNetDriveWatcherFolder pakettiNetDriveWatcherPollSeconds
 #   2026-09-24  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-23  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-22  direct-commit  touched: PakettiNetDriveWatcher PakettiNetDriveWatcherStart PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile pakettiNetDriveWatcherFolder
@@ -44,13 +45,38 @@ Feature: NetDrive 2logic watcher
 
   @shipped @code-verified @runtime-untested
   Scenario: Ignore old existing files and load changed file signatures
-    # cite: PakettiSamples.lua PakettiNetDriveWatcherStart (~line 4085) — snapshots old existing file signatures and leaves the newest unseen signature eligible
-    # cite: PakettiSamples.lua PakettiNetDriveWatcherTick (~line 4037) — waits for unchanged size and mtime before loading new or rewritten signatures
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherStart (~line 4207) — snapshots old existing file signatures and leaves the newest unseen signature eligible
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherTick (~line 4085) — waits for unchanged size and mtime before loading new or rewritten signatures
+    # cite: PakettiSamples.lua known_at_startup handling (~line 4195) — baselines genuinely old placeholder files but queues files written after watcher start
     Given the watch folder already contains audio files before the watcher starts
     When the watcher begins polling
     Then old existing files are marked known
     And the newest file is loaded once if its size/mtime signature has not already been loaded
+    And placeholder-known files written after the watcher started are queued instead of silently baselined
     And later new or overwritten audio files that remain stable for the configured delay are loaded
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Poll at the selected interval and prioritize newest takes
+    # cite: Paketti0G01_Loader.lua pakettiNetDriveWatcherPollSeconds (~line 253) — default schema polls once per second
+    # cite: Paketti0G01_Loader.lua pakettiPreferences Sync Folder Poll (~line 1634) — exposes 0.5, 1, 5, and 10 second choices
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherTick (~line 4135) — stats newest-looking known filenames before the older-file sweep
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherRefreshTimer (~line 4364) — reapplies the selected timer interval while the watcher is running
+    Given the watch folder contains thousands of older known files
+    When a new take appears near the newest end of the folder's sorted filenames
+    Then the watcher stats that newest-looking file before the rotating old-file sweep
+    And the user can choose a poll interval of 0.5, 1, 5, or 10 seconds from Paketti Preferences
+    And changing the preference refreshes the running watcher timer immediately
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Pause safely when the watched volume disconnects
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherVolumeMounted (~line 3967) — checks /Volumes for the mount name before touching the watched path
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherTick (~line 4140) — backs off for disconnected or failed folder scans
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherStart (~line 4349) — starts in paused/offline mode when the configured /Volumes mount is absent
+    Given the watched folder is on a /Volumes mount
+    When that volume disconnects while Automatically Sync Folder to Samples is enabled
+    Then the watcher pauses and reports the folder as unavailable
+    And it retries on a slow 10-second backoff instead of touching the dead mount every poll tick
+    And the Paketti script remains armed so the watcher can resume when the volume returns
 
   @shipped @code-verified @runtime-untested
   Scenario: Load each arrival as a fresh Paketti instrument

@@ -314,32 +314,10 @@ renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Samples:Beatsync Seamless (Auto-Chop Long Sample)",
   invoke = function() PakettiBeatsyncSeamlessAutoChop() end
 }
-renoise.tool():add_menu_entry{
-  name = "--Sample Editor:Paketti:Slices:Beatsync Seamless:Beatsync Seamless (Auto-Chop Long Sample)",
-  invoke = function() PakettiBeatsyncSeamlessAutoChop() end
-}
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Beatsync Seamless Auto-Chop",
-  invoke = function() PakettiBeatsyncSeamlessAutoChop() end
-}
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Beatsync Seamless Auto-Chop",
-  invoke = function(message) if message:is_trigger() then PakettiBeatsyncSeamlessAutoChop() end end
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Samples:Beatsync Seamless (Auto-Chop to Multiple Patterns)",
-  invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end
-}
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Slices:Beatsync Seamless:Beatsync Seamless (Auto-Chop to Multiple Patterns)",
-  invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end
-}
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Beatsync Seamless Auto-Chop Multi-Pattern",
-  invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end
-}
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Beatsync Seamless Auto-Chop Multi-Pattern",
-  invoke = function(message) if message:is_trigger() then PakettiBeatsyncSeamlessAutoChopMultiPattern() end end
-}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti:BeatSync:Beatsync Seamless (Auto-Chop Long Sample)",invoke = function() PakettiBeatsyncSeamlessAutoChop() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Beatsync Seamless Auto-Chop",invoke = function() PakettiBeatsyncSeamlessAutoChop() end}
+renoise.tool():add_midi_mapping{name = "Paketti:Beatsync Seamless Auto-Chop",invoke = function(message) if message:is_trigger() then PakettiBeatsyncSeamlessAutoChop() end end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Samples:Beatsync Seamless (Auto-Chop to Multiple Patterns)",invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:BeatSync:Beatsync Seamless (Auto-Chop to Multiple Patterns)",invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Beatsync Seamless Auto-Chop Multi-Pattern",invoke = function() PakettiBeatsyncSeamlessAutoChopMultiPattern() end}
+renoise.tool():add_midi_mapping{name = "Paketti:Beatsync Seamless Auto-Chop Multi-Pattern",invoke = function(message) if message:is_trigger() then PakettiBeatsyncSeamlessAutoChopMultiPattern() end end}

@@ -4032,37 +4032,37 @@ function PakettiSliceCreateRhythmicDrumChainFromXRNI(normalize_slices)
 end
 
 -- Menu entries and keybindings for Rhythmic Slice DrumChain (without normalize)
-PakettiAddMenuEntry{name = "--Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
+PakettiAddMenuEntry{name = "--Sample Editor:Paketti:Slices:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices",invoke = function() PakettiSliceCreateRhythmicDrumChain(false) end}
 
 -- Menu entries and keybindings for Rhythmic Slice DrumChain (with normalize)
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slices:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChain(true) end}
 
 -- Menu entries and keybindings for Rhythmic Slice DrumChain from XRNI (without normalize)
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slices:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain from XRNI",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(false) end}
 
 -- Menu entries and keybindings for Rhythmic Slice DrumChain from XRNI (with normalize)
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slices:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain from XRNI (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainFromXRNI(true) end}
 
 -- Menu entries and keybindings for Rhythmic Slice DrumChain Randomize (without normalize)
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Randomize)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(false) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slices:Create New Rhythmic Slice DrumChain with Current Slices (Randomize)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(false) end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Randomize)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(false) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Randomize)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(false) end}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Randomize)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(false) end}
 
 -- Menu entries and keybindings for Rhythmic Slice DrumChain Randomize (with normalize)
-PakettiAddMenuEntry{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Randomize) (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(true) end}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Slices:Create New Rhythmic Slice DrumChain with Current Slices (Randomize) (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(true) end}
 PakettiAddMenuEntry{name = "Instrument Box:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Randomize) (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(true) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Randomize) (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(true) end}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Create New Rhythmic Slice DrumChain with Current Slices (Randomize) (Normalized)",invoke = function() PakettiSliceCreateRhythmicDrumChainRandomize(true) end}
