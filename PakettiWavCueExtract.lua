@@ -806,7 +806,7 @@ end
 -- Add menu entries and keybindings
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Load:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
 PakettiAddMenuEntry{name = "Main Menu:File:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
-PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
+PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Load:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
 renoise.tool():add_keybinding{name = "Global:Paketti:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Load WAV with CUE Markers...",invoke = PakettiWavCuePromptAndImportWithCues}
@@ -816,8 +816,8 @@ PakettiAddMenuEntry{name = "Main Menu:File:Export WAV with CUE File...",invoke =
 PakettiAddMenuEntry{name = "Main Menu:File:Export WAV with Embedded CUE Headers...",invoke = PakettiWavCueExportSampleWithCueHeader}
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Export WAV with CUE File...",invoke = PakettiWavCueExportSampleWithCueFile}
 PakettiAddMenuEntry{name = "Sample Editor:Paketti:Export:Export WAV with Embedded CUE Headers...",invoke = PakettiWavCueExportSampleWithCueHeader}
-PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Export WAV with CUE File...",invoke = PakettiWavCueExportSampleWithCueFile}
-PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Export WAV with Embedded CUE Headers...",invoke = PakettiWavCueExportSampleWithCueHeader}
+PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Export:Export WAV with CUE File...",invoke = PakettiWavCueExportSampleWithCueFile}
+PakettiAddMenuEntry{name = "Sample Navigator:Paketti:Export:Export WAV with Embedded CUE Headers...",invoke = PakettiWavCueExportSampleWithCueHeader}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Export WAV with CUE File...",invoke = PakettiWavCueExportSampleWithCueFile}
 PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Import/Export:Export WAV with Embedded CUE Headers...",invoke = PakettiWavCueExportSampleWithCueHeader}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export WAV with CUE File...",invoke = PakettiWavCueExportSampleWithCueFile}

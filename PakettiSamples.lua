@@ -6654,7 +6654,7 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
   was_in_sample_editor = now_in_sample_editor
 end)
 
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Sample Selection Info",invoke = toggleSampleDetails}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sample Selection Info",invoke = toggleSampleDetails}
 
 
 

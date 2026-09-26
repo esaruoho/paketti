@@ -3875,7 +3875,6 @@ PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse Sho
   end }
 
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti Gadgets:Music Mouse...", invoke = pakettiMusicMouseShow }
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti Gadgets:Music Mouse...", invoke = pakettiMusicMouseShow }
 PakettiAddMenuEntry{name="Instrument Box:Paketti Gadgets:Music Mouse...", invoke = pakettiMusicMouseShow }
 
 renoise.tool():add_keybinding{name="Global:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }

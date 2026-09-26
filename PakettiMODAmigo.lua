@@ -367,10 +367,10 @@ local paketti_mod_amigo_entries = {
 local paketti_mod_amigo_bases = {
   "Main Menu:File:Paketti Import:",
   "Main Menu:Tools:Paketti:Instruments:File Formats:",
-  "Main Menu:Tools:Paketti:Instruments:Amigo:",
+  "Main Menu:Tools:Paketti:Import/Export:Amigo:",
   "Instrument Box:Paketti:Load:",
   "Sample Editor:Paketti:Load:",
-  "Sample Navigator:Paketti:",
+  "Sample Navigator:Paketti:Load:",
   "Disk Browser Files:Paketti:Import/Export:",
 }
 

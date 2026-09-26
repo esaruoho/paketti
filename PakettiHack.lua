@@ -636,20 +636,20 @@ function pakettiBeatSyncHackDialog()
     }
     -- Render & Restore button disabled (engine bugs cause crashes); see top of file
   }
-  paketti_hack_dialog = renoise.app():show_custom_dialog("Paketti BeatSyncHack Dialog", content)
+  paketti_hack_dialog = renoise.app():show_custom_dialog("Paketti BeatsyncHack Dialog", content)
 end
 
 local presets = {1024, 2048, 4096, 8192, 16384, 32768}
 for _, n in ipairs(presets) do
   local label = string.format("%05d", n)
   PakettiAddMenuEntry{
-    name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatSyncHack:Set BeatSyncLines " .. label,
+    name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatsyncHack:Set BeatSyncLines " .. label,
     invoke = function() paketti_hack_set_beatsync_lines(n) end
   }
   PakettiAddMenuEntry{
-    name = "Sample Editor:Paketti:BeatSync:Set BeatSyncLines " .. label,invoke = function() paketti_hack_set_beatsync_lines(n) end}
+    name = "Sample Editor:Paketti:Beatsync:Set BeatSyncLines " .. label,invoke = function() paketti_hack_set_beatsync_lines(n) end}
   PakettiAddMenuEntry{
-    name = "Instrument Box:Paketti:BeatSyncHack:Set BeatSyncLines " .. label,
+    name = "Instrument Box:Paketti:BeatsyncHack:Set BeatSyncLines " .. label,
     invoke = function() paketti_hack_set_beatsync_lines(n) end
   }
   renoise.tool():add_keybinding{
@@ -663,7 +663,7 @@ PakettiAddMenuEntry{
   invoke = pakettiBeatSyncHackDialog
 }
 PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:BeatSync:Set BeatSyncLines Dialog...",
+  name = "Sample Editor:Paketti:Beatsync:Set BeatSyncLines Dialog...",
   invoke = pakettiBeatSyncHackDialog
 }
 PakettiAddMenuEntry{
@@ -682,15 +682,15 @@ PakettiAddMenuEntry{
   invoke = pakettiBeatSyncHackRenderAndRestore
 }
 PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:BeatSyncHack:Render & Restore Current Sample",
+  name = "Sample Editor:Paketti:BeatsyncHack:Render & Restore Current Sample",
   invoke = pakettiBeatSyncHackRenderAndRestore
 }
 PakettiAddMenuEntry{
-  name = "Instrument Box:Paketti:BeatSyncHack:Render & Restore Current Sample",
+  name = "Instrument Box:Paketti:BeatsyncHack:Render & Restore Current Sample",
   invoke = pakettiBeatSyncHackRenderAndRestore
 }
 renoise.tool():add_keybinding{
-  name = "Global:Paketti:BeatSyncHack Render & Restore",
+  name = "Global:Paketti:BeatsyncHack Render & Restore",
   invoke = pakettiBeatSyncHackRenderAndRestore
 }
 --]] -- end DISABLED Render & Restore entries

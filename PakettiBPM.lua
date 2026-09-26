@@ -866,7 +866,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Transient BPM Detector Dialog...", invoke = pakettiShowTransientBPMDialog}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient BPM Detector Dialog...", invoke = pakettiShowTransientBPMDialog}
-PakettiAddMenuEntry{name="Sample Editor:Paketti GadgetsTransient BPM Detector...", invoke = pakettiShowTransientBPMDialog}
+PakettiAddMenuEntry{name="Sample Editor:Paketti Gadgets:Transient BPM Detector...", invoke = pakettiShowTransientBPMDialog}
 PakettiAddMenuEntry{name="Sample Editor Ruler:Paketti:BPM:Transient BPM Detector...", invoke = pakettiShowTransientBPMDialog}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti Gadgets:Transient BPM Detector...", invoke = pakettiShowTransientBPMDialog}
 renoise.tool():add_midi_mapping{name="Paketti:Transient BPM Detector Dialog", invoke=function(message) if message:is_trigger() then pakettiShowTransientBPMDialog() end end}

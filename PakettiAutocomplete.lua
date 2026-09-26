@@ -102,9 +102,10 @@ local function convert_key_name(key)
     elseif part == "Grave" then part = "§"
     elseif part == "Comma" then part = ","
     -- Shorten modifier keys for cleaner display
-    elseif part == "Command" then part = "CMD"
-    elseif part == "Control" then part = "CTRL"
-    elseif part == "Option" then part = "OPT"
+    elseif part == "Command" or part == "Cmd" or part == "CMD" then part = "⌘"
+    elseif part == "Control" or part == "Ctrl" or part == "CTRL" then part = "⌃"
+    elseif part == "Option" or part == "Opt" or part == "OPT" then part = "⌥"
+    elseif part == "Shift" or part == "SHIFT" then part = "⇧"
     end
     table.insert(parts, part)
   end
@@ -4391,6 +4392,4 @@ end
 
 -- Initialize commands when module loads
 --initialize_paketti_commands()
-
-
 

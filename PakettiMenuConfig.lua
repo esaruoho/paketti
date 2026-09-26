@@ -1643,7 +1643,7 @@ if PAKETTI_API >= 6.2 then
   end
   if preferences.pakettiMenuConfig.SampleEditor.value then
     renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
-    renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
+    renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Load:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
   end
   if preferences.pakettiMenuConfig.MainMenuTools.value then
     renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
@@ -2115,7 +2115,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Set Selection 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Unison Generator Dialog",invoke=PakettiCreateUnisonSamples}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function() pakettieSpeakDialog() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Process:Paketti Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
 
 -- Sample Editor Load
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:Convert IFF to WAV...",invoke = convertIFFToWAV}
@@ -2286,7 +2286,6 @@ renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select Center of Sample 
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Offset...", invoke = pakettiHexOffsetDialog}
 
 -- Sample Editor Root
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Toggles:Toggle Sample Selection Info",invoke = toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Create New Instrument from Selection with Slices",invoke=create_new_instrument_from_selection_with_slices}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
@@ -2357,10 +2356,10 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Invert Rand
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Save:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Save:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Save:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Load:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Slices:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Slices:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate All Samples at -24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end}
@@ -2394,10 +2393,10 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Autofade/Autoseek:S
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Autofade/Autoseek:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Autofade/Autoseek:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync/Slices:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Beatsync:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Beatsync:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
 
@@ -2433,7 +2432,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize A
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
 
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Load .MOD as Sample",invoke=function() 
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Load:Load .MOD as Sample",invoke=function() 
     local file_path = renoise.app():prompt_for_filename_to_read({"*.mod", "mod.*"}, "Select Any File to Load as Sample")
     if file_path ~= "" then
       pakettiLoadExeAsSample(file_path)
@@ -2465,8 +2464,6 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Copy Sample in Note
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
-
-
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Protracker MOD Modulation...",invoke = showProtrackerModDialog}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Batch Sample Adjust Dialog...",invoke = show_batch_sample_adjust_dialog}
@@ -3681,7 +3678,7 @@ if PAKETTI_API >= 6.2 then
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Selection Info Toggle",invoke=toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
+renoise.tool():add_menu_entry{name="Main Menu:Options:Toggle Sample Selection Info",invoke=toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Pattern Status Monitor Toggle",invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Follow Page Pattern Toggle",invoke=function() PakettiToggleFollowPagePattern() end,selected=function() return preferences.pakettiFollowPagePattern.value end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:PlayerPro Auto-Open Smart Dialog Toggle",invoke=function() pakettiPlayerProToggleAlwaysOpen() end,selected=function() return preferences.pakettiPlayerProAlwaysOpen.value end}

@@ -8,9 +8,10 @@ PakettiShortcutHintsTable = {}
 
 local function abbreviateModifiers(key_string)
   local result = key_string
-  result = result:gsub("Command", "Cmd")
-  result = result:gsub("Option", "Opt")
-  result = result:gsub("Control", "Ctrl")
+  result = result:gsub("Command", "⌘"):gsub("CMD", "⌘"):gsub("Cmd", "⌘")
+  result = result:gsub("Option", "⌥"):gsub("OPT", "⌥"):gsub("Opt", "⌥")
+  result = result:gsub("Shift", "⇧"):gsub("SHIFT", "⇧")
+  result = result:gsub("Control", "⌃"):gsub("CTRL", "⌃"):gsub("Ctrl", "⌃")
   result = result:gsub(" %+ ", "+")
   return result
 end
@@ -216,7 +217,7 @@ end
 -- is cached on disk and rebuilt only when one of its inputs actually changes.
 -- Bump HINT_CACHE_VERSION whenever the hint FORMAT or the matching logic changes,
 -- so existing caches are discarded rather than trusted.
-local HINT_CACHE_VERSION = "1"
+local HINT_CACHE_VERSION = "3"
 
 local function hintCachePath()
   return renoise.tool().bundle_path .. "shortcut_hints_cache.txt"

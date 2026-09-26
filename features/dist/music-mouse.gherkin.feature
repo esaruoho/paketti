@@ -72,6 +72,7 @@ Context: Global
   #
   # WATCH: pakettiMusicMouseShow mm_compute_voices mm_render mm_tick mm_set_record mm_tune_sample mm_toggle_gravity_play mm_articulate mm_perform_burst mm_burst_order mm_gravity_goto mm_gravity_step mm_set_treatment mm_strum_active mm_strum_spacing mm_strum_cancel mm_save_prefs mm_state_summary
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+  #   2026-09-26  direct-commit  touched: pakettiMusicMouseShow
   #   2026-09-26  direct-commit  touched: pakettiMusicMouseShow mm_toggle_gravity_play mm_gravity_step
   #   2026-08-31  direct-commit  touched: mm_compute_voices mm_render mm_set_record
   #   2026-08-31  direct-commit  touched: mm_compute_voices mm_toggle_gravity_play
