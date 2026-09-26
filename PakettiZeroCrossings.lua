@@ -814,7 +814,8 @@ PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:B
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Xperimental/WIP:Zero Crossings:BPM Movement:Move Slice End +1/32 Beat", invoke = function() PakettiZeroCrossingsMoveSliceEnd(0.03125, 1) end}
 
 -- Instrument Box menu entries (for convenience)
-PakettiAddMenuEntry{name="Instrument Box:Paketti:Zero Crossings:Advanced Dialog", invoke = PakettiZeroCrossingsAdvancedDialog}
+PakettiAddMenuEntry{name="Instrument Box:Paketti Gadgets:Zero Crossings:Advanced Dialog...", invoke = PakettiZeroCrossingsAdvancedDialog}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Zero Crossings:Advanced Dialog...", invoke = PakettiZeroCrossingsAdvancedDialog}
 PakettiAddMenuEntry{name="Instrument Box:Paketti:Zero Crossings:Zero Cross Wipe&Slice (016)", invoke = PakettiZeroCrossingsWipeSlice016}
 PakettiAddMenuEntry{name="Instrument Box:Paketti:Zero Crossings:Randomize Slices", invoke = PakettiZeroCrossingsQuickRandomizeSlices}
 
@@ -826,7 +827,7 @@ PakettiAddMenuEntry{name="Sample Navigator:Paketti:Zero Crossings:Zero Cross Wip
 -- MIDI mappings
 --------------------------------------------------------------------------------
 
-renoise.tool():add_midi_mapping{name="Paketti:Zero Crossings Advanced Dialog", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsAdvancedDialog() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Zero Crossings Advanced Dialog...", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsAdvancedDialog() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Snap Selection to Zero Crossings", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsSnapSelection(1.0) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Zero Cross Wipe&Slice (016)", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsWipeSlice016() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Slice Positions", invoke = function(message) if message:is_trigger() then PakettiZeroCrossingsQuickRandomizeSlices() end end}

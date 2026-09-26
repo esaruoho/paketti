@@ -24,6 +24,7 @@
 # WATCH: execute_action create_button_list DynamicMacroToolbar show_euclid_dialog
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks - newest below)
+#   2026-09-26  direct-commit  touched: DynamicMacroToolbar
 #   2026-09-25  direct-commit  touched: DynamicMacroToolbar show_euclid_dialog
 # =============================================================================
 

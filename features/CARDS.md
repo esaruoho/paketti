@@ -43,6 +43,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
 - [Subcolumn-only pattern inversion](#subcolumn-only-invert) — `subcolumn-only-invert.feature`
+- [Transient navigation detection](#transient-navigation-detection) — `transient-navigation-detection.feature`
 - [Tree menu map generator](#treemenu) — `treemenu.feature`
 - [TX16W IMG exports use Cyclone-compatible item identity](#tx16w-cyclone-images) — `tx16w-cyclone-images.feature`
 
@@ -788,6 +789,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `invert_content_subcolumn` · **Source files:** `PakettiRequests.lua`, `PakettiMenuConfig.lua`
 
 **Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+
+
+<a id="transient-navigation-detection"></a>
+## Transient navigation detection
+
+`features/transient-navigation-detection.feature` · [session](transient-navigation-detection.session.md)
+
+**What it does:** As a Sample Editor user, I want Transient Next/Previous to re-arm between dense hits, So that visible attacks after the first beat are reachable.
+
+**Behaviour (4 scenarios):**
+
+- Re-arm the nav detector after the opening transient — `@shipped @code-verified`
+- Farmman fixture reaches later visible attacks — `@shipped @sim-verified`
+- Navigation stays cache-backed and non-slicing — `@stock`
+- Expose no-zoom navigation with obvious demo labels — `@shipped @code-verified`
+
+**How it does it:** **Key procs:** `TN_DEFAULTS`, `PakettiTransientNextOnset`, `PakettiTransientPreviousOnset`, `PakettiTransientNextPoint`, `PakettiTransientPreviousPoint`, `transient_navigation_detector_regression` · **Source files:** `PakettiTransientNavigation.lua`, `tests/transient_navigation_detector_regression.py`
+
+**Grade:** @code-verified ×2 · @shipped ×3 · @sim-verified ×1 · @stock ×1
 
 
 <a id="treemenu"></a>

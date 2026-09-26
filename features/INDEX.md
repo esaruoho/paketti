@@ -50,3 +50,4 @@ Derived views — GENERATED, never hand-edit:
 | `subcolumn-only-invert.feature` | Volume/panning/delay/sample-FX-only note subcolumn inversion | `subcolumn-only-invert.session.md` | worktree |
 | `tx16w-cyclone-images.feature` | TX16W IMG exports use Cyclone-compatible boot sectors | `tx16w-cyclone-images.session.md` | worktree |
 | `treemenu.feature` | Static Lua menu registrations rendered as grouped menu tree reports | `treemenu.session.md` | worktree |
+| `transient-navigation-detection.feature` | Sample Editor Transient Next/Previous re-arms between dense visible hits | `transient-navigation-detection.session.md` | worktree |

@@ -1,5 +1,6 @@
 -- PakettiTransientNavigation.lua
 -- Tab-to-transient navigation for the Renoise Sample Editor.
+-- REPORT-CARD >> features/transient-navigation-detection.feature
 --
 -- The idea (from Pro Tools / REAPER / Acon Acoustica, requested by le(m)on on
 -- Discord): step through a sample by detected attack transients the way Renoise
@@ -19,8 +20,11 @@
 -- its full set of hits, not just the loudest few).
 --------------------------------------------------------------------------------
 local TN_DEFAULTS = {
-  lowpass_freq = 150, rtime_low = 0.02, peak_on_low = 0.04, peak_off_low = 0.005,
-  highpass_freq = 3000, rtime_high = 0.02, peak_on_high = 0.04, peak_off_high = 0.005,
+  -- Keep peak_off close enough to peak_on that noisy loops re-arm between hits.
+  -- At 0.005 the Schmitt trigger can stay latched after the opening transient and
+  -- miss the rest of a visibly active sample.
+  lowpass_freq = 150, rtime_low = 0.02, peak_on_low = 0.04, peak_off_low = 0.03,
+  highpass_freq = 3000, rtime_high = 0.02, peak_on_high = 0.04, peak_off_high = 0.03,
   min_slice_distance_ms = 35, zero_crossing = 1,
 }
 
@@ -581,6 +585,8 @@ PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Next Transi
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Previous Transient (Zoom to Onset)", invoke=function() PakettiTransientPreviousOnset() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Next Transient in Full (Zoom to Fit Region)", invoke=function() PakettiTransientNextRegion() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Previous Transient in Full (Zoom to Fit Region)", invoke=function() PakettiTransientPreviousRegion() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Next Transient (No Zoom)", invoke=function() PakettiTransientNextPoint() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Previous Transient (No Zoom)", invoke=function() PakettiTransientPreviousPoint() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Next Transient (Point Cursor, No Zoom)", invoke=function() PakettiTransientNextPoint() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Previous Transient (Point Cursor, No Zoom)", invoke=function() PakettiTransientPreviousPoint() end}
 PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Toggle Next/Previous Mode (Region/Point)", invoke=function() PakettiTransientToggleSelectMode() end}
@@ -595,6 +601,8 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Next Zoom On
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Previous Zoom Onset", invoke=function() PakettiTransientPreviousOnset() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Next in Full Zoom Region", invoke=function() PakettiTransientNextRegion() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Previous in Full Zoom Region", invoke=function() PakettiTransientPreviousRegion() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Next Without Zoom", invoke=function() PakettiTransientNextPoint() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Previous Without Zoom", invoke=function() PakettiTransientPreviousPoint() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Next Point Cursor", invoke=function() PakettiTransientNextPoint() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Previous Point Cursor", invoke=function() PakettiTransientPreviousPoint() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Toggle Mode", invoke=function() PakettiTransientToggleSelectMode() end}
