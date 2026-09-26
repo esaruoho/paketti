@@ -27,6 +27,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens)](#mlx-renoise-bridge) — `mlx-renoise-bridge.feature`
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
 - [NetDrive 2logic watcher](#netdrive-2logic-watcher) — `netdrive-2logic-watcher.feature`
+- [Normalize selected sample selection](#normalize-selected-channel) — `normalize-selected-channel.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
 - [Pattern and song row jumps](#pattern-song-jumps) — `pattern-song-jumps.feature`
@@ -484,6 +485,27 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiNetDriveWatcher`, `PakettiNetDriveWatcherStart`, `PakettiNetDriveWatcherTick`, `PakettiNetDriveWatcherLoadFile`, `PakettiNetDriveWatcherRefreshTimer`, `pakettiNetDriveWatcherFolder`, `pakettiNetDriveWatcherPollSeconds` · **Source files:** `Paketti0G01_Loader.lua`, `preferences.xml`, `PakettiSamples.lua`
 
 **Grade:** @code-verified ×9 · @runtime-untested ×9 · @shipped ×9 · @stock ×1
+
+
+<a id="normalize-selected-channel"></a>
+## Normalize selected sample selection
+
+`features/normalize-selected-channel.feature` · [session](normalize-selected-channel.session.md)
+
+**What it does:** As a Sample Editor user, I want normalization to obey the selected range and channel, So that only the audio I selected is changed.
+
+**Behaviour (6 scenarios):**
+
+- Resolve sample-buffer selection bounds — `@shipped @code-verified @runtime-untested`
+- Resolve the selected sample-buffer channel — `@shipped @code-verified @runtime-untested`
+- Normalize only the selected channel in the ultra-fast path — `@shipped @code-verified @runtime-untested`
+- Normalize only the selected channel in the streaming path — `@shipped @code-verified @runtime-untested`
+- Both-channel normalization remains linked — `@stock`
+- Normalize Selected Sample or Slice obeys channel and range — `@shipped @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `paketti_selected_sample_channels`, `normalize_selected_sample_ultra_fast_coroutine`, `normalize_selected_sample_streaming_coroutine` · **Source files:** `PakettiProcess.lua`
+
+**Grade:** @code-verified ×5 · @runtime-untested ×5 · @shipped ×5 · @stock ×1
 
 
 <a id="parameter-editor-mixer-and-config"></a>

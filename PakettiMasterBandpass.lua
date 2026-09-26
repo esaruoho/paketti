@@ -459,16 +459,10 @@ renoise.tool():add_midi_mapping{
 }
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
-  renoise.tool():add_menu_entry{
-    name = "Main Menu:Tools:Paketti:Master Bandpass Dialog...",
-    invoke = PakettiMasterBandpassToggleDialog
-  }
-  renoise.tool():add_menu_entry{
-    name = "Main Menu:Tools:Paketti:Master Bandpass Toggle Active",
-    invoke = PakettiMasterBandpassToggleActive
-  }
-  renoise.tool():add_menu_entry{
-    name = "Main Menu:Tools:Paketti:Master Bandpass View Device",
-    invoke = PakettiMasterBandpassFocusDevice
-  }
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Master Bandpass Dialog...",invoke = PakettiMasterBandpassToggleDialog}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Master Bandpass Toggle Active",invoke = PakettiMasterBandpassToggleActive}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Master Bandpass View Device",invoke = PakettiMasterBandpassFocusDevice}
 end
+
+
+

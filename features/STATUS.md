@@ -34,6 +34,7 @@
 | mlx-renoise-bridge | 10 | ✓ | — | ✓ | @built @code-verified @designed @hw-verified |
 | music-mouse | 36 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @stock @user-verified |
 | netdrive-2logic-watcher | 10 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| normalize-selected-channel | 6 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
 | pattern-song-jumps | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | pattern-transform-shortcuts | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
@@ -52,8 +53,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 38
-- Build-verified: 36
+- Cards: 39
+- Build-verified: 37
 - Runtime-verified: 3 full + 1 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

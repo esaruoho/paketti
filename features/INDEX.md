@@ -32,6 +32,7 @@ Derived views — GENERATED, never hand-edit:
 | `mlx-renoise-bridge.feature` | Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens) | — | `4bc8daab` `26c583a5` `bc06819a` |
 | `music-mouse.feature` | Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise | `music-mouse.session.md` | `37f054b1` `c3465c5d` `ab144dc2` |
 | `netdrive-2logic-watcher.feature` | Watch /private/tmp/netdrive/2logic and load new stable audio files as Paketti instruments | `netdrive-2logic-watcher.session.md` | worktree |
+| `normalize-selected-channel.feature` | Normalize Sample and Normalize Selected Sample or Slice obey selected sample-editor channel and frame range | `normalize-selected-channel.session.md` | worktree |
 | `parameter-editor-mixer-and-config.feature` | Parameter Editor exposes on the Mixer the parameter you're modifying | `parameter-editor-mixer-and-config.session.md` | `bc06819a` `b4a43b27` `94e4c343` |
 | `pattern-song-jumps.feature` | Pattern fraction jumps and reversible last row-jump commands for pattern/song navigation | `pattern-song-jumps.session.md` | worktree |
 | `pattern-transform-shortcuts.feature` | Exponential interpolation menus, LPB1-to-LPB4 pattern expansion, and selection-or-row note transpose controls | `pattern-transform-shortcuts.session.md` | worktree |

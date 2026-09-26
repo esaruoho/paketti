@@ -8,6 +8,48 @@ local math_log10 = math.log10
 local log10 = math.log10
 local math_abs   = math.abs
 
+-- REPORT-CARD >> features/normalize-selected-channel.feature
+local function paketti_selected_sample_channels(buffer)
+  local total_channels = buffer.number_of_channels
+  local selected_channel = buffer.selected_channel
+  local channel_left = renoise.SampleBuffer.CHANNEL_LEFT or 1
+  local channel_right = renoise.SampleBuffer.CHANNEL_RIGHT or 2
+  local channels = {}
+  local channel_desc = ""
+
+  if total_channels > 1 and selected_channel == channel_left then
+    channels = {1}
+    channel_desc = " (left channel)"
+  elseif total_channels > 1 and selected_channel == channel_right then
+    channels = {2}
+    channel_desc = " (right channel)"
+  else
+    for ch = 1, total_channels do
+      channels[#channels + 1] = ch
+    end
+    if total_channels > 1 then
+      channel_desc = " (both channels)"
+    end
+  end
+
+  return channels, channel_desc
+end
+
+local function paketti_sample_selection_bounds(buffer)
+  local selection = buffer.selection_range
+  local first = selection and selection[1]
+  local last = selection and selection[2]
+  if not first or not last or last < 1 or first > buffer.number_of_frames then
+    return nil, nil
+  end
+  first = math.max(1, first)
+  last = math.min(buffer.number_of_frames, last)
+  if last < first then
+    return nil, nil
+  end
+  return first, last
+end
+
 function NormalizeSelectedSliceInSample()
   local noprocess = false
   local song=renoise.song()
@@ -31,12 +73,10 @@ function NormalizeSelectedSliceInSample()
     local slicer, dialog, vb  -- declare upvalues so process_func can refer to them
     local function process_func()
       local buffer = current_sample.sample_buffer
-      local sel_range = buffer.selection_range
-      local slice_start, slice_end
+      local slice_start, slice_end = paketti_sample_selection_bounds(buffer)
+      local has_selection = slice_start ~= nil
 
-      if sel_range[1] and sel_range[2] then
-        slice_start = sel_range[1]
-        slice_end   = sel_range[2]
+      if has_selection then
         print(string.format("Selection in Sample: %d-%d", slice_start, slice_end))
         print("Normalizing: selection in sample")
       else
@@ -47,6 +87,7 @@ function NormalizeSelectedSliceInSample()
 
       -- Localize properties for efficiency.
       local num_channels = buffer.number_of_channels
+      local channels_to_normalize, channel_desc = paketti_selected_sample_channels(buffer)
       local sample_rate  = buffer.sample_rate
       local bit_depth    = buffer.bit_depth
       local total_frames = slice_end - slice_start + 1
@@ -82,7 +123,7 @@ function NormalizeSelectedSliceInSample()
         local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
         local block_size = block_end - frame + 1
         local t_block = os.clock()
-        for ch = 1, num_channels do
+        for _, ch in ipairs(channels_to_normalize) do
           for i = 0, block_size - 1 do
             local f = frame + i
             local idx = f - slice_start + 1
@@ -117,23 +158,6 @@ function NormalizeSelectedSliceInSample()
         yield_if_needed()
       end
 
-      -- Determine which channels to process based on selection
-      local selected_channel = buffer.selected_channel
-      local channels_to_normalize = {}
-      
-      if selected_channel == 1 then -- CHANNEL_LEFT
-        channels_to_normalize = {1}
-        print("Normalizing: Left channel only")
-      elseif selected_channel == 2 then -- CHANNEL_RIGHT  
-        channels_to_normalize = {2}
-        print("Normalizing: Right channel only")
-      else -- CHANNEL_LEFT_AND_RIGHT or default
-        for ch = 1, num_channels do
-          channels_to_normalize[ch] = ch
-        end
-        print("Normalizing: All channels")
-      end
-
       -- Find peak only from selected channels
       local peak = 0
       for _, ch in ipairs(channels_to_normalize) do
@@ -164,27 +188,12 @@ function NormalizeSelectedSliceInSample()
         local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
         local block_size = block_end - frame + 1
         local t_block = os.clock()
-        for ch = 1, num_channels do
+        for _, ch in ipairs(channels_to_normalize) do
           for i = 0, block_size - 1 do
             local f = frame + i
             local idx = f - slice_start + 1
             local cached_value = sample_cache[ch][idx]
-            
-            -- Only normalize selected channels
-            local should_normalize = false
-            for _, target_ch in ipairs(channels_to_normalize) do
-              if ch == target_ch then
-                should_normalize = true
-                break
-              end
-            end
-            
-            if should_normalize then
-              set_sample(buffer, ch, f, cached_value * scale)
-            else
-              -- Keep original value for unselected channels
-              set_sample(buffer, ch, f, cached_value)
-            end
+            set_sample(buffer, ch, f, cached_value * scale)
           end
         end
         time_processing = time_processing + (os.clock() - t_block)
@@ -214,16 +223,7 @@ function NormalizeSelectedSliceInSample()
       end
 
       -- Generate appropriate status message
-      local channel_desc = ""
-      if selected_channel == 1 then
-        channel_desc = " (left channel)"
-      elseif selected_channel == 2 then
-        channel_desc = " (right channel)"
-      elseif num_channels > 1 then
-        channel_desc = " (both channels)"
-      end
-
-      if sel_range[1] and sel_range[2] then
+      if has_selection then
         if noprocess == true then
           renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
         return end
@@ -249,10 +249,10 @@ function NormalizeSelectedSliceInSample()
       local slice_start, slice_end
 
       if current_slice == 1 then
-        local sel = buffer.selection_range
-        if sel[1] and sel[2] then
-          slice_start = sel[1]
-          slice_end   = sel[2]
+        local selection_start, selection_end = paketti_sample_selection_bounds(buffer)
+        if selection_start then
+          slice_start = selection_start
+          slice_end   = selection_end
           print(string.format("Selection in First Sample: %d-%d", slice_start, slice_end))
           print("Normalizing: selection in first sample")
         else
@@ -268,9 +268,8 @@ function NormalizeSelectedSliceInSample()
         local current_buffer = current_sample.sample_buffer
         print(string.format("Current sample selection range: start=%s, end=%s", 
               tostring(current_buffer.selection_range[1]), tostring(current_buffer.selection_range[2])))
-        if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
-          local rel_sel_start = current_buffer.selection_range[1]
-          local rel_sel_end   = current_buffer.selection_range[2]
+        local rel_sel_start, rel_sel_end = paketti_sample_selection_bounds(current_buffer)
+        if rel_sel_start then
           local abs_sel_start = slice_start + rel_sel_start - 1
           local abs_sel_end   = slice_start + rel_sel_end - 1
           print(string.format("Selection %d-%d in slice view converts to %d-%d in sample", 
@@ -289,6 +288,7 @@ function NormalizeSelectedSliceInSample()
       print(string.format("Final normalize range: %d-%d", slice_start, slice_end))
 
       local num_channels = buffer.number_of_channels
+      local channels_to_normalize, channel_desc = paketti_selected_sample_channels(current_sample.sample_buffer)
       local sample_rate  = buffer.sample_rate
       local total_frames = slice_end - slice_start + 1
       local get_sample   = buffer.sample_data
@@ -321,14 +321,14 @@ function NormalizeSelectedSliceInSample()
         local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
         local block_size = block_end - frame + 1
         local t_block = os.clock()
-        for ch = 1, num_channels do
+        for _, ch in ipairs(channels_to_normalize) do
           for i = 0, block_size - 1 do
             local f = frame + i
             local idx = f - slice_start + 1
             local value = get_sample(buffer, ch, f)
             sample_cache[ch][idx] = value
             local abs_val = value < 0 and -value or value
-            if abs_val > channel_peaks[ch] then
+              if abs_val > channel_peaks[ch] then
               channel_peaks[ch] = abs_val
               if channel_peaks[ch] >= 0.999969 then
                 print("Found peak of 0.999969 or higher - no normalization needed")
@@ -354,23 +354,6 @@ function NormalizeSelectedSliceInSample()
           return
         end
         yield_if_needed()
-      end
-
-      -- Determine which channels to process based on selection
-      local selected_channel = buffer.selected_channel
-      local channels_to_normalize = {}
-      
-      if selected_channel == 1 then -- CHANNEL_LEFT
-        channels_to_normalize = {1}
-        print("Normalizing: Left channel only")
-      elseif selected_channel == 2 then -- CHANNEL_RIGHT  
-        channels_to_normalize = {2}
-        print("Normalizing: Right channel only")
-      else -- CHANNEL_LEFT_AND_RIGHT or default
-        for ch = 1, num_channels do
-          channels_to_normalize[ch] = ch
-        end
-        print("Normalizing: All channels")
       end
 
       -- Find peak only from selected channels
@@ -404,27 +387,12 @@ function NormalizeSelectedSliceInSample()
         local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
         local block_size = block_end - frame + 1
         local t_block = os.clock()
-        for ch = 1, num_channels do
+        for _, ch in ipairs(channels_to_normalize) do
           for i = 0, block_size - 1 do
             local f = frame + i
             local idx = f - slice_start + 1
             local value = sample_cache[ch][idx]
-            
-            -- Only normalize selected channels
-            local should_normalize = false
-            for _, target_ch in ipairs(channels_to_normalize) do
-              if ch == target_ch then
-                should_normalize = true
-                break
-              end
-            end
-            
-            if should_normalize then
-              set_sample(buffer, ch, f, value * scale)
-            else
-              -- Keep original value for unselected channels
-              set_sample(buffer, ch, f, value)
-            end
+            set_sample(buffer, ch, f, value * scale)
           end
         end
         time_processing = time_processing + (os.clock() - t_block)
@@ -455,18 +423,9 @@ function NormalizeSelectedSliceInSample()
       end
 
       -- Generate appropriate status message
-      local channel_desc = ""
-      if selected_channel == 1 then
-        channel_desc = " (left channel)"
-      elseif selected_channel == 2 then
-        channel_desc = " (right channel)"
-      elseif num_channels > 1 then
-        channel_desc = " (both channels)"
-      end
-
       if current_slice == 1 then
-        local sel = buffer.selection_range
-        if sel[1] and sel[2] then
+        local selection_start = paketti_sample_selection_bounds(buffer)
+        if selection_start then
           if noprocess == true then
             renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
           return end
@@ -475,8 +434,8 @@ function NormalizeSelectedSliceInSample()
           renoise.app():show_status("Normalized entire sample" .. channel_desc)
         end
       else
-        local sel = buffer.selection_range
-        if sel[1] and sel[2] then
+        local selection_start = paketti_sample_selection_bounds(current_sample.sample_buffer)
+        if selection_start then
           if noprocess == true then
             renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
           return end
@@ -785,11 +744,16 @@ function normalize_selected_sample_streaming_coroutine()
   end
 
   local buffer = sample.sample_buffer
-    local total_frames = buffer.number_of_frames
+    local frame_start, frame_end = paketti_sample_selection_bounds(buffer)
+    frame_start = frame_start or 1
+    frame_end = frame_end or buffer.number_of_frames
+    local total_frames = frame_end - frame_start + 1
     local total_channels = buffer.number_of_channels
+    local channels_to_normalize, channel_desc = paketti_selected_sample_channels(buffer)
+    local selected_channel_count = #channels_to_normalize
     
-    print(string.format("STREAMING: Processing %d frames across %d channels (%.1f MB)", 
-        total_frames, total_channels, (total_frames * total_channels * 4) / (1024 * 1024)))
+    print(string.format("STREAMING: Processing %d frames across %d selected channel(s)%s (%.1f MB)",
+        total_frames, selected_channel_count, channel_desc, (total_frames * total_channels * 4) / (1024 * 1024)))
     
     -- For huge samples, use streaming approach - no full caching!
     local channel_peaks = {}
@@ -808,8 +772,8 @@ function normalize_selected_sample_streaming_coroutine()
     
     print("Phase 1: Finding peak (streaming, no cache)...")
     
-    for f = 1, total_frames do
-        for c = 1, total_channels do
+    for f = frame_start, frame_end do
+        for _, c in ipairs(channels_to_normalize) do
             local value = buffer:sample_data(c, f)
             
             -- Find peak during streaming read
@@ -823,7 +787,7 @@ function normalize_selected_sample_streaming_coroutine()
             -- Yield EXTREMELY frequently for huge samples (both count and time-based)
             local current_time = os.clock()
             if processed_samples % YIELD_EVERY == 0 or (current_time - last_yield_time) >= YIELD_TIME_INTERVAL then
-                local progress = (processed_samples / (total_frames * total_channels)) * 100
+                local progress = (processed_samples / (total_frames * selected_channel_count)) * 100
                 renoise.app():show_status(string.format("Finding peak... %.1f%%", progress))
                 last_yield_time = current_time
                 coroutine.yield()
@@ -836,9 +800,9 @@ function normalize_selected_sample_streaming_coroutine()
     
     -- Find overall peak
     local peak = 0
-    for _, channel_peak in ipairs(channel_peaks) do
-        if channel_peak > peak then
-            peak = channel_peak
+    for _, c in ipairs(channels_to_normalize) do
+        if channel_peaks[c] > peak then
+            peak = channel_peaks[c]
         end
     end
     
@@ -858,8 +822,8 @@ function normalize_selected_sample_streaming_coroutine()
     processed_samples = 0
     last_yield_time = os.clock()
     
-    for f = 1, total_frames do
-        for c = 1, total_channels do
+    for f = frame_start, frame_end do
+        for _, c in ipairs(channels_to_normalize) do
             local value = buffer:sample_data(c, f)
             local normalized_value = value * scale
             buffer:set_sample_data(c, f, normalized_value)
@@ -869,7 +833,7 @@ function normalize_selected_sample_streaming_coroutine()
             -- Yield EXTREMELY frequently for responsiveness (both count and time-based)
             local current_time = os.clock()
             if processed_samples % YIELD_EVERY == 0 or (current_time - last_yield_time) >= YIELD_TIME_INTERVAL then
-                local progress = (processed_samples / (total_frames * total_channels)) * 100
+                local progress = (processed_samples / (total_frames * selected_channel_count)) * 100
                 renoise.app():show_status(string.format("Normalizing... %.1f%%", progress))
                 last_yield_time = current_time
                 coroutine.yield()
@@ -883,11 +847,12 @@ function normalize_selected_sample_streaming_coroutine()
     buffer:finalize_sample_data_changes()
     
     local total_time = peak_time + normalize_time
-    local frames_per_second = (total_frames * total_channels) / total_time
-    print(string.format("STREAMING normalization complete: %.2f seconds total (%.1fM samples/sec)", 
+    local frames_per_second = (total_frames * selected_channel_count) / total_time
+    print(string.format("STREAMING normalization complete%s: %.2f seconds total (%.1fM samples/sec)",
+        channel_desc,
         total_time, frames_per_second / 1000000))
     
-    renoise.app():show_status(string.format("Streaming normalization: %.1f dB increase", db_increase))
+    renoise.app():show_status(string.format("Streaming normalization%s: %.1f dB increase", channel_desc, db_increase))
     
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -909,9 +874,14 @@ function normalize_selected_sample_ultra_fast_coroutine()
     end
 
     local buffer = sample.sample_buffer
-    local total_frames = buffer.number_of_frames
+    local frame_start, frame_end = paketti_sample_selection_bounds(buffer)
+    frame_start = frame_start or 1
+    frame_end = frame_end or buffer.number_of_frames
+    local total_frames = frame_end - frame_start + 1
     local total_channels = buffer.number_of_channels
     local sample_size_mb = (total_frames * total_channels * 4) / (1024 * 1024)
+    local channels_to_normalize, channel_desc = paketti_selected_sample_channels(buffer)
+    local selected_channel_count = #channels_to_normalize
     
     -- For samples larger than 50MB, use streaming approach (more aggressive threshold)
     if sample_size_mb > 50 then
@@ -919,8 +889,8 @@ function normalize_selected_sample_ultra_fast_coroutine()
         return normalize_selected_sample_streaming_coroutine()
     end
     
-    print(string.format("ULTRA-FAST: Processing %d frames across %d channels (%.1f MB)", 
-        total_frames, total_channels, sample_size_mb))
+    print(string.format("ULTRA-FAST: Processing %d frames across %d selected channel(s)%s (%.1f MB)",
+        total_frames, selected_channel_count, channel_desc, sample_size_mb))
     
     -- Pre-allocate flat arrays for maximum cache performance
     local sample_data = {}
@@ -942,14 +912,14 @@ function normalize_selected_sample_ultra_fast_coroutine()
     local CHUNK_SIZE = math.min(50000, math.max(10000, total_frames / 20))  -- Adaptive: 5-50k frames
     print(string.format("Using chunk size: %d frames for optimal performance", CHUNK_SIZE))
     
-    for chunk_start = 1, total_frames, CHUNK_SIZE do
-        local chunk_end = math.min(chunk_start + CHUNK_SIZE - 1, total_frames)
+    for chunk_start = frame_start, frame_end, CHUNK_SIZE do
+        local chunk_end = math.min(chunk_start + CHUNK_SIZE - 1, frame_end)
         
-        -- Process this chunk across all channels
+        -- Process this chunk across selected channels only
         for f = chunk_start, chunk_end do
-            for c = 1, total_channels do
+            for _, c in ipairs(channels_to_normalize) do
                 local value = buffer:sample_data(c, f)
-                sample_data[(c-1) * total_frames + f] = value
+                sample_data[(c-1) * total_frames + (f - frame_start + 1)] = value
                 
                 -- OPTIMIZED: Use faster abs calculation and batch peak updates
                 local abs_value = value >= 0 and value or -value  -- Faster than math.abs()
@@ -962,7 +932,7 @@ function normalize_selected_sample_ultra_fast_coroutine()
         end
         
         -- Yield after processing each chunk (much less frequent)
-        local progress = (processed_samples / (total_frames * total_channels)) * 100
+        local progress = (processed_samples / (total_frames * selected_channel_count)) * 100
         renoise.app():show_status(string.format("Caching & finding peak... %.1f%%", progress))
         coroutine.yield()
     end
@@ -972,9 +942,9 @@ function normalize_selected_sample_ultra_fast_coroutine()
     
     -- Find overall peak
     local peak = 0
-    for _, channel_peak in ipairs(channel_peaks) do
-        if channel_peak > peak then
-            peak = channel_peak
+    for _, c in ipairs(channels_to_normalize) do
+        if channel_peaks[c] > peak then
+            peak = channel_peaks[c]
         end
     end
     
@@ -993,13 +963,13 @@ function normalize_selected_sample_ultra_fast_coroutine()
     processed_samples = 0
     
     -- Use same chunked approach for normalization
-    for chunk_start = 1, total_frames, CHUNK_SIZE do
-        local chunk_end = math.min(chunk_start + CHUNK_SIZE - 1, total_frames)
+    for chunk_start = frame_start, frame_end, CHUNK_SIZE do
+        local chunk_end = math.min(chunk_start + CHUNK_SIZE - 1, frame_end)
         
-        -- Process this chunk across all channels
+        -- Process this chunk across selected channels only
         for f = chunk_start, chunk_end do
-            for c = 1, total_channels do
-                local index = (c-1) * total_frames + f
+            for _, c in ipairs(channels_to_normalize) do
+                local index = (c-1) * total_frames + (f - frame_start + 1)
                 local normalized_value = sample_data[index] * scale
                 buffer:set_sample_data(c, f, normalized_value)
                 
@@ -1008,7 +978,7 @@ function normalize_selected_sample_ultra_fast_coroutine()
         end
         
         -- Yield after processing each chunk
-        local progress = (processed_samples / (total_frames * total_channels)) * 100
+        local progress = (processed_samples / (total_frames * selected_channel_count)) * 100
         renoise.app():show_status(string.format("Normalizing... %.1f%%", progress))
         coroutine.yield()
     end
@@ -1022,11 +992,12 @@ function normalize_selected_sample_ultra_fast_coroutine()
     sample_data = nil
     
     local total_time = cache_time + normalize_time
-    local frames_per_second = (total_frames * total_channels) / total_time
-    print(string.format("ULTRA-FAST normalization complete: %.2f seconds total (%.1fM samples/sec)", 
+    local frames_per_second = (total_frames * selected_channel_count) / total_time
+    print(string.format("ULTRA-FAST normalization complete%s: %.2f seconds total (%.1fM samples/sec)",
+        channel_desc,
         total_time, frames_per_second / 1000000))
     
-    renoise.app():show_status(string.format("Ultra-fast normalization: %.1f dB increase", db_increase))
+    renoise.app():show_status(string.format("Ultra-fast normalization%s: %.1f dB increase", channel_desc, db_increase))
     
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -4103,5 +4074,3 @@ renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 8x", invoke=functi
 renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 16x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(16) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 32x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(32) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Truncate Sample 64x", invoke=function(message) if message:is_trigger() then PakettiSampleTruncater(64) end end}
-
-

@@ -34,6 +34,7 @@ Context: Global
   # RESULT: worktree implementation, direct to local checkout, no PR yet
   # SESSION: master-bandpass.session.md
   # RESULT-LOG >> (auto-maintained by convey hooks - newest below)
+  #   2026-09-26  direct-commit  touched: PakettiMasterBandpassToggleDialog PakettiMasterBandpassToggleActive PakettiMasterBandpassFocusDevice
   #   2026-09-11  direct-commit  touched: PakettiMasterBandpassEnsure PakettiMasterBandpassShowDialog PakettiMasterBandpassToggleDialog PakettiMasterBandpassToggleActive PakettiMasterBandpassMomentary PakettiMasterBandpassFocusDevice paketti_master_bandpass_preset_xml paketti_master_bandpass_apply_preset
 
   @shipped @build-verified @runtime-untested
