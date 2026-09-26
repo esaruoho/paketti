@@ -3707,31 +3707,31 @@ PakettiMenuConfigCategoryList = {
 }
 
 PakettiKnownRenoiseMenuContexts = {
-  "Window Menu",
-  "Main Menu:File",
-  "Main Menu:Edit",
-  "Main Menu:View",
-  "Main Menu:Options",
-  "Main Menu:Tools",
-  "Main Menu:Song",
-  "Main Menu:Help",
-  "Scripting Menu:File",
+  "Window Menu", 
+  "Main Menu:File", --this is in use
+  "Main Menu:Edit", 
+  "Main Menu:View", --this is in use
+  "Main Menu:Options", --this is in use
+  "Main Menu:Tools", --this is in use
+  "Main Menu:Song", --this is in use 
+  "Main Menu:Help", --this is in use
+  "Scripting Menu:File", --can try this i guess but for what?
   "Scripting Menu:Tools",
-  "Disk Browser Directories",
-  "Disk Browser Files",
-  "Instrument Box",
-  "Pattern Sequencer",
-  "Pattern Editor",
-  "Pattern Matrix",
-  "Pattern Matrix Header",
+  "Disk Browser Directories", --not sure the differentiation between this
+  "Disk Browser Files", --and this
+  "Instrument Box", --this is in use
+  "Pattern Sequencer", --this is in use
+  "Pattern Editor", --this is in use
+  "Pattern Matrix", --this is in use
+  "Pattern Matrix Header", -- i just discovered this? use ut it for somethin
   "Phrase Editor",
   "Phrase Mappings",
   "Phrase Grid",
-  "Sample Navigator",
-  "Sample Editor",
-  "Sample Editor Ruler",
-  "Sample Editor Slice Markers",
-  "Sample List",
+  "Sample Navigator", --this is in use
+  "Sample Editor", -- this is in use
+  "Sample Editor Ruler", --this is in use
+  "Sample Editor Slice Markers", -- just discovered
+  "Sample List", 
   "Sample Mappings",
   "Sample FX Mixer",
   "Sample Modulation Matrix",
