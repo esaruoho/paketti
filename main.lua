@@ -1761,5 +1761,3 @@ PakettiFlushMenuEntries()
 
 --dbug(renoise.song())
 -- Added: PakettiSelectNextInstrument, PakettiSelectPreviousInstrument
-
-
