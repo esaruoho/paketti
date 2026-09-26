@@ -188,22 +188,7 @@ function PakettiDeviceCopyShowDialog(force_rebuild)
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
--- Registrations -------------------------------------------------------------
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Mixer:Track DSP Device Copy Dialog...",
-  invoke = function() PakettiDeviceCopyShowDialog() end
-}
-PakettiAddMenuEntry{
-  name = "--Mixer:Paketti:Track DSP Device Copy Dialog...",
-  invoke = function() PakettiDeviceCopyShowDialog() end
-}
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Track DSP Device Copy Dialog",
-  invoke = function() PakettiDeviceCopyShowDialog() end
-}
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Track DSP Device Copy Dialog [Trigger]",
-  invoke = function(message)
-    if message:is_trigger() then PakettiDeviceCopyShowDialog() end
-  end
-}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti Gadgets:Track DSP Device Copy Dialog...",invoke = function() PakettiDeviceCopyShowDialog() end}
+PakettiAddMenuEntry{name="--Mixer:Paketti Gadgets:Track DSP Device Copy Dialog...",invoke = function() PakettiDeviceCopyShowDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Track DSP Device Copy Dialog...",invoke = function() PakettiDeviceCopyShowDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Track DSP Device Copy Dialog... [Trigger]",invoke = function(message) if message:is_trigger() then PakettiDeviceCopyShowDialog() end end}

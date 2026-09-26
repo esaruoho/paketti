@@ -27,6 +27,7 @@
 # WATCH: PakettiCreateExecutePreferences PakettiExecuteRunCommand PakettiExecuteRunSlot PakettiExecuteShowDialog export_selected_range command_with_selected_sample
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks - newest below)
+#   2026-09-26  direct-commit  touched: PakettiExecuteShowDialog
 # =============================================================================
 
 Feature: Execute configurable shell commands

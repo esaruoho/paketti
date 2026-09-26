@@ -3874,18 +3874,18 @@ PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse Sho
     pcall(function() renoise.app():set_clipboard_text(txt) end)
   end }
 
-PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }
-PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Instruments:Music Mouse...", invoke = pakettiMusicMouseShow }
-PakettiAddMenuEntry{ name = "Instrument Box:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti Gadgets:Music Mouse...", invoke = pakettiMusicMouseShow }
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti Gadgets:Music Mouse...", invoke = pakettiMusicMouseShow }
+PakettiAddMenuEntry{name="Instrument Box:Paketti Gadgets:Music Mouse...", invoke = pakettiMusicMouseShow }
 
-renoise.tool():add_keybinding{ name = "Global:Paketti:Music Mouse Show/Hide", invoke = pakettiMusicMouseShow }
+renoise.tool():add_keybinding{name="Global:Paketti:Music Mouse...", invoke = pakettiMusicMouseShow }
 
-renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Show/Hide", invoke = function(message)
+renoise.tool():add_midi_mapping{name="Paketti:Music Mouse...", invoke = function(message)
   if message:is_trigger() then pakettiMusicMouseShow() end
 end }
 
 -- MIDI slider/knob -> song BPM (also drives the Music Mouse / Gravity Play tempo when Sync is on)
-renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse BPM (Slider)", invoke = function(message)
+renoise.tool():add_midi_mapping{name="Paketti:Music Mouse BPM (Slider)", invoke = function(message)
   local song = renoise.song()
   if not song or not message:is_abs_value() then return end
   local bpm = math.floor(40 + (message.int_value / 127) * (240 - 40) + 0.5)
@@ -3903,20 +3903,16 @@ renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Tempo (Slider)", in
   mm.tempo_basic = math.floor(20 + (message.int_value / 127) * (400 - 20) + 0.5)
   mm_restart_timer()
   if mm_update_panel then mm_update_panel() end
-  renoise.app():show_status("Music Mouse: Tempo 1 = " .. mm.tempo_basic)
-end }
+  renoise.app():show_status("Music Mouse: Tempo 1 = " .. mm.tempo_basic) end }
 
 -- MIDI pad/button -> toggle Gravity Play (sequence the gravitation seeds in recorded order)
 renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Gravity Play (Toggle)", invoke = function(message)
-  if message:is_trigger() then mm_toggle_gravity_play() end
-end }
+  if message:is_trigger() then mm_toggle_gravity_play() end end }
 
 -- MIDI pads/buttons -> step the gravitation seeds one at a time (same as cursor left / right).
 -- Manual stepping re-phases the auto clock, so you can play the seeds by hand while Gravity
 -- Play is running without the timer jumping ahead on the very next row.
-renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Gravity Seed Next", invoke = function(message)
-  if message:is_trigger() then mm_gravity_step_next() end
-end }
-renoise.tool():add_midi_mapping{ name = "Paketti:Music Mouse Gravity Seed Previous", invoke = function(message)
-  if message:is_trigger() then mm_gravity_step_prev() end
-end }
+renoise.tool():add_midi_mapping{name="Paketti:Music Mouse Gravity Seed Next", invoke = function(message)
+  if message:is_trigger() then mm_gravity_step_next() end end }
+renoise.tool():add_midi_mapping{name="Paketti:Music Mouse Gravity Seed Previous", invoke = function(message)
+  if message:is_trigger() then mm_gravity_step_prev() end end }

@@ -37,6 +37,7 @@
 # WATCH: PakettiExportMenus PakettiAbletonExportSimplerDialog PakettiRX2ExportDialog PakettiOTExport PakettiOctaCycle PakettiBatchRX2ToOT PakettiBatchOTToWavCue PakettiDWVWExportSelectedSample PakettiXRNIToWAVBatchDialog PakettiMODToXRNIBatchDialog PakettiBatchRX2ToXRNI PakettiBatchSF2ToXRNI PakettiBatchSF2ToWAV
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-26  direct-commit  touched: PakettiRX2ExportDialog
 #   2026-09-25  direct-commit  touched: PakettiDWVWExportSelectedSample
 #   2026-09-24  direct-commit  touched: PakettiOTExport PakettiOctaCycle PakettiBatchRX2ToOT PakettiBatchOTToWavCue PakettiDWVWExportSelectedSample PakettiXRNIToWAVBatchDialog PakettiMODToXRNIBatchDialog
 # =============================================================================

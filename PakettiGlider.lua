@@ -1158,7 +1158,7 @@ PakettiAddMenuEntry{
 }
 
 PakettiAddMenuEntry{
-  name = "--Main Menu:Tools:Paketti:Glider:Set Duration 2 Lines",
+  name = "--Main Menu:Tools:Paketti:Glider:Set Duration 02 Lines",
   invoke = function()
     PakettiGliderDuration = 2
     renoise.app():show_status("PakettiGlider: Duration set to 2 lines")
@@ -1167,7 +1167,7 @@ PakettiAddMenuEntry{
 }
 
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Glider:Set Duration 4 Lines",
+  name = "Main Menu:Tools:Paketti:Glider:Set Duration 04 Lines",
   invoke = function()
     PakettiGliderDuration = 4
     renoise.app():show_status("PakettiGlider: Duration set to 4 lines")
@@ -1176,7 +1176,7 @@ PakettiAddMenuEntry{
 }
 
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Glider:Set Duration 8 Lines",
+  name = "Main Menu:Tools:Paketti:Glider:Set Duration 08 Lines",
   invoke = function()
     PakettiGliderDuration = 8
     renoise.app():show_status("PakettiGlider: Duration set to 8 lines")

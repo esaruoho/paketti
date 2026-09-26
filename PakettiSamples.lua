@@ -5456,6 +5456,7 @@ function PakettiAppendRandomSamplesToInstrument(folder_path, num_samples)
     if not success then
       print("Failed to load file: " .. selected_file)
     end
+    renoise.song().selected_instrument.name= #renoise.song().selected_instrument.samples .. " Appended Samples"
   end
   
   renoise.app():show_status(string.format("Appended %d random samples to instrument (total: %d → %d)", 
@@ -5562,7 +5563,7 @@ function pakettiUserDefinedSamplesDialog()
           end
         end
       },
-      vb:text{ text="Append", style="strong", font="bold" },
+      vb:text{text="Append", style="strong", font="bold"},
       vb:button{
         text="01",
         notifier=function()

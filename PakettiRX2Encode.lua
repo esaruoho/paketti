@@ -533,15 +533,9 @@ function PakettiRX2ExportDialog()
   PakettiRX2Export(path)
 end
 
-PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:REX2 (.rx2)...",
-  invoke=function() PakettiRX2ExportDialog() end}
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export REX2 (.rx2)...",
-  invoke=function() PakettiRX2ExportDialog() end}
-PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Export REX2 (.rx2)...",
-  invoke=function() PakettiRX2ExportDialog() end}
-PakettiAddMenuEntry{name="Instrument Box:Paketti:Save:Export REX2 (.rx2)...",
-  invoke=function() PakettiRX2ExportDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Export REX2",
-  invoke=function() PakettiRX2ExportDialog() end}
-renoise.tool():add_midi_mapping{name="Paketti:Export REX2",
-  invoke=function(message) if message:is_trigger() then PakettiRX2ExportDialog() end end}
+PakettiAddMenuEntry{name="Main Menu:File:Paketti Export:REX2 (.rx2)...",invoke=function() PakettiRX2ExportDialog() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Import/Export:Export REX2 (.rx2)...",invoke=function() PakettiRX2ExportDialog() end}
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Export:Export REX2 (.rx2)...",invoke=function() PakettiRX2ExportDialog() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti:Save:Export REX2 (.rx2)...",invoke=function() PakettiRX2ExportDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Export REX2",invoke=function() PakettiRX2ExportDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Export REX2",invoke=function(message) if message:is_trigger() then PakettiRX2ExportDialog() end end}

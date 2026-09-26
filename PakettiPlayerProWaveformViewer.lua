@@ -3640,9 +3640,9 @@ function PakettiPlayerProWaveformViewerSelectNext()
   if PakettiPPWV_canvas then PakettiPPWV_canvas:update() end
 end
 
-PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Xperimental/WIP:PlayerPro:Waveform Viewer", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end }
-PakettiAddMenuEntry{ name = "Main Menu:Tools:PlayerPro Waveform Viewer", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
-PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:PlayerPro:Waveform Viewer", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
+PakettiAddMenuEntry{ name = "Main Menu:Tools:Paketti:Xperimental/WIP:PlayerPro:Waveform Viewer...", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end }
+PakettiAddMenuEntry{ name = "Main Menu:Tools:PlayerPro Waveform Viewer...", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
+PakettiAddMenuEntry{ name = "Pattern Editor:Paketti:PlayerPro:Waveform Viewer...", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
 renoise.tool():add_keybinding{ name = "Pattern Editor:Paketti:PlayerPro Waveform Viewer Open Viewer", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
 renoise.tool():add_keybinding{ name = "Global:Paketti:PlayerPro Waveform Viewer Open Viewer", invoke = function() PakettiPlayerProWaveformViewerShowDialog() end}
 

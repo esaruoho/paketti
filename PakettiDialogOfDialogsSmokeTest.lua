@@ -357,17 +357,6 @@ function PakettiScreenshotAllDialogs(output_dir)
   ProcessSlicer(proc):start()
 end
 
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Dialog of Dialogs Screenshot All",
-  invoke = function() PakettiScreenshotAllDialogs() end
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Dialog of Dialogs Smoke Test",
-  invoke = function() PakettiDialogOfDialogsSmokeTest() end
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Dialog of Dialogs Smoke Test",
-  invoke = function() PakettiDialogOfDialogsSmokeTest() end
-}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Debug:Dialog of Dialogs Screenshot All",invoke = function() PakettiScreenshotAllDialogs() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Debug:Dialog of Dialogs Smoke Test",invoke = function() PakettiDialogOfDialogsSmokeTest() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Dialog of Dialogs Smoke Test",invoke = function() PakettiDialogOfDialogsSmokeTest() end}
