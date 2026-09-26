@@ -1654,8 +1654,8 @@ if PAKETTI_API >= 6.2 then
   end
 
   if preferences.pakettiMenuConfig.MainMenuTools.value then
-    renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}
-    renoise.tool():add_menu_entry{name = "Main Menu:Tools:Chebyshev Polynomial Waveshaper...",invoke = show_chebyshev_waveshaper}
+    renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Selected Device Parameter Editor...",invoke = PakettiCanvasExperimentsInit}
+    renoise.tool():add_menu_entry{name="Main Menu:Tools:Chebyshev Polynomial Waveshaper...",invoke = show_chebyshev_waveshaper}
   end
   if preferences.pakettiMenuConfig.SampleEditor.value then
     renoise.tool():add_menu_entry{name = "Sample Editor:Paketti Gadgets:Chebyshev Polynomial Waveshaper...",invoke = show_chebyshev_waveshaper}
@@ -4411,10 +4411,10 @@ renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Generate Automati
 add_automation_points_for_notes() end}
 renoise.tool():add_menu_entry{name="--Track Automation List:Paketti:Generate Automation Points from Notes in Selected Track",invoke=function()
 add_automation_points_for_notes() end}
-renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
+renoise.tool():add_menu_entry{name="--Track Automation List:Paketti:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
 if PAKETTI_API >= 6.2 then
-  renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
+  renoise.tool():add_menu_entry{name="--Track Automation List:Paketti:Automation Stack",invoke=function() PakettiAutomationStackShowDialog() end}
   renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Single View",invoke=function() PakettiAutomationStackShowSingleView() end}
   renoise.tool():add_menu_entry{name="Track Automation List:Paketti:Automation Stack - Select Arbitrary Parameters",invoke=function() PakettiAutomationStack_ShowParameterSelectionDialog() end}
 end

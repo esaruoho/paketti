@@ -2,6 +2,8 @@
 -- 8-Row Interchangeable Stepsequencer with individual device/parameter selection
 -- Each row has its own canvas with device and parameter dropdowns
 
+local HyperEditValueboxWidth=50
+
 -- Debug control flag - set to true to enable verbose logging
 local DEBUG_HYPEREDIT = false
 
@@ -4264,7 +4266,7 @@ function PakettiHyperEditCreateDialog()
           end
         end
       },
-      vb:text{text="|",style="strong",font="bold"},
+      vb:text{text="|",style="strong",font="bold",width=10},
       vb:checkbox {
         id = "capture_track_color",
         value = preferences.PakettiHyperEditCaptureTrackColor.value,
@@ -4287,7 +4289,7 @@ function PakettiHyperEditCreateDialog()
         end
       },
       vb:text { text = "Capture Track Color", style="strong",font="bold" },
-      vb:text{text="|",style="strong",font="bold"},
+      vb:text{text="|",style="strong",font="bold",width=10},
       vb:checkbox {
         id = "auto_fit_checkbox",
         value = preferences.PakettiHyperEditAutoFit.value,
@@ -4341,7 +4343,7 @@ function PakettiHyperEditCreateDialog()
         end
       },
       vb:text { text = "Auto-Fit", style="strong",font="bold" },
-      vb:text{text="|",style="strong",font="bold"},
+      vb:text{text="|",style="strong",font="bold",width=10},
       vb:text { text = "Rows", style="strong",font="bold" },
       vb:popup {
         id = "row_count_popup",
@@ -4399,7 +4401,7 @@ function PakettiHyperEditCreateDialog()
           PakettiHyperEditDuplicateToNextPattern()
         end
       },
-      vb:text{text="|",style="strong",font="bold"},
+      vb:text{text="|",style="strong",font="bold",width=10},
       vb:checkbox {
         id = "midi_write_checkbox",
         value = preferences.PakettiHyperEditMidiWrite.value,
@@ -4415,7 +4417,7 @@ function PakettiHyperEditCreateDialog()
         end
       },
       vb:text { text = "MIDI Write", style="strong", font="bold", tooltip = "When ON, a MIDI knob mapped to 'MIDI Write Row NN' writes its value into that row's currently-playing step (or the edit-cursor step when stopped)." },
-      vb:text{text="|",style="strong",font="bold"},
+      vb:text{text="|",style="strong",font="bold",width=10},
       vb:checkbox {
         id = "set_all_rows_checkbox",
         value = PakettiHyperEditSetAllRows,
@@ -4499,7 +4501,7 @@ function PakettiHyperEditCreateDialog()
         PakettiHyperEditGangApply()   -- live: move the whole ganged set when gang is engaged
       end
     },
-    vb:text { text = "|", style = "strong", font = "bold" },
+    vb:text { text = "|", style = "strong", font = "bold",width=10 },
     vb:button {
       id = "sculpt_hold_btn",
       text = "HOLD SCULPT",
@@ -4535,7 +4537,7 @@ function PakettiHyperEditCreateDialog()
       tooltip = "Disarm every row.",
       notifier = function() PakettiHyperEditSculptArmAll(false) end
     },
-    vb:text { text = "|", style = "strong", font = "bold" },
+    vb:text { text = "|", style = "strong", font = "bold",width=10 },
     vb:checkbox {
       id = "gang_enabled",
       value = gang_enabled,
@@ -4555,7 +4557,7 @@ function PakettiHyperEditCreateDialog()
     vb:text { text = "Gang every", style = "strong", font = "bold" },
     vb:valuebox {
       id = "gang_every",
-      min = 1, max = 512, value = gang_every, width = 72,
+      min = 1, max = 512, value = gang_every, width = HyperEditValueboxWidth,
       tooltip = "Gang interval: 1 = every step (whole row), 2/4/8/16/32/64/128/256/512 for divisions, or any number (3 = every 3rd step).",
       notifier = function(v)
         gang_every = v
@@ -4574,7 +4576,7 @@ function PakettiHyperEditCreateDialog()
     vb:text { text = "offset", style = "strong", font = "bold" },
     vb:valuebox {
       id = "gang_offset",
-      min = 0, max = 511, value = gang_offset, width = 72,
+      min = 0, max = 511, value = gang_offset, width = HyperEditValueboxWidth,
       tooltip = "Shifts which steps are ganged (offset 1 turns 'every 3rd' from steps 1,4,7 into 2,5,8).",
       notifier = function(v)
         gang_offset = v
@@ -4590,12 +4592,12 @@ function PakettiHyperEditCreateDialog()
         for r = 1, NUM_ROWS do if row_canvases[r] then row_canvases[r]:update() end end
       end
     },
-    vb:text { text = "|", style = "strong", font = "bold" },
+    vb:text { text = "|", style = "strong", font = "bold",width=10 },
     vb:text { text = "ramp", style = "strong", font = "bold",
       tooltip = "Ramp speed for HOLD SCULPT: milliseconds between each automatic pass while you hold the sculpt down (and the transport is stopped). This is the tick that keeps a Sculpt REL value MOVING on its own — lower = faster ramp, higher = slower. It sets the pace of the sweep, not its shape. Applies on the next hold." },
     vb:valuebox {
       id = "sculpt_ramp_ms",
-      min = 20, max = 2000, value = sculpt_ramp_ms, width = 72,
+      min = 20, max = 2000, value = sculpt_ramp_ms, width = HyperEditValueboxWidth,
       tooltip = "How fast the SCULPT hold ramps while stopped (milliseconds between steps). Lower = faster. Applies on the next hold.",
       notifier = function(v)
         sculpt_ramp_ms = v
@@ -5256,11 +5258,11 @@ function PakettiHyperEditLoadAndShow()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
-PakettiAddMenuEntry {name = "--Pattern Editor:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
-PakettiAddMenuEntry {name = "--Mixer:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
-PakettiAddMenuEntry {name = "--Pattern Matrix:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
-PakettiAddMenuEntry {name = "--Track Automation:Paketti Gadgets:Paketti HyperEdit",invoke = PakettiHyperEditInit}
-renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit",invoke = PakettiHyperEditInit}
+PakettiAddMenuEntry {name = "--Pattern Editor:Paketti Gadgets:Paketti HyperEdit...",invoke = PakettiHyperEditInit}
+PakettiAddMenuEntry {name = "--Mixer:Paketti Gadgets:Paketti HyperEdit...",invoke = PakettiHyperEditInit}
+PakettiAddMenuEntry {name = "--Pattern Matrix:Paketti Gadgets:Paketti HyperEdit...",invoke = PakettiHyperEditInit}
+PakettiAddMenuEntry {name = "--Track Automation:Paketti Gadgets:Paketti HyperEdit...",invoke = PakettiHyperEditInit}
+renoise.tool():add_keybinding {name = "Global:Paketti:Paketti HyperEdit...",invoke = PakettiHyperEditInit}
 -- Open/close (toggle) HyperEdit from a controller button. PakettiHyperEditInit
 -- closes the dialog if it's already open, otherwise opens it.
 renoise.tool():add_midi_mapping {name = "Paketti:Paketti HyperEdit Open/Close",invoke = function(message) if message:is_trigger() then PakettiHyperEditInit() end end}

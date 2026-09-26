@@ -26,6 +26,7 @@
 # WATCH: treemenu extract_entries build_report collect_string_constants clean_menu_path
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-26  direct-commit  touched: treemenu extract_entries build_report collect_string_constants clean_menu_path
 # =============================================================================
 
 Feature: Tree menu map generator
