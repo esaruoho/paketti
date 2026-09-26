@@ -1,0 +1,10 @@
+Switcharoo
+BPM-Based Slice
+BPM Switcher
+Clipboard
+Digitakt Sample Chain
+Quick Load Device
+Track Renamer
+Transpose Block
+Tuning Selection
+Wavetable
