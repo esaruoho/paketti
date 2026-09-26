@@ -4,9 +4,11 @@
 # WHAT THIS CARD SPAWNS:
 #   codespace  - PakettiDynamicMacroToolbar.lua string action dispatch and
 #                PakettiMainMenuEntries.lua Dialog-of-Dialogs action registry
-#   thinkspace - dynamic-toolbar-actions.session.md (bug report, diagnosis, and fix audit)
-#   areaspace  - OWNS: toolbar execution of configured dialog action names
-#                MUST NOT TOUCH: Groovebox 8ch960samp internal selection verbs or toolbar preset storage
+#   thinkspace - dynamic-toolbar-actions.session.md (bug report, preset picker request,
+#                diagnosis, and fix audit)
+#   areaspace  - OWNS: toolbar execution of configured dialog action names and
+#                10-slot chunk preset selection
+#                MUST NOT TOUCH: Groovebox 8ch960samp internal selection verbs
 #
 # Report-card legend (grade tags, weakest -> strongest):
 #   @designed @built @code-verified @build-verified @sim-verified
@@ -15,21 +17,23 @@
 #
 # Innards linked back to this card (grep "dynamic-toolbar-actions"):
 #   PakettiDynamicMacroToolbar.lua - execute_action strict-safe string lookup
+#   PakettiDynamicMacroToolbar.lua - DynamicMacro preset dropdown and chunk loader
 #   PakettiMainMenuEntries.lua - create_button_list excludes Groovebox-only sub-dialogs
 #
 # Commit log:   pending until implementation commit
 # SESSION:      dynamic-toolbar-actions.session.md
 # RESULT:       Feature delivery pending (direct push, no PR); card pending
 #
-# WATCH: execute_action create_button_list DynamicMacroToolbar show_euclid_dialog
+# WATCH: execute_action create_button_list DynamicMacroToolbar show_euclid_dialog list_preset_records load_preset save_preset
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks - newest below)
+#   2026-09-27  direct-commit  touched: DynamicMacroToolbar list_preset_records load_preset
 #   2026-09-26  direct-commit  touched: DynamicMacroToolbar
 #   2026-09-25  direct-commit  touched: DynamicMacroToolbar show_euclid_dialog
 # =============================================================================
 
 Feature: Dynamic Macro Toolbar action safety
-  As a Paketti user, I want Dynamic Macro Toolbar slots to handle dialog action names safely, So that internal Groovebox sub-dialogs are not surfaced as standalone dialogs and missing helpers do not crash Renoise.
+  As a Paketti user, I want Dynamic Macro Toolbar slots to handle dialog action names and 10-slot chunks safely, So that internal Groovebox sub-dialogs are not surfaced as standalone dialogs, missing helpers do not crash Renoise, and saved macro banks can be picked directly.
 
   @shipped @built @code-verified @runtime-untested
   Scenario: Missing string action names report status instead of throwing strict-global errors
@@ -54,3 +58,14 @@ Feature: Dynamic Macro Toolbar action safety
     When the slot is triggered
     Then the toolbar calls that function through pcall
     And errors from the called function are still shown in the Renoise status line
+
+  @shipped @built @code-verified @runtime-untested
+  Scenario: DynamicMacro folder presets can be selected as 10-slot chunks
+    # cite: PakettiDynamicMacroToolbar.lua list_preset_records (~line 159) - reads DynamicMacro first and legacy presets second
+    # cite: PakettiDynamicMacroToolbar.lua build_toolbar_content (~line 277) - exposes preset_items in the toolbar popup
+    # cite: PakettiDynamicMacroToolbar.lua load_preset (~line 208) - writes each preset line into PakettiDMTSlot01..10 and clears the remainder
+    Given the Paketti bundle contains a DynamicMacro folder with .txt chunk preset files
+    When the Dynamic Macro Toolbar is opened
+    Then the toolbar shows those chunk presets in a dropdown bar
+    And selecting a preset loads its ten slot assignments into the visible toolbar buttons
+    And presets from the older DynamicMacroToolbar_Presets folder remain readable as a fallback

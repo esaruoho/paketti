@@ -20,12 +20,12 @@
 -- its full set of hits, not just the loudest few).
 --------------------------------------------------------------------------------
 local TN_DEFAULTS = {
-  -- Keep peak_off close enough to peak_on that noisy loops re-arm between hits.
-  -- At 0.005 the Schmitt trigger can stay latched after the opening transient and
-  -- miss the rest of a visibly active sample.
-  lowpass_freq = 150, rtime_low = 0.02, peak_on_low = 0.04, peak_off_low = 0.03,
-  highpass_freq = 3000, rtime_high = 0.02, peak_on_high = 0.04, peak_off_high = 0.03,
-  min_slice_distance_ms = 35, zero_crossing = 1,
+  lowpass_freq = 150, highpass_freq = 3000,
+  adaptive_fast_ms = 10, adaptive_slow_ms = 120,
+  adaptive_on = 0.012, adaptive_off = 0.004,
+  adaptive_min_amp = 0.02, adaptive_ratio = 1.25,
+  legacy_rtime = 0.02, legacy_peak_on = 0.04, legacy_peak_off = 0.03,
+  min_slice_distance_ms = 10, zero_crossing = 1,
 }
 
 -- Fraction of the region length padded on each side when zooming "to fit".
@@ -102,6 +102,76 @@ local function tn_cache_valid(sample)
   return tn_cached_positions ~= nil and tn_cached_key == tn_sample_key(sample)
 end
 
+local function tn_positions_to_string(positions)
+  local out = {}
+  for i, pos in ipairs(positions or {}) do
+    out[i] = tostring(pos)
+  end
+  return table.concat(out, ", ")
+end
+
+local function tn_debug_positions(label, positions)
+  print(string.format("Transient Nav Debug: %s (%d): %s",
+    label, #(positions or {}), tn_positions_to_string(positions)))
+end
+
+local function tn_debug_suppressed(label, suppressed)
+  local out = {}
+  for i, item in ipairs(suppressed or {}) do
+    out[i] = string.format("%d(+%d)", item.pos, item.distance)
+  end
+  print(string.format("Transient Nav Debug: %s (%d): %s",
+    label, #(suppressed or {}), table.concat(out, ", ")))
+end
+
+local function tn_create_adaptive_schmitt(filter_freq, filter_type, sample_rate)
+  local t_filter = 1.0 / (2.0 * math.pi * filter_freq)
+  local k_filter = 1.0 / (sample_rate * t_filter)
+  local fast_release = math.exp(-1.0 / (sample_rate * (TN_DEFAULTS.adaptive_fast_ms / 1000)))
+  local slow_coeff = 1.0 - math.exp(-1.0 / (sample_rate * (TN_DEFAULTS.adaptive_slow_ms / 1000)))
+
+  return {
+    filter1 = 0.0,
+    filter2 = 0.0,
+    fast_env = 0.0,
+    slow_env = 0.0,
+    trigger = false,
+    prev_trigger = false,
+
+    process = function(self, input)
+      self.filter1 = self.filter1 + (k_filter * (input - self.filter1))
+      self.filter2 = self.filter2 + (k_filter * (self.filter1 - self.filter2))
+
+      local filtered = filter_type == "lowpass" and self.filter2 or (input - self.filter2)
+      local env_in = math.abs(filtered)
+
+      if env_in > self.fast_env then
+        self.fast_env = env_in
+      else
+        self.fast_env = self.fast_env * fast_release + (1.0 - fast_release) * env_in
+      end
+      self.slow_env = self.slow_env + (slow_coeff * (env_in - self.slow_env))
+
+      local novelty = math.max(0.0, self.fast_env - self.slow_env)
+      local ratio = self.fast_env / (self.slow_env + 0.000000001)
+      local should_trigger = self.fast_env > TN_DEFAULTS.adaptive_min_amp
+        and novelty > TN_DEFAULTS.adaptive_on
+        and ratio > TN_DEFAULTS.adaptive_ratio
+      local should_release = novelty < TN_DEFAULTS.adaptive_off or ratio < 1.05
+
+      if not self.trigger then
+        if should_trigger then self.trigger = true end
+      elseif should_release then
+        self.trigger = false
+      end
+
+      local pulse = self.trigger and not self.prev_trigger
+      self.prev_trigger = self.trigger
+      return pulse, novelty, self.fast_env, self.slow_env
+    end
+  }
+end
+
 -- Called after any destructive edit so the next navigation re-detects.
 function PakettiTransientNavInvalidate()
   tn_cached_positions = nil
@@ -126,22 +196,29 @@ local function tn_start_detection(sample, on_done)
   local search_range_samples = math.floor((10 / 1000) * sample_rate)
 
   local slicer = ProcessSlicer(function()
-    local det_low = BeatDetector(TN_DEFAULTS.lowpass_freq, TN_DEFAULTS.rtime_low,
-      TN_DEFAULTS.peak_on_low, TN_DEFAULTS.peak_off_low, 'lowpass')
-    det_low:setSampleRate(sample_rate)
-    local det_high = BeatDetector(TN_DEFAULTS.highpass_freq, TN_DEFAULTS.rtime_high,
-      TN_DEFAULTS.peak_on_high, TN_DEFAULTS.peak_off_high, 'highpass')
-    det_high:setSampleRate(sample_rate)
+    local legacy_low = BeatDetector(TN_DEFAULTS.lowpass_freq, TN_DEFAULTS.legacy_rtime,
+      TN_DEFAULTS.legacy_peak_on, TN_DEFAULTS.legacy_peak_off, 'lowpass')
+    legacy_low:setSampleRate(sample_rate)
+    local legacy_high = BeatDetector(TN_DEFAULTS.highpass_freq, TN_DEFAULTS.legacy_rtime,
+      TN_DEFAULTS.legacy_peak_on, TN_DEFAULTS.legacy_peak_off, 'highpass')
+    legacy_high:setSampleRate(sample_rate)
+    local adaptive_low = tn_create_adaptive_schmitt(TN_DEFAULTS.lowpass_freq, "lowpass", sample_rate)
+    local adaptive_high = tn_create_adaptive_schmitt(TN_DEFAULTS.highpass_freq, "highpass", sample_rate)
 
-    local raw = {}
+    local legacy_raw = {}
+    local adaptive_raw = {}
     for i = 1, nframes do
       local input = buffer:sample_data(1, i)
-      -- Process BOTH detectors every frame; never short-circuit or the second
-      -- one desyncs and stops finding transients.
-      local low_hit = det_low:Process(input)
-      local high_hit = det_high:Process(input)
-      if low_hit == true or high_hit == true then
-        raw[#raw + 1] = i
+      local legacy_low_hit = legacy_low:Process(input)
+      local legacy_high_hit = legacy_high:Process(input)
+      if legacy_low_hit == true or legacy_high_hit == true then
+        legacy_raw[#legacy_raw + 1] = i
+      end
+
+      local adaptive_low_hit = adaptive_low:process(input)
+      local adaptive_high_hit = adaptive_high:process(input)
+      if adaptive_low_hit == true or adaptive_high_hit == true then
+        adaptive_raw[#adaptive_raw + 1] = i
       end
       if i % 16384 == 0 then
         renoise.app():show_status(string.format("Transient Nav: detecting transients... %d%%",
@@ -150,16 +227,24 @@ local function tn_start_detection(sample, on_done)
       end
     end
 
-    table.sort(raw)
+    table.sort(adaptive_raw)
     local filtered = {}
     local last = nil
-    for _, pos in ipairs(raw) do
+    local suppressed = {}
+    for _, pos in ipairs(adaptive_raw) do
       if not last or (pos - last) >= min_slice_distance_samples then
         local zc = tn_find_zero_crossing(buffer, pos, search_range_samples, zero_crossing_threshold)
         filtered[#filtered + 1] = zc
         last = zc
+      else
+        suppressed[#suppressed + 1] = {pos = pos, distance = pos - last}
       end
     end
+
+    tn_debug_positions("Legacy level-Schmitt raw hits", legacy_raw)
+    tn_debug_positions("Adaptive Schmitt raw hits", adaptive_raw)
+    tn_debug_suppressed("Suppressed by min spacing", suppressed)
+    tn_debug_positions("Final snapped transients", filtered)
 
     tn_cached_positions = filtered
     tn_cached_key = key

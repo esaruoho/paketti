@@ -9,6 +9,7 @@ local BUTTON_HEIGHT = 24
 
 -- Edit mode state
 local edit_mode = false
+local current_preset_name = nil
 
 -- All available actions: combined from Dialog of Dialogs + menu/keybinding actions
 local all_action_names = {}   -- sorted list of display names
@@ -19,7 +20,8 @@ local actions_built = false
 
 -- Preset directory
 local separator = package.config:sub(1,1)
-local PRESET_DIR = renoise.tool().bundle_path .. "DynamicMacroToolbar_Presets" .. separator
+local PRIMARY_PRESET_DIR = renoise.tool().bundle_path .. "DynamicMacro" .. separator
+local LEGACY_PRESET_DIR = renoise.tool().bundle_path .. "DynamicMacroToolbar_Presets" .. separator
 
 ------------------------------------------------------------------------
 -- Action Registry: Build a combined list of all callable actions
@@ -108,37 +110,87 @@ end
 -- Preset management
 ------------------------------------------------------------------------
 local function ensure_preset_dir()
-  if not io.exists(PRESET_DIR) then
-    os.execute('mkdir "' .. PRESET_DIR .. '"')
+  if not io.exists(PRIMARY_PRESET_DIR) then
+    if type(os.mkdir) == "function" then
+      pcall(os.mkdir, PRIMARY_PRESET_DIR)
+    end
+    if not io.exists(PRIMARY_PRESET_DIR) then
+      local cmd
+      if os.platform() == "WINDOWS" then
+        cmd = 'mkdir "' .. PRIMARY_PRESET_DIR .. '"'
+      else
+        cmd = 'mkdir -p "' .. PRIMARY_PRESET_DIR .. '"'
+      end
+      os.execute(cmd)
+    end
   end
 end
 
-local function list_presets()
-  ensure_preset_dir()
-  local presets = {}
-  -- Read directory for .txt files
-  local handle
-  if os.platform() == "WINDOWS" then
-    handle = io.popen('dir /b "' .. PRESET_DIR .. '*.txt" 2>nul')
-  else
-    handle = io.popen('ls "' .. PRESET_DIR .. '"*.txt 2>/dev/null')
-  end
-  if handle then
-    for line in handle:lines() do
-      local name = line:match("(.+)%.txt$")
-      if name then
-        table.insert(presets, name)
+local function preset_name_from_path(path)
+  local filename = path:match("([^/\\]+)$") or path
+  if not filename:lower():match("%.txt$") then return nil end
+  return filename:gsub("%.[Tt][Xx][Tt]$", "")
+end
+
+local function collect_presets_from_dir(dir, source_label, presets, by_name)
+  if not io.exists(dir) then return end
+
+  local ok, files = pcall(os.filenames, dir, "*.txt")
+  if not ok or not files then return end
+
+  for _, path in ipairs(files) do
+    local name = preset_name_from_path(path)
+    if name and name ~= "" and not by_name[name] then
+      local full_path = path
+      if not full_path:find("[/\\]") then
+        full_path = dir .. path
       end
+      local record = {
+        name = name,
+        path = full_path,
+        source = source_label
+      }
+      table.insert(presets, record)
+      by_name[name] = record
     end
-    handle:close()
   end
-  table.sort(presets)
+end
+
+local function list_preset_records()
+  ensure_preset_dir()
+
+  local presets = {}
+  local by_name = {}
+  collect_presets_from_dir(PRIMARY_PRESET_DIR, "DynamicMacro", presets, by_name)
+  collect_presets_from_dir(LEGACY_PRESET_DIR, "Legacy", presets, by_name)
+
+  table.sort(presets, function(a, b)
+    return a.name:lower() < b.name:lower()
+  end)
+
   return presets
+end
+
+local function list_presets()
+  local records = list_preset_records()
+  local names = {}
+  for _, record in ipairs(records) do
+    table.insert(names, record.name)
+  end
+  return names
+end
+
+local function find_preset_record(name)
+  if not name or name == "" then return nil end
+  for _, record in ipairs(list_preset_records()) do
+    if record.name == name then return record end
+  end
+  return nil
 end
 
 local function save_preset(name)
   ensure_preset_dir()
-  local path = PRESET_DIR .. name .. ".txt"
+  local path = PRIMARY_PRESET_DIR .. name .. ".txt"
   local f = io.open(path, "w")
   if not f then
     renoise.app():show_warning("Could not save preset to: " .. path)
@@ -149,11 +201,13 @@ local function save_preset(name)
   end
   f:close()
   renoise.app():show_status("Preset saved: " .. name)
+  current_preset_name = name
   return true
 end
 
 local function load_preset(name)
-  local path = PRESET_DIR .. name .. ".txt"
+  local record = find_preset_record(name)
+  local path = record and record.path or (PRIMARY_PRESET_DIR .. name .. ".txt")
   local f = io.open(path, "r")
   if not f then
     renoise.app():show_warning("Could not load preset: " .. path)
@@ -173,14 +227,19 @@ local function load_preset(name)
     i = i + 1
   end
   renoise.app():show_status("Preset loaded: " .. name)
+  current_preset_name = name
   return true
 end
 
 local function delete_preset(name)
-  local path = PRESET_DIR .. name .. ".txt"
+  local record = find_preset_record(name)
+  local path = record and record.path or (PRIMARY_PRESET_DIR .. name .. ".txt")
   if io.exists(path) then
     os.remove(path)
     renoise.app():show_status("Preset deleted: " .. name)
+    if current_preset_name == name then
+      current_preset_name = nil
+    end
     return true
   end
   return false
@@ -221,14 +280,25 @@ local function build_toolbar_content()
 
   -- Create button IDs
   local button_ids = {}
-  local search_ids = {}
   local popup_ids = {}
   local row_ids = {}
   for i = 1, NUM_SLOTS do
     button_ids[i] = "dmt_btn_" .. i
-    search_ids[i] = "dmt_search_" .. i
     popup_ids[i] = "dmt_popup_" .. i
     row_ids[i] = "dmt_editrow_" .. i
+  end
+
+  local find_popup_index
+
+  local function refresh_slot_buttons()
+    for i = 1, NUM_SLOTS do
+      if vb.views[button_ids[i]] then
+        vb.views[button_ids[i]].text = get_slot_display(i)
+      end
+      if vb.views[popup_ids[i]] then
+        vb.views[popup_ids[i]].value = find_popup_index(get_slot_value(i))
+      end
+    end
   end
 
   -- Build filtered popup items for each slot
@@ -241,12 +311,25 @@ local function build_toolbar_content()
   end
 
   local popup_items = build_popup_items()
+  local preset_records = list_preset_records()
+  local preset_items = {"Select preset..."}
+  for _, record in ipairs(preset_records) do
+    table.insert(preset_items, record.name)
+  end
 
   -- Find popup index for a given value
-  local function find_popup_index(val)
+  find_popup_index = function(val)
     if not val or val == "" then return 1 end
     for idx, item in ipairs(popup_items) do
       if item == val then return idx end
+    end
+    return 1
+  end
+
+  local function find_preset_popup_index(name)
+    if not name or name == "" then return 1 end
+    for idx, item in ipairs(preset_items) do
+      if item == name then return idx end
     end
     return 1
   end
@@ -257,7 +340,6 @@ local function build_toolbar_content()
     local row_elements = {}
     for col = 1, 5 do
       local slot = (row - 1) * 5 + col
-      local current_val = get_slot_value(slot)
 
       -- Main action button
       table.insert(row_elements, vb:button{
@@ -297,9 +379,7 @@ local function build_toolbar_content()
               set_slot_value(slot, popup_items[idx])
             end
             -- Update button text
-            if vb.views[button_ids[slot]] then
-              vb.views[button_ids[slot]].text = get_slot_display(slot)
-            end
+            refresh_slot_buttons()
           end
         }
       })
@@ -333,6 +413,19 @@ local function build_toolbar_content()
   -- Preset controls
   local preset_row = vb:row{
     spacing = 4,
+    vb:popup{
+      id = "dmt_preset_popup",
+      items = preset_items,
+      value = find_preset_popup_index(current_preset_name),
+      width = 180,
+      notifier = function(idx)
+        if idx <= 1 then return end
+        local name = preset_items[idx]
+        if load_preset(name) then
+          refresh_slot_buttons()
+        end
+      end
+    },
     vb:button{
       text = "Save As...",
       width = 70,
@@ -343,7 +436,7 @@ local function build_toolbar_content()
         if result and result ~= "" then
           -- Extract just the filename without path and extension
           local fname = result:match("([^/\\]+)$") or result
-          fname = fname:gsub("%.txt$", "")
+          fname = fname:gsub("%.[Tt][Xx][Tt]$", "")
           if fname ~= "" then
             -- Actually save to our preset dir, not the prompted path
             save_preset(fname)
@@ -362,7 +455,7 @@ local function build_toolbar_content()
       pressed = function()
         local presets = list_presets()
         if #presets == 0 then
-          renoise.app():show_status("No presets found in " .. PRESET_DIR)
+          renoise.app():show_status("No presets found in " .. PRIMARY_PRESET_DIR)
           return
         end
         local choice = renoise.app():show_prompt("Load Preset",
@@ -373,6 +466,7 @@ local function build_toolbar_content()
           for _, p in ipairs(presets) do
             if p == choice then
               load_preset(p)
+              refresh_slot_buttons()
               -- Refresh dialog
               if dialog and dialog.visible then
                 PakettiDynamicMacroToolbarToggle()
@@ -404,6 +498,11 @@ local function build_toolbar_content()
                 {"Yes", "No"})
               if confirm == "Yes" then
                 delete_preset(p)
+                -- Refresh dialog so the deleted preset disappears from the dropdown.
+                if dialog and dialog.visible then
+                  PakettiDynamicMacroToolbarToggle()
+                  PakettiDynamicMacroToolbarToggle()
+                end
               end
               return
             end

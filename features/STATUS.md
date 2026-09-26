@@ -19,7 +19,7 @@
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | disk-browser-refresh | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
-| dynamic-toolbar-actions | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
+| dynamic-toolbar-actions | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | eq10-keyboard-controls | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | groovebox-8120-default-instrument-slots | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
@@ -49,7 +49,7 @@
 | selection-reversed-instrument | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 | subcolumn-only-invert | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
-| transient-navigation-detection | 4 | ✓ | — | — | @code-verified @shipped @sim-verified @stock |
+| transient-navigation-detection | 6 | ✓ | — | — | @code-verified @shipped @sim-verified @stock |
 | treemenu | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 

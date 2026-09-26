@@ -165,17 +165,18 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 `features/dynamic-toolbar-actions.feature` · [session](dynamic-toolbar-actions.session.md)
 
-**What it does:** As a Paketti user, I want Dynamic Macro Toolbar slots to handle dialog action names safely, So that internal Groovebox sub-dialogs are not surfaced as standalone dialogs and missing helpers do not crash Renoise.
+**What it does:** As a Paketti user, I want Dynamic Macro Toolbar slots to handle dialog action names and 10-slot chunks safely, So that internal Groovebox sub-dialogs are not surfaced as standalone dialogs, missing helpers do not crash Renoise, and saved macro banks can be picked directly.
 
-**Behaviour (3 scenarios):**
+**Behaviour (4 scenarios):**
 
 - Missing string action names report status instead of throwing strict-global errors — `@shipped @built @code-verified @runtime-untested`
 - Groovebox-only Euclidean Fill is not advertised as a standalone toolbar action — `@shipped @built @code-verified @runtime-untested`
 - Valid global dialog functions still execute from toolbar slots — `@stock`
+- DynamicMacro folder presets can be selected as 10-slot chunks — `@shipped @built @code-verified @runtime-untested`
 
-**How it does it:** **Key procs:** `execute_action`, `create_button_list`, `DynamicMacroToolbar`, `show_euclid_dialog` · **Source files:** `PakettiDynamicMacroToolbar.lua`, `PakettiMainMenuEntries.lua`
+**How it does it:** **Key procs:** `execute_action`, `create_button_list`, `DynamicMacroToolbar`, `show_euclid_dialog`, `list_preset_records`, `load_preset`, `save_preset` · **Source files:** `PakettiDynamicMacroToolbar.lua`, `PakettiMainMenuEntries.lua`
 
-**Grade:** @built ×2 · @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+**Grade:** @built ×3 · @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
 
 
 <a id="eq10-keyboard-controls"></a>
@@ -798,16 +799,18 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Sample Editor user, I want Transient Next/Previous to re-arm between dense hits, So that visible attacks after the first beat are reachable.
 
-**Behaviour (4 scenarios):**
+**Behaviour (6 scenarios):**
 
-- Re-arm the nav detector after the opening transient — `@shipped @code-verified`
+- Re-arm the adaptive Schmitt detector after the opening transient — `@shipped @code-verified`
 - Farmman fixture reaches later visible attacks — `@shipped @sim-verified`
+- Print detector internals for debugging — `@shipped @code-verified`
+- Use adaptive Schmitt hits as the final candidate source — `@shipped @code-verified`
 - Navigation stays cache-backed and non-slicing — `@stock`
 - Expose no-zoom navigation with obvious demo labels — `@shipped @code-verified`
 
-**How it does it:** **Key procs:** `TN_DEFAULTS`, `PakettiTransientNextOnset`, `PakettiTransientPreviousOnset`, `PakettiTransientNextPoint`, `PakettiTransientPreviousPoint`, `transient_navigation_detector_regression` · **Source files:** `PakettiTransientNavigation.lua`, `tests/transient_navigation_detector_regression.py`
+**How it does it:** **Key procs:** `TN_DEFAULTS`, `tn_create_adaptive_schmitt`, `tn_debug_positions`, `PakettiTransientNextOnset`, `PakettiTransientPreviousOnset`, `PakettiTransientNextPoint`, `PakettiTransientPreviousPoint`, `transient_navigation_detector_regression` · **Source files:** `PakettiTransientNavigation.lua`, `tests/transient_navigation_detector_regression.py`
 
-**Grade:** @code-verified ×2 · @shipped ×3 · @sim-verified ×1 · @stock ×1
+**Grade:** @code-verified ×4 · @shipped ×5 · @sim-verified ×1 · @stock ×1
 
 
 <a id="treemenu"></a>
