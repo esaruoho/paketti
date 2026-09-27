@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# REPORT-CARD >> features/treemenu.feature
+set -u
+
+delay=5
+
+usage() {
+  printf 'Usage: %s [--delay seconds] <command> [args...]\n' "$0"
+  printf 'Example: %s treemenu\n' "$0"
+  printf 'Example: %s --delay 15 treemenu --branch "Sample Editor"\n' "$0"
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --delay|-d)
+      if [ "$#" -lt 2 ]; then
+        usage >&2
+        exit 2
+      fi
+      delay="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [ "$#" -eq 0 ]; then
+  usage >&2
+  exit 2
+fi
+
+case "$delay" in
+  ''|*[!0-9]*)
+    printf 'runner: delay must be a non-negative integer, got %s\n' "$delay" >&2
+    exit 2
+    ;;
+esac
+
+cmd="$1"
+shift
+
+if [[ "$cmd" != */* && -x "./$cmd" ]]; then
+  cmd="./$cmd"
+fi
+
+stop_requested=0
+trap 'stop_requested=1' INT TERM
+
+run_count=0
+while [ "$stop_requested" -eq 0 ]; do
+  run_count=$((run_count + 1))
+  printf '\n[runner] run %d: %s' "$run_count" "$cmd"
+  for arg in "$@"; do
+    printf ' %q' "$arg"
+  done
+  printf '\n'
+
+  "$cmd" "$@"
+  status=$?
+  printf '[runner] exit %d; waiting %ss. Ctrl-C stops.\n' "$status" "$delay"
+
+  slept=0
+  while [ "$slept" -lt "$delay" ] && [ "$stop_requested" -eq 0 ]; do
+    sleep 1
+    slept=$((slept + 1))
+  done
+done
+
+printf '\n[runner] stopped.\n'

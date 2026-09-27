@@ -1993,7 +1993,7 @@ Main Menu
 | | |____Main Menu:Tools:Paketti Gadgets:Calculator Dialog... - PakettiCalculator.lua:348 (PakettiAddMenuEntry)
 | | |____Main Menu:Tools:Paketti Gadgets:CCizer Loader... - PakettiMenuConfig.lua:1590 (add_menu_entry)
 | | |____Main Menu:Tools:Paketti Gadgets:Command Wheel... - PakettiCommandWheel.lua:1676 (PakettiAddMenuEntry)
-| | |____Main Menu:Tools:Paketti Gadgets:Dynamic Macro Toolbar... - PakettiDynamicMacroToolbar.lua:492 (PakettiAddMenuEntry)
+| | |____Main Menu:Tools:Paketti Gadgets:Dynamic Macro Toolbar... - PakettiDynamicMacroToolbar.lua:591 (PakettiAddMenuEntry)
 | | |____Main Menu:Tools:Paketti Gadgets:Enhanced Automation (Curves)... - PakettiAutomationCurves.lua:1869 (PakettiAddMenuEntry)
 | | |____Main Menu:Tools:Paketti Gadgets:Execute Commands... - PakettiMenuConfig.lua:489 (add_menu_entry)
 | | |____Main Menu:Tools:Paketti Gadgets:Fuzzy Sample Search Dialog... - PakettiMenuConfig.lua:1478 (add_menu_entry)
@@ -2274,7 +2274,7 @@ Mixer
 | |____Mixer:Paketti Gadgets:Automate Last Touched Parameter - PakettiAutomateLastTouched.lua:949 (PakettiAddMenuEntry)
 | |____Mixer:Paketti Gadgets:CCizer Loader... - PakettiMenuConfig.lua:1594 (add_menu_entry)
 | |____Mixer:Paketti Gadgets:Configure Parameter Editor for Selected Device - PakettiCanvasExperiments.lua:3426 (PakettiAddMenuEntry)
-| |____Mixer:Paketti Gadgets:Dynamic Macro Toolbar... - PakettiDynamicMacroToolbar.lua:502 (PakettiAddMenuEntry)
+| |____Mixer:Paketti Gadgets:Dynamic Macro Toolbar... - PakettiDynamicMacroToolbar.lua:601 (PakettiAddMenuEntry)
 | |____Mixer:Paketti Gadgets:Expose Automated Parameters on Mixer - PakettiCanvasExperiments.lua:3303 (PakettiAddMenuEntry)
 | |____Mixer:Paketti Gadgets:GlobalGainer Dialog... - PakettiMenuConfig.lua:2660 (add_menu_entry) [separator]
 | |____Mixer:Paketti Gadgets:Mixer Parameter Exposer... - PakettiMixerParameterExposer.lua:537 (PakettiAddMenuEntry)
@@ -3112,7 +3112,7 @@ Pattern Editor
 | |____Pattern Editor:Paketti Gadgets:Calculator Dialog... - PakettiCalculator.lua:349 (PakettiAddMenuEntry)
 | |____Pattern Editor:Paketti Gadgets:CCizer Loader... - PakettiMenuConfig.lua:1598 (add_menu_entry) [separator]
 | |____Pattern Editor:Paketti Gadgets:Command Wheel... - PakettiCommandWheel.lua:1677 (PakettiAddMenuEntry)
-| |____Pattern Editor:Paketti Gadgets:Dynamic Macro Toolbar... - PakettiDynamicMacroToolbar.lua:497 (PakettiAddMenuEntry) [separator]
+| |____Pattern Editor:Paketti Gadgets:Dynamic Macro Toolbar... - PakettiDynamicMacroToolbar.lua:596 (PakettiAddMenuEntry) [separator]
 | |____Pattern Editor:Paketti Gadgets:GlobalGainer Dialog... - PakettiMenuConfig.lua:2662 (add_menu_entry) [separator]
 | |____Pattern Editor:Paketti Gadgets:Musical Chord Progression Arpeggiator... - PakettiArpeggiator.lua:1785 (PakettiAddMenuEntry)
 | |____Pattern Editor:Paketti Gadgets:OctaMED Hold-to-Fill... - PakettiMenuConfig.lua:1474 (add_menu_entry) [separator]
@@ -3854,21 +3854,21 @@ Sample Editor
 | |____Steppers
 | | |____Sample Editor:Paketti:Steppers:Modify PitchStep Steps (Minor Flurry) - PakettiMenuConfig.lua:2300 (add_menu_entry)
 | |____Transient Navigation
-| | |____Sample Editor:Paketti:Transient Navigation:Delete Left of Cursor - PakettiTransientNavigation.lua:594 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Delete Right of Cursor - PakettiTransientNavigation.lua:595 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Next Transient - PakettiTransientNavigation.lua:582 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Next Transient (No Zoom) - PakettiTransientNavigation.lua:588 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Next Transient (Point Cursor, No Zoom) - PakettiTransientNavigation.lua:590 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Next Transient (Zoom to Onset) - PakettiTransientNavigation.lua:584 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Next Transient in Full (Zoom to Fit Region) - PakettiTransientNavigation.lua:586 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient - PakettiTransientNavigation.lua:583 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient (No Zoom) - PakettiTransientNavigation.lua:589 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient (Point Cursor, No Zoom) - PakettiTransientNavigation.lua:591 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient (Zoom to Onset) - PakettiTransientNavigation.lua:585 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient in Full (Zoom to Fit Region) - PakettiTransientNavigation.lua:587 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Re-detect Transients - PakettiTransientNavigation.lua:596 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Slice at Cursor - PakettiTransientNavigation.lua:593 (PakettiAddMenuEntry)
-| | |____Sample Editor:Paketti:Transient Navigation:Toggle Next/Previous Mode (Region/Point) - PakettiTransientNavigation.lua:592 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Delete Left of Cursor - PakettiTransientNavigation.lua:679 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Delete Right of Cursor - PakettiTransientNavigation.lua:680 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Next Transient - PakettiTransientNavigation.lua:667 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Next Transient (No Zoom) - PakettiTransientNavigation.lua:673 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Next Transient (Point Cursor, No Zoom) - PakettiTransientNavigation.lua:675 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Next Transient (Zoom to Onset) - PakettiTransientNavigation.lua:669 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Next Transient in Full (Zoom to Fit Region) - PakettiTransientNavigation.lua:671 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient - PakettiTransientNavigation.lua:668 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient (No Zoom) - PakettiTransientNavigation.lua:674 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient (Point Cursor, No Zoom) - PakettiTransientNavigation.lua:676 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient (Zoom to Onset) - PakettiTransientNavigation.lua:670 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Previous Transient in Full (Zoom to Fit Region) - PakettiTransientNavigation.lua:672 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Re-detect Transients - PakettiTransientNavigation.lua:681 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Slice at Cursor - PakettiTransientNavigation.lua:678 (PakettiAddMenuEntry)
+| | |____Sample Editor:Paketti:Transient Navigation:Toggle Next/Previous Mode (Region/Point) - PakettiTransientNavigation.lua:677 (PakettiAddMenuEntry)
 | |____Transpose
 | | |____Sample Editor:Paketti:Transpose:Randomize Selected Sample Finetune/Transpose +6/-6 - PakettiMenuConfig.lua:2322 (add_menu_entry) [separator]
 | | |____Sample Editor:Paketti:Transpose:Randomize Selected Sample Transpose +6/-6 Finetune +127/-127 - PakettiMenuConfig.lua:2323 (add_menu_entry)
@@ -3945,7 +3945,7 @@ Sample Editor
 | |____Sample Editor:Paketti Gadgets:BPM-Based Sample Slicer Dialog... - PakettiMenuConfig.lua:176 (add_menu_entry) [separator]
 | |____Sample Editor:Paketti Gadgets:Calculator Dialog... - PakettiCalculator.lua:350 (PakettiAddMenuEntry)
 | |____Sample Editor:Paketti Gadgets:Chebyshev Polynomial Waveshaper... - PakettiMenuConfig.lua:1661 (add_menu_entry)
-| |____Sample Editor:Paketti Gadgets:Dynamic Macro Toolbar... - PakettiDynamicMacroToolbar.lua:507 (PakettiAddMenuEntry)
+| |____Sample Editor:Paketti Gadgets:Dynamic Macro Toolbar... - PakettiDynamicMacroToolbar.lua:606 (PakettiAddMenuEntry)
 | |____Sample Editor:Paketti Gadgets:Paketti eSpeak Text-to-Speech... - PakettiMenuConfig.lua:2117 (add_menu_entry)
 | |____Sample Editor:Paketti Gadgets:Paketti Function Search... - PakettiMenuConfig.lua:426 (add_menu_entry)
 | |____Sample Editor:Paketti Gadgets:Paketti KeyBindings Dialog... - PakettiKeyBindings.lua:591 (PakettiAddMenuEntry) [separator]
