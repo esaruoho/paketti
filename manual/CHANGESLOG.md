@@ -8,6 +8,11 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-28 - Improvement: Dynamic Macro Toolbar folder access and extra preset path
+
+**The Dynamic Macro Toolbar dialog can now reveal its presets folder and scan a second, user-chosen folder.** An **Open Presets Folder** button reveals the bundle's `DynamicMacro` folder (and the extra folder, if set) in Finder/Explorer so you can send your `.txt` macro presets to Esa easily. A **Set Extra Folder...** button lets you pick an additional folder that is scanned for `.txt` presets alongside the default one; the choice is stored in preferences (`PakettiDMTCustomPresetPath`) and persists across sessions. A **Clear** button removes the extra folder. Presets from both folders appear together in the preset dropdown (the default folder wins on name collisions).
+- Menu: `Main Menu:Tools:Paketti Gadgets:Dynamic Macro Toolbar...`
+
 ### 2026-09-23 - Fix: Recording preserves external MIDI instruments
 
 **Every Record to Current Track workflow now protects the selected external-MIDI instrument.** The shared recorder checks its MIDI output port and channel, scans subsequent slots for the first unused instrument, and appends one if none is unused. Pattern Sync, current-row, new-track, pedal, menu, and Overdub commands all use this same destination selection, leaving MIDI routing intact rather than overwriting it with a recorded sample.

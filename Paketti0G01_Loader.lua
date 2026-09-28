@@ -524,6 +524,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiDMTSlot08 = "",
   PakettiDMTSlot09 = "",
   PakettiDMTSlot10 = "",
+  -- Optional additional folder scanned for Dynamic Macro Toolbar .txt presets (in addition to the bundle's DynamicMacro folder)
+  PakettiDMTCustomPresetPath = "",
   ActionSelector = {
  Index01="",
  Index02="",

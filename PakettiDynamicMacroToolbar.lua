@@ -23,6 +23,25 @@ local separator = package.config:sub(1,1)
 local PRIMARY_PRESET_DIR = renoise.tool().bundle_path .. "DynamicMacro" .. separator
 local LEGACY_PRESET_DIR = renoise.tool().bundle_path .. "DynamicMacroToolbar_Presets" .. separator
 
+-- Optional additional folder the user can point at (stored in preferences).
+-- Presets here are scanned in addition to the bundle's DynamicMacro folder.
+local function get_custom_preset_dir()
+  if not preferences.PakettiDMTCustomPresetPath then return "" end
+  local p = preferences.PakettiDMTCustomPresetPath.value
+  if not p or p == "" then return "" end
+  -- Ensure trailing separator so we can concatenate filenames safely.
+  if p:sub(-1) ~= "/" and p:sub(-1) ~= "\\" then
+    p = p .. separator
+  end
+  return p
+end
+
+local function set_custom_preset_dir(path)
+  if not preferences.PakettiDMTCustomPresetPath then return end
+  preferences.PakettiDMTCustomPresetPath.value = path or ""
+  preferences:save_as("preferences.xml")
+end
+
 ------------------------------------------------------------------------
 -- Action Registry: Build a combined list of all callable actions
 -- Uses create_button_list() from PakettiMainMenuEntries.lua (global function)
@@ -162,6 +181,10 @@ local function list_preset_records()
   local presets = {}
   local by_name = {}
   collect_presets_from_dir(PRIMARY_PRESET_DIR, "DynamicMacro", presets, by_name)
+  local custom_dir = get_custom_preset_dir()
+  if custom_dir ~= "" then
+    collect_presets_from_dir(custom_dir, "Custom", presets, by_name)
+  end
   collect_presets_from_dir(LEGACY_PRESET_DIR, "Legacy", presets, by_name)
 
   table.sort(presets, function(a, b)
@@ -512,6 +535,67 @@ local function build_toolbar_content()
     }
   }
 
+  -- Folder controls: reveal the presets folder in Finder/Explorer and set an
+  -- optional additional folder that is scanned alongside the bundle's DynamicMacro folder.
+  local function custom_path_label()
+    local p = get_custom_preset_dir()
+    if p == "" then return "Extra Folder: (none)" end
+    return "Extra Folder: " .. p
+  end
+
+  local folder_row = vb:row{
+    spacing = 4,
+    vb:button{
+      text = "Open Presets Folder",
+      width = 130,
+      pressed = function()
+        ensure_preset_dir()
+        pcall(function() renoise.app():open_path(PRIMARY_PRESET_DIR) end)
+        local custom_dir = get_custom_preset_dir()
+        if custom_dir ~= "" and io.exists(custom_dir) then
+          pcall(function() renoise.app():open_path(custom_dir) end)
+        end
+        renoise.app():show_status("Dynamic Macro Toolbar: revealed presets folder - send your .txt macros to Esa!")
+      end
+    },
+    vb:button{
+      text = "Set Extra Folder...",
+      width = 110,
+      pressed = function()
+        local chosen = renoise.app():prompt_for_path("Select additional Dynamic Macro Toolbar preset folder")
+        if chosen and chosen ~= "" then
+          set_custom_preset_dir(chosen)
+          if vb.views["dmt_custom_path_text"] then
+            vb.views["dmt_custom_path_text"].text = custom_path_label()
+          end
+          -- Refresh dialog so the extra folder's presets appear in the dropdown.
+          if dialog and dialog.visible then
+            PakettiDynamicMacroToolbarToggle()
+            PakettiDynamicMacroToolbarToggle()
+          end
+        end
+      end
+    },
+    vb:button{
+      text = "Clear",
+      width = 45,
+      pressed = function()
+        set_custom_preset_dir("")
+        if vb.views["dmt_custom_path_text"] then
+          vb.views["dmt_custom_path_text"].text = custom_path_label()
+        end
+        if dialog and dialog.visible then
+          PakettiDynamicMacroToolbarToggle()
+          PakettiDynamicMacroToolbarToggle()
+        end
+      end
+    },
+    vb:text{
+      id = "dmt_custom_path_text",
+      text = custom_path_label()
+    }
+  }
+
   local content = vb:column{
     margin = 4,
     spacing = 2,
@@ -520,6 +604,7 @@ local function build_toolbar_content()
       edit_toggle,
       preset_row
     },
+    folder_row,
     vb:space{height = 2},
     unpack(rows)
   }
