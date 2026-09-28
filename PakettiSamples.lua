@@ -6479,36 +6479,31 @@ function saveAllSamplesToFolder()
       return
   end
 
-  -- Prompt for save location
-  local folder_path = renoise.app():prompt_for_path("Select Folder to Save All Samples")
-  if folder_path == "" then
-      renoise.app():show_status("No folder selected, operation cancelled")
-      return
-  end
-
-  -- Prompt for a base name; files become <basename><NN>.wav numbered from 00
-  local vb = renoise.ViewBuilder()
-  local name_field = vb:textfield{ text = "sample", width = 240 }
-  local dialog_content = vb:column{
-      margin = 10,
-      vb:text{ text = "Base name for the " .. total_samples .. " sample" ..
-          (total_samples == 1 and "" or "s") .. " (numbered from 00):" },
-      name_field
-  }
-  local button = renoise.app():show_custom_prompt("Save All Samples As...", dialog_content, {"Save", "Cancel"})
-  if button ~= "Save" then
+  -- Native save dialog: type a base name and pick the location, then press Enter.
+  -- Files become <basename>_<date-timestamp>_<NN>.wav for every sample in the song.
+  local chosen = renoise.app():prompt_for_filename_to_write("wav", "Save All Samples As (base name)...")
+  if chosen == "" then
       renoise.app():show_status("Save All Samples cancelled")
       return
   end
-  local base_name = name_field.text:gsub("^%s+", ""):gsub("%s+$", "")
+
+  -- Split the chosen path into folder + base name (strip directory and .wav extension)
+  local folder_path, file_part = chosen:match("^(.*[/\\])([^/\\]*)$")
+  if not folder_path then
+      folder_path = ""
+      file_part = chosen
+  end
+  local base_name = file_part:gsub("%.wav$", ""):gsub("%.WAV$", "")
+  base_name = base_name:gsub("^%s+", ""):gsub("%s+$", "")
   if base_name == "" then
       renoise.app():show_status("No base name entered, operation cancelled")
       return
   end
 
+  local timestamp = os.date("%Y-%m-%d_%H%M%S")
   -- Zero-pad to at least 2 digits, widening if there are more than 100 samples
   local pad_width = math.max(2, #tostring(total_samples - 1))
-  local path = folder_path .. "/"
+  local path = folder_path
   local saved_samples_count = 0
 
   for i = 1, #s.instruments do
@@ -6518,7 +6513,7 @@ function saveAllSamplesToFolder()
               local sample = instrument.samples[j].sample_buffer
               if sample.has_sample_data then
                   local number = string.format("%0" .. pad_width .. "d", saved_samples_count)
-                  local file_name = base_name .. number .. ".wav"
+                  local file_name = base_name .. "_" .. timestamp .. "_" .. number .. ".wav"
                   sample:save_as(path .. file_name, "wav")
                   saved_samples_count = saved_samples_count + 1
               end
