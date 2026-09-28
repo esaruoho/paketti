@@ -32,6 +32,7 @@ Context: Global
   # =====================================================================
   # WATCH: PakettiMCPAutoStart PakettiMCPMain
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
+  #   2026-09-28  direct-commit  touched: PakettiMCPMain
   #   2026-09-26  direct-commit  touched: PakettiMCPMain
   #   2026-09-08  direct-commit  touched: PakettiMCPAutoStart
   #   2026-08-31  direct-commit  touched: PakettiMCPMain

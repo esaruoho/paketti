@@ -1,11 +1,12 @@
 # Documentation generated for AI assistants
+.codex/
 Docs/
 Research/TrackerFilesDocs
 # macOS metadata
 **/.DS_Store
 KeyBindings/Debug_Renoise_KeyBindings.log
 preferences.xml
-
+tests/__pycache__
 Research/TrackerFilesDocs
 Research/ptlib
 
