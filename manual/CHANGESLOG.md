@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-28 - Improvement: Keyboard shortcut for Save All Samples to Folder
+
+**Added a keyboard shortcut for "Save All Samples to Folder...".** This action saves every sample in the song (across all instruments) as WAV files into a folder you choose, then opens that folder. It previously existed only as a menu entry; now you can bind a key to it. The single-sample "Paketti Save Selected Sample .WAV/.FLAC" shortcuts already existed; this adds the "all samples" companion.
+- Keybinding: `Global:Paketti:Save All Samples to Folder...`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Save All Samples to Folder...`
+
 ### 2026-09-28 - Improvement: Dynamic Macro Toolbar folder access and extra preset path
 
 **The Dynamic Macro Toolbar dialog can now reveal its presets folder and scan a second, user-chosen folder.** An **Open Presets Folder** button reveals the bundle's `DynamicMacro` folder (and the extra folder, if set) in Finder/Explorer so you can send your `.txt` macro presets to Esa easily. A **Set Extra Folder...** button lets you pick an additional folder that is scanned for `.txt` presets alongside the default one; the choice is stored in preferences (`PakettiDMTCustomPresetPath`) and persists across sessions. A **Clear** button removes the extra folder. Presets from both folders appear together in the preset dropdown (the default folder wins on name collisions).

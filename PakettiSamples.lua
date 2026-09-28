@@ -6502,6 +6502,7 @@ function saveAllSamplesToFolder()
       os.execute('xdg-open "' .. folder_path .. '"')
   end
 end
+renoise.tool():add_keybinding{name="Global:Paketti:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}
 
 
 -------
