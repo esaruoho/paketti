@@ -6460,16 +6460,54 @@ end
 ------
 -- Function to save all samples to a user-selected folder
 function saveAllSamplesToFolder()
+  local s = renoise.song()
+
+  -- Count samples with data up front so we can zero-pad the numbering and bail early if empty
+  local total_samples = 0
+  for i = 1, #s.instruments do
+      local instrument = s.instruments[i]
+      if instrument then
+          for j = 1, #instrument.samples do
+              if instrument.samples[j].sample_buffer.has_sample_data then
+                  total_samples = total_samples + 1
+              end
+          end
+      end
+  end
+  if total_samples == 0 then
+      renoise.app():show_status("No samples with data to save")
+      return
+  end
+
   -- Prompt for save location
-  local dialog_title = "Select Folder to Save All Samples"
-  local folder_path = renoise.app():prompt_for_path(dialog_title)
-  
+  local folder_path = renoise.app():prompt_for_path("Select Folder to Save All Samples")
   if folder_path == "" then
       renoise.app():show_status("No folder selected, operation cancelled")
       return
   end
 
-  local s = renoise.song()
+  -- Prompt for a base name; files become <basename><NN>.wav numbered from 00
+  local vb = renoise.ViewBuilder()
+  local name_field = vb:textfield{ text = "sample", width = 240 }
+  local dialog_content = vb:column{
+      margin = 10,
+      vb:text{ text = "Base name for the " .. total_samples .. " sample" ..
+          (total_samples == 1 and "" or "s") .. " (numbered from 00):" },
+      name_field
+  }
+  local button = renoise.app():show_custom_prompt("Save All Samples As...", dialog_content, {"Save", "Cancel"})
+  if button ~= "Save" then
+      renoise.app():show_status("Save All Samples cancelled")
+      return
+  end
+  local base_name = name_field.text:gsub("^%s+", ""):gsub("%s+$", "")
+  if base_name == "" then
+      renoise.app():show_status("No base name entered, operation cancelled")
+      return
+  end
+
+  -- Zero-pad to at least 2 digits, widening if there are more than 100 samples
+  local pad_width = math.max(2, #tostring(total_samples - 1))
   local path = folder_path .. "/"
   local saved_samples_count = 0
 
@@ -6479,12 +6517,9 @@ function saveAllSamplesToFolder()
           for j = 1, #instrument.samples do
               local sample = instrument.samples[j].sample_buffer
               if sample.has_sample_data then
-                  local file_name = instrument.name .. "_" .. j .. ".wav"
-                  if sample.bit_depth == 32 then
-                      sample:save_as(path .. file_name, "wav")
-                  else
-                      sample:save_as(path .. file_name, "wav")
-                  end
+                  local number = string.format("%0" .. pad_width .. "d", saved_samples_count)
+                  local file_name = base_name .. number .. ".wav"
+                  sample:save_as(path .. file_name, "wav")
                   saved_samples_count = saved_samples_count + 1
               end
           end

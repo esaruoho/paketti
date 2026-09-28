@@ -8,9 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
-### 2026-09-28 - Improvement: Keyboard shortcut for Save All Samples to Folder
+### 2026-09-28 - Improvement: Save All Samples to Folder now asks for a base name, plus a keyboard shortcut
 
-**Added a keyboard shortcut for "Save All Samples to Folder...".** This action saves every sample in the song (across all instruments) as WAV files into a folder you choose, then opens that folder. It previously existed only as a menu entry; now you can bind a key to it. The single-sample "Paketti Save Selected Sample .WAV/.FLAC" shortcuts already existed; this adds the "all samples" companion.
+**"Save All Samples to Folder..." now asks you for a base name and numbers the files sequentially, and it can be bound to a key.** After you pick a folder, a dialog asks for a base name (e.g. `pianopiezomic`); every sample in the song that has data is then saved as WAV files numbered from `00` — `pianopiezomic00.wav`, `pianopiezomic01.wav`, … up to the last sample. Numbering is continuous across all instruments and zero-padded (widening past 100 samples). Previously files were named after each instrument (`instrumentname_1.wav`); now a single base name you type is used for the whole batch. The action previously existed only as a menu entry; it now also has a bindable keyboard shortcut. The single-sample "Paketti Save Selected Sample .WAV/.FLAC" shortcuts already existed; this adds the "all samples" companion.
 - Keybinding: `Global:Paketti:Save All Samples to Folder...`
 - Menu: `Main Menu:Tools:Paketti:Instruments:Save All Samples to Folder...`
 
