@@ -6501,8 +6501,12 @@ function saveAllSamplesToFolder()
   end
 
   local timestamp = os.date("%Y-%m-%d_%H%M%S")
-  -- Zero-pad to at least 2 digits, widening if there are more than 100 samples
-  local pad_width = math.max(2, #tostring(total_samples - 1))
+  -- If the typed name ends in digits (e.g. "piezomic07"), use them as the starting
+  -- number and keep their width; otherwise start at 00. Files become
+  -- <timestamp>_<name><number>.wav counting upward from the starting number.
+  local name_prefix, start_digits = base_name:match("^(.-)(%d*)$")
+  local start_number = (start_digits ~= "" and tonumber(start_digits)) or 0
+  local pad_width = (start_digits ~= "" and #start_digits) or 2
   local path = folder_path
   local saved_samples_count = 0
 
@@ -6512,8 +6516,8 @@ function saveAllSamplesToFolder()
           for j = 1, #instrument.samples do
               local sample = instrument.samples[j].sample_buffer
               if sample.has_sample_data then
-                  local number = string.format("%0" .. pad_width .. "d", saved_samples_count)
-                  local file_name = base_name .. "_" .. timestamp .. "_" .. number .. ".wav"
+                  local number = string.format("%0" .. pad_width .. "d", start_number + saved_samples_count)
+                  local file_name = timestamp .. "_" .. name_prefix .. number .. ".wav"
                   sample:save_as(path .. file_name, "wav")
                   saved_samples_count = saved_samples_count + 1
               end
