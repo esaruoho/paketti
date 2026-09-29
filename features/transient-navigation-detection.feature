@@ -18,6 +18,7 @@
 # WATCH: TN_DEFAULTS tn_create_adaptive_schmitt tn_debug_positions PakettiTransientNextOnset PakettiTransientPreviousOnset PakettiTransientNextPoint PakettiTransientPreviousPoint transient_navigation_detector_regression
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-29  direct-commit  touched: transient_navigation_detector_regression
 #   2026-09-27  direct-commit  touched: TN_DEFAULTS tn_create_adaptive_schmitt tn_debug_positions
 #   2026-09-26  direct-commit  touched: PakettiTransientNextPoint PakettiTransientPreviousPoint
 # =============================================================================
