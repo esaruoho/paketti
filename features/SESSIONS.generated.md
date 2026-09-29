@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**24 card conversations** plugged in:
+**25 card conversations** plugged in:
 
 ### `4661443d-8d10-41e1-9975-5cbd445bb567`  (2026-08-27 → 2026-08-31)
 - Resume: `claude --resume 4661443d-8d10-41e1-9975-5cbd445bb567`
@@ -138,5 +138,11 @@
 ### `6aabefc6-5472-499a-b61c-728108316c68`  (2026-09-29)
 - Resume: `claude --resume 6aabefc6-5472-499a-b61c-728108316c68`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/6aabefc6-5472-499a-b61c-728108316c68.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (4): TEMPLATE.feature, dynamic-toolbar-actions.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
+
+### `720402e6-5ed0-4426-a7e8-3d22eb93a12e`  (2026-09-29)
+- Resume: `claude --resume 720402e6-5ed0-4426-a7e8-3d22eb93a12e`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/720402e6-5ed0-4426-a7e8-3d22eb93a12e.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (4): TEMPLATE.feature, dynamic-toolbar-actions.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
