@@ -23,12 +23,60 @@ local separator = package.config:sub(1,1)
 local PRIMARY_PRESET_DIR = renoise.tool().bundle_path .. "DynamicMacro" .. separator
 local LEGACY_PRESET_DIR = renoise.tool().bundle_path .. "DynamicMacroToolbar_Presets" .. separator
 
--- Optional additional folder the user can point at (stored in preferences).
--- Presets here are scanned in addition to the bundle's DynamicMacro folder.
+-- Optional additional folder the user can point at.
+-- Presets here are scanned in addition to the bundle's DynamicMacro folder,
+-- and when set it becomes the SAVE target (see save_preset).
+--
+-- Persistence: preferences.xml lives inside the tool bundle, so installing a
+-- new Paketti wipes it along with the rest of the bundle. To make the custom
+-- path survive a reinstall we also mirror it into a sidecar file kept in the
+-- parent "Tools" directory, which is NOT touched when a single tool is
+-- replaced. On load we self-heal the preference from the sidecar if it was
+-- reset. The sidecar is only a pointer (a path string); the user's actual
+-- preset .txt files live in the folder that path points at.
+local DMT_PATH_SIDECAR
+do
+  -- bundle_path = ".../Tools/org.lackluster.Paketti.xrnx/"  (trailing separator)
+  local bp = renoise.tool().bundle_path
+  local tools_dir = bp:match("^(.*[/\\])[^/\\]+[/\\]$") or bp
+  DMT_PATH_SIDECAR = tools_dir .. "PakettiDMTCustomPresetPath.cfg"
+end
+
+local function read_sidecar_path()
+  if not io.exists(DMT_PATH_SIDECAR) then return "" end
+  local f = io.open(DMT_PATH_SIDECAR, "r")
+  if not f then return "" end
+  local line = f:read("*l") or ""
+  f:close()
+  return line
+end
+
+local function write_sidecar_path(path)
+  local f = io.open(DMT_PATH_SIDECAR, "w")
+  if not f then return false end
+  f:write((path or "") .. "\n")
+  f:close()
+  return true
+end
+
 local function get_custom_preset_dir()
-  if not preferences.PakettiDMTCustomPresetPath then return "" end
-  local p = preferences.PakettiDMTCustomPresetPath.value
-  if not p or p == "" then return "" end
+  local p = ""
+  if preferences.PakettiDMTCustomPresetPath then
+    p = preferences.PakettiDMTCustomPresetPath.value or ""
+  end
+  -- Self-heal: after a reinstall the in-bundle preference is gone but the
+  -- out-of-bundle sidecar remains. Restore it so the user's folder reappears.
+  if p == "" then
+    local recovered = read_sidecar_path()
+    if recovered ~= "" then
+      p = recovered
+      if preferences.PakettiDMTCustomPresetPath then
+        preferences.PakettiDMTCustomPresetPath.value = recovered
+        preferences:save_as("preferences.xml")
+      end
+    end
+  end
+  if p == "" then return "" end
   -- Ensure trailing separator so we can concatenate filenames safely.
   if p:sub(-1) ~= "/" and p:sub(-1) ~= "\\" then
     p = p .. separator
@@ -37,9 +85,13 @@ local function get_custom_preset_dir()
 end
 
 local function set_custom_preset_dir(path)
-  if not preferences.PakettiDMTCustomPresetPath then return end
-  preferences.PakettiDMTCustomPresetPath.value = path or ""
-  preferences:save_as("preferences.xml")
+  path = path or ""
+  if preferences.PakettiDMTCustomPresetPath then
+    preferences.PakettiDMTCustomPresetPath.value = path
+    preferences:save_as("preferences.xml")
+  end
+  -- Mirror out-of-bundle so a Paketti reinstall cannot lose the pointer.
+  write_sidecar_path(path)
 end
 
 ------------------------------------------------------------------------
@@ -128,21 +180,39 @@ end
 ------------------------------------------------------------------------
 -- Preset management
 ------------------------------------------------------------------------
-local function ensure_preset_dir()
-  if not io.exists(PRIMARY_PRESET_DIR) then
+local function ensure_dir(dir)
+  if dir == nil or dir == "" then return false end
+  if not io.exists(dir) then
     if type(os.mkdir) == "function" then
-      pcall(os.mkdir, PRIMARY_PRESET_DIR)
+      pcall(os.mkdir, dir)
     end
-    if not io.exists(PRIMARY_PRESET_DIR) then
+    if not io.exists(dir) then
       local cmd
       if os.platform() == "WINDOWS" then
-        cmd = 'mkdir "' .. PRIMARY_PRESET_DIR .. '"'
+        cmd = 'mkdir "' .. dir .. '"'
       else
-        cmd = 'mkdir -p "' .. PRIMARY_PRESET_DIR .. '"'
+        cmd = 'mkdir -p "' .. dir .. '"'
       end
       os.execute(cmd)
     end
   end
+  return io.exists(dir)
+end
+
+local function ensure_preset_dir()
+  ensure_dir(PRIMARY_PRESET_DIR)
+end
+
+-- Where a "Save Preset" should write: the custom folder if one is set and
+-- usable, otherwise the bundle's DynamicMacro folder. Returns the directory
+-- (with trailing separator) that was actually prepared.
+local function get_save_dir()
+  local custom = get_custom_preset_dir()
+  if custom ~= "" and ensure_dir(custom) then
+    return custom
+  end
+  ensure_preset_dir()
+  return PRIMARY_PRESET_DIR
 end
 
 local function preset_name_from_path(path)
@@ -212,8 +282,9 @@ local function find_preset_record(name)
 end
 
 local function save_preset(name)
-  ensure_preset_dir()
-  local path = PRIMARY_PRESET_DIR .. name .. ".txt"
+  -- Save into the custom folder when one is set, otherwise the bundle folder.
+  local dir = get_save_dir()
+  local path = dir .. name .. ".txt"
   local f = io.open(path, "w")
   if not f then
     renoise.app():show_warning("Could not save preset to: " .. path)
@@ -539,8 +610,8 @@ local function build_toolbar_content()
   -- optional additional folder that is scanned alongside the bundle's DynamicMacro folder.
   local function custom_path_label()
     local p = get_custom_preset_dir()
-    if p == "" then return "Extra Folder: (none)" end
-    return "Extra Folder: " .. p
+    if p == "" then return "Extra Folder: (none) - presets save inside Paketti" end
+    return "Extra Folder (presets save here): " .. p
   end
 
   local folder_row = vb:row{
