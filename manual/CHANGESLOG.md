@@ -8,6 +8,14 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-29 - Improvement: Sononymph automatic settings and PlayerPro Smart SubColumn added to the Options menu with checkmarks
+
+**Four settings that were previously only reachable by opening a dialog (or, for the Sononymph ones, hidden entirely) are now togglable straight from Main Menu -> Options, each with a checkmark showing whether it's on or off.** The three Sononymph "automatic" preferences — Autostart (open the Sononymph dialog when a song loads), Auto-Transfer New Instrument, and Auto-Transfer New Sample Slot — previously had no menu or Preferences presence at all; they lived only inside the Sononymph dialog. They now appear in the Options menu, so you can see and change them at a glance. PlayerPro's "Smart SubColumn" (open the effect dialog automatically when you move into a volume/panning/delay/sample-fx subcolumn) joins the already-present "PlayerPro Auto-Open Smart Dialog" toggle in the same menu. Each toggle saves immediately and shows a status message.
+- Menu: `Main Menu:Options:PlayerPro Smart SubColumn Toggle`
+- Menu: `Main Menu:Options:Sononymph Autostart Toggle`
+- Menu: `Main Menu:Options:Sononymph Auto-Transfer New Instrument Toggle`
+- Menu: `Main Menu:Options:Sononymph Auto-Transfer New Sample Slot Toggle`
+
 ### 2026-09-29 - Fix: Dynamic Macro Toolbar presets survive a Paketti reinstall
 
 **Your Dynamic Macro Toolbar presets are no longer wiped when you update Paketti.** Two problems are fixed. First, "Save Preset" always wrote into the tool's own `DynamicMacro` folder — inside the Paketti bundle — even when you had set an Extra Folder. Installing a new Paketti replaces the whole bundle, so every saved preset was deleted on update. Now, **if an Extra Folder is set, presets save there** (outside the bundle, on whatever drive you chose); if none is set, they still save inside Paketti as before. Second, the Extra Folder path itself was stored only in `preferences.xml`, which also lives inside the bundle and is wiped on update — so even after reinstalling, Paketti forgot where your folder was and it looked like the presets vanished (they were still on disk, just no longer scanned). The path is now also mirrored to a small file in the parent `Tools` folder, which a reinstall does not touch, and Paketti restores the setting automatically. The settings dialog label now shows whether presets save to your Extra Folder or inside Paketti. A new **Open...** button lets you pick a preset and reveal its `.txt` file in Finder/Explorer so you can attach or send it somewhere.

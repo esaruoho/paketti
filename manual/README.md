@@ -263,9 +263,19 @@ Some quick examples:
 #### PlayerPro Auto-Open Smart Dialog
 
 
+#### PlayerPro Smart SubColumn Toggle
+When enabled, moving the cursor into a volume / panning / delay / sample-fx subcolumn automatically opens the PlayerPro effect dialog for that subcolumn. This mirrors the "Smart SubColumn" checkbox inside the PlayerPro dialog, so you can turn it on or off from the menu and see its current state via the checkmark. Menu: `Main Menu:Options:PlayerPro Smart SubColumn Toggle`.
+
 #### Sononym Auto-Transfer Toggle
 A while back, I was notified of a semi-abandoned tool that was left in an Alpha state - a tool by Danoise, aka Bjørn Nesby - the maker of Sononym. He wrote a tool called Sononymph, which was integrated Renoise with [Sononym](http://sononym.net). I took a heavily slanted Paketti "look" at the tool, and decided to modify, rewrite, simplify, organize, optimize and troubleshoot it. Without delving deeper into the features and improvements I added - suffice to say - it now does exactly what it says on the tin. And the Sononym Auto-Transfer Toggle is so that when you select a sample in Sononym, hey presto, it is automatically transferred to Renoise.
 ![](Screenshots/mainmenuoptionsononym.png)
+
+#### Sononymph Automatic Settings (Autostart, Auto-Transfer)
+The Sononymph dialog's persisted "automatic" preferences are now also togglable straight from the Options menu, each with a checkmark showing its current state — no need to open the Sononymph dialog to change them:
+- **Sononymph Autostart** — automatically open the Sononymph dialog when a song loads. Menu: `Main Menu:Options:Sononymph Autostart Toggle`.
+- **Sononymph Auto-Transfer New Instrument** — when auto-transferring from Sononym, create a new instrument for the transferred sample. Menu: `Main Menu:Options:Sononymph Auto-Transfer New Instrument Toggle`.
+- **Sononymph Auto-Transfer New Sample Slot** — when auto-transferring from Sononym, place the transferred sample into a new sample slot. Menu: `Main Menu:Options:Sononymph Auto-Transfer New Sample Slot Toggle`.
+
 #### SBx Pattern Loop Follow
 
 
