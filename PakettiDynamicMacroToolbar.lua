@@ -630,6 +630,29 @@ local function build_toolbar_content()
       end
     },
     vb:button{
+      text = "Open...",
+      width = 60,
+      pressed = function()
+        local presets = list_presets()
+        if #presets == 0 then
+          renoise.app():show_status("Dynamic Macro Toolbar: no presets to open")
+          return
+        end
+        local choice = renoise.app():show_prompt("Open Preset File",
+          "Choose a preset .txt to reveal (so you can send it somewhere):",
+          presets)
+        if choice and choice ~= "" then
+          local record = find_preset_record(choice)
+          if record and record.path and io.exists(record.path) then
+            pcall(function() renoise.app():open_path(record.path) end)
+            renoise.app():show_status("Dynamic Macro Toolbar: revealed " .. record.path)
+          else
+            renoise.app():show_status("Dynamic Macro Toolbar: could not locate preset file for " .. choice)
+          end
+        end
+      end
+    },
+    vb:button{
       text = "Set Extra Folder...",
       width = 110,
       pressed = function()
