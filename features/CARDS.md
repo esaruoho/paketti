@@ -471,7 +471,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user recording audio into a known handoff folder, I want Paketti to notice new files under /private/tmp/netdrive/2logic, So that Renoise can load each completed take without a manual file picker.
 
-**Behaviour (10 scenarios):**
+**Behaviour (12 scenarios):**
 
 - Keep the global default off while allowing Esa's local preference to arm it — `@shipped @code-verified @runtime-untested`
 - Watch the default 2logic folder when armed — `@shipped @code-verified @runtime-untested`
@@ -480,13 +480,15 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Pause safely when the watched volume disconnects — `@shipped @code-verified @runtime-untested`
 - Accept a readable NetDrive folder only after the mount root exists — `@shipped @code-verified @runtime-untested`
 - Load each arrival as a fresh Paketti instrument — `@shipped @code-verified @runtime-untested`
+- Every file load goes through a ProcessSlicer so the UI never freezes — `@shipped @code-verified @runtime-untested`
+- A durable load-after cutoff persists so restarts do not start from scratch — `@shipped @code-verified @runtime-untested`
 - Create an adjacent sequencer trigger track for each loaded arrival — `@shipped @code-verified @runtime-untested`
 - Expose manual control for the watcher — `@shipped @code-verified @runtime-untested`
 - Existing sample loaders remain separate — `@stock`
 
 **How it does it:** **Key procs:** `PakettiNetDriveWatcher`, `PakettiNetDriveWatcherStart`, `PakettiNetDriveWatcherTick`, `PakettiNetDriveWatcherLoadFile`, `PakettiNetDriveWatcherRefreshTimer`, `pakettiNetDriveWatcherFolder`, `pakettiNetDriveWatcherPollSeconds` · **Source files:** `Paketti0G01_Loader.lua`, `preferences.xml`, `PakettiSamples.lua`
 
-**Grade:** @code-verified ×9 · @runtime-untested ×9 · @shipped ×9 · @stock ×1
+**Grade:** @code-verified ×11 · @runtime-untested ×11 · @shipped ×11 · @stock ×1
 
 
 <a id="normalize-selected-channel"></a>
@@ -587,7 +589,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 **What it does:** As a Paketti user with a sustain-style MIDI pedal, I want Record to Current Track to run only while the pedal is fully down, So that releasing the pedal reliably stops the recording.
 
-**Behaviour (9 scenarios):**
+**Behaviour (11 scenarios):**
 
 - Pedal value 127 starts Record to Current Track — `@shipped @code-verified @runtime-untested`
 - Any pedal value other than 127 stops recording — `@shipped @code-verified @runtime-untested`
@@ -595,13 +597,15 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Pattern Sync pedal alias is findable under Record to Current Track — `@shipped @code-verified @runtime-untested`
 - Row pedal writes C-4 with the current instrument immediately — `@shipped @code-verified @runtime-untested`
 - New Track Row Pedal always records on a fresh sequencer track — `@shipped @code-verified @runtime-untested`
+- Pattern Sync takes are named with a timestamp, not Overdub<NN> — `@shipped @code-verified @runtime-untested`
 - Pattern Sync recording is available as a single keyboard shortcut — `@shipped @code-verified @runtime-untested`
+- Stopping a take never changes the Sample Recorder sync mode — `@shipped @code-verified @runtime-untested`
 - Current-row non-sync recording is available as a single keyboard shortcut — `@shipped @code-verified @runtime-untested`
 - New-track current-row recording is available as a single keyboard shortcut — `@shipped @code-verified @runtime-untested`
 
 **How it does it:** **Key procs:** `PakettiPedalRecord`, `PakettiPedalRecordAndWriteRow`, `PakettiPedalRecordNewTrackAndWriteRow`, `PakettiRecordToCurrentTrackPatternSyncShortcut`, `PakettiRecordToCurrentTrackAndRowShortcut`, `PakettiRecordToCurrentTrackAndRowNewTrackShortcut`, `PakettiRecordToCurrentTrackStart`, `PakettiRecordToCurrentTrackStop`, `PakettiRecordToCurrentTrackSkipDefaultRow1Note`, `PakettiRecordToCurrentTrackPatternSyncMode` · **Source files:** `PakettiMidi.lua`, `PakettiRecorder.lua`, `PakettiMIDIMappings.lua`
 
-**Grade:** @code-verified ×8 · @runtime-untested ×8 · @shipped ×8 · @stock ×1
+**Grade:** @code-verified ×10 · @runtime-untested ×10 · @shipped ×10 · @stock ×1
 
 
 <a id="quick-edit-navigation"></a>
