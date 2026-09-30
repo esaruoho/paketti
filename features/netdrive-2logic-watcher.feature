@@ -9,7 +9,9 @@
 #
 # Innards linked back to this card (grep "features/netdrive-2logic-watcher.feature"):
 #   PakettiSamples.lua - PakettiNetDriveWatcher* functions poll the watch folder, debounce new files, and load them
-#   Paketti0G01_Loader.lua - pakettiNetDriveWatcher* preferences persist enable state, path, stability delay, and poll interval
+#   PakettiSamples.lua - PakettiNetDriveWatcherProcessQueue/Enqueue load every file through a ProcessSlicer so a load never blocks the UI
+#   PakettiSamples.lua - PakettiNetDriveWatcherGetLoadAfter/SetLoadAfter persist and advance the durable load-after cutoff
+#   Paketti0G01_Loader.lua - pakettiNetDriveWatcher* preferences persist enable state, path, stability delay, poll interval, and load-after cutoff
 #
 # SESSION:      netdrive-2logic-watcher.session.md
 # RESULT:       Worktree delivery; direct-push/PR not yet known
@@ -17,6 +19,7 @@
 # WATCH: PakettiNetDriveWatcher PakettiNetDriveWatcherStart PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile PakettiNetDriveWatcherRefreshTimer pakettiNetDriveWatcherFolder pakettiNetDriveWatcherPollSeconds
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-30  direct-commit  touched: PakettiNetDriveWatcher PakettiNetDriveWatcherLoadFile pakettiNetDriveWatcherFolder
 #   2026-09-25  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-25  direct-commit  touched: PakettiNetDriveWatcher PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile PakettiNetDriveWatcherRefreshTimer pakettiNetDriveWatcherFolder pakettiNetDriveWatcherPollSeconds
 #   2026-09-24  direct-commit  touched: PakettiNetDriveWatcher
@@ -102,6 +105,33 @@ Feature: NetDrive 2logic watcher
     And it sets the loaded sample loop mode to Forward Loop after applying loader settings, which is Renoise's enabled loop state
     And it enables Autoseek regardless of the general loader preference
     And it names the sample and instrument from the audio filename
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Every file load goes through a ProcessSlicer so the UI never freezes
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherEnqueue (~line 4302) — every eligible file is queued, never loaded inline
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherProcessQueue (~line 4226) — one coroutine drains the queue, yielding between files, with a cancelable progress dialog
+    # cite: PakettiSamples.lua PakettiNetDriveWatcher.loading guard (~line 4228) — the poll timer never starts a second load pass while one runs
+    Given one or more new files become eligible to load (a single take or a whole burst at once)
+    When the watcher loads them
+    Then each file is loaded inside a ProcessSlicer coroutine that yields between files
+    And a progress dialog shows the filename and how many remain, and can be cancelled
+    And the poll timer does not start a second load pass while a load is running
+    And cancelling abandons the rest of the queue rather than force-loading it
+
+  @shipped @code-verified @runtime-untested
+  Scenario: A durable load-after cutoff persists so restarts do not start from scratch
+    # cite: Paketti0G01_Loader.lua pakettiNetDriveWatcherLoadAfter (~line 255) — epoch cutoff persisted in preferences.xml
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherBeforeCutoff (~line 4214) — files modified before the cutoff are never loaded
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherAdvanceLoadAfter (~line 4205) — the cutoff advances to each loaded file's mtime and is saved
+    # cite: PakettiSamples.lua PakettiNetDriveWatcherStart (~line 4567) — first watch of a folder sets the cutoff to now; later runs resume from the stored cutoff
+    # cite: PakettiSamples.lua menu + keybinding (~line 4722) — "Set NetDrive Load-After Cutoff to Now" and "Clear ... (Load All)"
+    Given the watcher has a persisted load-after cutoff
+    When the watcher starts or scans
+    Then no file modified strictly before the cutoff is ever loaded
+    And each successfully loaded file advances the cutoff to its modification time and saves preferences.xml
+    And restarting Renoise resumes from the stored cutoff instead of reloading or re-baselining everything
+    And the first time a folder is watched the cutoff defaults to now, so the folder's existing history is not ingested
+    And the user can reset the cutoff to now, or clear it to make every file in the folder eligible
 
   @shipped @code-verified @runtime-untested
   Scenario: Create an adjacent sequencer trigger track for each loaded arrival

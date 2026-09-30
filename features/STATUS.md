@@ -33,7 +33,7 @@
 | menu-registration-duplicates | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | mlx-renoise-bridge | 10 | ✓ | — | ✓ | @built @code-verified @designed @hw-verified |
 | music-mouse | 36 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @stock @user-verified |
-| netdrive-2logic-watcher | 10 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| netdrive-2logic-watcher | 12 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | normalize-selected-channel | 6 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
 | pattern-song-jumps | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |

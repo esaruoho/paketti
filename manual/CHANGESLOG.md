@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-30 - Improvement: NetDrive watcher loads via ProcessSlicer and remembers a load-after cutoff
+The NetDrive (folder watcher) now loads every file through a ProcessSlicer, so loading never freezes Renoise — even when a whole burst of files lands at once. A cancelable progress dialog shows the filename and how many remain. It also keeps a durable "load-after" date/time in preferences.xml: files older than that cutoff are never loaded, and the cutoff advances to each loaded file's modification time and is saved, so restarting Renoise resumes from where it left off instead of starting from scratch. The first time you watch a folder the cutoff defaults to now (its existing history is not ingested). Two new controls let you reset or clear the cutoff.
+- Keybinding: `Global:Paketti:Set NetDrive Load-After Cutoff to Now`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Set NetDrive Load-After Cutoff to Now`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Clear NetDrive Load-After Cutoff (Load All)`
+
 ### 2026-09-30 - Improvement: Record to Current Track (Pattern Sync) names takes with a timestamp instead of Overdub01
 Pattern Sync recordings (the pedal and the shortcut) now name the track and instrument with a wall-clock timestamp captured when recording starts, in the form `2026-09-30 14-32-05 Recording PTN:16 BPM:120 LPB:4`. Renoise does not expose the sample recorder's audio input source to scripting, so a take cannot be named after the physical input (ADAT/SPDIF 1 & 2 etc) — the timestamp keeps each take distinct instead. The multi-column Paketti Overdub 12/01 takes and the plain (non-sync) pedal keep their Overdub01/Overdub12 names.
 - Keybinding: `Global:Paketti:Record to Current Track (Pattern Sync)`

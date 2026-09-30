@@ -252,6 +252,10 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiNetDriveWatcherStableSeconds=1,
   pakettiNetDriveWatcherPollSeconds=1,
   pakettiNetDriveWatcherLastLoadedSignature="",
+  -- Durable "load-after" cutoff (epoch seconds). Files modified strictly BEFORE
+  -- this instant are never loaded, and it is advanced to each loaded file's mtime
+  -- and saved, so the watcher resumes across restarts instead of starting fresh.
+  pakettiNetDriveWatcherLoadAfter=0,
   pakettiLoaderDontCreateAutomationDevice=false,
   pakettiWipeExplodedTrack=false,
   pakettiAutomationFormat=2,

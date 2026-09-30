@@ -3912,7 +3912,14 @@ local PakettiNetDriveWatcher = {
   folder = nil,
   timer_ms = 1000,
   offline_until = 0,
-  offline_notice_shown = false
+  offline_notice_shown = false,
+  -- ProcessSlicer load queue: every file load (single or batch) goes through here
+  -- so no load ever blocks the UI. `loading` guards the poll timer from starting a
+  -- second load pass while one is running; `queued` dedupes the queue.
+  load_queue = {},
+  queued = {},
+  loading = false,
+  load_fail = {}
 }
 
 local function PakettiNetDriveWatcherDefaultFolder()
@@ -4169,6 +4176,155 @@ function PakettiNetDriveWatcherLoadFile(path)
   return err == true
 end
 
+--------------------------------------------------------------------------------
+-- Durable load-after cutoff (epoch seconds). Files modified strictly BEFORE this
+-- instant are never loaded; it is advanced to each loaded file's mtime and saved,
+-- so the watcher resumes across restarts instead of re-scanning from scratch.
+--------------------------------------------------------------------------------
+function PakettiNetDriveWatcherGetLoadAfter()
+  if preferences and preferences.pakettiNetDriveWatcherLoadAfter then
+    return tonumber(preferences.pakettiNetDriveWatcherLoadAfter.value) or 0
+  end
+  return 0
+end
+
+function PakettiNetDriveWatcherSetLoadAfter(epoch, why)
+  epoch = math.max(0, math.floor(tonumber(epoch) or 0))
+  if preferences and preferences.pakettiNetDriveWatcherLoadAfter then
+    preferences.pakettiNetDriveWatcherLoadAfter.value = epoch
+    preferences:save_as("preferences.xml")
+  end
+  local human = (epoch > 0) and os.date("%Y-%m-%d %H:%M:%S", epoch) or "(load everything)"
+  if why then
+    print(string.format("-- NetDrive watcher: load-after cutoff = %s (%s)", human, why))
+  end
+  return epoch
+end
+
+-- Advance the cutoff to a just-loaded file's mtime when it is newer.
+local function PakettiNetDriveWatcherAdvanceLoadAfter(mtime)
+  mtime = tonumber(mtime) or 0
+  if mtime > 0 and mtime > PakettiNetDriveWatcherGetLoadAfter() then
+    PakettiNetDriveWatcherSetLoadAfter(mtime)
+  end
+end
+
+-- True when a file (by mtime) is too old to load. A file whose mtime is unknown
+-- (0) is NOT excluded - we cannot prove it is old, so we let it through.
+local function PakettiNetDriveWatcherBeforeCutoff(mtime)
+  mtime = tonumber(mtime) or 0
+  if mtime <= 0 then return false end
+  return mtime < PakettiNetDriveWatcherGetLoadAfter()
+end
+
+--------------------------------------------------------------------------------
+-- ProcessSlicer load queue: EVERY file load goes through here so a load never
+-- blocks the UI, no matter how many files arrive at once. One coroutine drains
+-- the queue, yielding between files; a progress dialog shows the count and lets
+-- the user cancel. `loading` keeps the poll timer from starting a second pass.
+--------------------------------------------------------------------------------
+function PakettiNetDriveWatcherProcessQueue()
+  local state = PakettiNetDriveWatcher
+  if state.loading then return end
+  if #state.load_queue == 0 then return end
+  state.loading = true
+
+  local slicer, dialog, vb
+
+  local process = function()
+    local loaded, failed = 0, 0
+    while #state.load_queue > 0 do
+      if slicer and slicer:was_cancelled() then break end
+      local path = table.remove(state.load_queue, 1)
+      state.queued[path] = nil
+
+      local stat = PakettiNetDriveWatcherStat(path)
+      if stat then
+        local mtime = stat.mtime or 0
+        local signature = PakettiNetDriveWatcherSignature(path, stat)
+        if PakettiNetDriveWatcherBeforeCutoff(mtime) then
+          -- Too old for the cutoff; remember it so it is not re-queued.
+          state.known[path] = signature
+        else
+          if vb and vb.views and vb.views.progress_text then
+            vb.views.progress_text.text = string.format(
+              "Loading %s\n(%d left in queue)",
+              PakettiNetDriveWatcherBasename(path), #state.load_queue)
+          end
+          if PakettiNetDriveWatcherLoadFile(path) then
+            loaded = loaded + 1
+            state.known[path] = signature
+            state.load_fail[path] = nil
+            PakettiNetDriveWatcherAdvanceLoadAfter(mtime)
+          else
+            failed = failed + 1
+            state.load_fail[path] = (state.load_fail[path] or 0) + 1
+            if state.load_fail[path] >= 3 then
+              state.known[path] = signature   -- give up, stop retrying
+              renoise.app():show_status("NetDrive watcher skipped after 3 failed loads: " .. path)
+            else
+              state.known[path] = nil          -- let a later tick retry
+            end
+          end
+        end
+      end
+      coroutine.yield()
+    end
+    if slicer and slicer:was_cancelled() then
+      -- Abandon whatever is left in the queue; clear the claims so those files
+      -- can be re-offered by a later tick rather than force-loaded now.
+      for _, p in ipairs(state.load_queue) do state.queued[p] = nil end
+      state.load_queue = {}
+      renoise.app():show_status(string.format(
+        "NetDrive watcher: cancelled after %d file(s)", loaded))
+      return
+    end
+    renoise.app():show_status(string.format(
+      "NetDrive watcher: loaded %d file(s)%s", loaded,
+      (failed > 0) and (", " .. failed .. " failed") or ""))
+  end
+
+  slicer = ProcessSlicer(process)
+  dialog, vb = slicer:create_dialog("Loading from NetDrive…")
+  state.slicer = slicer
+  state.dialog = dialog
+  slicer:start()
+
+  local completion_timer
+  completion_timer = function()
+    if not slicer:running() then
+      renoise.tool():remove_timer(completion_timer)
+      if dialog and dialog.visible then dialog:close() end
+      state.slicer = nil
+      state.dialog = nil
+      state.loading = false
+      -- Files enqueued while this pass ran (or left after a cancel) get picked up.
+      if state.running and #state.load_queue > 0 then
+        PakettiNetDriveWatcherProcessQueue()
+      end
+    end
+  end
+  renoise.tool():add_timer(completion_timer, 100)
+end
+
+-- Enqueue paths for the ProcessSlicer loader. Deduped; starts the loader if idle.
+local function PakettiNetDriveWatcherEnqueue(paths)
+  local state = PakettiNetDriveWatcher
+  state.load_queue = state.load_queue or {}
+  state.queued = state.queued or {}
+  local added = 0
+  for _, path in ipairs(paths) do
+    if not state.queued[path] then
+      state.queued[path] = true
+      table.insert(state.load_queue, path)
+      added = added + 1
+    end
+  end
+  if added > 0 and not state.loading then
+    PakettiNetDriveWatcherProcessQueue()
+  end
+end
+
 function PakettiNetDriveWatcherTick()
   local state = PakettiNetDriveWatcher
   if not state.running then return end
@@ -4225,17 +4381,14 @@ function PakettiNetDriveWatcherTick()
         }
       elseif pending.size == size and pending.mtime == mtime
           and (now - pending.seen_at) >= stable_seconds then
-        if PakettiNetDriveWatcherLoadFile(path) then
+        -- File is stable. Hand it to the ProcessSlicer loader instead of loading
+        -- inline, so the UI never blocks - even if a whole burst stabilizes at
+        -- once. The cutoff decides whether it is old enough to skip entirely.
+        state.pending[path] = nil
+        if PakettiNetDriveWatcherBeforeCutoff(mtime) then
           state.known[path] = signature
-          state.pending[path] = nil
         else
-          pending.retries = (pending.retries or 0) + 1
-          pending.seen_at = now
-          if pending.retries >= 3 then
-            state.known[path] = signature
-            state.pending[path] = nil
-            renoise.app():show_status("NetDrive watcher skipped after 3 failed loads: " .. path)
-          end
+          PakettiNetDriveWatcherEnqueue({path})
         end
       else
         pending.size = size
@@ -4250,7 +4403,10 @@ function PakettiNetDriveWatcherTick()
     local known_files = {}
 
     for _, path in ipairs(files) do
-      if state.pending[path] then
+      if state.queued[path] then
+        -- Already waiting in (or being handled by) the ProcessSlicer load queue.
+        -- Ignore it this tick so we do not re-stat or re-queue a pending load.
+      elseif state.pending[path] then
         table.insert(pending_files, path)
       elseif not state.known[path] then
         table.insert(new_files, path)
@@ -4413,6 +4569,10 @@ function PakettiNetDriveWatcherStart(is_manual)
 
   state.known = {}
   state.pending = {}
+  state.load_queue = {}
+  state.queued = {}
+  state.loading = false
+  state.load_fail = {}
   state.running = true
   state.folder = sanitized
   state.stagger_index = 1
@@ -4421,53 +4581,52 @@ function PakettiNetDriveWatcherStart(is_manual)
   state.offline_until = 0
   state.offline_notice_shown = false
 
-  local files = PakettiNetDriveWatcherList(sanitized)
-  if not files then files = {} end
-  
-  -- To make startup instant, only stat the last 50 files (alphabetically sorted,
-  -- so the newest recordings are at the end) to find the newest path.
-  local max_startup_stats = 50
-  local start_idx = math.max(1, #files - max_startup_stats + 1)
-
-  local newest_path = nil
-  local newest_stat = nil
-  local newest_signature = nil
-  local file_stats = {}
-
-  for i = start_idx, #files do
-    local path = files[i]
-    local stat = PakettiNetDriveWatcherStat(path)
-    if stat then
-      file_stats[path] = stat
-      if not newest_stat
-          or (stat.mtime or 0) > (newest_stat.mtime or 0)
-          or ((stat.mtime or 0) == (newest_stat.mtime or 0) and path > newest_path) then
-        newest_path = path
-        newest_stat = stat
-      end
-    end
+  -- Load-after cutoff. The first time a folder is watched (cutoff still 0) we set
+  -- it to NOW, so the existing history is NOT ingested - only recordings made from
+  -- here on load. On later runs the stored cutoff is the mtime of the last file we
+  -- loaded, so we resume instead of starting from scratch.
+  if PakettiNetDriveWatcherGetLoadAfter() <= 0 then
+    PakettiNetDriveWatcherSetLoadAfter(os.time(), "first watch of a folder")
   end
-
-  if newest_path and newest_stat then
-    newest_signature = PakettiNetDriveWatcherSignature(newest_path, newest_stat)
-  end
+  local cutoff = PakettiNetDriveWatcherGetLoadAfter()
 
   local last_loaded_signature = ""
   if preferences and preferences.pakettiNetDriveWatcherLastLoadedSignature then
     last_loaded_signature = preferences.pakettiNetDriveWatcherLastLoadedSignature.value or ""
   end
 
-  for _, path in ipairs(files) do
-    local stat = file_stats[path]
-    if stat then
-      -- We statted this file during startup, use its actual signature
-      local signature = PakettiNetDriveWatcherSignature(path, stat)
-      if path ~= newest_path or newest_signature == last_loaded_signature then
-        state.known[path] = signature
+  local files = PakettiNetDriveWatcherList(sanitized)
+  if not files then files = {} end
+
+  -- To keep startup responsive, only stat the last 50 files (alphabetically
+  -- sorted, so the newest recordings are at the end). Older files are baselined
+  -- as known without statting; the cutoff still protects them from any staggered
+  -- check later. Anything newer than the cutoff is handed to the ProcessSlicer
+  -- loader, so even a big backlog since the cutoff loads without freezing the UI.
+  local max_startup_stats = 50
+  local start_idx = math.max(1, #files - max_startup_stats + 1)
+
+  local to_load = {}
+  for i = 1, #files do
+    local path = files[i]
+    if i >= start_idx then
+      local stat = PakettiNetDriveWatcherStat(path)
+      if stat then
+        local mtime = stat.mtime or 0
+        local signature = PakettiNetDriveWatcherSignature(path, stat)
+        local newer = (mtime > cutoff)
+        local same_instant_new =
+          (cutoff > 0 and mtime == cutoff and signature ~= last_loaded_signature)
+        if (newer or same_instant_new) and not PakettiNetDriveWatcherBeforeCutoff(mtime) then
+          state.queued[path] = true          -- claim it so the tick ignores it
+          table.insert(to_load, path)
+        else
+          state.known[path] = signature      -- at/under the cutoff -> baseline
+        end
+      else
+        state.known[path] = path .. "|known_at_startup"
       end
     else
-      -- Skip statting older files; mark them known using a placeholder signature.
-      -- If they are accessed by staggered check, we'll update their signature.
       state.known[path] = path .. "|known_at_startup"
     end
   end
@@ -4481,7 +4640,16 @@ function PakettiNetDriveWatcherStart(is_manual)
   end
 
   renoise.tool():add_timer(PakettiNetDriveWatcherTick, state.timer_ms)
-  renoise.app():show_status("NetDrive watcher started: " .. sanitized)
+
+  if #to_load > 0 then
+    -- Clear the optimistic claim; Enqueue re-adds them (deduped) and starts the loader.
+    for _, path in ipairs(to_load) do state.queued[path] = nil end
+    PakettiNetDriveWatcherEnqueue(to_load)
+    renoise.app():show_status(string.format(
+      "NetDrive watcher started: %s (loading %d new file(s))", sanitized, #to_load))
+  else
+    renoise.app():show_status("NetDrive watcher started: " .. sanitized)
+  end
   return true
 end
 
@@ -4492,6 +4660,14 @@ function PakettiNetDriveWatcherStop()
   end
   state.running = false
   state.pending = {}
+  -- Cancel any in-flight ProcessSlicer load and clear the queue.
+  if state.slicer and state.slicer:running() then
+    state.slicer:cancel()
+  end
+  if state.dialog and state.dialog.visible then state.dialog:close() end
+  state.load_queue = {}
+  state.queued = {}
+  state.loading = false
   if preferences and preferences.pakettiNetDriveWatcherEnabled then
     preferences.pakettiNetDriveWatcherEnabled.value = false
     preferences:save_as("preferences.xml")
@@ -4534,9 +4710,20 @@ function PakettiNetDriveWatcherSetFolder()
     return
   end
 
+  -- Switching to a DIFFERENT folder: reset the cutoff to now so the new folder's
+  -- existing history is not ingested. Re-selecting the same folder leaves the
+  -- cutoff (and thus the resume point) untouched.
+  local previous_folder = preferences.pakettiNetDriveWatcherFolder.value
+  if previous_folder ~= sanitized then
+    PakettiNetDriveWatcherSetLoadAfter(os.time(), "new watch folder selected")
+    if preferences and preferences.pakettiNetDriveWatcherLastLoadedSignature then
+      preferences.pakettiNetDriveWatcherLastLoadedSignature.value = ""
+    end
+  end
+
   preferences.pakettiNetDriveWatcherFolder.value = sanitized
   preferences:save_as("preferences.xml")
-  
+
   -- Always automatically start/enable the watcher once a valid folder is set
   PakettiNetDriveWatcherStart()
 end
@@ -4554,6 +4741,22 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:NetDrive 2logic Wa
   selected=function() return PakettiNetDriveWatcher.running end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Set NetDrive Watch Folder...",
   invoke=function() PakettiNetDriveWatcherSetFolder() end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Set NetDrive Load-After Cutoff to Now",
+  invoke=function()
+    local epoch = PakettiNetDriveWatcherSetLoadAfter(os.time(), "manual: now")
+    renoise.app():show_status("NetDrive load-after cutoff set to now: " .. os.date("%Y-%m-%d %H:%M:%S", epoch))
+  end}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Clear NetDrive Load-After Cutoff (Load All)",
+  invoke=function()
+    PakettiNetDriveWatcherSetLoadAfter(0, "manual: clear")
+    renoise.app():show_status("NetDrive load-after cutoff cleared - all files in the watch folder are now eligible")
+  end}
+renoise.tool():add_keybinding{
+  name="Global:Paketti:Set NetDrive Load-After Cutoff to Now",
+  invoke=function()
+    local epoch = PakettiNetDriveWatcherSetLoadAfter(os.time(), "manual: now")
+    renoise.app():show_status("NetDrive load-after cutoff set to now: " .. os.date("%Y-%m-%d %H:%M:%S", epoch))
+  end}
 
 if preferences and preferences.pakettiNetDriveWatcherEnabled
     and preferences.pakettiNetDriveWatcherEnabled.value then
