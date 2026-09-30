@@ -16,6 +16,9 @@
 #   PakettiMidi.lua - PakettiRecordToCurrentTrackAndRowShortcut exposes one-shot non-sync current-row keyboard control
 #   PakettiMidi.lua - PakettiRecordToCurrentTrackAndRowNewTrackShortcut exposes shortcut-bindable new-track current-row recording
 #   PakettiMidi.lua - PakettiPedalRecord maps MIDI value 127 to start and any other value to stop
+#   PakettiMidi.lua - PakettiPedalRecordPatternSync starts a pattern-sync, timestamp-named take (audio input source is not exposed to Lua)
+#   PakettiRecorder.lua - PakettiRecordToCurrentTrackTimestampName toggles timestamp naming for the current take
+#   PakettiRecorder.lua - pakettiRecordTakeNames returns the track+instrument name pair (timestamp for pattern-sync, Overdub<NN> otherwise)
 #   PakettiMidi.lua - PakettiPedalRecordAndWriteRow writes C-4/current instrument immediately on pedal-down
 #   PakettiMidi.lua - PakettiPedalRecordNewTrackAndWriteRow creates a fresh sequencer track before recording
 #   PakettiMIDIMappings.lua - exposes the Record to Current Track pedal mappings in the MIDI mapping list
@@ -26,6 +29,7 @@
 # WATCH: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackPatternSyncShortcut PakettiRecordToCurrentTrackAndRowShortcut PakettiRecordToCurrentTrackAndRowNewTrackShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-30  direct-commit  touched: PakettiPedalRecord PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackPatternSyncMode
 #   2026-09-23  direct-commit  touched: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackAndRowNewTrackShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
 #   2026-09-21  direct-commit  touched: PakettiPedalRecord PakettiPedalRecordAndWriteRow PakettiPedalRecordNewTrackAndWriteRow PakettiRecordToCurrentTrackPatternSyncShortcut PakettiRecordToCurrentTrackAndRowShortcut PakettiRecordToCurrentTrackStart PakettiRecordToCurrentTrackStop PakettiRecordToCurrentTrackSkipDefaultRow1Note PakettiRecordToCurrentTrackPatternSyncMode
 # =============================================================================
@@ -87,6 +91,18 @@ Feature: Pedal Record
     Then Paketti creates a new normal sequencer track
     And it selects that new track before starting Record to Current Track
     And it writes `C-4` with the current selected instrument to the current row on that new track
+
+  @shipped @code-verified @runtime-untested
+  Scenario: Pattern Sync takes are named with a timestamp, not Overdub<NN>
+    # cite: PakettiRecorder.lua pakettiRecordTakeNames (~line 405) — timestamp-mode returns "<ts> Recording PTN:x BPM:y LPB:z" for both track and instrument
+    # cite: PakettiRecorder.lua record_name_timestamp capture (~line 335) — os.date is captured at record START so the name reflects when recording began
+    # cite: PakettiMidi.lua PakettiPedalRecordPatternSync / PakettiRecordToCurrentTrackPatternSyncShortcut — the only entry points that enable timestamp naming
+    # note: Renoise does not expose the sample recorder's audio input source to Lua, so a take cannot be named after the physical input (ADAT/SPDIF 1&2 etc); a timestamp is used instead
+    Given the user records via the Pattern Sync pedal or the Pattern Sync shortcut
+    When the take is finalized
+    Then the track and instrument are named "YYYY-MM-DD HH-MM-SS Recording PTN:<lines> BPM:<bpm> LPB:<lpb>"
+    And the timestamp is the wall-clock time when recording started
+    And the multi-column Paketti Overdub 12/01 takes and the plain pedal keep their Overdub<NN> names
 
   @shipped @code-verified @runtime-untested
   Scenario: Pattern Sync recording is available as a single keyboard shortcut

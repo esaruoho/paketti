@@ -165,6 +165,15 @@ local record_pattern_sync_mode = true
 local record_used_sync = false
 local record_prev_sync = nil
 
+-- Timestamped naming (pattern-sync pedal/shortcut only). Renoise does not expose
+-- the sample recorder's audio input source to Lua, so we cannot name a take after
+-- the physical input (ADAT/SPDIF 1&2 etc). When this flag is on, the finished
+-- take's track + instrument are named with a wall-clock timestamp captured at
+-- record start instead of the classic Overdub<NN>. Everything else (Overdub 12/01,
+-- the plain pedal) keeps the Overdub<NN> naming.
+local record_use_timestamp_name = false
+local record_name_timestamp = nil
+
 local function pakettiRecordInstrumentHasMidiOutput(instrument)
   local midi_output = instrument.midi_output_properties
   return midi_output.device_name ~= "" and midi_output.channel ~= nil
@@ -323,6 +332,12 @@ function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
     record_used_sync = false
     record_prev_sync = pakettiSampleRecordingSyncGet()   -- nil on pre-3.5
 
+    -- Capture the take's timestamp at record START (pattern-sync naming only), so
+    -- the name reflects when recording began, not when the pattern-sync tail ended.
+    if record_use_timestamp_name then
+      record_name_timestamp = os.date("%Y-%m-%d %H-%M-%S")
+    end
+
     if record_pattern_sync_mode == true then
       if pakettiSampleRecordingSyncSet(true) then
         record_used_sync = true
@@ -387,6 +402,25 @@ function PakettiRecordToCurrentTrackPatternSyncMode(sync_mode)
   record_pattern_sync_mode = sync_mode
 end
 
+function PakettiRecordToCurrentTrackTimestampName(enable)
+  record_use_timestamp_name = (enable == true)
+end
+
+-- Build the {track_name, instrument_name} pair for a finished take. Pattern-sync
+-- pedal/shortcut recordings are named with the wall-clock timestamp captured at
+-- record start; everything else keeps the classic Overdub<NN> naming.
+function pakettiRecordTakeNames(col_count, pat_length, current_bpm, current_lpb)
+  if record_use_timestamp_name then
+    local ts = record_name_timestamp or os.date("%Y-%m-%d %H-%M-%S")
+    local n = string.format("%s Recording PTN:%d BPM:%d LPB:%d",
+      ts, pat_length, current_bpm, current_lpb)
+    return n, n
+  end
+  return string.format("Overdub%02d", col_count),
+         string.format("Overdub%02d PTN:%d BPM:%d LPB:%d",
+           col_count, pat_length, current_bpm, current_lpb)
+end
+
 function PakettiRecordToCurrentTrackStart(use_metronome, use_lineinput, max_columns)
   if am_i_recording then
     return false
@@ -396,6 +430,8 @@ function PakettiRecordToCurrentTrackStart(use_metronome, use_lineinput, max_colu
   if not am_i_recording then
     record_skip_row1_note = false
     record_pattern_sync_mode = true
+    record_use_timestamp_name = false
+    record_name_timestamp = nil
   end
   return am_i_recording
 end
@@ -668,14 +704,14 @@ function finalrecord()
     -- Visible columns = 1 (a brand new track normally starts with 1 column)
     s.tracks[new_track_index].visible_note_columns = 1
     local col_count = s.tracks[new_track_index].visible_note_columns
-    s.tracks[new_track_index].name = ("Overdub%02d"):format(col_count)
 
     local pat_length  = s.patterns[s.selected_pattern_index].number_of_lines
     local current_bpm = math.floor(s.transport.bpm)
     local current_lpb = s.transport.lpb
-    local new_instr_name =
-      ("Overdub%02d PTN:%d BPM:%d LPB:%d"):format(col_count, pat_length, current_bpm, current_lpb)
+    local track_name, new_instr_name =
+      pakettiRecordTakeNames(col_count, pat_length, current_bpm, current_lpb)
 
+    s.tracks[new_track_index].name = track_name
     s.instruments[s.selected_instrument_index].name = new_instr_name
 
     print(("  Placed C-4 (instr %d) in col1 of new track's row1. " ..
@@ -795,13 +831,13 @@ function finalrecord()
     -- Rename track & instrument
     ----------------------------------------------------------------------------
     local col_count = s.tracks[curr_track_idx].visible_note_columns
-    s.tracks[curr_track_idx].name = ("Overdub%02d"):format(col_count)
 
     local pat_length  = s.patterns[s.selected_pattern_index].number_of_lines
     local current_bpm = math.floor(s.transport.bpm)
     local current_lpb = s.transport.lpb
-    local new_instr_name =
-      ("Overdub%02d PTN:%d BPM:%d LPB:%d"):format(col_count, pat_length, current_bpm, current_lpb)
+    local track_name, new_instr_name =
+      pakettiRecordTakeNames(col_count, pat_length, current_bpm, current_lpb)
+    s.tracks[curr_track_idx].name = track_name
     s.instruments[s.selected_instrument_index].name = new_instr_name
 
     if record_skip_row1_note then
@@ -859,6 +895,8 @@ function cleanupMonitorAndVars()
   record_pattern_sync_mode = true
   record_used_sync     = false
   record_prev_sync     = nil
+  record_use_timestamp_name = false
+  record_name_timestamp = nil
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12)

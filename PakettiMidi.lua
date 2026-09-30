@@ -335,6 +335,7 @@ function PakettiRecordToCurrentTrackPatternSyncShortcut()
   end
 
   PakettiRecordToCurrentTrackPatternSyncMode(true)
+  PakettiRecordToCurrentTrackTimestampName(true)
   if PakettiRecordToCurrentTrackStart() then
     PakettiRecordToCurrentTrackTransportSetup()
     renoise.app():show_status("Record to Current Track (Pattern Sync): recording")
@@ -408,6 +409,32 @@ function PakettiPedalRecord(message)
   else
     if PakettiRecordToCurrentTrackStop() then
       renoise.app():show_status("Pedal Record: stopped")
+    end
+  end
+end
+
+-- Pattern-sync pedal: forces Sample Recorder Pattern Sync on and names the take
+-- with a timestamp (Renoise does not expose the audio input source to Lua, so we
+-- cannot name it after the physical input). Distinct from the plain pedal above,
+-- which keeps the Overdub<NN> naming.
+function PakettiPedalRecordPatternSync(message)
+  local value = PakettiPedalRecordMidiValue(message)
+  if value == nil then
+    return
+  end
+
+  if value == 127 then
+    if not PakettiRecordToCurrentTrackIsRecording() then
+      PakettiRecordToCurrentTrackPatternSyncMode(true)
+      PakettiRecordToCurrentTrackTimestampName(true)
+    end
+    if PakettiRecordToCurrentTrackStart() then
+      PakettiRecordToCurrentTrackTransportSetup()
+      renoise.app():show_status("Pedal Record (Pattern Sync): recording")
+    end
+  else
+    if PakettiRecordToCurrentTrackStop() then
+      renoise.app():show_status("Pedal Record (Pattern Sync): stopped")
     end
   end
 end
@@ -513,13 +540,13 @@ function PakettiPedalRecordNewTrackAndWriteRow(message)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pedal) x[Knob]",invoke=function(message) PakettiPedalRecord(message) end}
-renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pattern Sync) (Pedal) x[Knob]",invoke=function(message) PakettiPedalRecord(message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pattern Sync) (Pedal) x[Knob]",invoke=function(message) PakettiPedalRecordPatternSync(message) end}
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row Pedal x[Knob]",invoke=function(message) PakettiPedalRecordAndWriteRow(message) end}
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row New Track Pedal x[Knob]",invoke=function(message) PakettiPedalRecordNewTrackAndWriteRow(message) end}
 
 
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pedal) (2nd) x[Knob]",invoke=function(message) PakettiPedalRecord(message) end}
-renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pattern Sync) (Pedal) (2nd) x[Knob]",invoke=function(message) PakettiPedalRecord(message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pattern Sync) (Pedal) (2nd) x[Knob]",invoke=function(message) PakettiPedalRecordPatternSync(message) end}
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row Pedal (2nd) x[Knob]",invoke=function(message) PakettiPedalRecordAndWriteRow(message) end}
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row New Track Pedal (2nd) x[Knob]",invoke=function(message) PakettiPedalRecordNewTrackAndWriteRow(message) end}
 

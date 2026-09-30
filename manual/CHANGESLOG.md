@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-30 - Improvement: Record to Current Track (Pattern Sync) names takes with a timestamp instead of Overdub01
+Pattern Sync recordings (the pedal and the shortcut) now name the track and instrument with a wall-clock timestamp captured when recording starts, in the form `2026-09-30 14-32-05 Recording PTN:16 BPM:120 LPB:4`. Renoise does not expose the sample recorder's audio input source to scripting, so a take cannot be named after the physical input (ADAT/SPDIF 1 & 2 etc) — the timestamp keeps each take distinct instead. The multi-column Paketti Overdub 12/01 takes and the plain (non-sync) pedal keep their Overdub01/Overdub12 names.
+- Keybinding: `Global:Paketti:Record to Current Track (Pattern Sync)`
+- MIDI Mapping: `Paketti:Record to Current Track (Pattern Sync) (Pedal) x[Knob]`
+- MIDI Mapping: `Paketti:Record to Current Track (Pattern Sync) (Pedal) (2nd) x[Knob]`
+
 ### 2026-09-30 - Fix: Record to Current Track / Overdub no longer touch the Sample Recorder sync mode on stop
 Paketti used to restore the Sample Recorder's Pattern Sync setting when a take ended, which flipped the visible sync mode back (for example Pattern to None) the moment you let go. It now leaves that control completely alone: whatever the sync mode is when recording stops, it stays. Combined with the tail-completion fix below, a Pattern Sync take records cleanly to the pattern boundary and never rewrites your None/Pattern choice.
 - Keybinding: `Global:Paketti:Record to Current Track (Pattern Sync)`
