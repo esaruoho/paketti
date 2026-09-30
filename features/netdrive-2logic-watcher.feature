@@ -19,6 +19,7 @@
 # WATCH: PakettiNetDriveWatcher PakettiNetDriveWatcherStart PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile PakettiNetDriveWatcherRefreshTimer pakettiNetDriveWatcherFolder pakettiNetDriveWatcherPollSeconds
 #
 # RESULT-LOG >> (auto-maintained by the report-card hooks — newest below)
+#   2026-09-30  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-30  direct-commit  touched: PakettiNetDriveWatcher PakettiNetDriveWatcherLoadFile pakettiNetDriveWatcherFolder
 #   2026-09-25  direct-commit  touched: PakettiNetDriveWatcher
 #   2026-09-25  direct-commit  touched: PakettiNetDriveWatcher PakettiNetDriveWatcherTick PakettiNetDriveWatcherLoadFile PakettiNetDriveWatcherRefreshTimer pakettiNetDriveWatcherFolder pakettiNetDriveWatcherPollSeconds
@@ -117,6 +118,9 @@ Feature: NetDrive 2logic watcher
     And a progress dialog shows the filename and how many remain, and can be cancelled
     And the poll timer does not start a second load pass while a load is running
     And cancelling abandons the rest of the queue rather than force-loading it
+    And if the watched volume drops out mid-load, the drain stops before statting or loading off the dead mount
+    And it does not hang the app_idle callback long enough to trip Renoise's "tool became unresponsive" watchdog
+    And control returns to the poll tick's offline backoff, which resumes the remaining files when the volume comes back
 
   @shipped @code-verified @runtime-untested
   Scenario: A durable load-after cutoff persists so restarts do not start from scratch

@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-30 - Fix: NetDrive watcher no longer freezes Renoise when the network folder drops out mid-load
+If the watched volume disconnected while the ProcessSlicer was loading files, the loader kept trying to read from the dead mount, which blocked Renoise long enough to trigger a "tool became unresponsive" error (and could disable the tool's background timers until restart). The loader now checks the volume is still mounted before each file, and the moment it drops out it stops, hands control back to the watcher's offline backoff, and resumes the remaining files automatically when the volume returns.
+
 ### 2026-09-30 - Improvement: NetDrive watcher loads via ProcessSlicer and remembers a load-after cutoff
 The NetDrive (folder watcher) now loads every file through a ProcessSlicer, so loading never freezes Renoise — even when a whole burst of files lands at once. A cancelable progress dialog shows the filename and how many remain. It also keeps a durable "load-after" date/time in preferences.xml: files older than that cutoff are never loaded, and the cutoff advances to each loaded file's modification time and is saved, so restarting Renoise resumes from where it left off instead of starting from scratch. The first time you watch a folder the cutoff defaults to now (its existing history is not ingested). Two new controls let you reset or clear the cutoff.
 - Keybinding: `Global:Paketti:Set NetDrive Load-After Cutoff to Now`

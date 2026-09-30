@@ -4235,6 +4235,23 @@ function PakettiNetDriveWatcherProcessQueue()
     local loaded, failed = 0, 0
     while #state.load_queue > 0 do
       if slicer and slicer:was_cancelled() then break end
+
+      -- If the watched volume dropped out mid-drain, STOP now. Statting or
+      -- loading a file off a dead network mount blocks the app_idle callback long
+      -- enough to trip Renoise's "tool became unresponsive" watchdog, which can
+      -- disable the tool's notifiers/timers and brick every background feature
+      -- until restart. Abandon the queue and hand control back to the poll tick,
+      -- which owns the offline backoff and will resume when the volume returns.
+      local folder = state.folder
+      if folder and not PakettiNetDriveWatcherVolumeMounted(folder) then
+        for _, p in ipairs(state.load_queue) do state.queued[p] = nil end
+        state.load_queue = {}
+        state.offline_until = os.time() + 10
+        PakettiNetDriveWatcherShowOffline(folder)
+        renoise.app():show_status("NetDrive watcher: folder went offline - load paused, will resume when it returns")
+        return
+      end
+
       local path = table.remove(state.load_queue, 1)
       state.queued[path] = nil
 
