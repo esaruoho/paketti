@@ -276,6 +276,9 @@ The Sononymph dialog's persisted "automatic" preferences are now also togglable 
 - **Sononymph Auto-Transfer New Instrument** — when auto-transferring from Sononym, create a new instrument for the transferred sample. Menu: `Main Menu:Options:Sononymph Auto-Transfer New Instrument Toggle`.
 - **Sononymph Auto-Transfer New Sample Slot** — when auto-transferring from Sononym, place the transferred sample into a new sample slot. Menu: `Main Menu:Options:Sononymph Auto-Transfer New Sample Slot Toggle`.
 
+#### Sononymph Auto-Arm Live Transfer on Load (headless transfer)
+Normally the "Sononym Auto-Transfer Toggle" (live transfer) is armed by hand and resets each session — on purpose, because in its default mode a transfer overwrites the currently selected sample in place, and a persisted armed-overwrite could silently clobber a sample while you're just browsing Sononym. This toggle lets live transfer **arm itself automatically when a song loads**, so Sononym→Renoise transfer works with no dialog and no per-session click. It is **guarded to non-overwrite modes**: it only auto-arms when **Auto-Transfer New Instrument** or **Auto-Transfer New Sample Slot** is enabled (both of which add rather than overwrite). Enable it with neither create-mode on and it stays dormant, telling you so in the status bar — it will never auto-arm an overwrite. Menu: `Main Menu:Options:Sononymph Auto-Arm Live Transfer on Load Toggle`.
+
 #### SBx Pattern Loop Follow
 
 

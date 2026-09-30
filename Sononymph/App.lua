@@ -94,11 +94,24 @@ function App:__init(...)
   self:check_paths()
 
   local success,err = self:start_monitoring()
-  if not success and err then 
+  if not success and err then
     LOG(err)
   end
-  
-  
+
+  -- Headless auto-arm. If the user persisted live-transfer AND a non-overwrite mode is
+  -- active (New Instrument or New Sample Slot), arm live transfer now so selecting in
+  -- Sononym pulls into Renoise without ever opening the dialog. Never auto-arm in the
+  -- default overwrite-in-place mode: that would silently clobber the selected sample.
+  if self.preferences.SononymphLiveTransferAutostart
+    and self.preferences.SononymphLiveTransferAutostart.value
+    and (self.preferences.SononymphAutotransfercreatenew.value
+      or self.preferences.SononymphAutotransfercreateslot.value)
+    and self.paths_are_valid
+  then
+    self.live_transfer_observable.value = true
+  end
+
+
 end
 
 ---------------------------------------------------------------------------------------------------

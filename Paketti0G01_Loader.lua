@@ -1073,6 +1073,12 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   SononymphAutostart = false,
   SononymphAutotransfercreatenew = false,
   SononymphAutotransfercreateslot = false,
+  -- Persisted "headless" auto-arm: when true, live transfer is armed automatically
+  -- as the Sononymph app starts (song load / tool reload), so selecting in Sononym
+  -- pulls into Renoise without opening the dialog. Guarded to NON-OVERWRITE modes only:
+  -- it only auto-arms when New Instrument or New Sample Slot is on, so it can never
+  -- silently overwrite the selected sample. See Sononymph/App.lua constructor.
+  SononymphLiveTransferAutostart = false,
   SononymphPollingInterval = 1,
   SononymphPathToExe = "",
   SononymphPathToConfig = "",
