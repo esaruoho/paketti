@@ -97,16 +97,15 @@ Feature: Pedal Record
     And pressing the same shortcut again stops the take
 
   @shipped @code-verified @runtime-untested
-  Scenario: Stopping a Pattern Sync take waits for the tail before restoring the sync setting
-    # cite: PakettiRecorder.lua recordtocurrenttrackMonitor (~line 445) — the normal-polling branch now waits while pakettiSampleRecordingIsActive() is true
-    # cite: PakettiRecorder.lua cleanupMonitorAndVars (~line 834) — restores the user's Sample Recorder sync setting, now only reached after the tail finishes
-    Given the Sample Recorder sync mode was None before recording
-    And the user starts a Record to Current Track (Pattern Sync) take
-    When the user stops the take before the pattern boundary
-    Then Renoise keeps recording the tail to the end of the pattern
+  Scenario: Stopping a take never changes the Sample Recorder sync mode
+    # cite: PakettiRecorder.lua recordtocurrenttrackMonitor (~line 445) — the normal-polling branch waits while pakettiSampleRecordingIsActive() is true, so nothing runs mid-tail
+    # cite: PakettiRecorder.lua cleanupMonitorAndVars (~line 847) — no longer restores the Sample Recorder sync setting; it leaves the sync mode exactly as it is
+    Given the user starts a Record to Current Track (Pattern Sync) take
+    When the user stops the take
+    Then Renoise finishes recording the tail to the end of the pattern
     And Paketti does not grab the buffer or run the finalizer while recording is still active
-    And the Sample Recorder sync setting is left on Pattern until the tail finishes
-    And only after the recording is truly finished is the sync setting restored to None
+    And Paketti never writes the Sample Recorder sync setting on stop
+    And the sync mode is left exactly where it was, whether that is Pattern or None
 
   @shipped @code-verified @runtime-untested
   Scenario: Current-row non-sync recording is available as a single keyboard shortcut

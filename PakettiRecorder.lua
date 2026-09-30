@@ -844,12 +844,12 @@ function cleanupMonitorAndVars()
   monitor_has_printed = nil
   am_i_recording = false
 
-  -- Put the user's own Pattern Sync setting back (Renoise 3.5+ only).
-  -- record_prev_sync is nil on pre-3.5, or when we never changed anything.
-  if record_prev_sync ~= nil then
-    pakettiSampleRecordingSyncSet(record_prev_sync)
-    print(string.format("  Restored Pattern Sync to %s", record_prev_sync and "ON" or "OFF"))
-  end
+  -- Do NOT touch the Sample Recorder's Pattern Sync setting here. We used to
+  -- restore it to whatever it was before the take, but that flipped the visible
+  -- sync mode (e.g. Pattern -> None) the instant recording stopped, which the
+  -- user experienced as Paketti wrecking their setting behind their back. The
+  -- rule now is simple: leave the sync mode exactly as it is. Whatever the take
+  -- set it to stays set; the user owns that control from here on.
 
   -- Reset our booleans for the next usage
   record_use_metronome = false

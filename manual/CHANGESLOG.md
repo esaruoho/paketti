@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-30 - Fix: Record to Current Track / Overdub no longer touch the Sample Recorder sync mode on stop
+Paketti used to restore the Sample Recorder's Pattern Sync setting when a take ended, which flipped the visible sync mode back (for example Pattern to None) the moment you let go. It now leaves that control completely alone: whatever the sync mode is when recording stops, it stays. Combined with the tail-completion fix below, a Pattern Sync take records cleanly to the pattern boundary and never rewrites your None/Pattern choice.
+- Keybinding: `Global:Paketti:Record to Current Track (Pattern Sync)`
+- Keybinding: `Global:Paketti:Paketti Overdub 12 (No Metronome/No Line Input)`
+- MIDI Mapping: `Paketti:Record to Current Track (Pattern Sync) (Pedal) x[Knob]`
+
 ### 2026-09-30 - Fix: Record to Current Track (Pattern Sync) no longer flips the sync mode mid-recording
 When you stopped a Pattern Sync take (via the pedal release or the shortcut), Paketti was grabbing the recorded buffer and restoring your Sample Recorder sync setting the instant you let go — while Renoise was still recording the tail to the end of the pattern. That truncated the take and visibly flipped the sync dropdown from Pattern back to None mid-record. The recorder monitor now waits until the recording is genuinely finished before finalizing the take and restoring your sync setting, so a Pattern Sync recording always completes to the pattern boundary and your None/Pattern choice is left intact until it is done.
 - Keybinding: `Global:Paketti:Record to Current Track (Pattern Sync)`
