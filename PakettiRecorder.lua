@@ -442,6 +442,21 @@ function recordtocurrenttrackMonitor()
     end
     return false
   else
+    -- Pattern Sync defers the real stop to the pattern boundary: after we call
+    -- stop, Renoise keeps recording the TAIL until the current pattern ends, so
+    -- the take is quantized to a whole pattern length. While that tail is still
+    -- being captured (recording genuinely active), we must NOT grab the buffer or
+    -- run finalrecord() yet — doing so finalizes a half-length take AND, via
+    -- cleanupMonitorAndVars(), restores the Sample Recorder sync setting out from
+    -- under a live recording. That is exactly the reported bug: the mode flips
+    -- Pattern -> None the instant the pedal is released, mid-record, wrecking the
+    -- take. Wait here until the recording is truly finished, mirroring the
+    -- "recording ended outside Paketti" branch above. On pre-3.5 (and non-sync
+    -- takes) the recording is already inactive by now, so this is a no-op.
+    if pakettiSampleRecordingIsActive() then
+      return true
+    end
+
     -- Normal polling for sample data
     if not monitor_has_printed then
       print("Monitoring for sample data in instrument:", recording_instrument)

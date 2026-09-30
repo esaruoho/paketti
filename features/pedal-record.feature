@@ -97,6 +97,18 @@ Feature: Pedal Record
     And pressing the same shortcut again stops the take
 
   @shipped @code-verified @runtime-untested
+  Scenario: Stopping a Pattern Sync take waits for the tail before restoring the sync setting
+    # cite: PakettiRecorder.lua recordtocurrenttrackMonitor (~line 445) — the normal-polling branch now waits while pakettiSampleRecordingIsActive() is true
+    # cite: PakettiRecorder.lua cleanupMonitorAndVars (~line 834) — restores the user's Sample Recorder sync setting, now only reached after the tail finishes
+    Given the Sample Recorder sync mode was None before recording
+    And the user starts a Record to Current Track (Pattern Sync) take
+    When the user stops the take before the pattern boundary
+    Then Renoise keeps recording the tail to the end of the pattern
+    And Paketti does not grab the buffer or run the finalizer while recording is still active
+    And the Sample Recorder sync setting is left on Pattern until the tail finishes
+    And only after the recording is truly finished is the sync setting restored to None
+
+  @shipped @code-verified @runtime-untested
   Scenario: Current-row non-sync recording is available as a single keyboard shortcut
     # cite: PakettiMidi.lua PakettiRecordToCurrentTrackAndRowShortcut (~line 344) — toggles start/stop, disables Pattern Sync, and writes C-4/current instrument
     Given the user binds `Global:Paketti:Record to Current Track and Row`

@@ -21,10 +21,6 @@
 - Tooling touched: .githooks/pre-commit, INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py, report-card-stamp.sh
 - Cards touched (14): 2026-06-11-groovebox-controller-follow-and-menu.feature, 2026-06-11-ui-fixes-and-menu-config.feature, TEMPLATE.feature, device-hotswap-missing-to-actual.feature, groovebox-8120-default-instrument-slots.feature, groovebox-8120-grid-controllers.feature, groovebox-8120-lpd8.feature, groovebox-8120-record-pakettified-instrument.feature, master-low-cut-200hz.feature, mcp-claude-bridge.feature, mlx-renoise-bridge.feature, music-mouse.feature, pattern-editor-example.feature, song-lifecycle-safety.feature
 
-### `4b3695b9-8d0d-4878-a41e-6d13d1dca2ad`  (2026-08-31)
-- Resume: `claude --resume 4b3695b9-8d0d-4878-a41e-6d13d1dca2ad`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/4b3695b9-8d0d-4878-a41e-6d13d1dca2ad.jsonl
-
 ### `69e12edc-0c17-48ee-98ee-5b88658ab24d`  (2026-08-31)
 - Resume: `claude --resume 69e12edc-0c17-48ee-98ee-5b88658ab24d`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/69e12edc-0c17-48ee-98ee-5b88658ab24d.jsonl
@@ -141,8 +137,14 @@
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (4): TEMPLATE.feature, dynamic-toolbar-actions.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
 
-### `720402e6-5ed0-4426-a7e8-3d22eb93a12e`  (2026-09-29)
+### `720402e6-5ed0-4426-a7e8-3d22eb93a12e`  (2026-09-29 → 2026-09-30)
 - Resume: `claude --resume 720402e6-5ed0-4426-a7e8-3d22eb93a12e`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/720402e6-5ed0-4426-a7e8-3d22eb93a12e.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (4): TEMPLATE.feature, dynamic-toolbar-actions.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
+
+### `58f22156-5948-4bd3-ada4-3bd7a488c952`  (2026-09-30)
+- Resume: `claude --resume 58f22156-5948-4bd3-ada4-3bd7a488c952`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/58f22156-5948-4bd3-ada4-3bd7a488c952.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (4): TEMPLATE.feature, menu-registration-duplicates.feature, pedal-record.feature, song-lifecycle-safety.feature

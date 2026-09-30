@@ -8,6 +8,12 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-09-30 - Fix: Record to Current Track (Pattern Sync) no longer flips the sync mode mid-recording
+When you stopped a Pattern Sync take (via the pedal release or the shortcut), Paketti was grabbing the recorded buffer and restoring your Sample Recorder sync setting the instant you let go — while Renoise was still recording the tail to the end of the pattern. That truncated the take and visibly flipped the sync dropdown from Pattern back to None mid-record. The recorder monitor now waits until the recording is genuinely finished before finalizing the take and restoring your sync setting, so a Pattern Sync recording always completes to the pattern boundary and your None/Pattern choice is left intact until it is done.
+- Keybinding: `Global:Paketti:Record to Current Track (Pattern Sync)`
+- MIDI Mapping: `Paketti:Record to Current Track (Pattern Sync) (Pedal) x[Knob]`
+- MIDI Mapping: `Paketti:Record to Current Track (Pedal) x[Knob]`
+
 ### 2026-09-29 - Improvement: Sononymph automatic settings and PlayerPro Smart SubColumn added to the Options menu with checkmarks
 
 **Four settings that were previously only reachable by opening a dialog (or, for the Sononymph ones, hidden entirely) are now togglable straight from Main Menu -> Options, each with a checkmark showing whether it's on or off.** The three Sononymph "automatic" preferences — Autostart (open the Sononymph dialog when a song loads), Auto-Transfer New Instrument, and Auto-Transfer New Sample Slot — previously had no menu or Preferences presence at all; they lived only inside the Sononymph dialog. They now appear in the Options menu, so you can see and change them at a glance. PlayerPro's "Smart SubColumn" (open the effect dialog automatically when you move into a volume/panning/delay/sample-fx subcolumn) joins the already-present "PlayerPro Auto-Open Smart Dialog" toggle in the same menu. Each toggle saves immediately and shows a status message.
