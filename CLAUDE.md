@@ -159,6 +159,33 @@ These extend the rules already in the `paketti` skill (which you've read). The o
 
 2. **Use `PakettiAddMenuEntry{}`, not `renoise.tool():add_menu_entry{}`** for menu entries. The wrapper handles sortable ordering across all ~500 entries. For toggle options (checkboxes/checkmarks), always provide a `selected` callback returning a strict boolean (e.g. `preferences.myProperty.value` or `my_state_variable and true or false`). NEVER return `nil` or perform dynamic runtime function checks that can resolve to non-booleans, as this causes Renoise on some operating systems to omit the checkbox/checkmark visual indicator entirely.
 
+2a. **For a checkbox/toggle menu entry, use the toggle helpers — do NOT hand-write the `invoke` flip + `save_as` + status + `selected` boilerplate.** Both helpers live in `Paketti0G01_Loader.lua` (defined just above `PakettiFlushMenuEntries`), route through `PakettiAddMenuEntry` (so sorting, Menu Configuration gating, and the duplicate guard all apply), and always emit a strict-boolean `selected` (rule 2 is handled for you). This was DRY-ed out of ~38 copy-pasted call sites in Oct 2026 — do not reintroduce the old shape.
+
+   - `PakettiAddMenuOptionsEntry{...}` — a checkbox under **Main Menu:Options**. Pass only the label; the `Main Menu:Options:` prefix is added for you.
+   - `PakettiAddMenuToggleEntry{...}` — a checkbox at **any** menu path. Pass the full `name`.
+
+   A leading `--` separator on the name is preserved by both. Pick the argument shape by where the toggle's state lives:
+
+   | State lives in… | Pass | What the helper generates |
+   |---|---|---|
+   | a `pakettiPreferences` boolean, nothing else to do | `pref=preferences.X` | the whole `invoke` (flip + `save_as` + ON/OFF status) **and** `selected` from the pref |
+   | a preference, but a named toggle fn must also run (observers, live apply) | `invoke=MyToggleFn, pref=preferences.X` | keeps your `invoke`; derives `selected` (checkmark) from the pref |
+   | a runtime global or a state function (NOT a preference) | `invoke=MyToggleFn, get=MyIsEnabledFn` | keeps your `invoke`; wraps `get()` as a strict-boolean `selected` |
+   | genuinely bespoke | `invoke=fn, selected=fn` | nothing — escape hatch, helper only does name + routing |
+
+   Extras: `status="..."` overrides the ON/OFF status prefix (default = the name's last segment minus a trailing `" Toggle"`); `after=function(on) ... end` runs right after a pref flip, e.g. to apply the setting live. Examples:
+   ```lua
+   -- pure pref toggle
+   PakettiAddMenuOptionsEntry{name="Sononymph Autostart Toggle", pref=preferences.SononymphAutostart}
+   -- pref + a toggle fn that does extra work
+   PakettiAddMenuOptionsEntry{name="Follow Page Pattern Toggle", invoke=function() PakettiToggleFollowPagePattern() end, pref=preferences.pakettiFollowPagePattern}
+   -- non-preference state (global / state function)
+   PakettiAddMenuOptionsEntry{name="Song Frame Calculator Toggle", invoke=PakettiFrameCalculatorToggle, get=PakettiFrameCalculatorIsEnabled}
+   -- any menu location (full path)
+   PakettiAddMenuToggleEntry{name="Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor, pref=preferences.pakettiPatternStatusMonitor}
+   ```
+   If a toggle also has a checkbox in the **Paketti Preferences** dialog (`pakettiPreferences()` in `Paketti0G01_Loader.lua`), that checkbox's `notifier` must APPLY the change live (call the toggle/setter), not merely write `preferences.X.value` — otherwise ticking it in Preferences does nothing until the next launch (fixed for Pattern Status Monitor + Audition on Line Change, Oct 2026).
+
 3. **Preferences need TWO things**: declared in `Paketti0G01_Loader.lua`'s `renoise.Document.create("ScriptingToolPreferences")` block AND saved via `preferences:save_as("preferences.xml")` after every change. `add_property()` alone does NOT persist.
 
 4. **Never call `renoise.song()` at file load time.** Wrap in functions. No song exists during boot.
