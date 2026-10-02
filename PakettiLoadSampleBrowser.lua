@@ -521,9 +521,14 @@ plsb_refresh = function()
         local i = S.scroll + r
         local e = S.entries[i]
         if e then
-          tv.text = plsb_row_text(e, i == S.selected)
+          local sel = (i == S.selected)
+          tv.text = plsb_row_text(e, sel)
+          tv.font = sel and "bold" or "mono"
+          tv.style = sel and "strong" or "normal"
         else
           tv.text = ""
+          tv.font = "mono"
+          tv.style = "normal"
         end
       end
     end
