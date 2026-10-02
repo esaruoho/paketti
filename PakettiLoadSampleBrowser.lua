@@ -21,7 +21,10 @@
 --   Esc             cancel + unload (delete scratch instrument)
 --   F1-F12          jump to folder preset N; Shift+F1-F12 stores the current folder as preset N
 --   Piano keys      keyjazz the highlighted file (zsxdcvgbhnjm + 23 567 9 + qwertyuiop)
---   (the toggle shortcut pressed again confirms-and-loads, or just closes if not on a file)
+--   Space           passes through to Renoise transport (start/stop during audition)
+--   NOTE: Enter loads + closes; Esc cancels. The external shortcut is NOT re-handled
+--   while the dialog is focused -- re-dispatching a dialog-closing keybinding mid key
+--   event destroys the window and crashes Renoise, so Enter/Esc own close here.
 --
 -- The folder you are in is remembered (and becomes the default next time); if it has
 -- since been deleted it reverts to ~/Music/Samples. The first time you ever open the
@@ -926,9 +929,13 @@ local function plsb_key_handler(dialog, key)
     return nil
   end
 
-  -- everything else passes through to Renoise so the user's toggle shortcut
-  -- (pressed again) confirms-and-loads, and other global shortcuts still work
-  return key
+  -- Pass ONLY transport (space) through to Renoise, so you can start/stop playback
+  -- while auditioning. We deliberately do NOT pass the toggle shortcut through:
+  -- re-dispatching a global keybinding that tears this dialog down while its own key
+  -- event is still being handled destroys the window mid-event and crashes Renoise
+  -- (SIGSEGV in TWindowImpl::HandleModifiers). Use Enter to load, Esc to cancel.
+  if name == "space" then return key end
+  return nil
 end
 
 function PakettiLoadSampleBrowser_Open()
