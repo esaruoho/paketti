@@ -260,7 +260,7 @@ local function plsb_preview_selected()
   if not PLSB_NATIVE[ext] then
     -- non-native: list + confirm-load supported, but no live preview/waveform
     S.meta.note = "Preview N/A - press Enter to load"
-    if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:invalidate() end
+    if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
     return
   end
 
@@ -284,7 +284,7 @@ local function plsb_preview_selected()
   else
     S.meta.note = "Could not decode for preview"
   end
-  if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:invalidate() end
+  if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
 end
 
 -- directory listing -----------------------------------------------------------
@@ -608,7 +608,7 @@ local function plsb_activate_entry()
   if not e then return end
   if e.kind == "updir" or e.kind == "dir" then
     plsb_enter_dir(e.path)
-    if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:invalidate() end
+    if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
   else
     PakettiLoadSampleBrowser_Confirm()
   end
@@ -622,7 +622,7 @@ local function plsb_move(delta)
   if S.selected > #S.entries then S.selected = #S.entries end
   plsb_adjust_scroll()
   plsb_preview_selected()
-  if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:invalidate() end
+  if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
 end
 
 local function plsb_key_handler(dialog, key)
@@ -655,13 +655,13 @@ local function plsb_key_handler(dialog, key)
   elseif name == "left" or name == "back" then
     local parent = plsb_parent(S.current_dir)
     if parent ~= S.current_dir then plsb_enter_dir(parent)
-      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:invalidate() end
+      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
     end
     return nil
   elseif name == "right" then
     local e = S.entries[S.selected]
     if e and (e.kind == "dir" or e.kind == "updir") then plsb_enter_dir(e.path)
-      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:invalidate() end
+      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
     end
     return nil
   end
@@ -694,7 +694,7 @@ local function plsb_mouse_handler(ev)
       S.selected = i
       plsb_adjust_scroll()
       plsb_preview_selected()
-      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:invalidate() end
+      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
     end
   end
 end
@@ -732,7 +732,7 @@ function PakettiLoadSampleBrowser_Open()
   local key_opts = { send_key_repeat = true, send_key_release = true }
   S.dialog = renoise.app():show_custom_dialog("Paketti Load Sample (Keyjazz Preview)",
     content, plsb_key_handler, key_opts)
-  if S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:invalidate() end
+  if S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
 end
 
 function PakettiLoadSampleBrowserToggle()
