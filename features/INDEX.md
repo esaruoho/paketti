@@ -51,3 +51,5 @@ Derived views — GENERATED, never hand-edit:
 | `tx16w-cyclone-images.feature` | TX16W IMG exports use Cyclone-compatible boot sectors | `tx16w-cyclone-images.session.md` | worktree |
 | `treemenu.feature` | Static Lua menu registrations rendered as grouped menu tree reports | `treemenu.session.md` | worktree |
 | `transient-navigation-detection.feature` | Sample Editor Transient Next/Previous re-arms between dense visible hits | `transient-navigation-detection.session.md` | worktree |
+
+| `sample-browser-deferred-close.feature` | Deferred browser load/close and duplicate guards | `sample-browser-deferred-close.session.md` | worktree |

@@ -35,6 +35,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Pedal Record](#pedal-record) — `pedal-record.feature`
 - [Quick edit navigation commands](#quick-edit-navigation) — `quick-edit-navigation.feature`
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
+- [Load samples and close the browser after keyboard dispatch returns](#sample-browser-deferred-close) — `sample-browser-deferred-close.feature`
 - [Sample Editor export menus live under Export](#sample-editor-export-menu-grouping) — `sample-editor-export-menu-grouping.feature`
 - [Sample Editor slice menus live under Slices](#sample-slice-menu-grouping) — `sample-slice-menu-grouping.feature`
 - [Sample slice selection range](#sample-slice-selection) — `sample-slice-selection.feature`
@@ -645,6 +646,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiFindOrInsertRepeater`, `PakettiRepeaterSetActive`, `PakettiRepeaterToggleActive`, `PakettiRepeaterSetMode`, `PakettiRepeaterSetDivision`, `PakettiRepeaterAddActionKeybindings`, `PakettiRepeaterAddActionMidiMappings`, `PakettiRepeaterAddPresetMidiMappings` · **Source files:** `PakettiMidi.lua`
 
 **Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
+
+
+<a id="sample-browser-deferred-close"></a>
+## Load samples and close the browser after keyboard dispatch returns
+
+`features/sample-browser-deferred-close.feature` · [session](sample-browser-deferred-close.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Defer confirmation and cancellation — `@sim-verified @runtime-untested`
+- Ignore duplicate requests and stale windows — `@sim-verified @runtime-untested`
+- Preserve sample target selection — `@stock`
+
+**How it does it:** **Key procs:** `plsb_defer_action`, `plsb_cancel_pending_action`, `plsb_close_now`, `plsb_confirm_now`, `PakettiLoadSampleBrowserToggle` · **Source files:** `PakettiLoadSampleBrowser.lua`, `tests/sample-browser-deferred-close.lua`
+
+**Grade:** @runtime-untested ×2 · @sim-verified ×2 · @stock ×1
 
 
 <a id="sample-editor-export-menu-grouping"></a>

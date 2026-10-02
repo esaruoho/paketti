@@ -29,6 +29,7 @@
 -- so reopening lands you back where you were (clamped if the folder now has fewer files).
 
 PakettiLoadSampleBrowser = {}
+-- REPORT-CARD >> features/sample-browser-deferred-close.feature
 
 local SCRATCH_NAME = "~Paketti Preview (scratch)"
 
@@ -68,6 +69,7 @@ local S = {
   dir_id = nil, list_id = nil, meta_id = nil, wave_id = nil,
   octave_notifier = nil,
   doc_notifier = nil,
+  pending_action = nil,
 }
 
 -- forward declaration: refreshes the text widgets + waveform canvas (defined below,
@@ -635,11 +637,39 @@ local function plsb_remove_doc_notifier()
   end
 end
 
+local function plsb_cancel_pending_action()
+  local callback = S.pending_action
+  S.pending_action = nil
+  if callback and renoise.tool():has_timer(callback) then
+    renoise.tool():remove_timer(callback)
+  end
+end
+
+-- Keep the originating window alive until native keyboard dispatch has returned.
+-- Freeze the selection while queued and remove the repeating timer BEFORE work.
+local function plsb_defer_action(action)
+  if S.pending_action then return end
+  local dialog = S.dialog
+  if not (dialog and dialog.visible) then return end
+  local callback
+  callback = function()
+    plsb_cancel_pending_action()
+    if S.dialog ~= dialog or not dialog.visible then return end
+    local ok, err = pcall(action)
+    if not ok then
+      renoise.app():show_error("Paketti Load Sample: " .. tostring(err))
+    end
+  end
+  S.pending_action = callback
+  renoise.tool():add_timer(callback, 50)
+end
+
 -- Song is being torn down (New/Load Song). A custom dialog + its key_handler and
 -- the octave observer would dangle and crash Renoise's keyboard dispatch
 -- (TWeakRefOwner / SIGSEGV), so drop everything WITHOUT touching renoise.song()
 -- (its observables die with it; the scratch instrument goes with the song too).
 local function plsb_on_document_release()
+  plsb_cancel_pending_action()
   S.octave_notifier = nil      -- its observable dies with the song; don't remove
   S.active_notes = {}
   S.scratch_index = nil
@@ -662,7 +692,7 @@ local function plsb_persist_selection()
   preferences:save_as("preferences.xml")
 end
 
-function PakettiLoadSampleBrowser_Close(cancelled)
+local function plsb_close_now(cancelled)
   plsb_persist_selection()   -- remember folder + highlighted file for next open
   plsb_remove_octave_notifier()
   plsb_remove_doc_notifier()
@@ -674,11 +704,15 @@ function PakettiLoadSampleBrowser_Close(cancelled)
   S.dialog = nil
 end
 
-function PakettiLoadSampleBrowser_Confirm()
+function PakettiLoadSampleBrowser_Close(cancelled)
+  plsb_defer_action(function() plsb_close_now(cancelled) end)
+end
+
+local function plsb_confirm_now()
   -- if we're not on a file (e.g. on a folder/updir), pressing the shortcut just closes
   local e = S.entries[S.selected]
   if not (e and e.kind == "file") then
-    PakettiLoadSampleBrowser_Close(true)
+    plsb_close_now(true)
     return
   end
   local path = e.path
@@ -744,8 +778,12 @@ function PakettiLoadSampleBrowser_Confirm()
 
   pcall(function() PakettiExpandLoadableCleanup(temps) end)
 
-  PakettiLoadSampleBrowser_Close(false)
+  plsb_close_now(false)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+function PakettiLoadSampleBrowser_Confirm()
+  plsb_defer_action(plsb_confirm_now)
 end
 
 -- go up to the parent, landing the cursor on the folder we just left
@@ -796,6 +834,7 @@ end
 
 -- click a row on the list canvas to select it; click the selected row to activate it
 local function plsb_list_mouse(ev)
+  if S.pending_action then return end
   if ev.type ~= "down" or ev.button ~= "left" then return end
   local r = math.floor(ev.position.y / LIST_ROW_H) + 1
   local i = S.scroll + r
@@ -812,6 +851,7 @@ local function plsb_list_mouse(ev)
 end
 
 local function plsb_key_handler(dialog, key)
+  if S.pending_action then return nil end
   local name = key.name
 
   -- key releases: stop keyjazz notes
@@ -828,7 +868,7 @@ local function plsb_key_handler(dialog, key)
     PakettiLoadSampleBrowser_Close(true)
     return nil
   elseif name == "return" then
-    plsb_activate_entry()
+    if not key.repeated then plsb_activate_entry() end
     return nil
   elseif name == "up" then
     -- any modifier (Cmd / Option / Shift / Ctrl) + Up jumps to the top
@@ -892,6 +932,7 @@ local function plsb_key_handler(dialog, key)
 end
 
 function PakettiLoadSampleBrowser_Open()
+  if S.pending_action then return end
   if not renoise.song() then
     renoise.app():show_status("Paketti Load Sample: no song")
     return
@@ -971,6 +1012,7 @@ function PakettiLoadSampleBrowser_Open()
 end
 
 function PakettiLoadSampleBrowserToggle()
+  if S.pending_action then return end
   if S.dialog and S.dialog.visible then
     PakettiLoadSampleBrowser_Confirm()
   else
@@ -988,7 +1030,9 @@ PakettiAddMenuEntry{name="Instrument Box:Paketti Gadgets:Load Sample (Keyjazz Pr
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Load Sample Browser Keyjazz Preview",
-  invoke = function() PakettiLoadSampleBrowserToggle() end
+  invoke = function(repeated)
+    if not repeated then PakettiLoadSampleBrowserToggle() end
+  end
 }
 
 renoise.tool():add_midi_mapping{

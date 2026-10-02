@@ -41,6 +41,7 @@
 | pedal-record | 11 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | quick-edit-navigation | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| sample-browser-deferred-close | 3 | ✗ | ✗ | — | @runtime-untested @sim-verified @stock |
 | sample-editor-export-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-slice-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-slice-selection | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
@@ -54,7 +55,7 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 40
+- Cards: 41
 - Build-verified: 38
 - Runtime-verified: 3 full + 1 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
