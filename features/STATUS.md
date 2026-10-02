@@ -41,7 +41,7 @@
 | pedal-record | 11 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | quick-edit-navigation | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
-| sample-browser-deferred-close | 3 | ✗ | ✗ | — | @runtime-untested @sim-verified @stock |
+| sample-browser-deferred-close | 5 | ✗ | ✗ | — | @runtime-untested @sim-verified @stock |
 | sample-editor-export-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-slice-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-slice-selection | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |

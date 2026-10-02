@@ -957,3 +957,27 @@ I’m using the report-card skill to save the change and its verification status
 ## 2026-10-02T10:46:38.600Z assistant
 
 The change passes the Lua checks: loading and closing wait for the timer, repeated presses queue only one operation, and replacing the song cancels a pending load. The delay is 50 ms. I’m checking whether Renoise’s installed copy has received the change.
+
+## 2026-10-02T10:47:57.235Z assistant
+
+Implemented a **50 ms deferred load/close** in [PakettiLoadSampleBrowser.lua](PakettiLoadSampleBrowser.lua). The shortcut, Enter and Esc now let keyboard dispatch finish first. Repeated presses cannot queue duplicate operations.
+
+Syntax and regression checks pass, and Renoise’s installed copy matches the change. Reload Paketti before trying it.
+
+Live crash verification remains pending; the [report card](features/sample-browser-deferred-close.feature) records that honestly.
+
+## 2026-10-02T13:20:41.257Z user
+
+okay. so. first of all, < and > no longer bleed to the tracker, instead they are being eaten by the dialog. that's a shame, because it means i can't change the octave while keyjazzing with the dialog. you need to reinstate that. and figure out which commit broke that. then, also, my shortcut (cmd-capslock) that i was using to open the dialog, no longer loads samples and closes the dialog. also, pressing shift-enter when on a folder is selected, does not automatically load all the samples inside the folder, it really should. let's start with these, thanks.
+
+## 2026-10-02T13:20:47.049Z assistant
+
+I’ll trace the octave-key regression in git, restore Cmd–Caps Lock confirmation, and add Shift–Enter to load the samples in the selected folder.
+
+## 2026-10-02T13:21:03.771Z assistant
+
+Commit `0222b895` broke both octave-key forwarding and shortcut confirmation: it changed the dialog to swallow every unhandled key except Space. I’ll restore forwarding while keeping the deferred close. Shift–Enter will load the selected folder’s samples into separate instruments, using the browser’s existing target-selection rules.
+
+## 2026-10-02T13:22:17.669Z assistant
+
+The tests pass for `<`/`>` forwarding, Cmd–Caps Lock confirmation, and deferred folder loading. Shift–Enter loads files alphabetically, one instrument per file; an empty folder leaves the dialog open. These checks use a mocked host, so the final check is still in Renoise.

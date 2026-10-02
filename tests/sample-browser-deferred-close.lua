@@ -22,7 +22,11 @@ renoise = {tool = function() return tool end, app = function() return app end,
   ApplicationWindow = {MIDDLE_FRAME_PATTERN_EDITOR = 1}}
 PakettiAddMenuEntry = function() end
 pakettiPreferencesDefaultInstrumentLoader = function()
-  assert(not dispatching); song.instruments[1].samples = {sample}
+  assert(not dispatching); song.instruments[song.selected_instrument_index].samples = {sample}
+end
+safeInsertInstrumentAt = function(_, index)
+  table.insert(song.instruments, index, {name = 'target', samples = {}, plugin_properties = {plugin_loaded = false}})
+  return true
 end
 PakettiInjectApplyLoaderSettings = function() end
 PakettiExpandLoadableCleanup = function() end
@@ -39,6 +43,8 @@ local S = up(PakettiLoadSampleBrowserToggle, 'S')
 local handler = up(PakettiLoadSampleBrowser_Open, 'plsb_key_handler')
 local release = up(PakettiLoadSampleBrowser_Open, 'plsb_on_document_release')
 local function setup(kind)
+  song.instruments = {song.instruments[1]}
+  song.selected_instrument_index = 1
   song.instruments[1].samples = {}
   S.dialog = {visible = true, close = function(self)
     assert(not dispatching, 'window closed during keyboard dispatch')
@@ -93,3 +99,39 @@ setup('file'); binding.invoke(false)
 S.dialog.visible = false -- user closes the window before the timer fires
 fire(); assert(loads == 2, 'loaded from externally closed dialog')
 print('PASS: deferred load/close, duplicate and repeat guards, frozen selection, Return/Esc, document release, stale dialog')
+
+setup('file')
+for _, key in ipairs({
+  {name = '<', modifiers = '', state = 'pressed'},
+  {name = '>', modifiers = 'shift', state = 'pressed'},
+  {name = '<', modifiers = 'shift', state = 'pressed'},
+  {name = 'capslock', modifiers = 'command', state = 'pressed'},
+  {name = 'capslock', modifiers = 'command', state = 'released'},
+  {name = 'q', modifiers = 'command', state = 'pressed'},
+}) do assert(handler(S.dialog, key) == key, 'shortcut swallowed: ' .. key.name) end
+dispatching = true
+local key = {name = 'capslock', modifiers = 'command', state = 'pressed'}
+assert(handler(S.dialog, key) == key)
+binding.invoke(false) -- host dispatches the forwarded global binding
+assert(loads == 2 and S.dialog.visible)
+dispatching = false; fire(); assert(loads == 3)
+
+os.platform = function() return 'MACINTOSH' end
+PakettiLoadableExtensions = function() return {'*.wav'} end
+local names = {'b.wav', 'a.wav'}
+os.filenames = function(path) assert(path == '/folder'); return names end
+local paths = {}
+sample.sample_buffer.load_from = function(_, path)
+  assert(not dispatching); paths[#paths + 1] = path; return true
+end
+setup('dir'); S.entries[1].path = '/folder'; S.entries[1].name = 'folder'
+dispatching = true
+handler(S.dialog, {name = 'return', modifiers = 'shift', state = 'pressed'})
+assert(#paths == 0 and S.dialog.visible)
+dispatching = false; fire()
+assert(#song.instruments == 2 and S.dialog == nil)
+assert(paths[1] == '/folder/a.wav' and paths[2] == '/folder/b.wav')
+setup('dir'); S.entries[1].path = '/folder'; names = {}
+handler(S.dialog, {name = 'return', modifiers = 'shift', state = 'pressed'})
+fire(); assert(S.dialog.visible and #paths == 2, 'empty folder should stay open')
+print('PASS: octave/modified-key forwarding, Cmd-CapsLock confirmation, sorted folder load, empty folder')

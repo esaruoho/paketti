@@ -17,3 +17,11 @@ Source transcript: bundled beside this session as JSONL and readable Markdown, c
 - Exact source timestamps are retained in the bundled transcript; session date 2026-10-02.
 
 RESULT: Working-tree implementation only; no commit, push or PR; runtime untested.
+
+## Follow-up: restore forwarding and import folders
+
+The user reported that octave keys were swallowed, Cmd-CapsLock no longer confirmed, and Shift-Enter did not import folders. Git inspection identified commit `0222b895a534cbe9fae5ad90e10d506505ae624d` as changing the unhandled-key return from `return key` to Space-only forwarding, breaking both existing controls. Codex restored forwarding and allowed modified piano keys to reach global bindings, preserving the deferred action guard.
+
+Shift-Enter now queues an import of the selected folder's directly contained loadable files, sorted alphabetically, using the existing empty-target/default-template loader once per file. Empty folders remain open. This uses separate instruments, consistent with the existing single-file browser behavior; nested directories are not traversed.
+
+The expanded harness passes for octave keys including ISO Shift-<, Cmd-CapsLock forwarding plus global-binding confirmation, modified piano keys, folder sort/order, separate targets, and empty-folder behavior. Syntax and scoped whitespace checks pass. No live Renoise verification or new commit/push/PR was performed for this follow-up.

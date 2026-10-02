@@ -1366,6 +1366,10 @@ renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Paketti Pattern Ha
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern Halver",invoke=pakettiPatternHalver}
 
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Pattern Halver",invoke=pakettiPatternHalver}
+
+
 function write_bpm()
   if renoise.song().transport.bpm < 256 then -- safety check
     local column_index = renoise.song().selected_effect_column_index

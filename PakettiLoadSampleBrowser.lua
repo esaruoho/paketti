@@ -22,9 +22,9 @@
 --   F1-F12          jump to folder preset N; Shift+F1-F12 stores the current folder as preset N
 --   Piano keys      keyjazz the highlighted file (zsxdcvgbhnjm + 23 567 9 + qwertyuiop)
 --   Space           passes through to Renoise transport (start/stop during audition)
---   NOTE: Enter loads + closes; Esc cancels. The external shortcut is NOT re-handled
---   while the dialog is focused -- re-dispatching a dialog-closing keybinding mid key
---   event destroys the window and crashes Renoise, so Enter/Esc own close here.
+--   Shift+Enter     load all sample files directly inside the selected folder
+--   < / >           pass through to Renoise octave controls
+--   Toggle shortcut confirms + closes through the same deferred action as Enter.
 --
 -- The folder you are in is remembered (and becomes the default next time); if it has
 -- since been deleted it reverts to ~/Music/Samples. The first time you ever open the
@@ -711,14 +711,7 @@ function PakettiLoadSampleBrowser_Close(cancelled)
   plsb_defer_action(function() plsb_close_now(cancelled) end)
 end
 
-local function plsb_confirm_now()
-  -- if we're not on a file (e.g. on a folder/updir), pressing the shortcut just closes
-  local e = S.entries[S.selected]
-  if not (e and e.kind == "file") then
-    plsb_close_now(true)
-    return
-  end
-  local path = e.path
+local function plsb_load_path(path)
   plsb_all_notes_off()
 
   -- expand non-native formats to real audio (temp wavs)
@@ -752,7 +745,8 @@ local function plsb_confirm_now()
   if not tgt then
     if not safeInsertInstrumentAt(song, #song.instruments + 1) then
       renoise.app():show_status("Paketti Load Sample: could not create instrument slot")
-      return
+      pcall(function() PakettiExpandLoadableCleanup(temps) end)
+      return false
     end
     tgt = #song.instruments
   end
@@ -780,13 +774,40 @@ local function plsb_confirm_now()
   end
 
   pcall(function() PakettiExpandLoadableCleanup(temps) end)
+  return loaded
+end
 
+local function plsb_confirm_now()
+  local e = S.entries[S.selected]
+  if not (e and e.kind == "file") then
+    plsb_close_now(true)
+    return
+  end
+  plsb_load_path(e.path)
   plsb_close_now(false)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 function PakettiLoadSampleBrowser_Confirm()
   plsb_defer_action(plsb_confirm_now)
+end
+
+local function plsb_load_folder_now()
+  local e = S.entries[S.selected]
+  if not (e and e.kind == "dir") then return end
+  local files = os.filenames(e.path, PakettiLoadableExtensions())
+  table.sort(files, function(a, b) return a:lower() < b:lower() end)
+  if #files == 0 then
+    renoise.app():show_status("Paketti Load Sample: no loadable samples in " .. e.name)
+    return
+  end
+  local loaded = 0
+  for _, name in ipairs(files) do
+    if plsb_load_path(plsb_join(e.path, name)) then loaded = loaded + 1 end
+  end
+  plsb_close_now(false)
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app():show_status("Paketti Load Sample: loaded " .. loaded .. " of " .. #files .. " files from " .. e.name)
 end
 
 -- go up to the parent, landing the cursor on the folder we just left
@@ -863,7 +884,7 @@ local function plsb_key_handler(dialog, key)
       plsb_note_off(name)
       return nil
     end
-    return nil
+    return key
   end
 
   -- navigation + actions (not key-repeat sensitive except arrows)
@@ -871,7 +892,14 @@ local function plsb_key_handler(dialog, key)
     PakettiLoadSampleBrowser_Close(true)
     return nil
   elseif name == "return" then
-    if not key.repeated then plsb_activate_entry() end
+    if not key.repeated then
+      local e = S.entries[S.selected]
+      if key.modifiers and key.modifiers:find("shift", 1, true) and e and e.kind == "dir" then
+        plsb_defer_action(plsb_load_folder_now)
+      else
+        plsb_activate_entry()
+      end
+    end
     return nil
   elseif name == "up" then
     -- any modifier (Cmd / Option / Shift / Ctrl) + Up jumps to the top
@@ -923,19 +951,16 @@ local function plsb_key_handler(dialog, key)
     end
   end
 
-  -- keyjazz piano keys (consume so they don't type / navigate)
-  if name and (PLSB_LOWER[name] ~= nil or PLSB_UPPER[name] ~= nil) then
+  -- Modified piano keys belong to Renoise's global shortcuts.
+  if (not key.modifiers or key.modifiers == "") and name
+    and (PLSB_LOWER[name] ~= nil or PLSB_UPPER[name] ~= nil) then
     if not key.repeated then plsb_note_on(name) end
     return nil
   end
 
-  -- Pass ONLY transport (space) through to Renoise, so you can start/stop playback
-  -- while auditioning. We deliberately do NOT pass the toggle shortcut through:
-  -- re-dispatching a global keybinding that tears this dialog down while its own key
-  -- event is still being handled destroys the window mid-event and crashes Renoise
-  -- (SIGSEGV in TWindowImpl::HandleModifiers). Use Enter to load, Esc to cancel.
-  if name == "space" then return key end
-  return nil
+  -- Octave controls and the opening shortcut must reach Renoise. Confirmation
+  -- queues a timer, so forwarding does not destroy this window during dispatch.
+  return key
 end
 
 function PakettiLoadSampleBrowser_Open()

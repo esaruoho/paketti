@@ -653,15 +653,17 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 `features/sample-browser-deferred-close.feature` · [session](sample-browser-deferred-close.session.md)
 
-**Behaviour (3 scenarios):**
+**Behaviour (5 scenarios):**
 
+- Forward octave controls and the opening shortcut — `@sim-verified @runtime-untested`
+- Import a selected folder with Shift-Enter — `@sim-verified @runtime-untested`
 - Defer confirmation and cancellation — `@sim-verified @runtime-untested`
 - Ignore duplicate requests and stale windows — `@sim-verified @runtime-untested`
 - Preserve sample target selection — `@stock`
 
-**How it does it:** **Key procs:** `plsb_defer_action`, `plsb_cancel_pending_action`, `plsb_close_now`, `plsb_confirm_now`, `PakettiLoadSampleBrowserToggle` · **Source files:** `PakettiLoadSampleBrowser.lua`, `tests/sample-browser-deferred-close.lua`
+**How it does it:** **Key procs:** `plsb_defer_action`, `plsb_cancel_pending_action`, `plsb_close_now`, `plsb_confirm_now`, `plsb_load_path`, `plsb_load_folder_now`, `plsb_key_handler`, `PakettiLoadSampleBrowserToggle` · **Source files:** `PakettiLoadSampleBrowser.lua`, `tests/sample-browser-deferred-close.lua`
 
-**Grade:** @runtime-untested ×2 · @sim-verified ×2 · @stock ×1
+**Grade:** @runtime-untested ×4 · @sim-verified ×4 · @stock ×1
 
 
 <a id="sample-editor-export-menu-grouping"></a>
