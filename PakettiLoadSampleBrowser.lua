@@ -523,11 +523,11 @@ plsb_refresh = function()
         if e then
           local sel = (i == S.selected)
           tv.text = plsb_row_text(e, sel)
-          tv.font = sel and "bold" or "mono"
+          -- keep the MONO font on every row so the right-hand column never shifts;
+          -- emphasize the selected row with style="strong" only
           tv.style = sel and "strong" or "normal"
         else
           tv.text = ""
-          tv.font = "mono"
           tv.style = "normal"
         end
       end
