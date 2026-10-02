@@ -1171,7 +1171,7 @@ Open it and you get a folder/file browser on the left, and on the right the high
 
 The folder you navigate to is remembered and becomes the default the next time you open the dialog. If that folder has since been deleted, it reverts to `~/Music/Samples`. The very first time you ever open the dialog it asks you to pick a default folder. The highlighted file is remembered too, so reopening drops you back onto the same file (safely clamped if the folder now holds fewer files). Going up a folder lands the cursor on the folder you just came out of, rather than the top of the list. The file list shows filenames left-aligned with any trailing date/time stamp and the extension lined up in a right-hand column, and the keyjazz octave readout updates live as you change the keyboard octave.
 
-The folder path, the file list and the metadata panel are drawn as ordinary Renoise text; only the waveform itself is a Canvas.
+The selected row is shown as a full-width inverted bar (black background / white text normally, white bar / black text when selected), like Impulse Tracker, so it reads at a glance. The folder path and the metadata panel are ordinary Renoise text; the file list and the waveform are drawn on canvases (the file list needs a canvas so the whole selected row can invert). Clicking a row selects it; clicking the already-selected row opens or loads it.
 
 Non-WAV formats (`.mod`, `.rex`, `.rx2`, `.iff` and friends) still appear in the list and still load when you press Enter (via the normal Paketti file expander); live keyjazz preview is available for the formats Renoise can decode directly (WAV, AIFF, FLAC, OGG, etc.).
 

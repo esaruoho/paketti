@@ -64,7 +64,7 @@ local S = {
   meta = {},
   peaks = nil,           -- { ch1 = {{min,max},...}, ch2 = {...} or nil }
   active_notes = {},     -- key_name -> note value
-  dir_id = nil, meta_id = nil, wave_id = nil, row_ids = nil,
+  dir_id = nil, list_id = nil, meta_id = nil, wave_id = nil,
   octave_notifier = nil,
 }
 
@@ -74,9 +74,12 @@ local plsb_refresh
 
 -- The list / path / metadata are normal Renoise text widgets; only the waveform
 -- is drawn on a Canvas.
-local VISIBLE_ROWS = 30     -- number of file-list text rows shown at once
-local LIST_COLS = 78        -- monospace column budget per list row
-local LIST_W = 560          -- pixel width of a list text row
+local VISIBLE_ROWS = 28     -- number of file-list rows shown at once
+local LIST_ROW_H = 16       -- pixel height of one list row
+local LIST_FONT = 9         -- canvas font size for list rows
+local LIST_CHAR_W = LIST_FONT * 1.4
+local LIST_CANVAS_W = 560
+local LIST_CANVAS_H = VISIBLE_ROWS * LIST_ROW_H
 local META_W = 340
 local META_H = 170
 local WAVE_W = 340
@@ -87,6 +90,13 @@ local COL_BG = {18, 22, 26, 255}
 local COL_WAVE = {90, 220, 120, 255}
 local COL_FRAME = {70, 90, 100, 255}
 local COL_ZERO = {50, 64, 72, 255}
+
+-- file-list canvas colors (inverted selection bar, like Impulse Tracker)
+local COL_LIST_BG = {0, 0, 0, 255}          -- black background
+local COL_LIST_TEXT = {235, 235, 235, 255}  -- white text (files)
+local COL_LIST_DIR = {150, 220, 150, 255}   -- green text (folders)
+local COL_SEL_BG = {232, 232, 214, 255}     -- selected row: cream/white bar
+local COL_SEL_FG = {0, 0, 0, 255}           -- selected row: black text
 
 -- helpers ---------------------------------------------------------------------
 local function plsb_sep()
@@ -420,7 +430,59 @@ local function plsb_enter_dir(path, select_name)
 end
 
 -- rendering -------------------------------------------------------------------
--- The ONLY canvas: the waveform of the previewed sample.
+local function plsb_set_color(ctx, c)
+  ctx.stroke_color = c
+  ctx.fill_color = c
+  ctx.line_width = 1
+end
+
+-- the file list, drawn on a canvas so the selected row is a full inverted bar
+-- (black bg / white text normally; white bar / black text when selected)
+local function plsb_list_render(ctx)
+  ctx:clear_rect(0, 0, LIST_CANVAS_W, LIST_CANVAS_H)
+  ctx.fill_color = COL_LIST_BG
+  ctx:begin_path(); ctx:rect(0, 0, LIST_CANVAS_W, LIST_CANVAS_H); ctx:fill()
+
+  for r = 1, VISIBLE_ROWS do
+    local i = S.scroll + r
+    local e = S.entries[i]
+    if e then
+      local ytop = (r - 1) * LIST_ROW_H
+      local ytext = ytop + 3
+      local selected = (i == S.selected)
+      if selected then
+        ctx.fill_color = COL_SEL_BG
+        ctx:begin_path(); ctx:rect(0, ytop, LIST_CANVAS_W, LIST_ROW_H); ctx:fill()
+      end
+      local left, right, isdir
+      if e.kind == "updir" then
+        left = ".. (up)"; right = ""; isdir = true
+      elseif e.kind == "dir" then
+        left = e.name; right = "<DIR>"; isdir = true
+      else
+        local base, extra, ext = plsb_split_file(e.name)
+        left = base
+        right = (extra ~= "" and (extra .. "  ") or "") .. (ext ~= "" and ("." .. ext:upper()) or "")
+        isdir = false
+      end
+      local textcol = selected and COL_SEL_FG or (isdir and COL_LIST_DIR or COL_LIST_TEXT)
+      -- right-aligned extra column (fixed position so <DIR> never shifts)
+      local extra_w = #right * LIST_CHAR_W
+      local extra_x = LIST_CANVAS_W - extra_w - 6
+      -- truncate the name so it never collides with the extra column
+      local name_limit_px = (right ~= "" and (extra_x - 8) or LIST_CANVAS_W) - 6
+      local max_chars = math.max(1, math.floor(name_limit_px / LIST_CHAR_W))
+      if #left > max_chars then
+        left = (max_chars > 1) and (left:sub(1, max_chars - 1) .. "~") or left:sub(1, 1)
+      end
+      plsb_set_color(ctx, textcol)
+      PakettiCanvasFontDrawText(ctx, left, 6, ytext, LIST_FONT)
+      if right ~= "" then PakettiCanvasFontDrawText(ctx, right, extra_x, ytext, LIST_FONT) end
+    end
+  end
+end
+
+-- The waveform of the previewed sample.
 local function plsb_wave_render(ctx)
   ctx:clear_rect(0, 0, WAVE_W, WAVE_H)
   ctx.fill_color = COL_BG
@@ -454,28 +516,6 @@ local function plsb_wave_render(ctx)
   end
 end
 
--- one monospace list row, right-aligning the "extra" column within LIST_COLS chars
-local function plsb_row_text(e, selected)
-  local marker = selected and "> " or "  "
-  local left, right
-  if e.kind == "updir" then
-    left = ".. (up)"; right = ""
-  elseif e.kind == "dir" then
-    left = e.name; right = "<DIR>"
-  else
-    local base, extra, ext = plsb_split_file(e.name)
-    left = base
-    right = (extra ~= "" and (extra .. "  ") or "") .. (ext ~= "" and ("." .. ext:upper()) or "")
-  end
-  local avail = LIST_COLS - #marker - #right - 1
-  if avail < 1 then avail = 1 end
-  if #left > avail then
-    left = (avail > 1) and (left:sub(1, avail - 1) .. "~") or left:sub(1, 1)
-  end
-  local pad = LIST_COLS - #marker - #left - #right
-  if pad < 1 then pad = 1 end
-  return marker .. left .. string.rep(" ", pad) .. right
-end
 
 -- the human-readable metadata block (plain text, not canvas font)
 local function plsb_meta_string()
@@ -513,26 +553,7 @@ plsb_refresh = function()
   if not S.vb then return end
   local v = S.vb.views
   if S.dir_id and v[S.dir_id] then v[S.dir_id].text = S.current_dir or "" end
-  if S.row_ids then
-    for r = 1, VISIBLE_ROWS do
-      local id = S.row_ids[r]
-      local tv = id and v[id]
-      if tv then
-        local i = S.scroll + r
-        local e = S.entries[i]
-        if e then
-          local sel = (i == S.selected)
-          tv.text = plsb_row_text(e, sel)
-          -- keep the MONO font on every row so the right-hand column never shifts;
-          -- emphasize the selected row with style="strong" only
-          tv.style = sel and "strong" or "normal"
-        else
-          tv.text = ""
-          tv.style = "normal"
-        end
-      end
-    end
-  end
+  if S.list_id and v[S.list_id] then v[S.list_id]:update() end
   if S.meta_id and v[S.meta_id] then v[S.meta_id].text = plsb_meta_string() end
   if S.wave_id and v[S.wave_id] then v[S.wave_id]:update() end
 end
@@ -733,6 +754,23 @@ local function plsb_move(delta)
   plsb_refresh()
 end
 
+-- click a row on the list canvas to select it; click the selected row to activate it
+local function plsb_list_mouse(ev)
+  if ev.type ~= "down" or ev.button ~= "left" then return end
+  local r = math.floor(ev.position.y / LIST_ROW_H) + 1
+  local i = S.scroll + r
+  if i < 1 or i > #S.entries then return end
+  if i == S.selected then
+    plsb_activate_entry()
+  else
+    plsb_all_notes_off()
+    S.selected = i
+    plsb_adjust_scroll()
+    plsb_preview_selected()
+    plsb_refresh()
+  end
+end
+
 local function plsb_key_handler(dialog, key)
   local name = key.name
 
@@ -823,27 +861,29 @@ function PakettiLoadSampleBrowser_Open()
   local vb = renoise.ViewBuilder()
   S.vb = vb
   S.dir_id = "plsb_dir"
+  S.list_id = "plsb_list"
   S.meta_id = "plsb_meta"
   S.wave_id = "plsb_wave"
-  S.row_ids = {}
-
-  -- the file list: VISIBLE_ROWS monospace text rows (no canvas font)
-  local list_col = { style = "border", margin = 4, spacing = 0 }
-  for r = 1, VISIBLE_ROWS do
-    local id = "plsb_row_" .. r
-    S.row_ids[r] = id
-    list_col[#list_col + 1] = vb:text{ id = id, font = "mono", text = "", width = LIST_W }
-  end
 
   local content = vb:column {
     margin = 6,
     spacing = 6,
-    vb:text{ id = S.dir_id, font = "mono", style = "strong", text = "", width = LIST_W },
+    vb:text{ id = S.dir_id, font = "mono", style = "strong", text = "", width = LIST_CANVAS_W },
     vb:row {
       spacing = 10,
-      vb:column(list_col),
+      -- the file list is a canvas so the selected row is a full inverted bar
+      vb:canvas{
+        id = S.list_id,
+        width = LIST_CANVAS_W,
+        height = LIST_CANVAS_H,
+        mode = "plain",
+        render = plsb_list_render,
+        mouse_handler = plsb_list_mouse,
+        mouse_events = { "down" },
+      },
       vb:column {
         spacing = 6,
+        -- the metadata panel is ordinary, human-readable Renoise text
         vb:multiline_text{ id = S.meta_id, font = "mono", text = "", width = META_W, height = META_H },
         vb:text{ text = "Waveform", font = "bold" },
         vb:canvas{ id = S.wave_id, width = WAVE_W, height = WAVE_H, mode = "plain", render = plsb_wave_render },
