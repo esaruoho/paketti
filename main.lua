@@ -1549,6 +1549,7 @@ if PAKETTI_API >= 6.2 then
   timed_require("PakettiCanvasFont")
   timed_require("PakettiCanvasFontMono")
   timed_require("PakettiCanvasFontPreview")
+  timed_require("PakettiLoadSampleBrowser")
   timed_require("PakettiCanvasExperiments")
   timed_require("PakettiSampleEffectGenerator")
   timed_require("PakettiNotepadRun")

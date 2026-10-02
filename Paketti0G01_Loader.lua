@@ -449,6 +449,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportEXS24 = true,         -- EXS24 (.exs) import (Logic sampler)
   pakettiImportEXS24SplitGroups = true,  -- EXS24: one Renoise instrument per group (articulation)
   pakettiSampleLibraryRoots = "",    -- newline-separated absolute paths used by importers to relocate missing samples
+  pakettiLoadSampleBrowserLastDir = "", -- last folder used by the Load Sample (Keyjazz Preview) browser
   pakettiImportOT = true,            -- OT (.ot) import
   pakettiImportWT = true,            -- WT (.wt) import
   pakettiImportSTRD = true,          -- STRD (.strd, .work) import

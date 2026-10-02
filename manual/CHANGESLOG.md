@@ -8,6 +8,13 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-10-02 - Feature: Load Sample (Keyjazz Preview) — audition files on the qwerty keyboard before loading
+The Impulse Tracker "Load Sample" screen, brought to Renoise as a Canvas dialog. Open it and you get a folder/file browser on the left, and on the right the highlighted file's metadata (filename, sample rate, bit depth, channels, length, format, size, date) plus its waveform. Move the cursor with Up/Down (PageUp/PageDown to jump) and the highlighted file is auditioned instantly — **play it on the qwerty piano keys (`zsxdcvgbhnjm`, `23 567 9`, `qwertyuiop`) at the current keyboard octave, during playback, without loading it into your song.** The preview uses one hidden scratch instrument, so your instruments and selection are untouched while you browse. Enter on a folder goes in; Backspace/Left goes up a folder. Press Enter on a file (or press the shortcut again) to load it fresh into the smart target slot — the selected instrument if it is empty, otherwise the first empty slot, otherwise a new instrument — with the Paketti default instrument template, then you are returned to the Pattern Editor. Esc cancels and removes the scratch instrument, leaving no residue. Non-WAV formats (.mod/.rex/.rx2/.iff and friends) appear in the list and load on Enter via the normal Paketti expander, though live keyjazz preview is limited to formats Renoise can decode directly.
+- Keybinding: `Global:Paketti:Load Sample Browser Keyjazz Preview`
+- MIDI Mapping: `Paketti:Load Sample Browser Keyjazz Preview`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Load Sample (Keyjazz Preview)`
+- Menu: `Sample Navigator:Paketti:Load Sample (Keyjazz Preview)`
+
 ### 2026-09-30 - Fix: NetDrive watcher no longer freezes Renoise when the network folder drops out mid-load
 If the watched volume disconnected while the ProcessSlicer was loading files, the loader kept trying to read from the dead mount, which blocked Renoise long enough to trigger a "tool became unresponsive" error (and could disable the tool's background timers until restart). The loader now checks the volume is still mounted before each file, and the moment it drops out it stops, hands control back to the watcher's offline backoff, and resumes the remaining files automatically when the volume returns.
 

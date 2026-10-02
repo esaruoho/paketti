@@ -1156,6 +1156,25 @@ The reason for adding these, is, so, that when you are on any instrument with th
 
 The DrumKit loader loads a max of 120 samples into the instrument. Select more? Only loads 120 samples. The drums are mapped automatically from C0 to B9.
 
+### Load Sample (Keyjazz Preview)
+
+This is the Impulse Tracker "Load Sample" screen, rebuilt for Renoise as a Canvas dialog. It solves a problem Renoise has never had an answer for: **auditioning a sample file on the keyboard before you commit to loading it** — even during playback.
+
+Open it and you get a folder/file browser on the left, and on the right the highlighted file's details (filename, sample rate, bit depth, channels, length, format, file size, date) together with its waveform, so you can skip files that don't look like what you want.
+
+- **Up / Down** move the file cursor (PageUp / PageDown jump a screenful). The moment you land on a file, it is auditioned instantly.
+- **Play it on the qwerty piano keys** — `zsxdcvgbhnjm` for the lower octave, `qwertyuiop` plus `2 3 5 6 7 9` for the upper — at the current keyboard octave, **during playback, without loading it into your song.** The preview uses a single hidden scratch instrument, so your instruments and your selection are left completely untouched while you browse.
+- **Enter** on a folder enters it; **Backspace / Left** goes up a folder.
+- **Enter on a file** (or pressing the shortcut again) loads it fresh into the smart target slot — the currently selected instrument if it is empty, otherwise the first empty slot, otherwise a new instrument — with the full Paketti default instrument template (the 8 Macros, your Paketti Loader preferences, the AHDSR). You are then returned to the Pattern Editor.
+- **Esc** cancels and deletes the scratch instrument, leaving no residue.
+
+Non-WAV formats (`.mod`, `.rex`, `.rx2`, `.iff` and friends) still appear in the list and still load when you press Enter (via the normal Paketti file expander); live keyjazz preview is available for the formats Renoise can decode directly (WAV, AIFF, FLAC, OGG, etc.).
+
+- Keybinding: `Global:Paketti:Load Sample Browser Keyjazz Preview`
+- MIDI Mapping: `Paketti:Load Sample Browser Keyjazz Preview`
+- Menu: `Main Menu:Tools:Paketti:Instruments:Load Sample (Keyjazz Preview)`
+- Menu: `Sample Navigator:Paketti:Load Sample (Keyjazz Preview)`
+
 ### Saving Samples
 There are Midi Mappings, Keyboard Shortcuts and Menu Entries for `Save Selected Sample .WAV` & `Save Selected Sample .FLAC`. There's also `Save Selected Sample Range .WAV` & `Save Selected Sample Range .FLAC`. The Sample Range saving is from Fast Tracker 2.
 

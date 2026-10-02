@@ -8,22 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**26 card conversations** plugged in:
-
-### `4661443d-8d10-41e1-9975-5cbd445bb567`  (2026-08-27 → 2026-08-31)
-- Resume: `claude --resume 4661443d-8d10-41e1-9975-5cbd445bb567`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/4661443d-8d10-41e1-9975-5cbd445bb567.jsonl
-- Cards touched (1): song-lifecycle-safety.feature
-
-### `0df7d9eb-d103-4714-84a7-bcefa18fa5d8`  (2026-08-31)
-- Resume: `claude --resume 0df7d9eb-d103-4714-84a7-bcefa18fa5d8`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/0df7d9eb-d103-4714-84a7-bcefa18fa5d8.jsonl
-- Tooling touched: .githooks/pre-commit, INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py, report-card-stamp.sh
-- Cards touched (14): 2026-06-11-groovebox-controller-follow-and-menu.feature, 2026-06-11-ui-fixes-and-menu-config.feature, TEMPLATE.feature, device-hotswap-missing-to-actual.feature, groovebox-8120-default-instrument-slots.feature, groovebox-8120-grid-controllers.feature, groovebox-8120-lpd8.feature, groovebox-8120-record-pakettified-instrument.feature, master-low-cut-200hz.feature, mcp-claude-bridge.feature, mlx-renoise-bridge.feature, music-mouse.feature, pattern-editor-example.feature, song-lifecycle-safety.feature
-
-### `69e12edc-0c17-48ee-98ee-5b88658ab24d`  (2026-08-31)
-- Resume: `claude --resume 69e12edc-0c17-48ee-98ee-5b88658ab24d`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/69e12edc-0c17-48ee-98ee-5b88658ab24d.jsonl
+**24 card conversations** plugged in:
 
 ### `ecdf40a8-7b88-40fd-8fae-4948ef022991`  (2026-09-02 → 2026-09-03)
 - Resume: `claude --resume ecdf40a8-7b88-40fd-8fae-4948ef022991`
@@ -149,8 +134,14 @@
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (5): TEMPLATE.feature, menu-registration-duplicates.feature, netdrive-2logic-watcher.feature, pedal-record.feature, song-lifecycle-safety.feature
 
-### `93276a3f-24fe-4bc3-a94f-8048cb4a208c`  (2026-09-30)
+### `93276a3f-24fe-4bc3-a94f-8048cb4a208c`  (2026-09-30 → 2026-10-01)
 - Resume: `claude --resume 93276a3f-24fe-4bc3-a94f-8048cb4a208c`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/93276a3f-24fe-4bc3-a94f-8048cb4a208c.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (2): TEMPLATE.feature, song-lifecycle-safety.feature
+
+### `149a81b3-e239-4ff1-ae91-7d5f10d73e7c`  (2026-10-02)
+- Resume: `claude --resume 149a81b3-e239-4ff1-ae91-7d5f10d73e7c`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/149a81b3-e239-4ff1-ae91-7d5f10d73e7c.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (3): TEMPLATE.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
