@@ -18,8 +18,14 @@
 --   Enter / Return  on a folder: enter it; on a file: LOAD into target + return to Pattern Editor
 --   Backspace / Left go up to the parent folder
 --   Esc             cancel + unload (delete scratch instrument)
+--   F1-F12          jump to folder preset N; Shift+F1-F12 stores the current folder as preset N
 --   Piano keys      keyjazz the highlighted file (zsxdcvgbhnjm + 23 567 9 + qwertyuiop)
---   (the toggle shortcut pressed again also confirms-and-loads)
+--   (the toggle shortcut pressed again confirms-and-loads, or just closes if not on a file)
+--
+-- The folder you are in is remembered (and becomes the default next time); if it has
+-- since been deleted it reverts to ~/Music/Samples. The first time you ever open the
+-- dialog it asks you to pick a default folder. The highlighted file is remembered too,
+-- so reopening lands you back where you were (clamped if the folder now has fewer files).
 
 PakettiLoadSampleBrowser = {}
 
@@ -120,18 +126,27 @@ local function plsb_ext(name)
   return e and e:lower() or ""
 end
 
+-- Split a filename into { base, extra, ext } so the base left-aligns and the
+-- "extra data" (a trailing YYYY-MM-DD HHMMSS timestamp, plus the extension) can
+-- be shown right-aligned in its own column. Degrades to { name, "", ext }.
+local function plsb_split_file(name)
+  local stem, ext = name:match("^(.*)%.([%w]+)$")
+  if not stem then stem = name; ext = "" end
+  local base, date, time = stem:match("^(.-)%s+(%d%d%d%d%-%d%d%-%d%d)%s+([%d]+)$")
+  if base and base ~= "" then
+    return base, (date .. " " .. time), ext
+  end
+  return stem, "", ext
+end
+
 local function plsb_home()
   local h = os.getenv("HOME") or os.getenv("USERPROFILE")
   if h and io.exists(h) then return h end
   return (os.platform() == "WINDOWS") and "C:\\" or "/"
 end
 
-local function plsb_start_dir()
-  -- 1) last folder used, if it still exists
-  local pref = (preferences and preferences.pakettiLoadSampleBrowserLastDir
-    and preferences.pakettiLoadSampleBrowserLastDir.value) or ""
-  if pref ~= "" and io.exists(pref) then return pref end
-  -- 2) a sensible sample folder under the user's home, if one exists
+-- sensible sample folder under the user's home, falling back to home
+local function plsb_fallback_dir()
   local home = plsb_home()
   local sep = plsb_sep()
   local candidates = {
@@ -145,8 +160,57 @@ local function plsb_start_dir()
   for _, c in ipairs(candidates) do
     if io.exists(c) then return c end
   end
-  -- 3) home as last resort
   return home
+end
+
+local function plsb_save_dir(dir)
+  if preferences and preferences.pakettiLoadSampleBrowserLastDir then
+    preferences.pakettiLoadSampleBrowserLastDir.value = dir or ""
+    preferences:save_as("preferences.xml")
+  end
+end
+
+-- Resolve the folder to open in:
+--  * last folder, if it still exists
+--  * if the saved folder is GONE, silently revert to ~/Music/Samples (no prompt)
+--  * if nothing was ever saved (first boot), ask the user to pick a default folder
+local function plsb_resolve_start_dir()
+  local pref = (preferences and preferences.pakettiLoadSampleBrowserLastDir
+    and preferences.pakettiLoadSampleBrowserLastDir.value) or ""
+  if pref ~= "" then
+    if io.exists(pref) then return pref end
+    return plsb_fallback_dir()
+  end
+  -- first boot: ask for a folder
+  local chosen = ""
+  local ok, p = pcall(function()
+    return renoise.app():prompt_for_path("Choose your default sample folder")
+  end)
+  if ok and p and p ~= "" and io.exists(p) then chosen = p end
+  if chosen ~= "" then
+    plsb_save_dir(chosen)
+    return chosen
+  end
+  return plsb_fallback_dir()
+end
+
+-- 12 folder presets (F1-F12), stored newline-separated in one preference
+local function plsb_get_presets()
+  local raw = (preferences and preferences.pakettiLoadSampleBrowserPresets
+    and preferences.pakettiLoadSampleBrowserPresets.value) or ""
+  local t = {}
+  for line in (raw .. "\n"):gmatch("(.-)\n") do t[#t + 1] = line end
+  for i = 1, 12 do if t[i] == nil then t[i] = "" end end
+  return t
+end
+
+local function plsb_set_preset(n, path)
+  local t = plsb_get_presets()
+  t[n] = path or ""
+  if preferences and preferences.pakettiLoadSampleBrowserPresets then
+    preferences.pakettiLoadSampleBrowserPresets.value = table.concat(t, "\n", 1, 12)
+    preferences:save_as("preferences.xml")
+  end
 end
 
 -- format strings for the IT-style panel
@@ -340,6 +404,7 @@ local function plsb_enter_dir(path)
   if io.exists(path) then
     S.current_dir = path
     plsb_rebuild_entries()
+    plsb_save_dir(path)   -- navigating updates the saved default folder
   end
 end
 
@@ -442,7 +507,8 @@ local function plsb_render(ctx)
   -- current dir
   plsb_text(ctx, COL_FILE, plsb_truncate(S.current_dir or "", LIST_RIGHT - LIST_NUM_X), LIST_NUM_X, 22)
 
-  -- file list
+  -- file list (no row numbers: name left-aligned, extra data right-aligned)
+  local name_x = LIST_NUM_X
   for r = 1, VISIBLE_ROWS do
     local i = S.scroll + r
     local e = S.entries[i]
@@ -451,21 +517,29 @@ local function plsb_render(ctx)
       local selected = (i == S.selected)
       if selected then
         ctx.fill_color = COL_SEL_BG
-        ctx:begin_path(); ctx:rect(LIST_NUM_X - 2, y - 1, LIST_RIGHT - LIST_NUM_X, ROW_H); ctx:fill()
+        ctx:begin_path(); ctx:rect(name_x - 2, y - 1, LIST_RIGHT - name_x + 2, ROW_H); ctx:fill()
       end
-      local num_col = selected and COL_SEL_FG or COL_LABEL
-      plsb_text(ctx, num_col, plsb_pad(i, 3), LIST_NUM_X, y)
-      local label
-      local col
+      local name_text, extra_text, col
       if e.kind == "updir" then
-        label = ".. (up)"; col = COL_DIR
+        name_text = ".. (up)"; extra_text = ""; col = COL_DIR
       elseif e.kind == "dir" then
-        label = e.name .. "/"; col = COL_DIR
+        name_text = e.name; extra_text = "<DIR>"; col = COL_DIR
       else
-        label = e.name; col = COL_FILE
+        local base, extra, ext = plsb_split_file(e.name)
+        name_text = base
+        extra_text = (extra ~= "" and (extra .. "  ") or "") .. (ext ~= "" and ("." .. ext:upper()) or "")
+        col = COL_FILE
       end
       if selected then col = COL_SEL_FG end
-      plsb_text(ctx, col, plsb_truncate(label, LIST_RIGHT - LIST_TXT_X), LIST_TXT_X, y)
+      -- right-aligned extra column
+      local extra_w = #extra_text * CHAR_W
+      local extra_x = LIST_RIGHT - extra_w
+      if extra_text ~= "" then
+        plsb_text(ctx, selected and COL_SEL_FG or COL_LABEL, extra_text, extra_x, y)
+      end
+      -- name truncated so it never collides with the extra column
+      local name_max = (extra_text ~= "" and (extra_x - 8) or LIST_RIGHT) - name_x
+      plsb_text(ctx, col, plsb_truncate(name_text, name_max), name_x, y)
     end
   end
 
@@ -532,7 +606,31 @@ local function plsb_all_notes_off()
 end
 
 -- open / confirm / close ------------------------------------------------------
+local function plsb_remove_octave_notifier()
+  if S.octave_notifier then
+    pcall(function()
+      local obs = renoise.song().transport.octave_observable
+      if obs:has_notifier(S.octave_notifier) then obs:remove_notifier(S.octave_notifier) end
+    end)
+    S.octave_notifier = nil
+  end
+end
+
+local function plsb_persist_selection()
+  if not preferences then return end
+  if preferences.pakettiLoadSampleBrowserLastDir then
+    preferences.pakettiLoadSampleBrowserLastDir.value = S.current_dir or ""
+  end
+  if preferences.pakettiLoadSampleBrowserLastFile then
+    local e = S.entries[S.selected]
+    preferences.pakettiLoadSampleBrowserLastFile.value = (e and e.name) or ""
+  end
+  preferences:save_as("preferences.xml")
+end
+
 function PakettiLoadSampleBrowser_Close(cancelled)
+  plsb_persist_selection()   -- remember folder + highlighted file for next open
+  plsb_remove_octave_notifier()
   plsb_all_notes_off()
   if cancelled then plsb_cleanup_scratch() end
   if S.dialog and S.dialog.visible then
@@ -542,11 +640,13 @@ function PakettiLoadSampleBrowser_Close(cancelled)
 end
 
 function PakettiLoadSampleBrowser_Confirm()
-  local path = S.loaded_path
-  if not path then
-    renoise.app():show_status("Paketti Load Sample: no file selected")
+  -- if we're not on a file (e.g. on a folder/updir), pressing the shortcut just closes
+  local e = S.entries[S.selected]
+  if not (e and e.kind == "file") then
+    PakettiLoadSampleBrowser_Close(true)
     return
   end
+  local path = e.path
   plsb_all_notes_off()
 
   -- expand non-native formats to real audio (temp wavs)
@@ -608,12 +708,6 @@ function PakettiLoadSampleBrowser_Confirm()
   end
 
   pcall(function() PakettiExpandLoadableCleanup(temps) end)
-
-  -- remember last folder
-  if preferences and preferences.pakettiLoadSampleBrowserLastDir then
-    preferences.pakettiLoadSampleBrowserLastDir.value = S.current_dir or ""
-    preferences:save_as("preferences.xml")
-  end
 
   PakettiLoadSampleBrowser_Close(false)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -682,6 +776,28 @@ local function plsb_key_handler(dialog, key)
     return nil
   end
 
+  -- F1-F12 folder presets: Fn recalls, Shift+Fn stores the current folder
+  local fn = name and name:match("^f(%d+)$")
+  if fn then
+    local n = tonumber(fn)
+    if n and n >= 1 and n <= 12 then
+      if key.modifiers and key.modifiers:find("shift") then
+        plsb_set_preset(n, S.current_dir)
+        renoise.app():show_status("Paketti Load Sample: stored folder preset F" .. n .. " = " .. (S.current_dir or ""))
+      else
+        local presets = plsb_get_presets()
+        local p = presets[n]
+        if p and p ~= "" and io.exists(p) then
+          plsb_enter_dir(p)
+          if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+        else
+          renoise.app():show_status("Paketti Load Sample: folder preset F" .. n .. " is empty (Shift+F" .. n .. " to store current folder)")
+        end
+      end
+      return nil
+    end
+  end
+
   -- keyjazz piano keys (consume so they don't type / navigate)
   if name and (PLSB_LOWER[name] ~= nil or PLSB_UPPER[name] ~= nil) then
     if not key.repeated then plsb_note_on(name) end
@@ -726,7 +842,7 @@ function PakettiLoadSampleBrowser_Open()
   end
   plsb_cleanup_scratch()
   S.active_notes = {}
-  S.current_dir = plsb_start_dir()
+  S.current_dir = plsb_resolve_start_dir()
 
   local vb = renoise.ViewBuilder()
   S.vb = vb
@@ -745,9 +861,29 @@ function PakettiLoadSampleBrowser_Open()
 
   plsb_rebuild_entries()
 
+  -- restore the last highlighted file (by name, so it survives files being added/removed)
+  local want = (preferences and preferences.pakettiLoadSampleBrowserLastFile
+    and preferences.pakettiLoadSampleBrowserLastFile.value) or ""
+  if want ~= "" then
+    for i, e in ipairs(S.entries) do
+      if e.name == want then S.selected = i break end
+    end
+    plsb_adjust_scroll()
+    plsb_preview_selected()
+  end
+
   local key_opts = { send_key_repeat = true, send_key_release = true }
   S.dialog = renoise.app():show_custom_dialog("Paketti Load Sample (Keyjazz Preview)",
     content, plsb_key_handler, key_opts)
+
+  -- keep the KEYJAZZ OCT readout live when the transport octave changes
+  S.octave_notifier = function()
+    if S.vb and S.canvas_id and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+  end
+  pcall(function()
+    renoise.song().transport.octave_observable:add_notifier(S.octave_notifier)
+  end)
+
   if S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
 end
 

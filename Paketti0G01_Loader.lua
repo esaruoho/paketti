@@ -450,6 +450,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportEXS24SplitGroups = true,  -- EXS24: one Renoise instrument per group (articulation)
   pakettiSampleLibraryRoots = "",    -- newline-separated absolute paths used by importers to relocate missing samples
   pakettiLoadSampleBrowserLastDir = "", -- last folder used by the Load Sample (Keyjazz Preview) browser
+  pakettiLoadSampleBrowserLastFile = "", -- last highlighted filename, restored on reopen
+  pakettiLoadSampleBrowserPresets = "", -- up to 12 newline-separated folder presets (F1-F12)
   pakettiImportOT = true,            -- OT (.ot) import
   pakettiImportWT = true,            -- WT (.wt) import
   pakettiImportSTRD = true,          -- STRD (.strd, .work) import
@@ -4646,6 +4648,11 @@ end
 --   PakettiAddMenuToggleEntry{name="Main Menu:Options:Follow Page Pattern Toggle", pref=preferences.pakettiFollowPagePattern}
 -- Custom invoke (a named toggle fn that does extra work) but checkmark from the pref:
 --   PakettiAddMenuToggleEntry{name="...", invoke=PakettiToggleFollowPagePattern, pref=preferences.pakettiFollowPagePattern}
+-- State the checkmark reads from a getter (a runtime global or a state function) rather
+-- than a preference — the DRY form for toggles whose state is NOT a pakettiPreferences
+-- boolean. You still supply `invoke`; the helper just wraps `get` as a strict boolean:
+--   PakettiAddMenuToggleEntry{name="...", invoke=PakettiFrameCalculatorToggle, get=PakettiFrameCalculatorIsEnabled}
+--   PakettiAddMenuToggleEntry{name="...", invoke=function() ... end, get=function() return SomeGlobal end}
 -- Escape hatch — your own invoke AND selected (helper only adds nothing but routing):
 --   PakettiAddMenuToggleEntry{name="...", invoke=function() ... end, selected=function() return ... end}
 -- Extras: status="..." overrides the status prefix (default: the leaf minus a trailing
@@ -4673,9 +4680,15 @@ function PakettiAddMenuToggleEntry(args)
       renoise.app():show_status(status_label .. ": " .. (pref.value and "ON" or "OFF"))
     end
   end
-  if pref and not selected then
-    -- Strict boolean so the checkmark renders on every OS (house rule 2).
-    selected = function() return pref.value and true or false end
+  -- Strict boolean so the checkmark renders on every OS (house rule 2). Priority:
+  -- explicit selected > the preference's value > a `get` getter.
+  if not selected then
+    if pref then
+      selected = function() return pref.value and true or false end
+    elseif args.get then
+      local getter = args.get
+      selected = function() return getter() and true or false end
+    end
   end
 
   return PakettiAddMenuEntry{name=full_name, invoke=invoke, selected=selected}
