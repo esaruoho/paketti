@@ -66,6 +66,7 @@ local S = {
   active_notes = {},     -- key_name -> note value
   dir_id = nil, list_id = nil, meta_id = nil, wave_id = nil,
   octave_notifier = nil,
+  doc_notifier = nil,
 }
 
 -- forward declaration: refreshes the text widgets + waveform canvas (defined below,
@@ -623,6 +624,31 @@ local function plsb_remove_octave_notifier()
   end
 end
 
+local function plsb_remove_doc_notifier()
+  if S.doc_notifier then
+    pcall(function()
+      local o = renoise.tool().app_release_document_observable
+      if o:has_notifier(S.doc_notifier) then o:remove_notifier(S.doc_notifier) end
+    end)
+    S.doc_notifier = nil
+  end
+end
+
+-- Song is being torn down (New/Load Song). A custom dialog + its key_handler and
+-- the octave observer would dangle and crash Renoise's keyboard dispatch
+-- (TWeakRefOwner / SIGSEGV), so drop everything WITHOUT touching renoise.song()
+-- (its observables die with it; the scratch instrument goes with the song too).
+local function plsb_on_document_release()
+  S.octave_notifier = nil      -- its observable dies with the song; don't remove
+  S.active_notes = {}
+  S.scratch_index = nil
+  S.loaded_path = nil
+  S.preview_ok = false
+  if S.dialog then pcall(function() if S.dialog.visible then S.dialog:close() end end) end
+  S.dialog = nil
+  plsb_remove_doc_notifier()
+end
+
 local function plsb_persist_selection()
   if not preferences then return end
   if preferences.pakettiLoadSampleBrowserLastDir then
@@ -638,6 +664,7 @@ end
 function PakettiLoadSampleBrowser_Close(cancelled)
   plsb_persist_selection()   -- remember folder + highlighted file for next open
   plsb_remove_octave_notifier()
+  plsb_remove_doc_notifier()
   plsb_all_notes_off()
   if cancelled then plsb_cleanup_scratch() end
   if S.dialog and S.dialog.visible then
@@ -912,6 +939,13 @@ function PakettiLoadSampleBrowser_Open()
   S.octave_notifier = function() plsb_refresh() end
   pcall(function()
     renoise.song().transport.octave_observable:add_notifier(S.octave_notifier)
+  end)
+
+  -- tear the dialog down if the song is replaced, so its key_handler/observers
+  -- never dangle into a freed window (Renoise keyboard-dispatch SIGSEGV class)
+  S.doc_notifier = function() plsb_on_document_release() end
+  pcall(function()
+    renoise.tool().app_release_document_observable:add_notifier(S.doc_notifier)
   end)
 
   plsb_refresh()
