@@ -144,7 +144,7 @@
 - Resume: `claude --resume 149a81b3-e239-4ff1-ae91-7d5f10d73e7c`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/149a81b3-e239-4ff1-ae91-7d5f10d73e7c.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (5): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, groovebox-8120-record-pakettified-instrument.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
+- Cards touched (6): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, groovebox-8120-record-pakettified-instrument.feature, menu-registration-duplicates.feature, sample-browser-deferred-close.feature, song-lifecycle-safety.feature
 
 ### `e1dab7cf-905b-49cc-a9dd-8ec577cc9a9a`  (2026-10-02)
 - Resume: `claude --resume e1dab7cf-905b-49cc-a9dd-8ec577cc9a9a`

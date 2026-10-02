@@ -20,8 +20,9 @@
 --   Backspace / Left go up to the parent folder
 --   Esc             cancel + unload (delete scratch instrument)
 --   F1-F12          jump to folder preset N; Shift+F1-F12 stores the current folder as preset N
---   Right-Shift     "load and jam": load into a NEW instrument, select it, close,
---                   turn on Edit Mode + Follow Pattern, jump to the Pattern Editor
+--   Right-Shift     "load and jam": load into the smart target slot (selected-if-empty,
+--                   else first empty, else new), select it, close, turn on Edit Mode +
+--                   Follow Pattern, jump to the Pattern Editor
 --   Piano keys      keyjazz the highlighted file (zsxdcvgbhnjm + 23 567 9 + qwertyuiop)
 --   Space           passes through to Renoise transport (start/stop during audition)
 --   Shift+Enter     load all sample files directly inside the selected folder
@@ -794,15 +795,16 @@ local function plsb_confirm_now()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Right-Shift "load and jam": load into a NEW instrument, select it, close, turn on
--- Edit Mode + Follow Pattern, and drop into the Pattern Editor ready to play in.
+-- Right-Shift "load and jam": load into the smart target slot (selected-if-empty,
+-- else first empty, else new), select it, close, turn on Edit Mode + Follow Pattern,
+-- and drop into the Pattern Editor ready to play in.
 local function plsb_confirm_jam_now()
   local e = S.entries[S.selected]
   if not (e and e.kind == "file") then
     plsb_close_now(true)
     return
   end
-  local _, tgt = plsb_load_path(e.path, true)
+  local _, tgt = plsb_load_path(e.path, false)
   plsb_close_now(false)
   local song = renoise.song()
   if tgt and song.instruments[tgt] then song.selected_instrument_index = tgt end
