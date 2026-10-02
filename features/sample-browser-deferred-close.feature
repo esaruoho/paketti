@@ -7,6 +7,7 @@
 # Files: PakettiLoadSampleBrowser.lua, tests/sample-browser-deferred-close.lua, PLAN.md, this card and session.
 # WATCH: plsb_defer_action plsb_cancel_pending_action plsb_close_now plsb_confirm_now plsb_load_path plsb_load_folder_now plsb_key_handler PakettiLoadSampleBrowserToggle
 # RESULT-LOG >>
+#   2026-10-02  direct-commit  touched: plsb_defer_action plsb_close_now plsb_load_path
 #   2026-10-02  direct-commit  touched: plsb_defer_action plsb_close_now plsb_confirm_now plsb_load_path plsb_load_folder_now
 #   2026-10-02  direct-commit  touched: plsb_defer_action plsb_cancel_pending_action plsb_close_now plsb_confirm_now PakettiLoadSampleBrowserToggle
 

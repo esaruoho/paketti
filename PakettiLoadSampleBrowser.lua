@@ -20,6 +20,8 @@
 --   Backspace / Left go up to the parent folder
 --   Esc             cancel + unload (delete scratch instrument)
 --   F1-F12          jump to folder preset N; Shift+F1-F12 stores the current folder as preset N
+--   Right-Shift     "load and jam": load into a NEW instrument, select it, close,
+--                   turn on Edit Mode + Follow Pattern, jump to the Pattern Editor
 --   Piano keys      keyjazz the highlighted file (zsxdcvgbhnjm + 23 567 9 + qwertyuiop)
 --   Space           passes through to Renoise transport (start/stop during audition)
 --   Shift+Enter     load all sample files directly inside the selected folder
@@ -711,7 +713,9 @@ function PakettiLoadSampleBrowser_Close(cancelled)
   plsb_defer_action(function() plsb_close_now(cancelled) end)
 end
 
-local function plsb_load_path(path)
+-- force_new => always a NEW instrument slot at the end; otherwise smart target
+-- (selected-if-empty, else first empty, else new). Returns loaded, target_index.
+local function plsb_load_path(path, force_new)
   plsb_all_notes_off()
 
   -- expand non-native formats to real audio (temp wavs)
@@ -734,19 +738,21 @@ local function plsb_load_path(path)
     return #inst.samples == 0 and not inst.plugin_properties.plugin_loaded
   end
   local tgt = nil
-  local sel = song.selected_instrument_index
-  if song.instruments[sel] and is_empty(song.instruments[sel]) then
-    tgt = sel
-  else
-    for i = 1, #song.instruments do
-      if is_empty(song.instruments[i]) then tgt = i break end
+  if not force_new then
+    local sel = song.selected_instrument_index
+    if song.instruments[sel] and is_empty(song.instruments[sel]) then
+      tgt = sel
+    else
+      for i = 1, #song.instruments do
+        if is_empty(song.instruments[i]) then tgt = i break end
+      end
     end
   end
   if not tgt then
     if not safeInsertInstrumentAt(song, #song.instruments + 1) then
       renoise.app():show_status("Paketti Load Sample: could not create instrument slot")
       pcall(function() PakettiExpandLoadableCleanup(temps) end)
-      return false
+      return false, nil
     end
     tgt = #song.instruments
   end
@@ -774,7 +780,7 @@ local function plsb_load_path(path)
   end
 
   pcall(function() PakettiExpandLoadableCleanup(temps) end)
-  return loaded
+  return loaded, tgt
 end
 
 local function plsb_confirm_now()
@@ -788,8 +794,29 @@ local function plsb_confirm_now()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
+-- Right-Shift "load and jam": load into a NEW instrument, select it, close, turn on
+-- Edit Mode + Follow Pattern, and drop into the Pattern Editor ready to play in.
+local function plsb_confirm_jam_now()
+  local e = S.entries[S.selected]
+  if not (e and e.kind == "file") then
+    plsb_close_now(true)
+    return
+  end
+  local _, tgt = plsb_load_path(e.path, true)
+  plsb_close_now(false)
+  local song = renoise.song()
+  if tgt and song.instruments[tgt] then song.selected_instrument_index = tgt end
+  pcall(function() song.transport.edit_mode = true end)
+  pcall(function() song.transport.follow_player = true end)
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
 function PakettiLoadSampleBrowser_Confirm()
   plsb_defer_action(plsb_confirm_now)
+end
+
+function PakettiLoadSampleBrowser_ConfirmJam()
+  plsb_defer_action(plsb_confirm_jam_now)
 end
 
 local function plsb_load_folder_now()
@@ -890,6 +917,11 @@ local function plsb_key_handler(dialog, key)
   -- navigation + actions (not key-repeat sensitive except arrows)
   if name == "esc" then
     PakettiLoadSampleBrowser_Close(true)
+    return nil
+  elseif name == "rshift" then
+    -- Right-Shift = load into a NEW instrument, close, Edit Mode + Follow Pattern on,
+    -- and jump to the Pattern Editor ready to jam
+    if not key.repeated then PakettiLoadSampleBrowser_ConfirmJam() end
     return nil
   elseif name == "return" then
     if not key.repeated then
