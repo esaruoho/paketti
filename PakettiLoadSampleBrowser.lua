@@ -14,6 +14,7 @@
 --
 -- Keys in dialog:
 --   Up/Down         move the file cursor (loads the highlighted file for preview)
+--   Mod+Up/Down     any modifier (Cmd/Option/Shift/Ctrl) + Up/Down jumps to top/bottom
 --   PageUp/PageDown jump a screenful
 --   Enter / Return  on a folder: enter it; on a file: LOAD into target + return to Pattern Editor
 --   Backspace / Left go up to the parent folder
@@ -781,6 +782,18 @@ local function plsb_move(delta)
   plsb_refresh()
 end
 
+-- jump to an absolute index (clamped) -- used by Cmd/Option+Up/Down for top/bottom
+local function plsb_move_to(idx)
+  if #S.entries == 0 then return end
+  plsb_all_notes_off()
+  S.selected = idx
+  if S.selected < 1 then S.selected = 1 end
+  if S.selected > #S.entries then S.selected = #S.entries end
+  plsb_adjust_scroll()
+  plsb_preview_selected()
+  plsb_refresh()
+end
+
 -- click a row on the list canvas to select it; click the selected row to activate it
 local function plsb_list_mouse(ev)
   if ev.type ~= "down" or ev.button ~= "left" then return end
@@ -818,9 +831,15 @@ local function plsb_key_handler(dialog, key)
     plsb_activate_entry()
     return nil
   elseif name == "up" then
-    plsb_move(-1); return nil
+    -- any modifier (Cmd / Option / Shift / Ctrl) + Up jumps to the top
+    local jump = key.modifiers and key.modifiers ~= ""
+    if jump then plsb_move_to(1) else plsb_move(-1) end
+    return nil
   elseif name == "down" then
-    plsb_move(1); return nil
+    -- any modifier (Cmd / Option / Shift / Ctrl) + Down jumps to the bottom
+    local jump = key.modifiers and key.modifiers ~= ""
+    if jump then plsb_move_to(#S.entries) else plsb_move(1) end
+    return nil
   elseif name == "prior" then       -- Page Up
     plsb_move(-VISIBLE_ROWS); return nil
   elseif name == "next" then        -- Page Down
