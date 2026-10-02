@@ -150,4 +150,4 @@
 - Resume: `claude --resume e1dab7cf-905b-49cc-a9dd-8ec577cc9a9a`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/e1dab7cf-905b-49cc-a9dd-8ec577cc9a9a.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): TEMPLATE.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
+- Cards touched (4): TEMPLATE.feature, menu-registration-duplicates.feature, netdrive-2logic-watcher.feature, song-lifecycle-safety.feature

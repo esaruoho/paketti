@@ -54,7 +54,6 @@ local PLSB_NATIVE = { wav=true, aif=true, aiff=true, flac=true, ogg=true, mp3=tr
 local S = {
   dialog = nil,
   vb = nil,
-  canvas_id = nil,
   current_dir = nil,
   entries = {},          -- { {kind="updir"/"dir"/"file", name=, path=}, ... }
   selected = 1,
@@ -65,30 +64,29 @@ local S = {
   meta = {},
   peaks = nil,           -- { ch1 = {{min,max},...}, ch2 = {...} or nil }
   active_notes = {},     -- key_name -> note value
+  dir_id = nil, meta_id = nil, wave_id = nil, row_ids = nil,
+  octave_notifier = nil,
 }
 
-local CANVAS_W = 900
-local CANVAS_H = 600
-local ROW_H = 15
-local LIST_Y = 36
-local VISIBLE_ROWS = math.floor((CANVAS_H - LIST_Y - 10) / ROW_H)
-local LIST_NUM_X = 8
-local LIST_TXT_X = 52
-local LIST_RIGHT = 500
-local PANEL_X = 524
-local FONT = 8
-local CHAR_W = FONT * 1.4
+-- forward declaration: refreshes the text widgets + waveform canvas (defined below,
+-- but called by functions above its definition)
+local plsb_refresh
 
--- colors
-local COL_BG = {12, 16, 20, 255}
-local COL_DIR = {90, 220, 120, 255}
-local COL_FILE = {210, 220, 225, 255}
-local COL_SEL_BG = {210, 220, 225, 255}
-local COL_SEL_FG = {12, 16, 20, 255}
-local COL_LABEL = {150, 190, 210, 255}
-local COL_VALUE = {230, 235, 120, 255}
+-- The list / path / metadata are normal Renoise text widgets; only the waveform
+-- is drawn on a Canvas.
+local VISIBLE_ROWS = 30     -- number of file-list text rows shown at once
+local LIST_COLS = 78        -- monospace column budget per list row
+local LIST_W = 560          -- pixel width of a list text row
+local META_W = 340
+local META_H = 170
+local WAVE_W = 340
+local WAVE_H = 150
+
+-- waveform canvas colors
+local COL_BG = {18, 22, 26, 255}
 local COL_WAVE = {90, 220, 120, 255}
 local COL_FRAME = {70, 90, 100, 255}
+local COL_ZERO = {50, 64, 72, 255}
 
 -- helpers ---------------------------------------------------------------------
 local function plsb_sep()
@@ -340,7 +338,7 @@ local function plsb_preview_selected()
   if not PLSB_NATIVE[ext] then
     -- non-native: list + confirm-load supported, but no live preview/waveform
     S.meta.note = "Preview N/A - press Enter to load"
-    if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+    if plsb_refresh then plsb_refresh() end
     return
   end
 
@@ -364,11 +362,17 @@ local function plsb_preview_selected()
   else
     S.meta.note = "Could not decode for preview"
   end
-  if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+  if plsb_refresh then plsb_refresh() end
 end
 
 -- directory listing -----------------------------------------------------------
-local function plsb_rebuild_entries()
+local function plsb_adjust_scroll()
+  if S.selected < S.scroll + 1 then S.scroll = S.selected - 1 end
+  if S.selected > S.scroll + VISIBLE_ROWS then S.scroll = S.selected - VISIBLE_ROWS end
+  if S.scroll < 0 then S.scroll = 0 end
+end
+
+local function plsb_rebuild_entries(select_name)
   S.entries = {}
   local dir = S.current_dir
   -- up-dir entry (unless at a filesystem root)
@@ -396,159 +400,136 @@ local function plsb_rebuild_entries()
     end
   end
   S.selected = 1
+  -- optionally land the cursor on a named entry (e.g. the folder we just came up from)
+  if select_name and select_name ~= "" then
+    for i, e in ipairs(S.entries) do
+      if e.name == select_name then S.selected = i break end
+    end
+  end
   S.scroll = 0
+  plsb_adjust_scroll()
   plsb_preview_selected()
 end
 
-local function plsb_enter_dir(path)
+local function plsb_enter_dir(path, select_name)
   if io.exists(path) then
     S.current_dir = path
-    plsb_rebuild_entries()
+    plsb_rebuild_entries(select_name)
     plsb_save_dir(path)   -- navigating updates the saved default folder
   end
 end
 
-local function plsb_adjust_scroll()
-  if S.selected < S.scroll + 1 then S.scroll = S.selected - 1 end
-  if S.selected > S.scroll + VISIBLE_ROWS then S.scroll = S.selected - VISIBLE_ROWS end
-  if S.scroll < 0 then S.scroll = 0 end
-end
-
 -- rendering -------------------------------------------------------------------
-local function plsb_text(ctx, color, text, x, y)
-  ctx.stroke_color = color
-  ctx.fill_color = color
-  ctx.line_width = 1
-  PakettiCanvasFontDrawText(ctx, text, x, y, FONT)
-end
-
-local function plsb_truncate(text, max_px)
-  local max_chars = math.floor(max_px / CHAR_W)
-  if #text <= max_chars then return text end
-  if max_chars <= 1 then return text:sub(1, 1) end
-  return text:sub(1, max_chars - 1) .. "~"
-end
-
-local function plsb_draw_meta(ctx)
-  local m = S.meta
-  local lx = PANEL_X
-  local vx = PANEL_X + 160
-  local y = LIST_Y
-  local function row(label, value, is_val)
-    plsb_text(ctx, COL_LABEL, label, lx, y)
-    if value ~= nil then plsb_text(ctx, is_val and COL_VALUE or COL_FILE, value, vx, y) end
-    y = y + ROW_H
-  end
-  row("FILENAME", plsb_truncate(m.name or "-", 200), true)
-  if S.preview_ok then
-    row("SPEED", plsb_pad(m.sample_rate, 7), true)
-    row("LOOP", m.loop_mode or "Off", true)
-    row("LOOPBEG", plsb_pad(m.loop_start, 7), true)
-    row("LOOPEND", plsb_pad(m.loop_end, 7), true)
-    row("QUALITY", tostring(m.bit_depth or 0) .. " bit " ..
-      ((m.channels == 2) and "Stereo" or "Mono"), true)
-    row("LENGTH", plsb_pad(m.frames, 7), true)
-  elseif m.note then
-    row(m.note, nil)
-  end
-
-  -- waveform strips
-  local wy = LIST_Y + 9 * ROW_H
-  local ww = CANVAS_W - PANEL_X - 20
-  local wx = PANEL_X
-  ctx.stroke_color = COL_FRAME
-  ctx.line_width = 1
-  ctx:begin_path(); ctx:rect(wx, wy, ww, 110); ctx:stroke()
-  if S.peaks and S.preview_ok then
-    local n = #S.peaks
-    local lanes = math.min(n, 2)
-    local lane_h = 110 / lanes
-    ctx.stroke_color = COL_WAVE
-    for ch = 1, lanes do
-      local base = wy + (ch - 1) * lane_h + lane_h / 2
-      local col = S.peaks[ch]
-      local pw = #col
-      ctx:begin_path()
-      for px = 1, pw do
-        local x = wx + (px - 1) * (ww / pw)
-        local mn = col[px][1]
-        local mx = col[px][2]
-        ctx:move_to(x, base - mx * (lane_h / 2 - 2))
-        ctx:line_to(x, base - mn * (lane_h / 2 - 2))
-      end
-      ctx:stroke()
-    end
-  end
-
-  -- footer: format / size / date / time
-  local fy = wy + 120
-  local function frow(label, value)
-    plsb_text(ctx, COL_LABEL, label, lx, fy)
-    if value then plsb_text(ctx, COL_VALUE, value, vx, fy) end
-    fy = fy + ROW_H
-  end
-  frow("FORMAT", plsb_truncate(m.format or "-", 200))
-  frow("SIZE", m.size and tostring(m.size) or "-")
-  frow("DATE", m.date or "-")
-  frow("TIME", m.time or "-")
-
-  -- octave hint
-  local oct = renoise.song() and renoise.song().transport.octave or 0
-  plsb_text(ctx, COL_LABEL, "KEYJAZZ OCT " .. tostring(oct), lx, fy + ROW_H)
-end
-
-local function plsb_render(ctx)
-  ctx:clear_rect(0, 0, CANVAS_W, CANVAS_H)
+-- The ONLY canvas: the waveform of the previewed sample.
+local function plsb_wave_render(ctx)
+  ctx:clear_rect(0, 0, WAVE_W, WAVE_H)
   ctx.fill_color = COL_BG
-  ctx:begin_path(); ctx:rect(0, 0, CANVAS_W, CANVAS_H); ctx:fill()
-
-  -- title
-  plsb_text(ctx, COL_LABEL, "LOAD SAMPLE", CANVAS_W / 2 - 60, 10)
-  -- current dir
-  plsb_text(ctx, COL_FILE, plsb_truncate(S.current_dir or "", LIST_RIGHT - LIST_NUM_X), LIST_NUM_X, 22)
-
-  -- file list (no row numbers: name left-aligned, extra data right-aligned)
-  local name_x = LIST_NUM_X
-  for r = 1, VISIBLE_ROWS do
-    local i = S.scroll + r
-    local e = S.entries[i]
-    if e then
-      local y = LIST_Y + (r - 1) * ROW_H
-      local selected = (i == S.selected)
-      if selected then
-        ctx.fill_color = COL_SEL_BG
-        ctx:begin_path(); ctx:rect(name_x - 2, y - 1, LIST_RIGHT - name_x + 2, ROW_H); ctx:fill()
-      end
-      local name_text, extra_text, col
-      if e.kind == "updir" then
-        name_text = ".. (up)"; extra_text = ""; col = COL_DIR
-      elseif e.kind == "dir" then
-        name_text = e.name; extra_text = "<DIR>"; col = COL_DIR
-      else
-        local base, extra, ext = plsb_split_file(e.name)
-        name_text = base
-        extra_text = (extra ~= "" and (extra .. "  ") or "") .. (ext ~= "" and ("." .. ext:upper()) or "")
-        col = COL_FILE
-      end
-      if selected then col = COL_SEL_FG end
-      -- right-aligned extra column
-      local extra_w = #extra_text * CHAR_W
-      local extra_x = LIST_RIGHT - extra_w
-      if extra_text ~= "" then
-        plsb_text(ctx, selected and COL_SEL_FG or COL_LABEL, extra_text, extra_x, y)
-      end
-      -- name truncated so it never collides with the extra column
-      local name_max = (extra_text ~= "" and (extra_x - 8) or LIST_RIGHT) - name_x
-      plsb_text(ctx, col, plsb_truncate(name_text, name_max), name_x, y)
-    end
-  end
-
-  -- vertical divider
+  ctx:begin_path(); ctx:rect(0, 0, WAVE_W, WAVE_H); ctx:fill()
   ctx.stroke_color = COL_FRAME
   ctx.line_width = 1
-  ctx:begin_path(); ctx:move_to(LIST_RIGHT + 8, LIST_Y - 6); ctx:line_to(LIST_RIGHT + 8, CANVAS_H - 6); ctx:stroke()
+  ctx:begin_path(); ctx:rect(0, 0, WAVE_W, WAVE_H); ctx:stroke()
 
-  plsb_draw_meta(ctx)
+  if not (S.peaks and S.preview_ok) then return end
+  local lanes = math.min(#S.peaks, 2)
+  if lanes < 1 then return end
+  local lane_h = WAVE_H / lanes
+  for ch = 1, lanes do
+    local base = (ch - 1) * lane_h + lane_h / 2
+    -- zero line
+    ctx.stroke_color = COL_ZERO
+    ctx:begin_path(); ctx:move_to(0, base); ctx:line_to(WAVE_W, base); ctx:stroke()
+    -- peaks
+    local col = S.peaks[ch]
+    local pw = #col
+    ctx.stroke_color = COL_WAVE
+    ctx:begin_path()
+    for px = 1, pw do
+      local x = (px - 1) * (WAVE_W / pw)
+      local mn = col[px][1]
+      local mx = col[px][2]
+      ctx:move_to(x, base - mx * (lane_h / 2 - 2))
+      ctx:line_to(x, base - mn * (lane_h / 2 - 2))
+    end
+    ctx:stroke()
+  end
+end
+
+-- one monospace list row, right-aligning the "extra" column within LIST_COLS chars
+local function plsb_row_text(e, selected)
+  local marker = selected and "> " or "  "
+  local left, right
+  if e.kind == "updir" then
+    left = ".. (up)"; right = ""
+  elseif e.kind == "dir" then
+    left = e.name; right = "<DIR>"
+  else
+    local base, extra, ext = plsb_split_file(e.name)
+    left = base
+    right = (extra ~= "" and (extra .. "  ") or "") .. (ext ~= "" and ("." .. ext:upper()) or "")
+  end
+  local avail = LIST_COLS - #marker - #right - 1
+  if avail < 1 then avail = 1 end
+  if #left > avail then
+    left = (avail > 1) and (left:sub(1, avail - 1) .. "~") or left:sub(1, 1)
+  end
+  local pad = LIST_COLS - #marker - #left - #right
+  if pad < 1 then pad = 1 end
+  return marker .. left .. string.rep(" ", pad) .. right
+end
+
+-- the human-readable metadata block (plain text, not canvas font)
+local function plsb_meta_string()
+  local m = S.meta
+  local e = S.entries[S.selected]
+  local oct = (renoise.song() and renoise.song().transport.octave) or 0
+  if not e then return "No file selected\n\nKeyjazz octave: " .. oct end
+  if e.kind ~= "file" then
+    return (e.kind == "updir" and ".. (parent folder)" or ("Folder: " .. e.name))
+      .. "\n\nEnter to open\n\nKeyjazz octave: " .. oct
+  end
+  local lines = {}
+  lines[#lines + 1] = "Filename:    " .. (m.name or "-")
+  lines[#lines + 1] = "Format:      " .. (m.format or "-")
+  if S.preview_ok then
+    lines[#lines + 1] = "Sample rate: " .. tostring(m.sample_rate or 0) .. " Hz"
+    lines[#lines + 1] = "Quality:     " .. tostring(m.bit_depth or 0) .. " bit "
+      .. ((m.channels == 2) and "Stereo" or "Mono")
+    lines[#lines + 1] = "Length:      " .. tostring(m.frames or 0) .. " frames"
+    lines[#lines + 1] = "Loop:        " .. (m.loop_mode or "Off")
+      .. ((m.loop_mode and m.loop_mode ~= "Off")
+        and ("  (" .. tostring(m.loop_start or 0) .. " - " .. tostring(m.loop_end or 0) .. ")") or "")
+  elseif m.note then
+    lines[#lines + 1] = "Preview:     " .. m.note
+  end
+  if m.size then lines[#lines + 1] = "Size:        " .. tostring(m.size) .. " bytes" end
+  if m.date then lines[#lines + 1] = "Date:        " .. m.date .. (m.time and ("  " .. m.time) or "") end
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "Keyjazz octave: " .. oct
+  return table.concat(lines, "\n")
+end
+
+-- refresh the text widgets + waveform canvas (assigned to the forward-declared local)
+plsb_refresh = function()
+  if not S.vb then return end
+  local v = S.vb.views
+  if S.dir_id and v[S.dir_id] then v[S.dir_id].text = S.current_dir or "" end
+  if S.row_ids then
+    for r = 1, VISIBLE_ROWS do
+      local id = S.row_ids[r]
+      local tv = id and v[id]
+      if tv then
+        local i = S.scroll + r
+        local e = S.entries[i]
+        if e then
+          tv.text = plsb_row_text(e, i == S.selected)
+        else
+          tv.text = ""
+        end
+      end
+    end
+  end
+  if S.meta_id and v[S.meta_id] then v[S.meta_id].text = plsb_meta_string() end
+  if S.wave_id and v[S.wave_id] then v[S.wave_id]:update() end
 end
 
 -- keyjazz ---------------------------------------------------------------------
@@ -713,12 +694,24 @@ function PakettiLoadSampleBrowser_Confirm()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
+-- go up to the parent, landing the cursor on the folder we just left
+local function plsb_go_up()
+  local leaving = plsb_basename(S.current_dir or "")
+  local parent = plsb_parent(S.current_dir)
+  if parent ~= S.current_dir then
+    plsb_enter_dir(parent, leaving)
+    plsb_refresh()
+  end
+end
+
 local function plsb_activate_entry()
   local e = S.entries[S.selected]
   if not e then return end
-  if e.kind == "updir" or e.kind == "dir" then
+  if e.kind == "updir" then
+    plsb_go_up()
+  elseif e.kind == "dir" then
     plsb_enter_dir(e.path)
-    if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+    plsb_refresh()
   else
     PakettiLoadSampleBrowser_Confirm()
   end
@@ -732,7 +725,7 @@ local function plsb_move(delta)
   if S.selected > #S.entries then S.selected = #S.entries end
   plsb_adjust_scroll()
   plsb_preview_selected()
-  if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+  plsb_refresh()
 end
 
 local function plsb_key_handler(dialog, key)
@@ -763,15 +756,15 @@ local function plsb_key_handler(dialog, key)
   elseif name == "next" then        -- Page Down
     plsb_move(VISIBLE_ROWS); return nil
   elseif name == "left" or name == "back" then
-    local parent = plsb_parent(S.current_dir)
-    if parent ~= S.current_dir then plsb_enter_dir(parent)
-      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
-    end
+    plsb_go_up()
     return nil
   elseif name == "right" then
     local e = S.entries[S.selected]
-    if e and (e.kind == "dir" or e.kind == "updir") then plsb_enter_dir(e.path)
-      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+    if e and e.kind == "updir" then
+      plsb_go_up()
+    elseif e and e.kind == "dir" then
+      plsb_enter_dir(e.path)
+      plsb_refresh()
     end
     return nil
   end
@@ -789,7 +782,7 @@ local function plsb_key_handler(dialog, key)
         local p = presets[n]
         if p and p ~= "" and io.exists(p) then
           plsb_enter_dir(p)
-          if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+          plsb_refresh()
         else
           renoise.app():show_status("Paketti Load Sample: folder preset F" .. n .. " is empty (Shift+F" .. n .. " to store current folder)")
         end
@@ -809,28 +802,6 @@ local function plsb_key_handler(dialog, key)
   return key
 end
 
-local function plsb_mouse_handler(ev)
-  if ev.type ~= "down" then return end
-  local x = ev.position.x
-  local y = ev.position.y
-  if x < LIST_NUM_X - 2 or x > LIST_RIGHT then return end
-  if y < LIST_Y - 1 then return end
-  local r = math.floor((y - (LIST_Y - 1)) / ROW_H) + 1
-  local i = S.scroll + r
-  if i < 1 or i > #S.entries then return end
-  if ev.button == "left" then
-    if i == S.selected then
-      plsb_activate_entry()
-    else
-      plsb_all_notes_off()
-      S.selected = i
-      plsb_adjust_scroll()
-      plsb_preview_selected()
-      if S.canvas_id and S.vb and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
-    end
-  end
-end
-
 function PakettiLoadSampleBrowser_Open()
   if not renoise.song() then
     renoise.app():show_status("Paketti Load Sample: no song")
@@ -846,16 +817,32 @@ function PakettiLoadSampleBrowser_Open()
 
   local vb = renoise.ViewBuilder()
   S.vb = vb
-  S.canvas_id = "plsb_canvas"
+  S.dir_id = "plsb_dir"
+  S.meta_id = "plsb_meta"
+  S.wave_id = "plsb_wave"
+  S.row_ids = {}
+
+  -- the file list: VISIBLE_ROWS monospace text rows (no canvas font)
+  local list_col = { style = "border", margin = 4, spacing = 0 }
+  for r = 1, VISIBLE_ROWS do
+    local id = "plsb_row_" .. r
+    S.row_ids[r] = id
+    list_col[#list_col + 1] = vb:text{ id = id, font = "mono", text = "", width = LIST_W }
+  end
+
   local content = vb:column {
-    vb:canvas {
-      id = S.canvas_id,
-      width = CANVAS_W,
-      height = CANVAS_H,
-      mode = "plain",
-      render = plsb_render,
-      mouse_handler = plsb_mouse_handler,
-      mouse_events = { "down" },
+    margin = 6,
+    spacing = 6,
+    vb:text{ id = S.dir_id, font = "mono", style = "strong", text = "", width = LIST_W },
+    vb:row {
+      spacing = 10,
+      vb:column(list_col),
+      vb:column {
+        spacing = 6,
+        vb:multiline_text{ id = S.meta_id, font = "mono", text = "", width = META_W, height = META_H },
+        vb:text{ text = "Waveform", font = "bold" },
+        vb:canvas{ id = S.wave_id, width = WAVE_W, height = WAVE_H, mode = "plain", render = plsb_wave_render },
+      },
     },
   }
 
@@ -876,15 +863,13 @@ function PakettiLoadSampleBrowser_Open()
   S.dialog = renoise.app():show_custom_dialog("Paketti Load Sample (Keyjazz Preview)",
     content, plsb_key_handler, key_opts)
 
-  -- keep the KEYJAZZ OCT readout live when the transport octave changes
-  S.octave_notifier = function()
-    if S.vb and S.canvas_id and S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
-  end
+  -- keep the metadata (incl. keyjazz octave) live when the transport octave changes
+  S.octave_notifier = function() plsb_refresh() end
   pcall(function()
     renoise.song().transport.octave_observable:add_notifier(S.octave_notifier)
   end)
 
-  if S.vb.views[S.canvas_id] then S.vb.views[S.canvas_id]:update() end
+  plsb_refresh()
 end
 
 function PakettiLoadSampleBrowserToggle()

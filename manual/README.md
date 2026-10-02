@@ -1169,7 +1169,9 @@ Open it and you get a folder/file browser on the left, and on the right the high
 - **Esc** cancels and deletes the scratch instrument, leaving no residue.
 - **F1–F12** jump to a saved folder preset; **Shift+F1–F12** stores the current folder into that preset slot. Twelve presets in total, so you can keep your drum folder, your vocal folder, your field-recording folder etc. one keypress apart.
 
-The folder you navigate to is remembered and becomes the default the next time you open the dialog. If that folder has since been deleted, it reverts to `~/Music/Samples`. The very first time you ever open the dialog it asks you to pick a default folder. The highlighted file is remembered too, so reopening drops you back onto the same file (safely clamped if the folder now holds fewer files). The file list shows filenames left-aligned with any trailing date/time stamp and the extension lined up in a right-hand column, and the keyjazz octave readout updates live as you change the keyboard octave.
+The folder you navigate to is remembered and becomes the default the next time you open the dialog. If that folder has since been deleted, it reverts to `~/Music/Samples`. The very first time you ever open the dialog it asks you to pick a default folder. The highlighted file is remembered too, so reopening drops you back onto the same file (safely clamped if the folder now holds fewer files). Going up a folder lands the cursor on the folder you just came out of, rather than the top of the list. The file list shows filenames left-aligned with any trailing date/time stamp and the extension lined up in a right-hand column, and the keyjazz octave readout updates live as you change the keyboard octave.
+
+The folder path, the file list and the metadata panel are drawn as ordinary Renoise text; only the waveform itself is a Canvas.
 
 Non-WAV formats (`.mod`, `.rex`, `.rx2`, `.iff` and friends) still appear in the list and still load when you press Enter (via the normal Paketti file expander); live keyjazz preview is available for the formats Renoise can decode directly (WAV, AIFF, FLAC, OGG, etc.).
 
