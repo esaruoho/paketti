@@ -127,10 +127,26 @@ local function plsb_home()
 end
 
 local function plsb_start_dir()
+  -- 1) last folder used, if it still exists
   local pref = (preferences and preferences.pakettiLoadSampleBrowserLastDir
     and preferences.pakettiLoadSampleBrowserLastDir.value) or ""
   if pref ~= "" and io.exists(pref) then return pref end
-  return plsb_home()
+  -- 2) a sensible sample folder under the user's home, if one exists
+  local home = plsb_home()
+  local sep = plsb_sep()
+  local candidates = {
+    home .. sep .. "Music" .. sep .. "Samples",
+    home .. sep .. "Music" .. sep .. "samples",
+    home .. sep .. "Samples",
+    home .. sep .. "samples",
+    home .. sep .. "Music",
+    home .. sep .. "Documents",
+  }
+  for _, c in ipairs(candidates) do
+    if io.exists(c) then return c end
+  end
+  -- 3) home as last resort
+  return home
 end
 
 -- format strings for the IT-style panel
