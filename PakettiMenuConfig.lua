@@ -177,7 +177,7 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:BPM-Based Sa
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
+PakettiAddMenuToggleEntry{name="--Main Menu:Tools:Paketti:Instruments:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,pref=preferences.pakettiSampleRangeDeviceLoaderEnabled}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Paketti StemSlicer...",invoke = pakettiStemSlicerDialog}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:StemSlicer:Open Last StemSlicer Output...",invoke = openLastStemSlicerOutput}
@@ -200,7 +200,7 @@ end
 
 --renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
 if preferences.pakettiMenuConfig.SampleEditor.value then
-renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
+PakettiAddMenuToggleEntry{name="--Sample Editor Ruler:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,pref=preferences.pakettiSampleRangeDeviceLoaderEnabled}
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
@@ -2281,7 +2281,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Convolver:Show Convolv
   
 renoise.tool():add_menu_entry{name="Main Menu:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Paketti Sample Selection Info Toggle",invoke = toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
+PakettiAddMenuToggleEntry{name="Sample Editor Ruler:Paketti Sample Selection Info Toggle",invoke = toggleSampleDetails,pref=preferences.pakettiShowSampleDetails}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select Center of Sample Buffer",invoke=function()pakettiSampleBufferCenterSelector()end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Offset...", invoke = pakettiHexOffsetDialog}
 
@@ -2963,7 +2963,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Tracks:Duplicate Trac
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Open Player Pro Note Column Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Open Player Pro Tools Effect Dialog",invoke=function() pakettiPlayerProEffectDialog() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:PlayerPro Auto-Open Smart Dialog Toggle",invoke=function() pakettiPlayerProToggleAlwaysOpen() end,selected=function() return preferences.pakettiPlayerProAlwaysOpen.value end}
+PakettiAddMenuToggleEntry{name="Pattern Editor:Paketti:Other Trackers:PlayerPro Auto-Open Smart Dialog Toggle",invoke=function() pakettiPlayerProToggleAlwaysOpen() end,pref=preferences.pakettiPlayerProAlwaysOpen}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Tracks:Duplicate Track, set to Selected Instrument",invoke=function() setToSelectedInstrument_DuplicateTrack() end}
 
 
@@ -3677,28 +3677,28 @@ if PAKETTI_API >= 6.2 then
   renoise.tool():add_menu_entry{name="Main Menu:Options:Trigger Sample on Pattern Input During Record Toggle",invoke=function() PakettiTriggerOnInputToggle() end,selected=function() return PakettiTriggerOnInputEnabled end}
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Options:Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,selected=function() return preferences.pakettiSampleRangeDeviceLoaderEnabled.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Toggle Sample Selection Info",invoke=toggleSampleDetails,selected=function() return preferences.pakettiShowSampleDetails.value end}
+PakettiAddMenuOptionsEntry{name="Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,pref=preferences.pakettiSampleRangeDeviceLoaderEnabled}
+PakettiAddMenuOptionsEntry{name="Toggle Sample Selection Info",invoke=toggleSampleDetails,pref=preferences.pakettiShowSampleDetails}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Pattern Status Monitor Toggle",invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Follow Page Pattern Toggle",invoke=function() PakettiToggleFollowPagePattern() end,selected=function() return preferences.pakettiFollowPagePattern.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:PlayerPro Auto-Open Smart Dialog Toggle",invoke=function() pakettiPlayerProToggleAlwaysOpen() end,selected=function() return preferences.pakettiPlayerProAlwaysOpen.value end}
+PakettiAddMenuOptionsEntry{name="Follow Page Pattern Toggle",invoke=function() PakettiToggleFollowPagePattern() end,pref=preferences.pakettiFollowPagePattern}
+PakettiAddMenuOptionsEntry{name="PlayerPro Auto-Open Smart Dialog Toggle",invoke=function() pakettiPlayerProToggleAlwaysOpen() end,pref=preferences.pakettiPlayerProAlwaysOpen}
 PakettiAddMenuOptionsEntry{name="PlayerPro Smart SubColumn Toggle",pref=preferences.pakettiPlayerProSmartSubColumn}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Sononym Auto-Transfer Toggle",invoke=function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 PakettiAddMenuOptionsEntry{name="Sononymph Autostart Toggle",pref=preferences.SononymphAutostart}
 PakettiAddMenuOptionsEntry{name="Sononymph Auto-Transfer New Instrument Toggle",pref=preferences.SononymphAutotransfercreatenew}
 PakettiAddMenuOptionsEntry{name="Sononymph Auto-Transfer New Sample Slot Toggle",pref=preferences.SononymphAutotransfercreateslot}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Sononymph Auto-Arm Live Transfer on Load Toggle",invoke=function() preferences.SononymphLiveTransferAutostart.value = not preferences.SononymphLiveTransferAutostart.value preferences:save_as("preferences.xml") local on = preferences.SononymphLiveTransferAutostart.value local nonoverwrite = preferences.SononymphAutotransfercreatenew.value or preferences.SononymphAutotransfercreateslot.value if on and not nonoverwrite then renoise.app():show_status("Sononymph Auto-Arm Live Transfer: ON — inactive until 'New Instrument' or 'New Sample Slot' is enabled (never auto-arms in overwrite mode)") else renoise.app():show_status("Sononymph Auto-Arm Live Transfer on Load: " .. (on and "ON" or "OFF")) end end,selected=function() return preferences.SononymphLiveTransferAutostart.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:SBx Pattern Loop Follow Toggle",invoke=function() PakettiToggleSBxFollow() end,selected=function() return preferences.PakettiSBxFollowEnabled.value end}
+PakettiAddMenuOptionsEntry{name="Sononymph Auto-Arm Live Transfer on Load Toggle",invoke=function() preferences.SononymphLiveTransferAutostart.value = not preferences.SononymphLiveTransferAutostart.value preferences:save_as("preferences.xml") local on = preferences.SononymphLiveTransferAutostart.value local nonoverwrite = preferences.SononymphAutotransfercreatenew.value or preferences.SononymphAutotransfercreateslot.value if on and not nonoverwrite then renoise.app():show_status("Sononymph Auto-Arm Live Transfer: ON — inactive until 'New Instrument' or 'New Sample Slot' is enabled (never auto-arms in overwrite mode)") else renoise.app():show_status("Sononymph Auto-Arm Live Transfer on Load: " .. (on and "ON" or "OFF")) end end,pref=preferences.SononymphLiveTransferAutostart}
+PakettiAddMenuOptionsEntry{name="SBx Pattern Loop Follow Toggle",invoke=function() PakettiToggleSBxFollow() end,pref=preferences.PakettiSBxFollowEnabled}
 -- Phrase Follow Pattern Playback Hack requires API 6.2+
 if PAKETTI_HAS_PHRASES then
-  renoise.tool():add_menu_entry{name="Main Menu:Options:Phrase Follow Pattern Playback Hack Toggle",invoke=function() PakettiTogglePhraseFollowPatternPlayback() end,selected=function() return preferences.PakettiPhraseFollowPatternPlayback.value end}
+  PakettiAddMenuOptionsEntry{name="Phrase Follow Pattern Playback Hack Toggle",invoke=function() PakettiTogglePhraseFollowPatternPlayback() end,pref=preferences.PakettiPhraseFollowPatternPlayback}
 end
-renoise.tool():add_menu_entry{name="Main Menu:Options:Automatic Rename Track Toggle",invoke=function() pakettiToggleAutomaticRenameTrack() end,selected=function() return preferences.pakettiAutomaticRenameTrack.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Select Track Selects Instrument Toggle",invoke=function() pakettiToggleSelectTrackSelectInstrument() end,selected=function() return preferences.PakettiSelectTrackSelectInstrument.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-Zero-Crossing Selection Range in Sample Editor",invoke=function() preferences.ZeroCrossings.AutoSnapSelection.value = not preferences.ZeroCrossings.AutoSnapSelection.value if type(PakettiZeroCrossingsApplyAutoSnapPreference) == "function" then PakettiZeroCrossingsApplyAutoSnapPreference() end renoise.app():show_status("Auto-Zero-Crossing Selection Range: " .. (preferences.ZeroCrossings.AutoSnapSelection.value and "ON" or "OFF")) end,selected=function() return preferences.ZeroCrossings.AutoSnapSelection.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-Samplify Enable Monitoring Toggle",invoke=function() PakettiToggleNewSampleMonitoring() end,selected=function() return preferences.pakettiAutoSamplifyMonitoring.value end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Auto-Samplify Pakettify Toggle",invoke=function() PakettiToggleAutoSamplifyPakettify() end,selected=function() return preferences.pakettiAutoSamplifyPakettify.value end}
-renoise.tool():add_menu_entry{name="--Main Menu:Options:0G01 Loader Toggle",invoke=function() Paketti0G01LoaderToggle() end,selected=function() return preferences._0G01_Loader.value end}
+PakettiAddMenuOptionsEntry{name="Automatic Rename Track Toggle",invoke=function() pakettiToggleAutomaticRenameTrack() end,pref=preferences.pakettiAutomaticRenameTrack}
+PakettiAddMenuOptionsEntry{name="Select Track Selects Instrument Toggle",invoke=function() pakettiToggleSelectTrackSelectInstrument() end,pref=preferences.PakettiSelectTrackSelectInstrument}
+PakettiAddMenuOptionsEntry{name="Auto-Zero-Crossing Selection Range in Sample Editor",pref=preferences.ZeroCrossings.AutoSnapSelection,status="Auto-Zero-Crossing Selection Range",after=function() if type(PakettiZeroCrossingsApplyAutoSnapPreference) == "function" then PakettiZeroCrossingsApplyAutoSnapPreference() end end}
+PakettiAddMenuOptionsEntry{name="Auto-Samplify Enable Monitoring Toggle",invoke=function() PakettiToggleNewSampleMonitoring() end,pref=preferences.pakettiAutoSamplifyMonitoring}
+PakettiAddMenuOptionsEntry{name="Auto-Samplify Pakettify Toggle",invoke=function() PakettiToggleAutoSamplifyPakettify() end,pref=preferences.pakettiAutoSamplifyPakettify}
+PakettiAddMenuOptionsEntry{name="--0G01 Loader Toggle",invoke=function() Paketti0G01LoaderToggle() end,pref=preferences._0G01_Loader}
 renoise.tool():add_menu_entry{name="Main Menu:Options:OctaMED Hold-to-Fill Mode Toggle",invoke=function() PakettiHoldToFillShowDialog() end,selected=PakettiHoldToFillIsEnabled}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Song Frame Calculator Toggle",invoke=PakettiFrameCalculatorToggle,selected=PakettiFrameCalculatorIsEnabled}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Selection Follow Start Toggle",invoke=function() PakettiSelectionFollowToggle() end,selected=function() return PakettiSelectionFollowIsEnabled() end}
@@ -3706,9 +3706,9 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:Selection Follow to End To
 renoise.tool():add_menu_entry{name="Main Menu:Options:Show Automated Parameters in Mixer for Selected Device",invoke=PakettiShowAutomatedParametersInMixer}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Automated Parameters in Mixer for Selected Device",invoke=PakettiShowAutomatedParametersInMixer}
 renoise.tool():add_midi_mapping{name="Paketti:Mixer:Show Automated Parameters in Mixer for Selected Device",invoke=function(message) if message:is_trigger() then PakettiShowAutomatedParametersInMixer() end end}
-renoise.tool():add_menu_entry{name="--Main Menu:Options:Automatically Sync Folder to Samples Toggle",
+PakettiAddMenuOptionsEntry{name="--Automatically Sync Folder to Samples Toggle",
   invoke=function() if type(PakettiNetDriveWatcherToggle) == "function" then PakettiNetDriveWatcherToggle(true) end end,
-  selected=function() return preferences.pakettiNetDriveWatcherEnabled.value end}
+  pref=preferences.pakettiNetDriveWatcherEnabled}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Set Folder to Automatically Sync...",
   invoke=function() if type(PakettiNetDriveWatcherSetFolder) == "function" then PakettiNetDriveWatcherSetFolder() end end}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Paketti Preferences...",invoke=pakettiPreferences}

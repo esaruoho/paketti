@@ -4631,38 +4631,34 @@ function PakettiAddMenuEntry(args)
   return true
 end
 
--- DRY helper for a checkbox toggle in Main Menu:Options bound to a boolean preference.
--- The codebase repeated this exact shape dozens of times: flip preferences.X.value,
--- preferences:save_as("preferences.xml"), show an "ON"/"OFF" status, and a `selected`
--- callback returning the same value so Options draws a checkmark. This wraps all of it.
--- It routes through PakettiAddMenuEntry, so it honors the master menu toggle, the
--- per-context Menu Configuration preference, alphabetical sorting, and the duplicate
--- guard exactly like every other Paketti menu entry.
+-- DRY helper for a checkbox/toggle menu entry bound to a boolean preference, anywhere
+-- in the menu tree. The codebase repeated this exact shape dozens of times: flip
+-- preferences.X.value, preferences:save_as("preferences.xml"), show an "ON"/"OFF"
+-- status, and a `selected` callback returning the same value so the menu draws a
+-- checkmark. This wraps all of it. It routes through PakettiAddMenuEntry, so it honors
+-- the master menu toggle, the per-context Menu Configuration preference, alphabetical
+-- sorting, and the duplicate guard exactly like every other Paketti menu entry.
 --
--- You pass just the LABEL (the "Main Menu:Options:" prefix is added for you) and the
--- preference node to toggle. A leading "--" separator on the label is preserved.
+-- You pass the FULL menu `name` and the preference node to toggle. A leading "--"
+-- separator on the name is preserved. Three ways to use it:
 --
--- Usage (preference-backed — the common case):
---   PakettiAddMenuOptionsEntry{name="Sononymph Autostart Toggle", pref=preferences.SononymphAutostart}
--- Custom status label (default: the label with a trailing " Toggle" removed):
---   PakettiAddMenuOptionsEntry{name="...", pref=preferences.X, status="PlayerPro Smart SubColumn"}
--- Run code right after the flip (receives the new boolean), e.g. apply the pref live:
---   PakettiAddMenuOptionsEntry{name="...", pref=preferences.X, after=function(on) ... end}
--- Escape hatch — supply your own invoke/selected; only the Options: path is added:
---   PakettiAddMenuOptionsEntry{name="...", invoke=function() ... end, selected=function() return ... end}
-function PakettiAddMenuOptionsEntry(args)
-  -- Build the full "Main Menu:Options:" name, preserving a leading "--" separator.
+-- Pure preference toggle — helper generates flip + save + status + checkmark:
+--   PakettiAddMenuToggleEntry{name="Main Menu:Options:Follow Page Pattern Toggle", pref=preferences.pakettiFollowPagePattern}
+-- Custom invoke (a named toggle fn that does extra work) but checkmark from the pref:
+--   PakettiAddMenuToggleEntry{name="...", invoke=PakettiToggleFollowPagePattern, pref=preferences.pakettiFollowPagePattern}
+-- Escape hatch — your own invoke AND selected (helper only adds nothing but routing):
+--   PakettiAddMenuToggleEntry{name="...", invoke=function() ... end, selected=function() return ... end}
+-- Extras: status="..." overrides the status prefix (default: the leaf minus a trailing
+-- " Toggle"); after=function(on) ... end runs right after the flip (e.g. apply live).
+function PakettiAddMenuToggleEntry(args)
   local raw = args.name or ""
   local dashes = raw:match("^%-*") or ""
-  local label = raw:sub(#dashes + 1)
-  if not label:find("^Main Menu:Options:") then
-    label = "Main Menu:Options:" .. label
-  end
-  local full_name = dashes .. label
+  local path = raw:sub(#dashes + 1)
+  local full_name = dashes .. path
 
   -- The visible leaf (last path segment, trailing " Toggle" stripped) is the default
-  -- status prefix, e.g. "Sononymph Autostart Toggle" -> "Sononymph Autostart".
-  local leaf = label:match("([^:]+)$") or label
+  -- status prefix, e.g. "...:Sononymph Autostart Toggle" -> "Sononymph Autostart".
+  local leaf = path:match("([^:]+)$") or path
   local status_label = args.status or (leaf:gsub("%s+Toggle$", ""))
 
   local pref = args.pref
@@ -4678,11 +4674,27 @@ function PakettiAddMenuOptionsEntry(args)
     end
   end
   if pref and not selected then
-    -- Strict boolean so the Options checkmark renders on every OS (house rule 2).
+    -- Strict boolean so the checkmark renders on every OS (house rule 2).
     selected = function() return pref.value and true or false end
   end
 
   return PakettiAddMenuEntry{name=full_name, invoke=invoke, selected=selected}
+end
+
+-- Thin wrapper over PakettiAddMenuToggleEntry that prepends "Main Menu:Options:" so you
+-- pass only the LABEL for an Options-menu checkbox. Everything else is identical.
+--   PakettiAddMenuOptionsEntry{name="Sononymph Autostart Toggle", pref=preferences.SononymphAutostart}
+function PakettiAddMenuOptionsEntry(args)
+  local raw = args.name or ""
+  local dashes = raw:match("^%-*") or ""
+  local label = raw:sub(#dashes + 1)
+  if not label:find("^Main Menu:Options:") then
+    label = "Main Menu:Options:" .. label
+  end
+  local merged = {}
+  for k, v in pairs(args) do merged[k] = v end
+  merged.name = dashes .. label
+  return PakettiAddMenuToggleEntry(merged)
 end
 
 -- Flush all pending menu entries in sorted order, then clear the queue.
