@@ -930,6 +930,8 @@ PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Load Sample (Keyja
   invoke=function() PakettiLoadSampleBrowserToggle() end}
 PakettiAddMenuEntry{name="Sample Navigator:Paketti:Load Sample (Keyjazz Preview)",
   invoke=function() PakettiLoadSampleBrowserToggle() end}
+PakettiAddMenuEntry{name="Instrument Box:Paketti Gadgets:Load Sample (Keyjazz Preview)...",
+  invoke=function() PakettiLoadSampleBrowserToggle() end}
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Load Sample Browser Keyjazz Preview",

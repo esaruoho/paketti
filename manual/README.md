@@ -1179,6 +1179,7 @@ Non-WAV formats (`.mod`, `.rex`, `.rx2`, `.iff` and friends) still appear in the
 - MIDI Mapping: `Paketti:Load Sample Browser Keyjazz Preview`
 - Menu: `Main Menu:Tools:Paketti:Instruments:Load Sample (Keyjazz Preview)`
 - Menu: `Sample Navigator:Paketti:Load Sample (Keyjazz Preview)`
+- Menu: `Instrument Box:Paketti Gadgets:Load Sample (Keyjazz Preview)...`
 
 ### Saving Samples
 There are Midi Mappings, Keyboard Shortcuts and Menu Entries for `Save Selected Sample .WAV` & `Save Selected Sample .FLAC`. There's also `Save Selected Sample Range .WAV` & `Save Selected Sample Range .FLAC`. The Sample Range saving is from Fast Tracker 2.
