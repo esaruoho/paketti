@@ -4753,9 +4753,9 @@ renoise.tool():add_midi_mapping{
   name="Paketti:NetDrive 2logic Watcher Toggle [Trigger]",
   invoke=function(message) if message:is_trigger() then PakettiNetDriveWatcherToggle(true) end end
 }
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:NetDrive 2logic Watcher Toggle",
+PakettiAddMenuToggleEntry{name="Main Menu:Tools:Paketti:Instruments:NetDrive 2logic Watcher Toggle",
   invoke=function() PakettiNetDriveWatcherToggle(true) end,
-  selected=function() return PakettiNetDriveWatcher.running end}
+  get=function() return PakettiNetDriveWatcher.running end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Set NetDrive Watch Folder...",
   invoke=function() PakettiNetDriveWatcherSetFolder() end}
 PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Instruments:Set NetDrive Load-After Cutoff to Now",

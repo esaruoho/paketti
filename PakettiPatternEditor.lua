@@ -8941,10 +8941,10 @@ if PAKETTI_HAS_TRIGGER_LINE then
   }
 
   -- Add menu entry
-  PakettiAddMenuEntry{
+  PakettiAddMenuToggleEntry{
     name="Pattern Editor:Paketti:Toggle Audition Current Line on Pattern Row Change",
     invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end,
-    selected=function() return PakettiAuditionOnLineChangeEnabled end
+    pref=preferences.pakettiAuditionOnLineChangeEnabled
   }
 
   -- Add MIDI mapping for the toggle

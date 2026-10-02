@@ -115,28 +115,28 @@ renoise.tool():add_keybinding{name="Global:Sononymph:Load Selected Sample from S
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Sononymph Dialog...", invoke = function() SononymphStart(true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Sononymph:Sononymph Dialog...", invoke = function() SononymphStart(true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
+PakettiAddMenuToggleEntry{name="Instrument Box:Paketti:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,get=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_from_sononym(true) end end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_from_sononym(false) end end}
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sononymph Dialog...", invoke = function() SononymphStart(true) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sononymph:Sononymph Dialog...", invoke = function() SononymphStart(true) end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
+PakettiAddMenuToggleEntry{name="--Sample Editor:Paketti:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,get=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_from_sononym(true) end end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_from_sononym(false) end end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Sononymph Dialog...", invoke = function() SononymphStart(true) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Sononymph:Sononymph Dialog...", invoke = function() SononymphStart(true) end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
+PakettiAddMenuToggleEntry{name="--Sample Navigator:Paketti:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,get=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Sononymph:Load Selected Sample to Selected Slot", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_to_selected_slot() end end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_from_sononym(true) end end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_from_sononym(false) end end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Sononymph Dialog...", invoke = function() SononymphStart(true) end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
+PakettiAddMenuToggleEntry{name="--Main Menu:Tools:Paketti:Samples:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,get=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_from_sononym(true) end end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() SononymphStart(false) if SononymphApp then SononymphApp:load_selected_sample_from_sononym(false) end end}

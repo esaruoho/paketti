@@ -1915,14 +1915,29 @@ vb:row{
               vb:checkbox{
                 value=preferences.pakettiPatternStatusMonitor.value,
                 tooltip="Show real-time effect/note column information in status bar",
-                notifier=function(value) preferences.pakettiPatternStatusMonitor.value=value end
+                -- Apply live, not just persist: toggle only when the state actually
+                -- changes, so the monitor timer starts/stops to match the checkbox.
+                notifier=function(value)
+                  if type(toggle_pattern_status_monitor) == "function" and value ~= PakettiPatternStatusMonitorEnabled then
+                    toggle_pattern_status_monitor()
+                  else
+                    preferences.pakettiPatternStatusMonitor.value=value
+                  end
+                end
               },
               vb:space{width=checkbox_spacing},
               vb:text{text="Audition on Line Change",width=150,tooltip="Automatically audition the current line when moving cursor (API 6.2+ only)"},
               vb:checkbox{
                 value=preferences.pakettiAuditionOnLineChangeEnabled.value,
                 tooltip="Automatically audition the current line when moving cursor (API 6.2+ only)",
-                notifier=function(value) preferences.pakettiAuditionOnLineChangeEnabled.value=value end
+                -- Apply live via the setter so the row-change audition actually arms/disarms.
+                notifier=function(value)
+                  if type(PakettiSetAuditionCurrentLineOnRowChange) == "function" then
+                    PakettiSetAuditionCurrentLineOnRowChange(value)
+                  else
+                    preferences.pakettiAuditionOnLineChangeEnabled.value=value
+                  end
+                end
               }
             },
             vb:row{

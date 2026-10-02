@@ -1008,11 +1008,11 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Import/Export:Octa
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Import/Export:Octatrack Import STRD Bank...",invoke=function() PakettiOTSTRDImporter() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Horizontal...", invoke = pakettiMiniCheatsheetHorizontal}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Vertical...", invoke = pakettiMiniCheatsheetVertical}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
+PakettiAddMenuToggleEntry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,pref=preferences.pakettiPatternStatusMonitor}
 end
 
 if preferences.pakettiMenuConfig.PatternEditor.value then
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
+PakettiAddMenuToggleEntry{name="--Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor,pref=preferences.pakettiPatternStatusMonitor}
 end
 
 if preferences.pakettiMenuConfig.MainMenuTools.value then
@@ -2731,7 +2731,7 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti:Insert Stereo -> Mono device
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Insert Stereo -> Mono device to End of DSP Chain",invoke=function() insertMonoToEnd() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Randomize Selected Device Parameters",invoke=function()randomize_selected_device()end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
+PakettiAddMenuToggleEntry{name="--Mixer:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,get=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Tracks:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Tracks:Rename Current Track to Selected Instrument Name",invoke=function() PakettiRenameCurrentTrackToSelectedInstrument() end}
@@ -3669,21 +3669,21 @@ renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Function Search...
 renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Dynamic Views 1-3...",invoke=function() pakettiDynamicViewDialog(1,3) end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Dynamic Views 4-6...",invoke=function() pakettiDynamicViewDialog(4,6) end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Paketti Dynamic Views 7-9...",invoke=function() pakettiDynamicViewDialog(7,9) end}
-renoise.tool():add_menu_entry{name="--Main Menu:Options:Automatically Open Selected Track Device Editors Toggle",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
+PakettiAddMenuOptionsEntry{name="--Automatically Open Selected Track Device Editors Toggle",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,get=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
 if PAKETTI_API >= 6.2 then
-  renoise.tool():add_menu_entry{name="Main Menu:Options:Open Parameter Editor on Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,selected=PakettiCanvasExperimentsAutoOpenEnabled}
+  PakettiAddMenuOptionsEntry{name="Open Parameter Editor on Device Selection Toggle",invoke=PakettiCanvasExperimentsToggleAutoOpen,get=PakettiCanvasExperimentsAutoOpenEnabled}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Sample Effect Generator...",invoke = PakettiSampleEffectGeneratorInit}
-  renoise.tool():add_menu_entry{name="Main Menu:Options:Audition Current Line on Pattern Row Change Toggle",invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end,selected=function() return PakettiAuditionOnLineChangeEnabled end}
-  renoise.tool():add_menu_entry{name="Main Menu:Options:Trigger Sample on Pattern Input During Record Toggle",invoke=function() PakettiTriggerOnInputToggle() end,selected=function() return PakettiTriggerOnInputEnabled end}
+  PakettiAddMenuOptionsEntry{name="Audition Current Line on Pattern Row Change Toggle",invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end,pref=preferences.pakettiAuditionOnLineChangeEnabled}
+  PakettiAddMenuOptionsEntry{name="Trigger Sample on Pattern Input During Record Toggle",invoke=function() PakettiTriggerOnInputToggle() end,pref=preferences.pakettiTriggerOnInputEnabled}
 end
 
 PakettiAddMenuOptionsEntry{name="Sample Range Device Loader Toggle",invoke=function() PakettiSampleRangeDeviceLoaderToggle() end,pref=preferences.pakettiSampleRangeDeviceLoaderEnabled}
 PakettiAddMenuOptionsEntry{name="Toggle Sample Selection Info",invoke=toggleSampleDetails,pref=preferences.pakettiShowSampleDetails}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Pattern Status Monitor Toggle",invoke=toggle_pattern_status_monitor,selected=function() return PakettiPatternStatusMonitorEnabled end}
+PakettiAddMenuOptionsEntry{name="Pattern Status Monitor Toggle",invoke=toggle_pattern_status_monitor,pref=preferences.pakettiPatternStatusMonitor}
 PakettiAddMenuOptionsEntry{name="Follow Page Pattern Toggle",invoke=function() PakettiToggleFollowPagePattern() end,pref=preferences.pakettiFollowPagePattern}
 PakettiAddMenuOptionsEntry{name="PlayerPro Auto-Open Smart Dialog Toggle",invoke=function() pakettiPlayerProToggleAlwaysOpen() end,pref=preferences.pakettiPlayerProAlwaysOpen}
 PakettiAddMenuOptionsEntry{name="PlayerPro Smart SubColumn Toggle",pref=preferences.pakettiPlayerProSmartSubColumn}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Sononym Auto-Transfer Toggle",invoke=function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,selected=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
+PakettiAddMenuOptionsEntry{name="Sononym Auto-Transfer Toggle",invoke=function() SononymphStart(false) if SononymphApp then SononymphApp:toggle_live_transfer() end end,get=function() return SononymphApp and SononymphApp.live_transfer_observable.value or false end}
 PakettiAddMenuOptionsEntry{name="Sononymph Autostart Toggle",pref=preferences.SononymphAutostart}
 PakettiAddMenuOptionsEntry{name="Sononymph Auto-Transfer New Instrument Toggle",pref=preferences.SononymphAutotransfercreatenew}
 PakettiAddMenuOptionsEntry{name="Sononymph Auto-Transfer New Sample Slot Toggle",pref=preferences.SononymphAutotransfercreateslot}
@@ -3699,10 +3699,10 @@ PakettiAddMenuOptionsEntry{name="Auto-Zero-Crossing Selection Range in Sample Ed
 PakettiAddMenuOptionsEntry{name="Auto-Samplify Enable Monitoring Toggle",invoke=function() PakettiToggleNewSampleMonitoring() end,pref=preferences.pakettiAutoSamplifyMonitoring}
 PakettiAddMenuOptionsEntry{name="Auto-Samplify Pakettify Toggle",invoke=function() PakettiToggleAutoSamplifyPakettify() end,pref=preferences.pakettiAutoSamplifyPakettify}
 PakettiAddMenuOptionsEntry{name="--0G01 Loader Toggle",invoke=function() Paketti0G01LoaderToggle() end,pref=preferences._0G01_Loader}
-renoise.tool():add_menu_entry{name="Main Menu:Options:OctaMED Hold-to-Fill Mode Toggle",invoke=function() PakettiHoldToFillShowDialog() end,selected=PakettiHoldToFillIsEnabled}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Song Frame Calculator Toggle",invoke=PakettiFrameCalculatorToggle,selected=PakettiFrameCalculatorIsEnabled}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Selection Follow Start Toggle",invoke=function() PakettiSelectionFollowToggle() end,selected=function() return PakettiSelectionFollowIsEnabled() end}
-renoise.tool():add_menu_entry{name="Main Menu:Options:Selection Follow to End Toggle",invoke=function() PakettiSelectionFollowToEndToggle() end,selected=function() return PakettiSelectionFollowToEndIsEnabled() end}
+PakettiAddMenuOptionsEntry{name="OctaMED Hold-to-Fill Mode Toggle",invoke=function() PakettiHoldToFillShowDialog() end,get=PakettiHoldToFillIsEnabled}
+PakettiAddMenuOptionsEntry{name="Song Frame Calculator Toggle",invoke=PakettiFrameCalculatorToggle,get=PakettiFrameCalculatorIsEnabled}
+PakettiAddMenuOptionsEntry{name="Selection Follow Start Toggle",invoke=function() PakettiSelectionFollowToggle() end,get=function() return PakettiSelectionFollowIsEnabled() end}
+PakettiAddMenuOptionsEntry{name="Selection Follow to End Toggle",invoke=function() PakettiSelectionFollowToEndToggle() end,get=function() return PakettiSelectionFollowToEndIsEnabled() end}
 renoise.tool():add_menu_entry{name="Main Menu:Options:Show Automated Parameters in Mixer for Selected Device",invoke=PakettiShowAutomatedParametersInMixer}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Automated Parameters in Mixer for Selected Device",invoke=PakettiShowAutomatedParametersInMixer}
 renoise.tool():add_midi_mapping{name="Paketti:Mixer:Show Automated Parameters in Mixer for Selected Device",invoke=function(message) if message:is_trigger() then PakettiShowAutomatedParametersInMixer() end end}
@@ -3723,7 +3723,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Save Dynamic Views as a Textfile", invoke=function() save_dynamic_views_to_txt() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Load Dynamic Views from a Textfile", invoke=function() load_dynamic_views_from_txt() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Paketti MIDI Mappings...",invoke=function() pakettiMIDIMappingsDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
+PakettiAddMenuToggleEntry{name="--Main Menu:Tools:Paketti:!Preferences:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,get=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
   
 -- Tools Plugins/Devices
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
@@ -4123,7 +4123,7 @@ renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Top to Ce
 renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti:Automation:Bottom to Center (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
 
 -- Pattern Matrix Root
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,selected=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
+PakettiAddMenuToggleEntry{name="--Pattern Matrix:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode,get=function() return PakettiAutomaticallyOpenTrackDeviceEditorsEnabled end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Selection in Pattern Matrix to Group",invoke=function() SelectionInPatternMatrixToGroup() end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Pattern Matrix Selection Expand",invoke=PatternMatrixExpand }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Pattern Matrix Selection Shrink",invoke=PatternMatrixShrink }
