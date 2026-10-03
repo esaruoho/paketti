@@ -748,6 +748,12 @@ local function plsb_close_now(cancelled)
   plsb_remove_octave_notifier()
   plsb_remove_doc_notifier()
   plsb_all_notes_off()
+  -- restore the Edit Mode state we may have turned off on open (the jam path
+  -- re-enables it afterwards in plsb_finalize)
+  if S.prev_edit_mode ~= nil then
+    pcall(function() renoise.song().transport.edit_mode = S.prev_edit_mode end)
+    S.prev_edit_mode = nil
+  end
   if cancelled then plsb_cleanup_scratch() end
   if S.dialog and S.dialog.visible then
     S.dialog:close()
@@ -1098,6 +1104,16 @@ function PakettiLoadSampleBrowser_Open()
   end
   plsb_cleanup_scratch()
   S.active_notes = {}
+
+  -- If transport is PLAYING, turn Edit Mode off while the dialog is open so keyjazz
+  -- preview works cleanly; remember the state and restore it on close (the jam path
+  -- re-enables Edit Mode afterwards).
+  local song = renoise.song()
+  S.prev_edit_mode = song.transport.edit_mode
+  if song.transport.playing then
+    pcall(function() song.transport.edit_mode = false end)
+  end
+
   S.current_dir = plsb_resolve_start_dir()
 
   local vb = renoise.ViewBuilder()
