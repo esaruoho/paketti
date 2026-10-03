@@ -8,22 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**25 card conversations** plugged in:
-
-### `ecdf40a8-7b88-40fd-8fae-4948ef022991`  (2026-09-02 → 2026-09-03)
-- Resume: `claude --resume ecdf40a8-7b88-40fd-8fae-4948ef022991`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/ecdf40a8-7b88-40fd-8fae-4948ef022991.jsonl
-- Cards touched (1): song-lifecycle-safety.feature
-
-### `5ef40c6b-af5a-491c-8ca5-3312859c2617`  (2026-09-03)
-- Resume: `claude --resume 5ef40c6b-af5a-491c-8ca5-3312859c2617`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/5ef40c6b-af5a-491c-8ca5-3312859c2617.jsonl
-- Cards touched (1): song-lifecycle-safety.feature
-
-### `8f1050b0-be19-4fa3-aa0e-f4dc6ae2ce50`  (2026-09-03)
-- Resume: `claude --resume 8f1050b0-be19-4fa3-aa0e-f4dc6ae2ce50`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/8f1050b0-be19-4fa3-aa0e-f4dc6ae2ce50.jsonl
-- Cards touched (1): 2026-06-11-groovebox-controller-follow-and-menu.feature
+**22 card conversations** plugged in:
 
 ### `28e2bf4d-99cc-490c-819b-37384f6d48fa`  (2026-09-04)
 - Resume: `claude --resume 28e2bf4d-99cc-490c-819b-37384f6d48fa`
@@ -140,7 +125,7 @@
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (2): TEMPLATE.feature, song-lifecycle-safety.feature
 
-### `149a81b3-e239-4ff1-ae91-7d5f10d73e7c`  (2026-10-02)
+### `149a81b3-e239-4ff1-ae91-7d5f10d73e7c`  (2026-10-02 → 2026-10-03)
 - Resume: `claude --resume 149a81b3-e239-4ff1-ae91-7d5f10d73e7c`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/149a81b3-e239-4ff1-ae91-7d5f10d73e7c.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py

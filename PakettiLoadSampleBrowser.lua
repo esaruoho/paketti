@@ -18,6 +18,7 @@
 --   PageUp/PageDown jump a screenful
 --   Enter / Return  on a folder: enter it; on a file: LOAD into target + return to Pattern Editor
 --   Backspace / Left go up to the parent folder
+--   Open Folder…    button: native folder picker, reaches any folder/drive (C:/D:/E:, network)
 --   Esc             cancel + unload (delete scratch instrument)
 --   F1-F12          jump to folder preset N; Shift+F1-F12 stores the current folder as preset N
 --   Right-Shift     "load and jam": load into the smart target slot (selected-if-empty,
@@ -1021,7 +1022,24 @@ function PakettiLoadSampleBrowser_Open()
   local content = vb:column {
     margin = 6,
     spacing = 6,
-    vb:text{ id = S.dir_id, font = "mono", style = "strong", text = "", width = LIST_CANVAS_W },
+    vb:row {
+      spacing = 6,
+      vb:button {
+        text = "Open Folder…",
+        width = 110,
+        notifier = function()
+          -- native folder picker -> reaches any folder/drive (C:/D:/E:, network, etc.)
+          local ok, path = pcall(function()
+            return renoise.app():prompt_for_path("Load Sample Browser: choose a folder")
+          end)
+          if ok and path and path ~= "" and io.exists(path) then
+            plsb_enter_dir(path)
+            plsb_refresh()
+          end
+        end,
+      },
+      vb:text{ id = S.dir_id, font = "mono", style = "strong", text = "", width = LIST_CANVAS_W - 116 },
+    },
     vb:row {
       spacing = 10,
       -- the file list is a canvas so the selected row is a full inverted bar
