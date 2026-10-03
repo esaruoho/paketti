@@ -17,7 +17,8 @@
 --   Mod+Up/Down     any modifier (Cmd/Option/Shift/Ctrl) + Up/Down jumps to top/bottom
 --   PageUp/PageDown jump a screenful
 --   Enter / Return  on a folder: enter it; on a file: LOAD into target + return to Pattern Editor
---   Backspace / Left go up to the parent folder
+--   Backspace / Left go up to the parent folder; from a Windows drive root (C:\) this
+--                   goes up to a synthetic "Drives" list to hop between C:/D:/E: etc.
 --   Open Folder…    button: native folder picker, reaches any folder/drive (C:/D:/E:, network)
 --   Esc             cancel + unload (delete scratch instrument)
 --   F1-F12          jump to folder preset N; Shift+F1-F12 stores the current folder as preset N
@@ -110,8 +111,33 @@ local COL_SEL_BG = {232, 232, 214, 255}     -- selected row: cream/white bar
 local COL_SEL_FG = {0, 0, 0, 255}           -- selected row: black text
 
 -- helpers ---------------------------------------------------------------------
+-- synthetic "all drives" level, so Windows users can hop between C:/D:/E: etc.
+local PLSB_DRIVE_ROOT = "::drives::"
+
+local function plsb_is_windows()
+  return os.platform() == "WINDOWS"
+end
+
 local function plsb_sep()
-  return (os.platform() == "WINDOWS") and "\\" or "/"
+  return plsb_is_windows() and "\\" or "/"
+end
+
+-- probe drive letters A..Z and return the ones that exist, as {path="C:\\", label="C:"}
+local function plsb_list_drives()
+  local drives = {}
+  for i = 0, 25 do
+    local letter = string.char(65 + i)
+    local root = letter .. ":\\"
+    if io.exists(root) then
+      drives[#drives + 1] = { path = root, label = letter .. ":" }
+    end
+  end
+  return drives
+end
+
+-- the drive label ("C:") of a path, or nil
+local function plsb_drive_label(path)
+  return path and path:match("^(%a:)")
 end
 
 local function plsb_join(dir, name)
@@ -121,18 +147,21 @@ local function plsb_join(dir, name)
 end
 
 local function plsb_parent(dir)
+  if dir == PLSB_DRIVE_ROOT then return PLSB_DRIVE_ROOT end  -- drives list has no parent
   -- strip trailing sep then last component
   local d = dir:gsub("[/\\]+$", "")
   local parent = d:match("^(.*)[/\\][^/\\]+$")
   if not parent or parent == "" then
     -- top of a drive / filesystem root
-    if os.platform() == "WINDOWS" then
+    if plsb_is_windows() then
+      -- at a drive root (e.g. C:\) go up to the synthetic "all drives" list
+      if d:match("^%a:$") then return PLSB_DRIVE_ROOT end
       local drive = d:match("^(%a:)")
       return drive and (drive .. "\\") or d
     end
     return "/"
   end
-  if os.platform() ~= "WINDOWS" and not parent:match("^/") then parent = "/" .. parent end
+  if not plsb_is_windows() and not parent:match("^/") then parent = "/" .. parent end
   return parent
 end
 
@@ -396,30 +425,39 @@ end
 local function plsb_rebuild_entries(select_name)
   S.entries = {}
   local dir = S.current_dir
-  -- up-dir entry (unless at a filesystem root)
-  local parent = plsb_parent(dir)
-  if parent ~= dir then
-    S.entries[#S.entries + 1] = { kind = "updir", name = "..", path = parent }
-  end
-  -- directories
-  local ok_dirs, dirs = pcall(function() return os.dirnames(dir) end)
-  if ok_dirs and dirs then
-    table.sort(dirs, function(a, b) return a:lower() < b:lower() end)
-    for _, d in ipairs(dirs) do
-      S.entries[#S.entries + 1] = { kind = "dir", name = d, path = plsb_join(dir, d) }
+
+  -- synthetic "all drives" level (Windows): list each mounted drive, no up-dir
+  if dir == PLSB_DRIVE_ROOT then
+    for _, d in ipairs(plsb_list_drives()) do
+      S.entries[#S.entries + 1] = { kind = "dir", name = d.label, path = d.path }
+    end
+  else
+    -- up-dir entry (unless at a filesystem root)
+    local parent = plsb_parent(dir)
+    if parent ~= dir then
+      S.entries[#S.entries + 1] = { kind = "updir", name = "..", path = parent }
+    end
+    -- directories
+    local ok_dirs, dirs = pcall(function() return os.dirnames(dir) end)
+    if ok_dirs and dirs then
+      table.sort(dirs, function(a, b) return a:lower() < b:lower() end)
+      for _, d in ipairs(dirs) do
+        S.entries[#S.entries + 1] = { kind = "dir", name = d, path = plsb_join(dir, d) }
+      end
+    end
+    -- files (loadable extensions)
+    local patterns = { "*" }
+    local ok_pat, p = pcall(function() return PakettiLoadableExtensions() end)
+    if ok_pat and p then patterns = p end
+    local ok_files, files = pcall(function() return os.filenames(dir, patterns) end)
+    if ok_files and files then
+      table.sort(files, function(a, b) return a:lower() < b:lower() end)
+      for _, f in ipairs(files) do
+        S.entries[#S.entries + 1] = { kind = "file", name = f, path = plsb_join(dir, f) }
+      end
     end
   end
-  -- files (loadable extensions)
-  local patterns = { "*" }
-  local ok_pat, p = pcall(function() return PakettiLoadableExtensions() end)
-  if ok_pat and p then patterns = p end
-  local ok_files, files = pcall(function() return os.filenames(dir, patterns) end)
-  if ok_files and files then
-    table.sort(files, function(a, b) return a:lower() < b:lower() end)
-    for _, f in ipairs(files) do
-      S.entries[#S.entries + 1] = { kind = "file", name = f, path = plsb_join(dir, f) }
-    end
-  end
+
   S.selected = 1
   -- optionally land the cursor on a named entry (e.g. the folder we just came up from)
   if select_name and select_name ~= "" then
@@ -433,7 +471,11 @@ local function plsb_rebuild_entries(select_name)
 end
 
 local function plsb_enter_dir(path, select_name)
-  if io.exists(path) then
+  if path == PLSB_DRIVE_ROOT then
+    -- synthetic drives list: no io.exists, and don't persist it as the default folder
+    S.current_dir = PLSB_DRIVE_ROOT
+    plsb_rebuild_entries(select_name)
+  elseif io.exists(path) then
     S.current_dir = path
     plsb_rebuild_entries(select_name)
     plsb_save_dir(path)   -- navigating updates the saved default folder
@@ -563,7 +605,9 @@ end
 plsb_refresh = function()
   if not S.vb then return end
   local v = S.vb.views
-  if S.dir_id and v[S.dir_id] then v[S.dir_id].text = S.current_dir or "" end
+  if S.dir_id and v[S.dir_id] then
+    v[S.dir_id].text = (S.current_dir == PLSB_DRIVE_ROOT) and "Drives" or (S.current_dir or "")
+  end
   if S.list_id and v[S.list_id] then v[S.list_id]:update() end
   if S.meta_id and v[S.meta_id] then v[S.meta_id].text = plsb_meta_string() end
   if S.wave_id and v[S.wave_id] then v[S.wave_id]:update() end
@@ -842,12 +886,17 @@ end
 
 -- go up to the parent, landing the cursor on the folder we just left
 local function plsb_go_up()
-  local leaving = plsb_basename(S.current_dir or "")
   local parent = plsb_parent(S.current_dir)
-  if parent ~= S.current_dir then
-    plsb_enter_dir(parent, leaving)
-    plsb_refresh()
+  if parent == S.current_dir then return end
+  -- when going up to the drives list, land on the drive we came from (its label)
+  local leaving
+  if parent == PLSB_DRIVE_ROOT then
+    leaving = plsb_drive_label(S.current_dir)
+  else
+    leaving = plsb_basename(S.current_dir or "")
   end
+  plsb_enter_dir(parent, leaving)
+  plsb_refresh()
 end
 
 local function plsb_activate_entry()
