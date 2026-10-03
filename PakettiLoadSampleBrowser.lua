@@ -759,26 +759,9 @@ function PakettiLoadSampleBrowser_Close(cancelled)
   plsb_defer_action(function() plsb_close_now(cancelled) end)
 end
 
--- force_new => always a NEW instrument slot at the end; otherwise smart target
--- (selected-if-empty, else first empty, else new). Returns loaded, target_index.
-local function plsb_load_path(path, force_new)
-  plsb_all_notes_off()
-
-  -- expand non-native formats to real audio (temp wavs)
-  local realpath = path
-  local temps = {}
-  local ext = plsb_ext(path)
-  if not PLSB_NATIVE[ext] then
-    local ok, expanded, tmp = pcall(function() return PakettiExpandLoadableFiles({ path }) end)
-    if ok and expanded and #expanded > 0 then
-      realpath = expanded[1]
-      temps = tmp or {}
-    end
-  end
-
-  -- remove the scratch instrument BEFORE picking a target (so it isn't a candidate)
-  plsb_cleanup_scratch()
-
+-- pick the smart target slot: selected-if-empty, else first empty, else a new slot
+-- at the end. force_new skips straight to a new slot. Returns the index, or nil.
+local function plsb_pick_target(force_new)
   local song = renoise.song()
   local function is_empty(inst)
     return #inst.samples == 0 and not inst.plugin_properties.plugin_loaded
@@ -797,36 +780,96 @@ local function plsb_load_path(path, force_new)
   if not tgt then
     if not safeInsertInstrumentAt(song, #song.instruments + 1) then
       renoise.app():show_status("Paketti Load Sample: could not create instrument slot")
-      pcall(function() PakettiExpandLoadableCleanup(temps) end)
-      return false, nil
+      return nil
     end
     tgt = #song.instruments
   end
-  song.selected_instrument_index = tgt
+  return tgt
+end
 
-  -- load the Paketti default instrument template into the target slot
-  pakettiPreferencesDefaultInstrumentLoader()
+-- select the target, optionally arm jam mode, and drop into the Pattern Editor
+local function plsb_finalize(tgt, jam)
+  local song = renoise.song()
+  if tgt and song.instruments[tgt] then song.selected_instrument_index = tgt end
+  if jam then
+    pcall(function() song.transport.edit_mode = true end)
+    pcall(function() song.transport.follow_player = true end)
+  end
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- load a list of audio wavs into ONE pakettified target instrument (multi-sample)
+local function plsb_load_wavs_into_target(wavs, force_new)
+  local tgt = plsb_pick_target(force_new)
+  if not tgt then return nil end
+  local song = renoise.song()
+  song.selected_instrument_index = tgt
+  pakettiPreferencesDefaultInstrumentLoader()      -- template (one placeholder sample)
   tgt = song.selected_instrument_index
   local instr = song.instruments[tgt]
-  local sample = instr.samples[1]
-  if not sample then
-    instr:insert_sample_at(1)
-    sample = instr.samples[1]
+  local n = math.min(#wavs, 120)                    -- Renoise/Paketti drumkit cap
+  for i = 1, n do
+    if #instr.samples < i then instr:insert_sample_at(i) end
+    local smp = instr.samples[i]
+    local base = plsb_basename(wavs[i])
+    pcall(function() smp.sample_buffer:load_from(wavs[i]) end)
+    smp.name = base
+    pcall(function() PakettiInjectApplyLoaderSettings(smp) end)
   end
-  local base = plsb_basename(path)
-  local loaded = false
-  pcall(function() loaded = sample.sample_buffer:load_from(realpath) end)
-  sample.name = base
-  instr.name = string.format("%02X_", tgt - 1) .. base
-  if loaded then
-    pcall(function() PakettiInjectApplyLoaderSettings(sample) end)
-    renoise.app():show_status("Loaded " .. base .. " into instrument " .. string.format("%02X", tgt - 1))
-  else
-    renoise.app():show_status("Paketti Load Sample: failed to load " .. base)
-  end
+  instr.name = string.format("%02X_", tgt - 1) .. plsb_basename(wavs[1] or "")
+  renoise.app():show_status("Loaded " .. n .. " sample(s) into instrument " .. string.format("%02X", tgt - 1))
+  return tgt
+end
 
-  pcall(function() PakettiExpandLoadableCleanup(temps) end)
-  return loaded, tgt
+-- The full load: branches by format.
+--   plain audio  -> smart target + default template; .wav runs cue-slicing if present
+--   rex/rx2/iff/iti/ot/wt/mti/mod -> async expand to wavs, ALL loaded into one instrument
+--   pti/sf2/exs  -> async importer builds their own (full-fidelity) instrument; we select it
+local function plsb_do_load(path, opts)
+  opts = opts or {}
+  local jam = opts.jam
+  local force_new = opts.force_new
+  local ext = plsb_ext(path)
+
+  -- the scratch preview instrument must not be a target candidate or left behind
+  plsb_cleanup_scratch()
+
+  if PLSB_NATIVE[ext] then
+    local tgt = plsb_pick_target(force_new)
+    if not tgt then return end
+    local song = renoise.song()
+    song.selected_instrument_index = tgt
+    pakettiPreferencesDefaultInstrumentLoader()
+    tgt = song.selected_instrument_index
+    local instr = song.instruments[tgt]
+    local smp = instr.samples[1]
+    if not smp then instr:insert_sample_at(1); smp = instr.samples[1] end
+    local base = plsb_basename(path)
+    if ext == "wav" then
+      -- auto-slices if the wav carries cue chunks, else plain load_from
+      pcall(function() PakettiWavCueImportWavWithCuesIntoSample(smp, path) end)
+    else
+      pcall(function() smp.sample_buffer:load_from(path) end)
+    end
+    smp.name = base
+    instr.name = string.format("%02X_", tgt - 1) .. base
+    pcall(function() PakettiInjectApplyLoaderSettings(smp) end)
+    renoise.app():show_status("Loaded " .. base .. " into instrument " .. string.format("%02X", tgt - 1))
+    plsb_finalize(tgt, jam)
+  else
+    -- async handles pti/sf2/exs (self-import) AND harvests rex/rx2/iff/iti/ot/wt/mti/mod
+    PakettiExpandLoadableFilesAsync({ path }, function(expanded, temps, failures)
+      local tgt
+      if expanded and #expanded > 0 then
+        tgt = plsb_load_wavs_into_target(expanded, force_new)
+      else
+        -- pti/sf2/exs loaded straight into their own instrument (already selected)
+        tgt = renoise.song().selected_instrument_index
+      end
+      pcall(function() PakettiExpandLoadableCleanup(temps) end)
+      plsb_finalize(tgt, jam)
+    end)
+  end
 end
 
 local function plsb_confirm_now()
@@ -835,27 +878,23 @@ local function plsb_confirm_now()
     plsb_close_now(true)
     return
   end
-  plsb_load_path(e.path)
-  plsb_close_now(false)
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  local path = e.path
+  plsb_all_notes_off()
+  plsb_close_now(false)          -- close our dialog first; loaders may show their own
+  plsb_do_load(path, { force_new = false, jam = false })
 end
 
--- Right-Shift "load and jam": load into the smart target slot (selected-if-empty,
--- else first empty, else new), select it, close, turn on Edit Mode + Follow Pattern,
--- and drop into the Pattern Editor ready to play in.
+-- Right-Shift "load and jam": same smart target, plus Edit Mode + Follow Pattern on.
 local function plsb_confirm_jam_now()
   local e = S.entries[S.selected]
   if not (e and e.kind == "file") then
     plsb_close_now(true)
     return
   end
-  local _, tgt = plsb_load_path(e.path, false)
+  local path = e.path
+  plsb_all_notes_off()
   plsb_close_now(false)
-  local song = renoise.song()
-  if tgt and song.instruments[tgt] then song.selected_instrument_index = tgt end
-  pcall(function() song.transport.edit_mode = true end)
-  pcall(function() song.transport.follow_player = true end)
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  plsb_do_load(path, { force_new = false, jam = true })
 end
 
 function PakettiLoadSampleBrowser_Confirm()
