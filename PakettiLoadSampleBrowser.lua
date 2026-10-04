@@ -26,6 +26,7 @@
 --                   else first empty, else new), select it, close, turn on Edit Mode +
 --                   Follow Pattern, jump to the Pattern Editor
 --   Piano keys      keyjazz the highlighted file (zsxdcvgbhnjm + 23 567 9 + qwertyuiop)
+--   < / >           lower / raise the keyboard (transport) octave for keyjazz
 --   Space           passes through to Renoise transport (start/stop during audition)
 --   Shift+Enter     load all sample files directly inside the selected folder
 --   < / >           pass through to Renoise octave controls
@@ -980,6 +981,17 @@ local function plsb_move_to(idx)
   plsb_refresh()
 end
 
+-- change the keyboard (transport) octave, clamped, and refresh the readout
+local function plsb_shift_octave(delta)
+  local song = renoise.song()
+  if not song then return end
+  local oct = (song.transport.octave or 4) + delta
+  if oct < 0 then oct = 0 elseif oct > 8 then oct = 8 end
+  plsb_all_notes_off()   -- avoid stuck notes when the octave moves mid-hold
+  pcall(function() song.transport.octave = oct end)
+  plsb_refresh()
+end
+
 -- click a row on the list canvas to select it; click the selected row to activate it
 local function plsb_list_mouse(ev)
   if S.pending_action then return end
@@ -1056,6 +1068,10 @@ local function plsb_key_handler(dialog, key)
       plsb_refresh()
     end
     return nil
+  elseif name == "<" or name == "less" then
+    plsb_shift_octave(-1); return nil
+  elseif name == ">" or name == "greater" then
+    plsb_shift_octave(1); return nil
   end
 
   -- F1-F12 folder presets: Fn recalls, Shift+Fn stores the current folder
