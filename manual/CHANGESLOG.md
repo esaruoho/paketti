@@ -8,6 +8,16 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-10-05 - Improvement: Column Cycle Keyjazz Cycler — one 01-12 selector for a MIDI knob, plus +1/-1 stepping
+Adds a single "cycler" control for Column Cycle Keyjazz so you can pick how many note columns cycle (01-12) from one MIDI knob instead of twelve separate keybindings. Turn the mapped knob and 0-127 maps to 01-12, showing that many note columns and ensuring cycling is ON (it never toggles off mid-sweep). Also adds +1 and -1 steps, as both keyboard shortcuts and MIDI mappings, to nudge the cycler up or down by one (clamped to 01-12).
+- Keybinding: `Global:Paketti:Column Cycle Keyjazz Cycler +1`
+- Keybinding: `Global:Paketti:Column Cycle Keyjazz Cycler -1`
+- MIDI Mapping: `Paketti:Column Cycle Keyjazz Cycler [01-12]`
+- MIDI Mapping: `Paketti:Column Cycle Keyjazz Cycler +1`
+- MIDI Mapping: `Paketti:Column Cycle Keyjazz Cycler -1`
+- Menu: `Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Cycler +1`
+- Menu: `Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Cycler -1`
+
 ### 2026-10-02 - Improvement: PakettiAddMenuToggleEntry / PakettiAddMenuOptionsEntry — one DRY helper for every preference-backed checkbox
 Adds two companions to `PakettiAddMenuEntry` that build a checkbox/toggle menu entry from a single boolean preference. The old pattern was copied by hand dozens of times across the tool: flip `preferences.X.value`, save the preferences file, print an "ON/OFF" status, and supply a `selected` callback so the menu checkmark renders. Now it is one line — you pass the preference and the helper generates the flip, the save, the status message, and the strict-boolean checkmark callback (and still routes through the master menu toggle, Menu Configuration per-category gating, sorting, and the duplicate guard). `PakettiAddMenuToggleEntry` takes a full menu path for a checkbox anywhere; `PakettiAddMenuOptionsEntry` is a thin wrapper that prepends `Main Menu:Options:` so you pass only the label. Optional `invoke=` lets a toggle that does extra work keep its own action while the checkmark still comes from the preference; a `get=` getter covers toggles whose state is NOT a preference (a runtime global or a state function) so those get the same strict-boolean checkmark without boilerplate; `status=` overrides the message text; `after=function(on) ... end` runs right after the flip (e.g. to apply the preference live). Converted every toggle checkbox in the tool — 38 call sites across the Options menu, Tools, the Sample Editor Ruler, the Pattern Editor, the Mixer, the Pattern Matrix, and the Sononymph menus — to the helpers. Also fixed the Pattern Status Monitor and Audition on Line Change checkboxes in **Paketti Preferences** so they now apply live when you tick them (previously they only saved the setting without starting/stopping the feature until the next restart). Developer-facing plumbing plus that one Preferences-dialog fix — no change to any menu entry, keybinding, or MIDI mapping that users see.
 

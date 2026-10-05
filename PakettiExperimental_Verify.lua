@@ -2928,10 +2928,44 @@ startcolumncycling(number)
 end
 
 for ccks=3,12 do
-renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
-PakettiAddMenuEntry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (" .. formatDigits(2,ccks) .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (" .. formatDigits(2,ccks) .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
 end
-renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (02)",invoke=function() ColumnCycleKeyjazzSpecial(02) end}
+
+-- Column Cycle Keyjazz Cycler: one 01-12 selector you can drive from a MIDI knob (0-127 -> 01-12)
+-- or step with +1 / -1. Setting the cycler shows that many note columns and ensures cycling is ON
+-- (it never toggles off, so a knob sweep or repeated step stays usable).
+PakettiColumnCycleKeyjazzCyclerValue = 1
+
+function PakettiColumnCycleKeyjazzCyclerApply(value)
+  if value < 1 then value = 1 elseif value > 12 then value = 12 end
+  PakettiColumnCycleKeyjazzCyclerValue = value
+  displayNoteColumn(value)
+  local s = renoise.song()
+  local pattern = s.patterns[s.selected_pattern_index]
+  if not pattern:has_line_notifier(pattern_line_notifier) then
+    pattern:add_line_notifier(pattern_line_notifier)
+  end
+  renoise.app():show_status("Column Cycle Keyjazz Cycler: " .. formatDigits(2,value))
+end
+
+function PakettiColumnCycleKeyjazzCyclerStep(delta)
+  PakettiColumnCycleKeyjazzCyclerApply(PakettiColumnCycleKeyjazzCyclerValue + delta)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Cycler +1",invoke=function() PakettiColumnCycleKeyjazzCyclerStep(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Cycler -1",invoke=function() PakettiColumnCycleKeyjazzCyclerStep(-1) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Cycler +1",invoke=function() PakettiColumnCycleKeyjazzCyclerStep(1) end}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Cycler -1",invoke=function() PakettiColumnCycleKeyjazzCyclerStep(-1) end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Column Cycle Keyjazz Cycler [01-12]",invoke=function(message)
+  if message:is_abs_value() then
+    PakettiColumnCycleKeyjazzCyclerApply(math.floor(message.int_value * 11 / 127) + 1)
+  end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Column Cycle Keyjazz Cycler +1",invoke=function(message) if message:is_trigger() then PakettiColumnCycleKeyjazzCyclerStep(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Column Cycle Keyjazz Cycler -1",invoke=function(message) if message:is_trigger() then PakettiColumnCycleKeyjazzCyclerStep(-1) end end}
 
 ---
 -- Toggle mute state functions
