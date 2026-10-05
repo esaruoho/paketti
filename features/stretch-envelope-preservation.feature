@@ -9,6 +9,7 @@
 # WATCH: find_stretch_volume_ahdsr_device pakettiTimestretchDialog
 # RESULT-LOG >>
 #   2026-10-06  direct-commit  touched: find_stretch_volume_ahdsr_device
+#   2026-10-06  direct-commit  touched: find_stretch_volume_ahdsr_device
 Feature: Preserve crafted envelopes in Timestretch
   @sim-verified @runtime-untested
   Scenario: Activate without disabling or overwriting the envelope

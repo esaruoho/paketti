@@ -8,6 +8,7 @@
 # Files: PakettiExperimental_Verify.lua, tests/keyjazz-special-cycler.lua, PLAN.md, manual/CHANGESLOG.md and this card/session bundle.
 # WATCH: ColumnCycleKeyjazzSpecial PakettiColumnCycleKeyjazzSpecialPrepare PakettiColumnCycleKeyjazzCyclerApply PakettiColumnCycleKeyjazzCyclerStep
 # RESULT-LOG >>
+#   2026-10-06  direct-commit  touched: ColumnCycleKeyjazzSpecial PakettiColumnCycleKeyjazzSpecialPrepare PakettiColumnCycleKeyjazzCyclerApply PakettiColumnCycleKeyjazzCyclerStep
 Feature: Refresh Special keyjazz delays at every count
   @sim-verified @runtime-untested
   Scenario: Reapply delays at the upper limit

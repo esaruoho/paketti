@@ -8,6 +8,7 @@
 # Files: source, tests, native-default design document, plan, changelog, card and session bundle.
 # WATCH: PakettiSampleQualityTargets PakettiSampleQualityChange
 # RESULT-LOG >>
+#   2026-10-06  direct-commit  touched: PakettiSampleQualityTargets PakettiSampleQualityChange
 Feature: Show and change sample playback quality
   @sim-verified @runtime-untested
   Scenario: Checked menus describe the complete target scope

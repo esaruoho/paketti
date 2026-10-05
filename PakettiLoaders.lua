@@ -2643,13 +2643,16 @@ renoise.tool():add_keybinding{name="Global:Paketti:Insert Stereo -> Mono device 
 
 -----------
 
+-- REPORT-CARD >> features/parameter-editor-close.feature
 -- Function to hide all visible external editors of Devices
 function hide_all_external_editors()
   local song=renoise.song()
   local num_tracks = #song.tracks
   local num_instruments = #song.instruments
 
-  local any_editor_closed = false
+  local close_parameter_editor = rawget(_G, "PakettiCanvasExperimentsCloseDialog")
+  local parameter_editor_closed = close_parameter_editor and close_parameter_editor() or false
+  local any_editor_closed = parameter_editor_closed
 
   -- Hide external editors for all track devices
   for track_index = 1, num_tracks do
@@ -2693,9 +2696,9 @@ function hide_all_external_editors()
   end
 
   if any_editor_closed then
-    renoise.app():show_status("All open External Editors for Track DSP & Sample FX Chain Devices have been closed.")
+    renoise.app():show_status(parameter_editor_closed and "Parameter Editor and all open external device editors have been closed." or "All open External Editors for Track DSP & Sample FX Chain Devices have been closed.")
   else
-    renoise.app():show_status("No Track DSP or Sample FX Chain Device External Editors were open, did nothing.")
+    renoise.app():show_status("No Parameter Editor or external device editors were open, did nothing.")
   end
 end
 

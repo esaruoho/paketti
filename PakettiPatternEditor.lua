@@ -706,6 +706,80 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Wipe 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Wipe & Replace (Right Before)",invoke=function() CleverNoteOffWipeAndReplace("RightBefore") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clever Note Off Wipe & Replace (Half Before)",invoke=function() CleverNoteOffWipeAndReplace("HalfBefore") end}
 
+-- FEATURE-CARD >> features/note-off-cleanup.feature
+-- Inspired by Phaos's SimpleNotesOff: clear the OFF note only, preserving
+-- every neighboring field, and include hidden note columns.
+local function PakettiClearPatternTrackNoteOffs(pattern, track_index)
+  local pattern_track = pattern.tracks[track_index]
+  if pattern_track.is_empty then return 0 end
+  local count = 0
+  for line_index = 1, pattern.number_of_lines do
+    local line = pattern_track:line(line_index)
+    if not line.is_empty then
+      for _, note in ipairs(line.note_columns) do
+        if note.note_value == 120 then
+          note.note_value = 121
+          count = count + 1
+        end
+      end
+    end
+  end
+  return count
+end
+
+local function PakettiDeleteNoteOffs(all_tracks, whole_song, label)
+  local song = renoise.song()
+  if not song then return end
+  local track_indices = {}
+  if all_tracks then
+    for index, track in ipairs(song.tracks) do
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        track_indices[#track_indices + 1] = index
+      end
+    end
+  else
+    if song.selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+      renoise.app():show_status("Paketti: Select a sequencer track to delete note offs")
+      return
+    end
+    track_indices[1] = song.selected_track_index
+  end
+
+  song:describe_undo("Delete Note Offs in " .. label)
+  local patterns = whole_song and song.patterns or {song.selected_pattern}
+  local count = 0
+  for _, pattern in ipairs(patterns) do
+    for _, track_index in ipairs(track_indices) do
+      count = count + PakettiClearPatternTrackNoteOffs(pattern, track_index)
+    end
+  end
+  renoise.app():show_status(string.format("Paketti: Deleted %d note off%s in %s",
+    count, count == 1 and "" or "s", label))
+end
+
+do
+  local commands = {
+    {label="Track", all_tracks=false, whole_song=false},
+    {label="Pattern", all_tracks=true, whole_song=false},
+    {label="Track (Whole Song)", all_tracks=false, whole_song=true},
+    {label="Song", all_tracks=true, whole_song=true},
+  }
+  for _, command in ipairs(commands) do
+    local label = command.label
+    local all_tracks, whole_song = command.all_tracks, command.whole_song
+    local function invoke()
+      PakettiDeleteNoteOffs(all_tracks, whole_song, label)
+    end
+    local name = "Delete Note Offs in " .. label
+    renoise.tool():add_keybinding{name="Pattern Editor:Paketti:" .. name,
+      invoke=function(repeated) if not repeated then invoke() end end}
+    PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Note Offs:" .. name, invoke=invoke}
+    PakettiAddMenuEntry{name="Pattern Editor:Paketti:Note Offs:" .. name, invoke=invoke}
+    renoise.tool():add_midi_mapping{name="Paketti:" .. name,
+      invoke=function(message) if message:is_trigger() then invoke() end end}
+  end
+end
+
 -- Adjust delay value on Note Offs only (+/- amount)
 function CleverNoteOffAdjustDelay(amount)
   local s = renoise.song()

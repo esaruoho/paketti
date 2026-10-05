@@ -15,6 +15,27 @@ local step_stepper
 -- Helper Functions (all defined before usage)
 -- Note: find_volume_ahdsr_device() is defined globally in main.lua
 
+-- REPORT-CARD >> features/stretch-envelope-preservation.feature
+-- Envelope controls operate on the selected sample's own modulation set.
+local function find_stretch_volume_ahdsr_device(instrument)
+    local sample = renoise.song().selected_sample
+    if not instrument or not sample or sample.modulation_set_index == 0 then return nil end
+    local mod_set = instrument.sample_modulation_sets[sample.modulation_set_index]
+    if not mod_set then return nil end
+    for _, device in ipairs(mod_set.devices) do
+        if device.name == "Volume AHDSR" then return device end
+    end
+end
+
+-- REPORT-CARD >> features/loader-ahdsr-release.feature
+local function set_stretch_release_480ms()
+    local device = find_stretch_volume_ahdsr_device(renoise.song().selected_instrument)
+    if not device then return false end
+    device.tempo_synced = false
+    device.parameters[5].value_string = "480 ms"
+    return true
+end
+
 -- Add this helper function to check if all notes in pattern are the same
 function get_uniform_note_value(pattern_index)
     local song=renoise.song()
@@ -206,40 +227,6 @@ local function check_and_set_uniform_note()
     
     -- If we get here, all notes are the same (excluding OFFs)
     note_slider.value = first_note
-end
-
-local function check_and_set_envelope_status(vb)
-    -- First check if vb exists and has views
-    if not vb or not vb.views or not vb.views.envelope_checkbox then
-        return false
-    end
-
-    -- Safely get song object
-    local song = nil
-    pcall(function() song = renoise.song() end)
-    if not song then
-        return false
-    end
-
-    -- Rest of the function with safe checks
-    if not song.selected_instrument then
-        return false
-    end
-
-    local instrument = song.selected_instrument
-    
-    -- Use helper function to find Volume AHDSR device
-    local device = find_volume_ahdsr_device(instrument)
-    if not device then
-        return false
-    end
-
-    if device.enabled then
-        vb.views.envelope_checkbox.value = true
-        return true
-    end
-
-    return false
 end
 
 local function update_timing_displays()
@@ -496,15 +483,17 @@ function pakettiTimestretchDialog()
         end
     end
     
+    local envelope_device = find_stretch_volume_ahdsr_device(song.selected_instrument)
+
     -- Declare these variables before creating the row
     local scale_value_text = vb:text{ -- Create the text elements first
         width=40,
-        text="1.00"
+        text=envelope_device and string.format("%.2f", envelope_device.parameters[8].value) or "—"
     }
     
     local release_time_text = vb:text{ -- Create the text elements first
         width=50,
-        text="480ms"
+        text=envelope_device and envelope_device.parameters[5].value_string or "—"
     }
     
     -- 2. Create basic displays
@@ -1263,69 +1252,21 @@ step_slider = vb:slider{
         },
         
         vb:row{
-            vb:checkbox{
-                id = "envelope_checkbox",
-                value = false,
-                width=20,
-                notifier=function(new_value)
-                    local instrument = renoise.song().selected_instrument
-                    
-                    -- Find Volume AHDSR device
-                    local device = find_volume_ahdsr_device(instrument)
-                    if not device then
-                        renoise.app():show_status("Please Pakettify the Instrument to enable envelopes") 
-                        vb.views.envelope_checkbox.value = false
-                        return
-                    end
-                    
-                    if new_value then
-                        renoise.song().selected_sample.new_note_action = 2
-                        device.operator = 3
-                        device.enabled = true
-                        device.parameters[8].value = 1
-                        device.parameters[3].value = 0
-                        device.parameters[4].value = 1
-                        
-                        -- Convert initial Release slider value (480ms) to 0-1 range
-                        local initial_ms = 480
-                        local renoise_value = initial_ms / 20000
-                        renoise_value = math.max(0, math.min(1, renoise_value))
-                        
-                        device.parameters[5].value = renoise_value
-
-                        -- Check if loop mode is OFF and set it to ON
-                        if renoise.song().selected_sample.loop_mode == 1 then
-                            renoise.song().selected_sample.loop_mode = 2
-                        end
-                        
-                        renoise.app():show_status("Activated Volume AHDSR, Envelopes now enabled")
-                    else
-                        renoise.song().selected_sample.new_note_action = 1
-                        if renoise.song().selected_sample.loop_mode == 2 then
-                            renoise.song().selected_sample.loop_mode = 1
-                        end
-                        device.operator = 1
-                        device.enabled = false
-                        
-                        renoise.app():show_status("Deactivated Volume AHDSR, Envelopes now disabled")
-                    end
-                end
-            },
-            vb:text{text="Enable Envelopes", font = "bold" },
+            vb:text{text="Volume AHDSR", font="bold"},
             vb:space { width=10 },
             
             -- Release Value scaling slider (0.00-1.00)
-            vb:text{text="Scale:", font = "bold" },
+            vb:text{text="Release Scaling:", font = "bold" },
             vb:slider{
                 min = 0,
                 max = 100,
-                value = 100,
+                value = envelope_device and envelope_device.parameters[8].value * 100 or 100,
                 width=100,
                 notifier=function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
                     -- Find Volume AHDSR device
-                    local device = find_volume_ahdsr_device(instrument)
+                    local device = find_stretch_volume_ahdsr_device(instrument)
                     if not device then
                         renoise.app():show_status("Please Pakettify the Instrument to use Scale") 
                         return
@@ -1345,34 +1286,18 @@ step_slider = vb:slider{
             vb:slider{
                 min = 0,
                 max = 100,
-                value = 20,
+                value = envelope_device and envelope_device.parameters[5].value * 100 or 0,
                 width=300,
                 notifier=function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
                     -- Find Volume AHDSR device
-                    local device = find_volume_ahdsr_device(instrument)
+                    local device = find_stretch_volume_ahdsr_device(instrument)
                     if not device then
                         renoise.app():show_status("Please Pakettify the Instrument to use Release") 
                         return
                     end
                     
-                    -- Enable envelope checkbox if not already enabled
-                    vb.views.envelope_checkbox.value = true
-                    
-                    -- Enable envelope if not already enabled
-                    if not device.enabled then
-                        renoise.song().selected_sample.new_note_action = 2
-                        if renoise.song().selected_sample.loop_mode == 1 then
-                            renoise.song().selected_sample.loop_mode = 2
-                        end
-                        device.operator = 3
-                        device.enabled = true
-                        device.parameters[3].value = 0
-                        device.parameters[4].value = 1
-                        device.parameters[8].value = 1
-                    end
-
                     -- Convert 0-100 to 0-1
                     local renoise_value = new_value / 100
                     
@@ -1384,6 +1309,18 @@ step_slider = vb:slider{
                 end
             },
             release_time_text,
+            vb:button{
+                text="480 ms",
+                tooltip="Set Release to 480 ms without enabling or resetting the envelope",
+                notifier=function()
+                    if not set_stretch_release_480ms() then
+                        renoise.app():show_status("The selected sample needs a Volume AHDSR to set Release")
+                        return
+                    end
+                    local device = find_stretch_volume_ahdsr_device(renoise.song().selected_instrument)
+                    release_time_text.text = device.parameters[5].value_string
+                end
+            },
             vb:space { width=10 },
             vb:button{
                 text="Pakettify",
@@ -1656,97 +1593,4 @@ local master_write_checkbox = vb:checkbox{
         end
     end
 }
-
--- Add this function to check and set envelope status
-local function check_and_set_envelope_status(vb)
-    -- First check if vb exists and has views
-    if not vb or not vb.views or not vb.views.envelope_checkbox then
-        return false
-    end
-
-    -- Safely get song object
-    local song = nil
-    pcall(function() song = renoise.song() end)
-    if not song then
-        return false
-    end
-
-    -- Rest of the function with safe checks
-    if not song.selected_instrument then
-        return false
-    end
-
-    local instrument = song.selected_instrument
-    
-    -- Use helper function to find Volume AHDSR device
-    local device = find_volume_ahdsr_device(instrument)
-    if not device then
-        return false
-    end
-
-    if device.enabled then
-        vb.views.envelope_checkbox.value = true
-        return true
-    end
-
-    return false
-end
-
--- Modify the envelope checkbox creation
-vb:checkbox{
-    id = "envelope_checkbox",
-    value = false,
-    width=20,
-    notifier=function(new_value)
-        -- Safety check: ensure song and sample exist
-        if not renoise.song() then return end
-        if not renoise.song().selected_instrument then return end
-        if not renoise.song().selected_sample then return end
-        
-        local instrument = renoise.song().selected_instrument
-        
-        -- Find Volume AHDSR device
-        local device = find_volume_ahdsr_device(instrument)
-        if not device then
-            renoise.app():show_status("Please Pakettify the Instrument to enable envelopes") 
-            vb.views.envelope_checkbox.value = false
-            return
-        end
-        
-        if new_value then
-            renoise.song().selected_sample.new_note_action = 2
-            device.operator = 3
-            device.enabled = true
-            device.parameters[8].value = 1
-            device.parameters[3].value = 0
-            device.parameters[4].value = 1
-            
-            -- Convert initial Release slider value (480ms) to 0-1 range
-            local initial_ms = 480
-            local renoise_value = initial_ms / 20000
-            renoise_value = math.max(0, math.min(1, renoise_value))
-            
-            device.parameters[5].value = renoise_value
-
-            -- Check if loop mode is OFF and set it to ON
-            if renoise.song().selected_sample.loop_mode == 1 then
-                renoise.song().selected_sample.loop_mode = 2
-            end
-            
-            renoise.app():show_status("Activated Volume AHDSR, Envelopes now enabled")
-        else
-            renoise.song().selected_sample.new_note_action = 1
-            if renoise.song().selected_sample.loop_mode == 2 then
-                renoise.song().selected_sample.loop_mode = 1
-            end
-            device.operator = 1
-            device.enabled = false
-            
-            renoise.app():show_status("Deactivated Volume AHDSR, Envelopes now disabled")
-        end
-    end
-}
-
--- In dialog creation, after creating the checkbox
-check_and_set_envelope_status(vb)
 

@@ -2947,6 +2947,16 @@ function PakettiCanvasExperimentsHandleNewDocument()
   end
 end
 
+-- REPORT-CARD >> features/parameter-editor-close.feature
+-- Public close action: callers do not need the dialog's keyboard focus.
+function PakettiCanvasExperimentsCloseDialog()
+  local dlg = canvas_experiments_dialog
+  if not dlg or not dlg.visible then return false end
+  PakettiCanvasExperimentsCleanup()
+  dlg:close()
+  return true
+end
+
 -- Song-lifecycle safety: fires BEFORE the song is released (New Song / Load
 -- Song). renoise.song() is still the OLD song here, so every observer below
 -- detaches from the song that is about to die: the persistent global

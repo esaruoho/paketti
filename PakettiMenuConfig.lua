@@ -3072,7 +3072,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Delay Output:Reset De
 
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Start/Stop Column Cycling",invoke=function() startcolumncycling() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (02)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Resize&Fill:Paketti Pattern Resize and Fill 032",invoke=function() pakettiResizeAndFill(32) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Resize&Fill:Paketti Pattern Resize and Fill 064",invoke=function() pakettiResizeAndFill(64) end}

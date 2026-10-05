@@ -8,6 +8,7 @@
 # Files: source modules, test, PLAN.md, changelog, card/session/transcript and generated views.
 # WATCH: PakettiDeleteNoteOffs PakettiClearPatternTrackNoteOffs
 # RESULT-LOG >>
+#   2026-10-06  direct-commit  touched: PakettiDeleteNoteOffs PakettiClearPatternTrackNoteOffs
 #   2026-10-06  direct-commit  touched: PakettiClearPatternTrackNoteOffs
 Feature: Delete note-offs while preserving neighboring data
   @sim-verified @runtime-untested

@@ -8,6 +8,7 @@
 # Files: source modules, test, PLAN.md, manual/CHANGESLOG.md, card/session bundle and generated views.
 # WATCH: hide_all_external_editors PakettiCanvasExperimentsCloseDialog
 # RESULT-LOG >>
+#   2026-10-06  direct-commit  touched: PakettiCanvasExperimentsCloseDialog
 #   2026-10-06  direct-commit  touched: hide_all_external_editors PakettiCanvasExperimentsCloseDialog
 Feature: Close the unfocused parameter editor
   @sim-verified @runtime-verified

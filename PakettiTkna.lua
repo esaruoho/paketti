@@ -3422,3 +3422,94 @@ for i = 1, 32 do
   PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop by Position:Select, Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectScheduleLoopSectionByPosition(i) end}
   PakettiAddMenuEntry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop by Position:Select, Add to Schedule and Loop Section by Position " .. section_id,invoke=function() tknaSelectAddScheduleLoopSectionByPosition(i) end}
 end
+
+-- FEATURE-CARD >> features/sample-playback-quality.feature
+-- Phaos's SimpleInterpolation inspired these checked, scoped quality controls.
+do
+  local modes = {"None", "Linear", "Cubic", "Sinc"}
+  local scopes = {"Selected Sample", "Selected Instrument", "Whole Song"}
+  local function PakettiSampleQualityTargets(scope)
+    local ok, song = pcall(renoise.song)
+    if not ok or not song then return {} end
+    if scope == "Selected Sample" then
+      return song.selected_sample and {song.selected_sample} or {}
+    end
+    local result = {}
+    local instruments = scope == "Selected Instrument" and {song.selected_instrument} or song.instruments
+    for _, instrument in ipairs(instruments) do
+      for _, sample in ipairs(instrument.samples) do result[#result + 1] = sample end
+    end
+    return result
+  end
+  local function all_match(scope, field, value)
+    local samples = PakettiSampleQualityTargets(scope)
+    if #samples == 0 then return false end
+    for _, sample in ipairs(samples) do
+      if sample[field] ~= value then return false end
+    end
+    return true
+  end
+  local function PakettiSampleQualityChange(scope, mode, oversampling)
+    local samples = PakettiSampleQualityTargets(scope)
+    if #samples == 0 then
+      renoise.app():show_status("Paketti: No samples in " .. scope)
+      return
+    end
+    if mode == "cycle" then mode = samples[1].interpolation_mode % 4 + 1 end
+    if oversampling == "toggle" then oversampling = not all_match(scope, "oversample_enabled", true) end
+    renoise.song():describe_undo("Sample Playback Quality: " .. scope)
+    if mode then
+      if scope == "Selected Sample" then selectedSampleInterpolation(mode)
+      elseif scope == "Selected Instrument" then setSelectedInstrumentInterpolation(mode)
+      else PakettiGlobalSample(mode) end
+    elseif scope == "Selected Sample" then
+      if oversampling then selectedSampleOversampleOn() else selectedSampleOversampleOff() end
+    elseif scope == "Whole Song" then
+      PakettiGlobalOversample(oversampling)
+    else
+      for _, sample in ipairs(samples) do sample.oversample_enabled = oversampling end
+    end
+    local setting = mode and modes[mode] or ("Oversampling " .. (oversampling and "On" or "Off"))
+    renoise.app():show_status("Paketti: " .. scope .. " — " .. setting .. " (" .. #samples .. " samples)")
+  end
+  local function add_scope(base, scope)
+    -- Current instrument is the default flat menu group; other scopes are
+    -- explicit leaf labels, not additional submenu levels.
+    local prefix = scope == "Selected Instrument" and "" or (scope .. " - ")
+    for index, label in ipairs(modes) do
+      local mode = index
+      PakettiAddMenuEntry{name=(scope == "Whole Song" and index == 1 and "--" or "") .. base .. prefix .. string.format("%02d %s", index - 1, label),
+        invoke=function() PakettiSampleQualityChange(scope, mode) end,
+        selected=function() return all_match(scope, "interpolation_mode", mode) end}
+    end
+    PakettiAddMenuEntry{name=base .. prefix .. "Interpolation (Next)",
+      invoke=function() PakettiSampleQualityChange(scope, "cycle") end}
+    PakettiAddMenuEntry{name=base .. prefix .. "Oversampling",
+      invoke=function() PakettiSampleQualityChange(scope, nil, "toggle") end,
+      selected=function() return all_match(scope, "oversample_enabled", true) end}
+  end
+  for _, scope in ipairs(scopes) do
+    add_scope("Main Menu:Tools:Paketti:Sample Playback Quality:", scope)
+    for _, action in ipairs({"Interpolation (Next)", "Toggle Oversampling"}) do
+      local cycle = action == "Interpolation (Next)"
+      local function invoke()
+        if cycle then PakettiSampleQualityChange(scope, "cycle")
+        else PakettiSampleQualityChange(scope, nil, "toggle") end
+      end
+      local name = action .. " in " .. scope
+      -- Selected-sample oversampling already has an existing toggle keybinding.
+      if cycle or scope ~= "Selected Sample" then
+        renoise.tool():add_keybinding{name="Global:Paketti:" .. name,
+          invoke=function(repeated) if not repeated then invoke() end end}
+      end
+      renoise.tool():add_midi_mapping{name="Paketti:" .. name,
+        invoke=function(message) if message:is_trigger() then invoke() end end}
+    end
+  end
+  for _, context in ipairs({"Sample List", "Sample Editor"}) do
+    add_scope(context .. ":Paketti:Sample Playback Quality:", "Selected Sample")
+    add_scope(context .. ":Paketti:Sample Playback Quality:", "Selected Instrument")
+  end
+  add_scope("Instrument Box:Paketti:Sample Playback Quality:", "Selected Instrument")
+  add_scope("Instrument Box:Paketti:Sample Playback Quality:", "Whole Song")
+end

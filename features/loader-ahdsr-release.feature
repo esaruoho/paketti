@@ -8,6 +8,7 @@
 # Files: source modules, test, PLAN.md, manual/CHANGESLOG.md, card/session bundle and generated views.
 # WATCH: PakettiApplyLoaderModulationSettings set_stretch_release_480ms
 # RESULT-LOG >>
+#   2026-10-06  direct-commit  touched: set_stretch_release_480ms
 #   2026-10-06  direct-commit  touched: PakettiApplyLoaderModulationSettings set_stretch_release_480ms
 Feature: Longer loaded-sample AHDSR release
   @sim-verified @runtime-untested

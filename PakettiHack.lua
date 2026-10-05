@@ -642,43 +642,21 @@ end
 local presets = {1024, 2048, 4096, 8192, 16384, 32768}
 for _, n in ipairs(presets) do
   local label = string.format("%05d", n)
-  PakettiAddMenuEntry{
-    name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatsyncHack:Set BeatSyncLines " .. label,
-    invoke = function() paketti_hack_set_beatsync_lines(n) end
-  }
-  PakettiAddMenuEntry{
-    name = "Sample Editor:Paketti:Beatsync:Set BeatSyncLines " .. label,invoke = function() paketti_hack_set_beatsync_lines(n) end}
-  PakettiAddMenuEntry{
-    name = "Instrument Box:Paketti:BeatsyncHack:Set BeatSyncLines " .. label,
-    invoke = function() paketti_hack_set_beatsync_lines(n) end
-  }
-  renoise.tool():add_keybinding{
-    name = "Global:Paketti:Set BeatSyncLines " .. label,
-    invoke = function() paketti_hack_set_beatsync_lines(n) end
-  }
+  PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatsyncHack:Set BeatSyncLines " .. label,invoke = function() paketti_hack_set_beatsync_lines(n) end}
+  PakettiAddMenuEntry{name = "Sample Editor:Paketti:Beatsync:Set BeatSyncLines " .. label,invoke = function() paketti_hack_set_beatsync_lines(n) end}
+  PakettiAddMenuEntry{name = "Instrument Box:Paketti:BeatsyncHack:Set BeatSyncLines " .. label,invoke = function() paketti_hack_set_beatsync_lines(n) end}
+  renoise.tool():add_keybinding{name = "Global:Paketti:Set BeatSyncLines " .. label,invoke = function() paketti_hack_set_beatsync_lines(n) end}
 end
 
-PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatSyncHack:Set BeatSyncLines Dialog...",
-  invoke = pakettiBeatSyncHackDialog
-}
-PakettiAddMenuEntry{
-  name = "Sample Editor:Paketti:Beatsync:Set BeatSyncLines Dialog...",
-  invoke = pakettiBeatSyncHackDialog
-}
-PakettiAddMenuEntry{
-  name = "Instrument Box:Paketti:BeatSyncHack:Set BeatSyncLines Dialog...",
-  invoke = pakettiBeatSyncHackDialog
-}
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Set BeatSyncLines Dialog",
-  invoke = pakettiBeatSyncHackDialog
-}
+PakettiAddMenuEntry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatsyncHack:Set BeatSyncLines Dialog...",invoke = pakettiBeatSyncHackDialog}
+PakettiAddMenuEntry{name = "Sample Editor:Paketti:Beatsync:Set BeatSyncLines Dialog...",invoke = pakettiBeatSyncHackDialog}
+PakettiAddMenuEntry{name = "Instrument Box:Paketti:BeatsyncHack:Set BeatSyncLines Dialog...",invoke = pakettiBeatSyncHackDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Set BeatsyncLines Dialog",invoke = pakettiBeatSyncHackDialog}
 
 -- Render & Restore menu entries / keybinding disabled (engine crash bugs):
 --[[ DISABLED
 PakettiAddMenuEntry{
-  name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatSyncHack:Render & Restore Current Sample",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:BeatsyncHack:Render & Restore Current Sample",
   invoke = pakettiBeatSyncHackRenderAndRestore
 }
 PakettiAddMenuEntry{

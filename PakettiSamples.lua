@@ -332,6 +332,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Sample Zoom (1x-11x) [Knob]",
 
 -- Note: find_volume_ahdsr_device() is defined globally in main.lua
 
+-- REPORT-CARD >> features/loader-ahdsr-release.feature
 -- Helper function to apply AHDSR envelope and filter settings after loading an XRNI
 function PakettiApplyLoaderModulationSettings(instrument, debug_context)
   if not instrument then return false, "No instrument provided" end
@@ -344,6 +345,10 @@ function PakettiApplyLoaderModulationSettings(instrument, debug_context)
       for i, device in ipairs(modset.devices) do
         if device.name == "Volume AHDSR" then
           device.is_active = true
+          -- New loaded instruments get a longer release only when AHDSR is requested.
+          -- Renoise time parameters are nonlinear: let its unit parser set real ms.
+          device.tempo_synced = false
+          device.parameters[5].value_string = "480 ms"
           if debug_context then
             print(string.format("%s: Activated Volume AHDSR at position %d", debug_context, i))
           end
