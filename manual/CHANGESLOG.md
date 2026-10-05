@@ -8,6 +8,9 @@ Every changelog entry below represents hours of development time. Paketti is fre
 
 **[Join Patreon to keep Paketti growing →](http://patreon.com/esaruoho)** | [Other options](index.html#keep-paketti-growing)
 
+### 2026-10-05 - Fix: Column Cycle Keyjazz — switching counts no longer turns cycling off
+Column Cycle Keyjazz (and the Special variants) now behave as a proper state machine. Previously, any trigger while cycling was already on turned it off — so going from "Column Cycle Keyjazz 03" to "Column Cycle Keyjazz Special (12)" switched it off instead of switching to 12 columns. Now: triggering a count while cycling is off turns it on; triggering a DIFFERENT count while on stays on and just switches to that count; triggering the SAME count that is currently active turns it off. The numbered shortcuts, the Special shortcuts, and the Cycler (knob / +1 / -1) all share one active-count state, so they stay in sync. No menu, keybinding, or MIDI mapping names changed.
+
 ### 2026-10-05 - Improvement: Column Cycle Keyjazz Cycler — one 01-12 selector for a MIDI knob, plus +1/-1 stepping
 Adds a single "cycler" control for Column Cycle Keyjazz so you can pick how many note columns cycle (01-12) from one MIDI knob instead of twelve separate keybindings. Turn the mapped knob and 0-127 maps to 01-12, showing that many note columns and ensuring cycling is ON (it never toggles off mid-sweep). Also adds +1 and -1 steps, as both keyboard shortcuts and MIDI mappings, to nudge the cycler up or down by one (clamped to 01-12).
 - Keybinding: `Global:Paketti:Column Cycle Keyjazz Cycler +1`

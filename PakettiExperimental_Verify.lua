@@ -2880,32 +2880,42 @@ function pattern_line_notifier(pos)
   s.selected_note_column_index = colnumber
 end
 
+-- Shared Column Cycle Keyjazz state (declared before any function that touches it so
+-- strict-globals never sees an undeclared read/write).
+-- ActiveCount: nil = cycling is off; otherwise the column-count currently being cycled.
+-- CyclerValue: the last-selected 01-12 count, kept even while off so +1/-1 and the knob resume from it.
+PakettiColumnCycleKeyjazzActiveCount = nil
+PakettiColumnCycleKeyjazzCyclerValue = 1
+
 function startcolumncycling(number)
   local s = renoise.song()
   local pattern = s.patterns[s.selected_pattern_index]
   local was_active = pattern:has_line_notifier(pattern_line_notifier)
 
   if number then
-    -- Store the current column before displayNoteColumn changes it
-    local original_column = s.selected_note_column_index
-    
-    -- Column-specific activation/deactivation
-    if was_active then
-      -- Cycling is currently on, turn it off
+    if was_active and PakettiColumnCycleKeyjazzActiveCount == number then
+      -- Same count re-triggered while already cycling it: turn off.
       pattern:remove_line_notifier(pattern_line_notifier)
+      PakettiColumnCycleKeyjazzActiveCount = nil
       renoise.app():show_status(number .. " Column Cycle Keyjazz Off")
     else
-      -- Cycling is currently off, turn it on
-      pattern:add_line_notifier(pattern_line_notifier)
+      -- Off -> turn on at this count; or on at a DIFFERENT count -> stay on, just switch count.
+      if not was_active then
+        pattern:add_line_notifier(pattern_line_notifier)
+      end
+      PakettiColumnCycleKeyjazzActiveCount = number
+      PakettiColumnCycleKeyjazzCyclerValue = number
       renoise.app():show_status(number .. " Column Cycle Keyjazz On")
     end
   else
-    -- General toggle (no specific column)
+    -- General toggle (no specific count).
     if was_active then
       pattern:remove_line_notifier(pattern_line_notifier)
+      PakettiColumnCycleKeyjazzActiveCount = nil
       renoise.app():show_status("Column Cycling Off")
     else
       pattern:add_line_notifier(pattern_line_notifier)
+      PakettiColumnCycleKeyjazzActiveCount = s.selected_note_column_index
       renoise.app():show_status(s.selected_note_column_index .. " Column Cycle Keyjazz On")
     end
   end
@@ -2935,9 +2945,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special 
 
 -- Column Cycle Keyjazz Cycler: one 01-12 selector you can drive from a MIDI knob (0-127 -> 01-12)
 -- or step with +1 / -1. Setting the cycler shows that many note columns and ensures cycling is ON
--- (it never toggles off, so a knob sweep or repeated step stays usable).
-PakettiColumnCycleKeyjazzCyclerValue = 1
-
+-- (it never toggles off, so a knob sweep or repeated step stays usable). Shares state with the
+-- numbered Column Cycle Keyjazz shortcuts via PakettiColumnCycleKeyjazzActiveCount/CyclerValue
+-- (both declared above, next to startcolumncycling).
 function PakettiColumnCycleKeyjazzCyclerApply(value)
   if value < 1 then value = 1 elseif value > 12 then value = 12 end
   PakettiColumnCycleKeyjazzCyclerValue = value
@@ -2947,6 +2957,7 @@ function PakettiColumnCycleKeyjazzCyclerApply(value)
   if not pattern:has_line_notifier(pattern_line_notifier) then
     pattern:add_line_notifier(pattern_line_notifier)
   end
+  PakettiColumnCycleKeyjazzActiveCount = value
   renoise.app():show_status("Column Cycle Keyjazz Cycler: " .. formatDigits(2,value))
 end
 
