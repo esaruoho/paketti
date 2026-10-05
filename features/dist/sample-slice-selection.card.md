@@ -4,9 +4,9 @@
 
 **Intent:** As a Sample Editor user, I want one command that selects the current slice boundaries, So that loop and beat-sync work can start from the exact slice range.
 
-**Grades:** @code-verified × 3 · @runtime-untested × 3 · @shipped × 3 · @stock × 1
+**Grades:** @code-verified × 4 · @runtime-untested × 4 · @shipped × 4 · @stock × 1
 
-**Scenarios: 4**
+**Scenarios: 5**
 
 
 ---
@@ -37,7 +37,21 @@
 <sub>cite: PakettiSlice.lua command registrations (~line 129) — keybinding and MIDI mapping · PakettiMenuConfig.lua Sample Editor Wipe&Slice menu (~line 2190) — menu entry</sub>
 
 
-## 3. Clearing sample selection after deleting a sample is harmless
+## 3. Map a MIDI knob to a one-frame sample-buffer selection
+
+`@shipped @code-verified @runtime-untested`
+
+
+- Given the selected sample has sample data
+- When the user moves Sample Editor:Paketti:Sample Buffer Selection Point 0-127 x[Knob]
+- Then Paketti maps MIDI value 0 to frame 1 and MIDI value 127 to the sample buffer's final frame
+- And Paketti focuses the Sample Editor
+- And the sample-buffer selection is exactly one frame long
+
+<sub>cite: PakettiMidi.lua PakettiMidiSampleBufferPointSelection (~line 911) — validates selected sample, focuses Sample Editor, and writes selection_range = {frame, frame} · PakettiMIDIMappings.lua PakettiMidiMappings (~line 157) — exposes the mapping in discovery</sub>
+
+
+## 4. Clearing sample selection after deleting a sample is harmless
 
 `@shipped @code-verified @runtime-untested`
 
@@ -50,7 +64,7 @@
 <sub>cite: PakettiSamples.lua pakettiSampleEditorSelectionClear (~line 7055) — validates selected sample and buffer data before clearing selection_range</sub>
 
 
-## 4. Existing slice marker deletion remains separate
+## 5. Existing slice marker deletion remains separate
 
 `@stock`
 

@@ -22,6 +22,16 @@ Feature: Sample slice selection range
     Then the command is available as Sample Editor and Global keybindings, MIDI mapping, and Sample Editor menu entry
 
   @shipped @code-verified @runtime-untested
+  Scenario: Map a MIDI knob to a one-frame sample-buffer selection
+    # cite: PakettiMidi.lua PakettiMidiSampleBufferPointSelection (~line 911) — validates selected sample, focuses Sample Editor, and writes selection_range = {frame, frame}
+    # cite: PakettiMIDIMappings.lua PakettiMidiMappings (~line 157) — exposes the mapping in discovery
+    Given the selected sample has sample data
+    When the user moves Sample Editor:Paketti:Sample Buffer Selection Point 0-127 x[Knob]
+    Then Paketti maps MIDI value 0 to frame 1 and MIDI value 127 to the sample buffer's final frame
+    And Paketti focuses the Sample Editor
+    And the sample-buffer selection is exactly one frame long
+
+  @shipped @code-verified @runtime-untested
   Scenario: Clearing sample selection after deleting a sample is harmless
     # cite: PakettiSamples.lua pakettiSampleEditorSelectionClear (~line 7055) — validates selected sample and buffer data before clearing selection_range
     Given the Sample Editor has focus after the selected sample was deleted

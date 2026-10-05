@@ -53,3 +53,15 @@ Derived views — GENERATED, never hand-edit:
 | `transient-navigation-detection.feature` | Sample Editor Transient Next/Previous re-arms between dense visible hits | `transient-navigation-detection.session.md` | worktree |
 
 | `sample-browser-deferred-close.feature` | Deferred browser load/close and duplicate guards | `sample-browser-deferred-close.session.md` | worktree |
+
+- [Special keyjazz cycler](keyjazz-special-cycler.feature) — regenerate delays, including at twelve columns.
+
+- [Preserve crafted Timestretch envelopes](stretch-envelope-preservation.feature).
+
+- [Close the unfocused parameter editor](parameter-editor-close.feature).
+
+- [Longer loader AHDSR release](loader-ahdsr-release.feature).
+
+- [Delete note-offs while preserving data](note-off-cleanup.feature) — four cleanup scopes; Phaos Ideas credit.
+
+- [Checked sample playback quality](sample-playback-quality.feature) — scoped menus, cycling and oversampling toggles.

@@ -20,6 +20,8 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select)](#groovebox-8120-lpd8) — `groovebox-8120-lpd8.feature`
 - [Groovebox 8120 Record button records into a Pakettified instrument](#groovebox-8120-record-pakettified-instrument) — `groovebox-8120-record-pakettified-instrument.feature`
 - [Issue follow-up utilities](#issue-followup-utilities) — `issue-followup-utilities.feature`
+- [Refresh Special keyjazz delays at every count](#keyjazz-special-cycler) — `keyjazz-special-cycler.feature`
+- [Longer loaded-sample AHDSR release](#loader-ahdsr-release) — `loader-ahdsr-release.feature`
 - [Paketti Master Bandpass audition filter](#master-bandpass) — `master-bandpass.feature`
 - [Master Low-Cut 200Hz punch toggle](#master-low-cut-200hz) — `master-low-cut-200hz.feature`
 - [Paketti × Claude MCP + probe bridges (Renoise ↔ Claude)](#mcp-claude-bridge) — `mcp-claude-bridge.feature`
@@ -28,6 +30,8 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
 - [NetDrive 2logic watcher](#netdrive-2logic-watcher) — `netdrive-2logic-watcher.feature`
 - [Normalize selected sample selection](#normalize-selected-channel) — `normalize-selected-channel.feature`
+- [Delete note-offs while preserving neighboring data](#note-off-cleanup) — `note-off-cleanup.feature`
+- [Close the unfocused parameter editor](#parameter-editor-close) — `parameter-editor-close.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
 - [Pattern and song row jumps](#pattern-song-jumps) — `pattern-song-jumps.feature`
@@ -37,12 +41,14 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
 - [Load samples and close the browser after keyboard dispatch returns](#sample-browser-deferred-close) — `sample-browser-deferred-close.feature`
 - [Sample Editor export menus live under Export](#sample-editor-export-menu-grouping) — `sample-editor-export-menu-grouping.feature`
+- [Show and change sample playback quality](#sample-playback-quality) — `sample-playback-quality.feature`
 - [Sample Editor slice menus live under Slices](#sample-slice-menu-grouping) — `sample-slice-menu-grouping.feature`
 - [Sample slice selection range](#sample-slice-selection) — `sample-slice-selection.feature`
 - [Section loop switches trigger immediately](#section-loop-immediate-switch) — `section-loop-immediate-switch.feature`
 - [Section loop and MIDI capture](#section-loop-midi-capture) — `section-loop-midi-capture.feature`
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
+- [Preserve crafted envelopes in Timestretch](#stretch-envelope-preservation) — `stretch-envelope-preservation.feature`
 - [Subcolumn-only pattern inversion](#subcolumn-only-invert) — `subcolumn-only-invert.feature`
 - [Transient navigation detection](#transient-navigation-detection) — `transient-navigation-detection.feature`
 - [Tree menu map generator](#treemenu) — `treemenu.feature`
@@ -314,6 +320,40 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4
 
 
+<a id="keyjazz-special-cycler"></a>
+## Refresh Special keyjazz delays at every count
+
+`features/keyjazz-special-cycler.feature` · [session](keyjazz-special-cycler.session.md)
+
+**Behaviour (4 scenarios):**
+
+- Reapply delays at the upper limit — `@sim-verified @runtime-untested`
+- Select Special counts through keys, menus and a MIDI knob — `@sim-verified @runtime-untested`
+- Preserve ordinary cycler behavior — `@sim-verified @runtime-untested`
+- Numbered Special twelve refreshes already-visible columns — `@sim-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `ColumnCycleKeyjazzSpecial`, `PakettiColumnCycleKeyjazzSpecialPrepare`, `PakettiColumnCycleKeyjazzCyclerApply`, `PakettiColumnCycleKeyjazzCyclerStep` · **Source files:** `PakettiExperimental_Verify.lua`, `tests/keyjazz-special-cycler.lua`
+
+**Grade:** @runtime-untested ×4 · @sim-verified ×4
+
+
+<a id="loader-ahdsr-release"></a>
+## Longer loaded-sample AHDSR release
+
+`features/loader-ahdsr-release.feature` · [session](loader-ahdsr-release.session.md)
+
+**Behaviour (4 scenarios):**
+
+- Loader preference on gives the envelope a 480 ms release — `@sim-verified @runtime-untested`
+- Loader preference off leaves release and timing unchanged — `@sim-verified @runtime-untested`
+- Timestretch offers a deliberate 480 ms release action — `@sim-verified @runtime-untested`
+- Renoise parses real 480 ms — `@runtime-verified`
+
+**How it does it:** **Key procs:** `PakettiApplyLoaderModulationSettings`, `set_stretch_release_480ms` · **Source files:** `PakettiSamples.lua`, `PakettiStretch.lua`, `loader-ahdsr-release.session.md`
+
+**Grade:** @runtime-untested ×3 · @runtime-verified ×1 · @sim-verified ×3
+
+
 <a id="master-bandpass"></a>
 ## Paketti Master Bandpass audition filter
 
@@ -513,6 +553,37 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @code-verified ×5 · @runtime-untested ×5 · @shipped ×5 · @stock ×1
 
 
+<a id="note-off-cleanup"></a>
+## Delete note-offs while preserving neighboring data
+
+`features/note-off-cleanup.feature` · [session](note-off-cleanup.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Remove OFFs only in the requested scope — `@sim-verified @runtime-untested`
+- Cleanup commands are accessible and repeat safe — `@sim-verified @runtime-untested`
+- Credit the source idea — `@built @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiDeleteNoteOffs`, `PakettiClearPatternTrackNoteOffs` · **Source files:** `PakettiPatternEditor.lua`, `PakettiMainMenuEntries.lua`
+
+**Grade:** @built ×1 · @runtime-untested ×3 · @sim-verified ×2
+
+
+<a id="parameter-editor-close"></a>
+## Close the unfocused parameter editor
+
+`features/parameter-editor-close.feature` · [session](parameter-editor-close.session.md)
+
+**Behaviour (2 scenarios):**
+
+- Hide editors from Pattern Editor or Global closes the custom dialog — `@sim-verified @runtime-verified`
+- Repeated hide calls and an unavailable parameter editor remain safe — `@sim-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `hide_all_external_editors`, `PakettiCanvasExperimentsCloseDialog` · **Source files:** `PakettiLoaders.lua`, `PakettiCanvasExperiments.lua`, `tests/parameter-editor-close.lua`
+
+**Grade:** @runtime-untested ×1 · @runtime-verified ×1 · @sim-verified ×2
+
+
 <a id="parameter-editor-mixer-and-config"></a>
 ## Parameter Editor exposes on the Mixer the parameter you're modifying
 
@@ -685,6 +756,23 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
 
 
+<a id="sample-playback-quality"></a>
+## Show and change sample playback quality
+
+`features/sample-playback-quality.feature` · [session](sample-playback-quality.session.md)
+
+**Behaviour (4 scenarios):**
+
+- Checked menus describe the complete target scope — `@sim-verified @runtime-untested`
+- Cycle and toggle sample, instrument or song — `@sim-verified @runtime-untested`
+- Native import detection is a proposal only — `@built @runtime-untested`
+- Quality menus are flat and ordered — `@sim-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiSampleQualityTargets`, `PakettiSampleQualityChange` · **Source files:** `PakettiTkna.lua`, `manual/NativeSampleDefaults.md`
+
+**Grade:** @built ×1 · @runtime-untested ×4 · @sim-verified ×3
+
+
 <a id="sample-slice-menu-grouping"></a>
 ## Sample Editor slice menus live under Slices
 
@@ -795,6 +883,23 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - ParameterEditor must survive New Song / Load Song with its canvas open — `@built`
 
 **Grade:** @built ×2 · @hw-verified ×1
+
+
+<a id="stretch-envelope-preservation"></a>
+## Preserve crafted envelopes in Timestretch
+
+`features/stretch-envelope-preservation.feature` · [session](stretch-envelope-preservation.session.md)
+
+**Behaviour (4 scenarios):**
+
+- Activate without disabling or overwriting the envelope — `@sim-verified @runtime-untested`
+- Displaying envelope state never enables or disables it — `@sim-verified @runtime-untested`
+- Release and Release Scaling edit only their parameter — `@sim-verified @runtime-untested`
+- Target the selected sample modulation set — `@sim-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `find_stretch_volume_ahdsr_device`, `pakettiTimestretchDialog` · **Source files:** `PakettiStretch.lua`
+
+**Grade:** @runtime-untested ×4 · @sim-verified ×4
 
 
 <a id="subcolumn-only-invert"></a>

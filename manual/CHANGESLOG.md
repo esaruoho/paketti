@@ -1,3 +1,15 @@
+### Improvement: Real 480 ms AHDSR release for preference-enabled sample loading
+When the loader AHDSR preference is on, newly loaded instruments receive an activated Volume AHDSR with Release set using Renoise's "480 ms" parser. Timestretch also offers an explicit 480 ms button that changes Release and turns tempo sync off without enabling or resetting the envelope. Paketti reload never applies these edits. Other envelope stages remain unchanged.
+
+### Fix: Hide External Editors also closes the unfocused Parameter Editor
+The existing Global hide-external-editors shortcut (Cmd-H when assigned) now also closes the Paketti Selected Device Parameter Editor from Pattern Editor or any other focus context. Parameter-editor automation observers and timers are cleaned up before closure. Existing device/plugin editor closure and mapping names are preserved.
+
+### Fix: Timestretch envelope activation preserves crafted AHDSR settings
+Timestretch no longer changes envelope enabled state at all. Paketti reload leaves existing AHDSR parameters, operator, enabled state, sample looping and new-note action untouched. Removed the duplicate startup checkbox that fired its destructive reset handler when synchronizing an already-enabled envelope. Release and Release Scaling controls edit only their parameter and use the selected sample's assigned modulation set.
+
+### Column Cycle Keyjazz Cycler Special — refresh delays at every count
+Adds `Column Cycle Keyjazz Cycler Special +1` and `-1` keyboard shortcuts, Pattern Editor menu commands and trigger MIDI mappings, plus `Paketti:Column Cycle Keyjazz Cycler Special [01-12]` for an absolute MIDI knob. These regenerate whole-pattern note-column delays, enable edit mode with edit step zero, select column one and keep cycling on. Counts clamp to 01–12; +1 at 12 still refreshes delays. Ordinary cycler controls retain their existing behavior.
+
 **[Support on Patreon](http://patreon.com/esaruoho)** | [GitHub](https://github.com/esaruoho/paketti) | [Discord](https://discord.gg/xNT6eH7W) | [README](index.html) | [Experimental](Experimental.html) 
 
 📖 **Navigation:** [Paketti README](index.html) | Changeslog (You are here) | [Experimental](Experimental.html)
@@ -16366,3 +16378,11 @@ Paketti's continued development is sustained by supporters who believe in open-s
 - **[Join the Discord](https://discord.gg/xNT6eH7W)** — Community discussion and feedback
 
 Thank you for using Paketti. — Esa
+
+- Added Delete Note Offs in Track, Pattern, Track (Whole Song), and Song: remove only OFF note values, including hidden columns, preserving neighboring fields. Whole-song cleanup includes unused patterns. Inspired by Phaos’s SimpleNotesOff; added Phaos to Ideas provided by.
+
+- Added checked Sample Playback Quality menus in Tools, Sample List, Sample Editor and Instrument Box; sample/instrument/song interpolation cycling, instrument/song oversampling toggles and trigger MIDI mappings. Inspired by Phaos’s SimpleInterpolation. Native-import default detection remains a documented proposal in manual/NativeSampleDefaults.md.
+
+- Flattened Sample Playback Quality menus: current instrument directly in the quality area, explicit sample/song leaf labels, numbered modes 00–03 and Oversampling separators.
+
+- Renamed sample-quality advancing menu action to Interpolation (Next); moved separator to the Whole Song group, keeping Oversampling with its scope controls.

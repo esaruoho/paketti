@@ -27,6 +27,8 @@
 | groovebox-8120-lpd8 | 6 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 | groovebox-8120-record-pakettified-instrument | 2 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
 | issue-followup-utilities | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
+| keyjazz-special-cycler | 4 | ✗ | ✗ | — | @runtime-untested @sim-verified |
+| loader-ahdsr-release | 4 | ✗ | ~ partial | — | @runtime-untested @runtime-verified @sim-verified |
 | master-bandpass | 4 | ✓ | ✗ | — | @build-verified @runtime-untested @shipped |
 | master-low-cut-200hz | 3 | ✗ | — | ✓ | @hw-verified |
 | mcp-claude-bridge | 11 | ✓ | — | ✓ | @built @code-verified @hw-verified @untested |
@@ -35,6 +37,8 @@
 | music-mouse | 36 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @stock @user-verified |
 | netdrive-2logic-watcher | 12 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | normalize-selected-channel | 6 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| note-off-cleanup | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
+| parameter-editor-close | 2 | ✗ | ~ partial | — | @runtime-untested @runtime-verified @sim-verified |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
 | pattern-song-jumps | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | pattern-transform-shortcuts | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
@@ -43,20 +47,22 @@
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-browser-deferred-close | 5 | ✗ | ✗ | — | @runtime-untested @sim-verified @stock |
 | sample-editor-export-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| sample-playback-quality | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | sample-slice-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-slice-selection | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | section-loop-immediate-switch | 5 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | section-loop-midi-capture | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | selection-reversed-instrument | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
+| stretch-envelope-preservation | 4 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | subcolumn-only-invert | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | transient-navigation-detection | 6 | ✓ | — | — | @code-verified @shipped @sim-verified @stock |
 | treemenu | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 41
-- Build-verified: 38
-- Runtime-verified: 3 full + 1 partial
+- Cards: 47
+- Build-verified: 40
+- Runtime-verified: 3 full + 3 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

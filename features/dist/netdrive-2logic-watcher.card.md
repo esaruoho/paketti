@@ -4,9 +4,9 @@
 
 **Intent:** As a Paketti user recording audio into a known handoff folder, I want Paketti to notice new files under /private/tmp/netdrive/2logic, So that Renoise can load each completed take without a manual file picker.
 
-**Grades:** @code-verified × 8 · @runtime-untested × 8 · @shipped × 8 · @stock × 1
+**Grades:** @code-verified × 11 · @runtime-untested × 11 · @shipped × 11 · @stock × 1
 
-**Scenarios: 9**
+**Scenarios: 12**
 
 
 ---
@@ -77,10 +77,26 @@
 - And it retries on a slow 10-second backoff instead of touching the dead mount every poll tick
 - And the Paketti script remains armed so the watcher can resume when the volume returns
 
-<sub>cite: PakettiSamples.lua PakettiNetDriveWatcherVolumeMounted (~line 3967) — checks /Volumes for the mount name before touching the watched path · PakettiSamples.lua PakettiNetDriveWatcherTick (~line 4140) — backs off for disconnected or failed folder scans · PakettiSamples.lua PakettiNetDriveWatcherStart (~line 4349) — starts in paused/offline mode when the configured /Volumes mount is absent</sub>
+<sub>cite: PakettiSamples.lua PakettiNetDriveWatcherVolumeMounted (~line 3977) — proves the /Volumes mount root before touching the configured child folder · PakettiSamples.lua PakettiNetDriveWatcherTick (~line 4140) — backs off for disconnected or failed folder scans · PakettiSamples.lua PakettiNetDriveWatcherStart (~line 4349) — starts in paused/offline mode when the configured /Volumes mount is absent</sub>
 
 
-## 6. Load each arrival as a fresh Paketti instrument
+## 6. Accept a readable NetDrive folder only after the mount root exists
+
+`@shipped @code-verified @runtime-untested`
+
+
+- Given the configured watch folder is /Volumes/netdrive/2logic
+- And the /Volumes/netdrive mount root exists
+- And the 2logic folder exists and is readable
+- When Renoise's /Volumes listing does not report the netdrive mount exactly
+- Then the watcher still treats the configured folder as available
+- And it proceeds to scan the folder for loadable audio files
+- But if /Volumes/netdrive is absent, the watcher does not probe /Volumes/netdrive/2logic
+
+<sub>cite: PakettiSamples.lua PakettiNetDriveWatcherPathExists (~line 3968) — safely checks existence behind pcall before using fallback paths · PakettiSamples.lua PakettiNetDriveWatcherVolumeMounted (~line 3977) — treats trailing-slash mount names as mounted, then falls back via /Volumes/netdrive before /Volumes/netdrive/2logic · preferences.xml pakettiNetDriveWatcherFolder (~line 1140) — stores Esa's /Volumes/netdrive/2logic folder selection</sub>
+
+
+## 7. Load each arrival as a fresh Paketti instrument
 
 `@shipped @code-verified @runtime-untested`
 
@@ -89,12 +105,48 @@
 - When the file is stable and loadable by Renoise
 - Then Paketti inserts a new instrument after the current instrument
 - And it loads the file into sample slot 1
+- And it sets the loaded sample loop mode to Forward Loop after applying loader settings, which is Renoise's enabled loop state
+- And it enables Autoseek regardless of the general loader preference
 - And it names the sample and instrument from the audio filename
 
-<sub>cite: PakettiSamples.lua PakettiNetDriveWatcherLoadFile (~line 3988) — inserts a new instrument, applies the default XRNI, loads the sample, and applies loader settings</sub>
+<sub>cite: PakettiSamples.lua PakettiNetDriveWatcherLoadFile (~line 4121) — inserts a new instrument, loads the sample, applies loader settings, then forces Forward Loop and Autoseek</sub>
 
 
-## 7. Create an adjacent sequencer trigger track for each loaded arrival
+## 8. Every file load goes through a ProcessSlicer so the UI never freezes
+
+`@shipped @code-verified @runtime-untested`
+
+
+- Given one or more new files become eligible to load (a single take or a whole burst at once)
+- When the watcher loads them
+- Then each file is loaded inside a ProcessSlicer coroutine that yields between files
+- And a progress dialog shows the filename and how many remain, and can be cancelled
+- And the poll timer does not start a second load pass while a load is running
+- And cancelling abandons the rest of the queue rather than force-loading it
+- And if the watched volume drops out mid-load, the drain stops before statting or loading off the dead mount
+- And it does not hang the app_idle callback long enough to trip Renoise's "tool became unresponsive" watchdog
+- And control returns to the poll tick's offline backoff, which resumes the remaining files when the volume comes back
+
+<sub>cite: PakettiSamples.lua PakettiNetDriveWatcherEnqueue (~line 4302) — every eligible file is queued, never loaded inline · PakettiSamples.lua PakettiNetDriveWatcherProcessQueue (~line 4226) — one coroutine drains the queue, yielding between files, with a cancelable progress dialog · PakettiSamples.lua PakettiNetDriveWatcher.loading guard (~line 4228) — the poll timer never starts a second load pass while one runs</sub>
+
+
+## 9. A durable load-after cutoff persists so restarts do not start from scratch
+
+`@shipped @code-verified @runtime-untested`
+
+
+- Given the watcher has a persisted load-after cutoff
+- When the watcher starts or scans
+- Then no file modified strictly before the cutoff is ever loaded
+- And each successfully loaded file advances the cutoff to its modification time and saves preferences.xml
+- And restarting Renoise resumes from the stored cutoff instead of reloading or re-baselining everything
+- And the first time a folder is watched the cutoff defaults to now, so the folder's existing history is not ingested
+- And the user can reset the cutoff to now, or clear it to make every file in the folder eligible
+
+<sub>cite: Paketti0G01_Loader.lua pakettiNetDriveWatcherLoadAfter (~line 255) — epoch cutoff persisted in preferences.xml · PakettiSamples.lua PakettiNetDriveWatcherBeforeCutoff (~line 4214) — files modified before the cutoff are never loaded · PakettiSamples.lua PakettiNetDriveWatcherAdvanceLoadAfter (~line 4205) — the cutoff advances to each loaded file's mtime and is saved · PakettiSamples.lua PakettiNetDriveWatcherStart (~line 4567) — first watch of a folder sets the cutoff to now; later runs resume from the stored cutoff · PakettiSamples.lua menu + keybinding (~line 4722) — "Set NetDrive Load-After Cutoff to Now" and "Clear ... (Load All)"</sub>
+
+
+## 10. Create an adjacent sequencer trigger track for each loaded arrival
 
 `@shipped @code-verified @runtime-untested`
 
@@ -109,7 +161,7 @@
 <sub>cite: PakettiSamples.lua PakettiNetDriveWatcherCreateTriggerTrack (~line 4014) — inserts the new track beside the current sequencer track and writes C-4 + 0G01 · PakettiSamples.lua PakettiNetDriveWatcherFindSequencerTrack (~line 3993) — resolves non-sequencer selections to a real sequencer-track anchor</sub>
 
 
-## 8. Expose manual control for the watcher
+## 11. Expose manual control for the watcher
 
 `@shipped @code-verified @runtime-untested`
 
@@ -122,7 +174,7 @@
 <sub>cite: PakettiSamples.lua keybinding and menu registrations (~line 4165) — toggle, MIDI mapping, menu entry, and folder selector</sub>
 
 
-## 9. Existing sample loaders remain separate
+## 12. Existing sample loaders remain separate
 
 `@stock`
 
