@@ -47,6 +47,8 @@
 | quick-edit-navigation | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-browser-deferred-close | 5 | ✗ | ✗ | — | @runtime-untested @sim-verified @stock |
+| sample-browser-editing | 14 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
+| sample-browser-loop-load | 3 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | sample-editor-export-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-playback-quality | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | sample-slice-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
@@ -63,8 +65,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 49
-- Build-verified: 40
+- Cards: 51
+- Build-verified: 41
 - Runtime-verified: 3 full + 3 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

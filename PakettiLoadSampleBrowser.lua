@@ -104,10 +104,10 @@ local LIST_FONT = 9         -- canvas font size for list rows
 local LIST_CHAR_W = LIST_FONT * 1.4
 local LIST_CANVAS_W = 560
 local LIST_CANVAS_H = VISIBLE_ROWS * LIST_ROW_H
-local META_W = 340
+local META_W = 420
 local META_H = 170
-local WAVE_W = 340
-local WAVE_H = 150
+local WAVE_W = 420
+local WAVE_H = 220
 
 -- waveform canvas colors
 local COL_BG = {18, 22, 26, 255}
@@ -374,8 +374,60 @@ local function plsb_find_match(groups, hay)
   return true
 end
 
+-- REPORT-CARD >> features/sample-browser-editing.feature
+local function plsb_stop_playhead()
+  if S.playhead_timer then renoise.tool():remove_timer(S.playhead_timer); S.playhead_timer = nil end
+  S.playhead = nil
+  S.playhead_frame = nil
+  if S.vb and S.wave_id and S.vb.views[S.wave_id] then S.vb.views[S.wave_id]:update() end
+end
+
+local function plsb_playhead_position(p, elapsed)
+  local frame = p.offset + math.max(0, elapsed) * p.speed
+  if p.mode == renoise.Sample.LOOP_MODE_OFF then
+    return frame <= p.frames and frame or nil
+  end
+  if frame <= p.stop then return frame end
+  local length = math.max(1, p.stop - p.start)
+  local phase = frame - p.stop
+  if p.mode == renoise.Sample.LOOP_MODE_FORWARD then return p.start + phase % length end
+  if p.mode == renoise.Sample.LOOP_MODE_REVERSE then return p.stop - phase % length end
+  phase = phase % (2 * length)
+  return phase < length and (p.stop - phase) or (p.start + phase - length)
+end
+
+local function plsb_start_playhead(id, note, offset)
+  plsb_stop_playhead()
+  local inst = S.scratch_index and renoise.song().instruments[S.scratch_index]
+  local smp = inst and inst.samples[1]
+  if not smp or not smp.sample_buffer.has_sample_data then return end
+  local buf = smp.sample_buffer
+  local semis = (offset and 0 or (note - smp.sample_mapping.base_note))
+    + smp.transpose + smp.fine_tune / 128
+  local speed = buf.sample_rate * 2 ^ (semis / 12)
+  if smp.beat_sync_enabled and not offset then
+    local t = renoise.song().transport
+    speed = buf.number_of_frames * t.bpm * t.lpb / (smp.beat_sync_lines * 60)
+  end
+  S.playhead = {id=id, time=os.clock(), offset=offset or 1, speed=speed,
+    frames=buf.number_of_frames, mode=offset and renoise.Sample.LOOP_MODE_OFF or smp.loop_mode,
+    start=smp.loop_start, stop=smp.loop_end}
+  S.playhead_frame = offset or 1
+  local callback
+  callback = function()
+    if not S.dialog or not S.dialog.visible or not S.playhead then plsb_stop_playhead(); return end
+    S.playhead_frame = plsb_playhead_position(S.playhead, os.clock() - S.playhead.time)
+    if not S.playhead_frame then plsb_stop_playhead(); return end
+    if S.vb and S.wave_id and S.vb.views[S.wave_id] then S.vb.views[S.wave_id]:update() end
+  end
+  S.playhead_timer = callback
+  renoise.tool():add_timer(callback, 30)
+  if S.vb and S.wave_id and S.vb.views[S.wave_id] then S.vb.views[S.wave_id]:update() end
+end
+
 -- scratch instrument ----------------------------------------------------------
 local function plsb_cleanup_scratch()
+  plsb_stop_playhead()
   local song = renoise.song()
   if not song then return end
   -- remove ANY leftover scratch instruments by name (self-healing)
@@ -450,9 +502,30 @@ local function plsb_compute_peaks(buffer, pixel_width)
   return result
 end
 
+-- REPORT-CARD >> features/sample-browser-editing.feature
+local function plsb_apply_beatsync(smp)
+  local mode = S.beatsync or 1
+  smp.beat_sync_enabled = false
+  if mode > 1 then
+    local song = renoise.song()
+    local secs = smp.sample_buffer.number_of_frames / smp.sample_buffer.sample_rate
+    local best, err = 1, math.huge
+    for _, beats in ipairs({1, 2, 4, 8, 16, 32, 64}) do
+      local distance = math.abs(math.log(beats * 60 / math.max(0.000001, secs) / song.transport.bpm))
+      if distance < err then best, err = beats, distance end
+    end
+    smp.beat_sync_lines = math.max(1, math.min(512, best * song.transport.lpb))
+    smp.beat_sync_mode = mode - 1
+    smp.beat_sync_enabled = true
+  end
+end
+
 -- load the highlighted file into the scratch instrument for preview
 local function plsb_preview_selected()
+  plsb_stop_playhead()
   S.preview_ok = false
+  S.edited = false
+  S.playback_choices = {}
   S.peaks = nil
   S.meta = {}
   S.loop = nil
@@ -492,6 +565,8 @@ local function plsb_preview_selected()
     local buf = sample.sample_buffer
     sample.name = e.name
     S.preview_ok = true
+    sample.volume = S.preview_volume or 1
+    plsb_apply_beatsync(sample)
     S.meta.sample_rate = buf.sample_rate
     S.meta.bit_depth = buf.bit_depth
     S.meta.channels = buf.number_of_channels
@@ -515,7 +590,54 @@ local function plsb_adjust_scroll()
   if S.scroll < 0 then S.scroll = 0 end
 end
 
-local function plsb_rebuild_entries(select_name)
+local function plsb_rebuild_entries(select_name, retain_row)
+  if S.search_timer then renoise.tool():remove_timer(S.search_timer); S.search_timer = nil end
+  if S.find_query and S.find_query ~= "" and S.search_root and S.search_root ~= PLSB_DRIVE_ROOT then
+    local filter = plsb_find_parse(S.find_query)
+    local queue, seen, results, cursor = {{path = S.search_root, rel = "", depth = 0}}, {}, {}, 1
+    local patterns = PakettiLoadableExtensions()
+    local callback
+    callback = function()
+      local item = queue[cursor]
+      if not item then
+        renoise.tool():remove_timer(callback); S.search_timer = nil
+        table.sort(results, function(a,b) return a.name:lower() < b.name:lower() end)
+        S.entries = results
+        S.selected = math.max(1, math.min(retain_row or 1, #results))
+        S.scroll = 0
+        plsb_adjust_scroll(); plsb_preview_selected()
+        if plsb_refresh then plsb_refresh() end
+        return
+      end
+      cursor = cursor + 1
+      if not seen[item.path] then
+        seen[item.path] = true
+        local ok, files = pcall(os.filenames, item.path, patterns)
+        if ok and files then
+          for _, file in ipairs(files) do
+            local relative = item.rel .. file
+            if plsb_find_match(filter, relative) then
+              results[#results+1] = {kind="file", name=relative, path=plsb_join(item.path,file)}
+            end
+          end
+        end
+        if item.depth < 64 then
+          local good, dirs = pcall(os.dirnames, item.path)
+          if good and dirs then
+            for _, dir in ipairs(dirs) do
+              if dir ~= "." and dir ~= ".." then
+                queue[#queue+1] = {path=plsb_join(item.path,dir), rel=item.rel..dir.."/", depth=item.depth+1}
+              end
+            end
+          end
+        end
+      end
+    end
+    S.search_timer = callback
+    renoise.app():show_status("Load Sample: searching " .. S.search_root .. " recursively")
+    renoise.tool():add_timer(callback, 20)
+    return
+  end
   S.entries = {}
   local dir = S.current_dir
 
@@ -558,14 +680,14 @@ local function plsb_rebuild_entries(select_name)
     end
   end
 
-  S.selected = 1
+  S.selected = retain_row and math.max(1, math.min(retain_row, #S.entries)) or 1
   -- optionally land the cursor on a named entry (e.g. the folder we just came up from)
   if select_name and select_name ~= "" then
     for i, e in ipairs(S.entries) do
       if e.name == select_name then S.selected = i break end
     end
   end
-  S.scroll = 0
+  S.scroll = retain_row and math.min(S.scroll, math.max(0, #S.entries - VISIBLE_ROWS)) or 0
   plsb_adjust_scroll()
   plsb_preview_selected()
 end
@@ -694,6 +816,11 @@ local function plsb_wave_render(ctx)
     ctx:begin_path(); ctx:move_to(xs + 1, 0); ctx:line_to(xs + 7, 0); ctx:line_to(xs + 1, 6); ctx:close_path(); ctx:fill()
     ctx:begin_path(); ctx:move_to(xe, 0); ctx:line_to(xe - 6, 0); ctx:line_to(xe, 6); ctx:close_path(); ctx:fill()
   end
+  if S.playhead_frame then
+    local x = math.max(0, math.min(WAVE_W - 2, fx(S.playhead_frame)))
+    ctx.fill_color = {255, 255, 255, 255}
+    ctx:begin_path(); ctx:rect(x, 0, 2, WAVE_H); ctx:fill()
+  end
 end
 
 
@@ -722,6 +849,8 @@ local function plsb_meta_string()
       local a = math.min(S.sel_range[1], S.sel_range[2])
       local b = math.max(S.sel_range[1], S.sel_range[2])
       lines[#lines + 1] = "Selection:   " .. a .. " - " .. b .. " frames"
+    else
+      lines[#lines + 1] = "Selection:   None"
     end
   elseif m.note then
     lines[#lines + 1] = "Preview:     " .. m.note
@@ -737,6 +866,17 @@ end
 plsb_refresh = function()
   if not S.vb then return end
   local v = S.vb.views
+  local inst = S.scratch_index and renoise.song().instruments[S.scratch_index]
+  local smp = S.preview_ok and inst and inst.samples[1]
+  S.syncing_playback = true
+  for id, property in pairs({plsb_interpolation = "interpolation_mode",
+    plsb_oversampling = "oversample_enabled", plsb_autofade = "autofade"}) do
+    if v[id] then
+      v[id].active = smp and true or false
+      if smp then v[id].value = smp[property] end
+    end
+  end
+  S.syncing_playback = false
   if S.dir_id and v[S.dir_id] then
     v[S.dir_id].text = (S.current_dir == PLSB_DRIVE_ROOT) and "Drives" or (S.current_dir or "")
   end
@@ -783,6 +923,7 @@ local function plsb_note_on(key_name)
     song:trigger_instrument_note_on(S.scratch_index, ti, { note }, 1.0)
   end)
   S.active_notes[key_name] = note
+  plsb_start_playhead(key_name, note)
   return true
 end
 
@@ -797,10 +938,12 @@ local function plsb_note_off(key_name)
     end)
   end
   S.active_notes[key_name] = nil
+  if S.playhead and S.playhead.id == key_name then plsb_stop_playhead() end
   return true
 end
 
 local function plsb_all_notes_off()
+  plsb_stop_playhead()
   for k, _ in pairs(S.active_notes) do plsb_note_off(k) end
   S.active_notes = {}
 end
@@ -817,6 +960,16 @@ local function plsb_scratch_sample()
   local smp = inst.samples[1]
   if not smp.sample_buffer.has_sample_data then return nil end
   return smp
+end
+
+-- REPORT-CARD >> features/sample-browser-editing.feature
+local function plsb_set_playback(property, value)
+  if S.syncing_playback then return end
+  local smp = plsb_scratch_sample()
+  if not smp then return end
+  smp[property] = value
+  S.playback_choices = S.playback_choices or {}
+  S.playback_choices[property] = value
 end
 
 -- map a canvas x (0..WAVE_W) to a frame (1..frames), and back
@@ -948,6 +1101,7 @@ local function plsb_play_from(frac)
   if pos <= 1 or n < 64 or pos >= n - 16 then
     pcall(function() song:trigger_instrument_note_on(S.scratch_index, ti, { 48 }, 1.0) end)
     S.active_notes["__wave__"] = 48
+    plsb_start_playhead("__wave__", 48)
     return
   end
   local ok = pcall(function()
@@ -958,11 +1112,13 @@ local function plsb_play_from(frac)
     local base = alias.sample_mapping.base_note
     song:trigger_instrument_note_on(S.scratch_index, ti, { base }, 1.0)
     S.active_notes["__wave__"] = base
+    plsb_start_playhead("__wave__", base, pos)
   end)
   if not ok then
     plsb_clear_preview_slices()
     pcall(function() song:trigger_instrument_note_on(S.scratch_index, ti, { 48 }, 1.0) end)
     S.active_notes["__wave__"] = 48
+    plsb_start_playhead("__wave__", 48)
   end
 end
 
@@ -1066,6 +1222,12 @@ end
 -- (TWeakRefOwner / SIGSEGV), so drop everything WITHOUT touching renoise.song()
 -- (its observables die with it; the scratch instrument goes with the song too).
 local function plsb_on_document_release()
+  plsb_stop_playhead()
+  if S.delete_timer then renoise.tool():remove_timer(S.delete_timer); S.delete_timer = nil end
+  if S.delete_dialog and S.delete_dialog.visible then S.delete_dialog:close() end
+  S.delete_dialog = nil
+  S.delete_pending = false
+  if S.search_timer then renoise.tool():remove_timer(S.search_timer); S.search_timer = nil end
   plsb_cancel_pending_action()
   S.octave_notifier = nil      -- its observable dies with the song; don't remove
   S.active_notes = {}
@@ -1090,6 +1252,7 @@ local function plsb_persist_selection()
 end
 
 local function plsb_close_now(cancelled)
+  if S.search_timer then renoise.tool():remove_timer(S.search_timer); S.search_timer = nil end
   plsb_persist_selection()   -- remember folder + highlighted file for next open
   plsb_remove_octave_notifier()
   plsb_remove_doc_notifier()
@@ -1177,6 +1340,7 @@ end
 --   plain audio  -> smart target + default template; .wav runs cue-slicing if present
 --   rex/rx2/iff/iti/ot/wt/mti/mod -> async expand to wavs, ALL loaded into one instrument
 --   pti/sf2/exs  -> async importer builds their own (full-fidelity) instrument; we select it
+-- REPORT-CARD >> features/sample-browser-loop-load.feature
 local function plsb_do_load(path, opts)
   opts = opts or {}
   local jam = opts.jam
@@ -1185,7 +1349,17 @@ local function plsb_do_load(path, opts)
 
   -- the loop the user shaped on the waveform (a mirror of the scratch sample), so
   -- what you keyjazzed is what gets loaded. nil / Off means "leave the file's own loop".
+  local beatsync = S.beatsync
+  local playback_choices = S.playback_choices
   local tuned_loop = S.loop
+  local edited_path
+  if S.edited and S.loaded_path == path then
+    local preview = plsb_scratch_sample()
+    if not preview then error("Edited preview is unavailable") end
+    edited_path = os.tmpname()
+    local ok = preview.sample_buffer:save_as(edited_path, "wav")
+    if not ok then os.remove(edited_path); error("Could not preserve edited preview audio") end
+  end
 
   -- the scratch preview instrument must not be a target candidate or left behind
   plsb_cleanup_scratch()
@@ -1201,31 +1375,48 @@ local function plsb_do_load(path, opts)
     local smp = instr.samples[1]
     if not smp then instr:insert_sample_at(1); smp = instr.samples[1] end
     local base = plsb_basename(path)
-    if ext == "wav" then
-      -- auto-slices if the wav carries cue chunks, else plain load_from
+    if not edited_path and ext == "wav" and not (tuned_loop and tuned_loop.mode
+      and tuned_loop.mode ~= renoise.Sample.LOOP_MODE_OFF) then
+      -- Preserve cue slicing only when no active preview loop was chosen.
       pcall(function() PakettiWavCueImportWavWithCuesIntoSample(smp, path) end)
     else
-      pcall(function() smp.sample_buffer:load_from(path) end)
+      local ok, loaded = pcall(function() return smp.sample_buffer:load_from(edited_path or path) end)
+      if edited_path and (not ok or not loaded) then
+        os.remove(edited_path)
+        error("Could not load edited preview audio")
+      end
     end
+    if edited_path then os.remove(edited_path) end
     smp.name = base
     instr.name = string.format("%02X_", tgt - 1) .. base
     pcall(function() PakettiInjectApplyLoaderSettings(smp) end)
-    -- carry the waveform-tuned loop onto the freshly loaded sample (same audio only,
-    -- and never over a cue-sliced load) so the loop you keyjazzed survives the load
-    if tuned_loop and tuned_loop.mode and tuned_loop.mode ~= renoise.Sample.LOOP_MODE_OFF then
+    if beatsync then plsb_apply_beatsync(smp) end
+    if playback_choices then
+      for property, value in pairs(playback_choices) do
+        smp[property] = value
+      end
+    end
+    -- carry the waveform-tuned loop onto the freshly loaded sample. Map by POSITION
+    -- (fraction of length) instead of raw frame numbers, so the loop lands in the right
+    -- place even when the loader changed the frame count (resample / normalize) or added
+    -- cue slices. Grow the loop window to the end first so loop_start can always move to
+    -- where you put it (Renoise clamps loop_start < loop_end), then set the real points.
+    if tuned_loop and tuned_loop.mode and tuned_loop.mode ~= renoise.Sample.LOOP_MODE_OFF
+      and tuned_loop.frames and tuned_loop.frames > 1 then
       pcall(function()
         local buf = smp.sample_buffer
-        if buf.has_sample_data and buf.number_of_frames == tuned_loop.frames
-          and #smp.slice_markers == 0 then
-          local n = buf.number_of_frames
-          local a = math.max(1, math.min(n - 1, tuned_loop.start))
-          local b = math.max(a + 1, math.min(n, tuned_loop.stop))
-          smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
-          smp.loop_start = 1
-          smp.loop_end = b
-          smp.loop_start = a
-          smp.loop_mode = tuned_loop.mode
-        end
+        if not buf.has_sample_data then return end
+        local n = buf.number_of_frames
+        if n < 2 then return end
+        local a = math.floor((tuned_loop.start - 1) / tuned_loop.frames * n) + 1
+        local b = math.floor(tuned_loop.stop / tuned_loop.frames * n)
+        if a < 1 then a = 1 elseif a > n - 1 then a = n - 1 end
+        if b > n then b = n end
+        if b <= a then b = math.min(n, a + 1) end
+        smp.loop_end = n        -- open the window to the end so loop_start can reach a
+        smp.loop_start = a
+        smp.loop_end = b
+        smp.loop_mode = tuned_loop.mode
       end)
     end
     renoise.app():show_status("Loaded " .. base .. " into instrument " .. string.format("%02X", tgt - 1))
@@ -1405,9 +1596,121 @@ local function plsb_list_mouse(ev)
   end
 end
 
+-- REPORT-CARD >> features/sample-browser-editing.feature
+local function plsb_cut_selection(trim)
+  local smp = plsb_scratch_sample()
+  if not smp or not S.sel_range then return end
+  plsb_all_notes_off()
+  plsb_clear_preview_slices()
+  local buf = smp.sample_buffer
+  local n = buf.number_of_frames
+  local a = math.max(1, math.min(n, math.min(S.sel_range[1], S.sel_range[2])))
+  local b = math.max(a, math.min(n, math.max(S.sel_range[1], S.sel_range[2])))
+  local removed = trim and (n - (b - a + 1)) or (b - a + 1)
+  if removed >= n then
+    renoise.app():show_status("Load Sample: keep at least one frame")
+    return
+  end
+  local inst = renoise.song().instruments[S.scratch_index]
+  local slot = #inst.samples + 1
+  inst:insert_sample_at(slot)
+  local backup = inst.samples[slot]
+  backup:copy_from(smp)
+  local old = backup.sample_buffer
+  local mode, ls, le = smp.loop_mode, smp.loop_start, smp.loop_end
+  local function shifted(f)
+    if trim then return math.max(1, math.min(n - removed, f - a + 1)) end
+    if f > b then return f - removed end
+    if f >= a then return math.min(a, n - removed) end
+    return f
+  end
+  local ok, err = pcall(function()
+    assert(buf:create_sample_data(old.sample_rate, old.bit_depth, old.number_of_channels, n - removed), "Could not resize preview")
+    buf:prepare_sample_data_changes()
+    for ch = 1, old.number_of_channels do
+      for f = 1, n - removed do
+        buf:set_sample_data(ch, f, old:sample_data(ch, trim and (f + a - 1) or (f < a and f or f + removed)))
+      end
+    end
+    buf:finalize_sample_data_changes()
+    smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+    smp.loop_start = 1
+    smp.loop_end = n - removed
+    local start, stop = shifted(ls), shifted(le)
+    if start < stop then smp.loop_end = stop; smp.loop_start = start; smp.loop_mode = mode end
+  end)
+  if not ok then smp:copy_from(backup) end
+  inst:delete_sample_at(slot)
+  if not ok then renoise.app():show_error(tostring(err)); return end
+  plsb_apply_beatsync(smp)
+  S.edited = true
+  S.sel_range = nil
+  S.meta.frames = buf.number_of_frames
+  S.peaks = plsb_compute_peaks(buf, 420)
+  plsb_sync_loop()
+  plsb_refresh()
+end
+
+-- REPORT-CARD >> features/sample-browser-editing.feature
+local function plsb_confirm_delete_file()
+  local e = S.entries[S.selected]
+  if not e or e.kind ~= "file" or S.delete_dialog then return end
+  plsb_all_notes_off()
+  local vb = renoise.ViewBuilder()
+  local function finish(remove)
+    if S.delete_pending then return end
+    S.delete_pending = true
+    local cb
+    cb = function()
+      renoise.tool():remove_timer(cb)
+      S.delete_timer = nil
+      local d = S.delete_dialog
+      S.delete_dialog = nil
+      S.delete_pending = false
+      if d and d.visible then d:close() end
+      if remove then
+        local ok, err = os.remove(e.path)
+        if not ok then renoise.app():show_error("Could not delete sample: " .. tostring(err))
+        else plsb_rebuild_entries(nil, S.selected); plsb_refresh() end
+      end
+      if S.dialog and S.dialog.visible then S.dialog:show() end
+    end
+    S.delete_timer = cb
+    renoise.tool():add_timer(cb, 50)
+  end
+  S.delete_dialog = renoise.app():show_custom_dialog("Delete sample?", vb:column{
+    margin = 10, spacing = 8,
+    vb:text{text = "Are you sure you want to delete this sample?"},
+    vb:text{text = e.name},
+    vb:row{spacing = 8,
+      vb:button{text = "Yes", notifier = function() finish(true) end},
+      vb:button{text = "No", notifier = function() finish(false) end}},
+  }, function(_, key)
+    if key.state ~= "released" then
+      if key.name == "y" or key.name == "return" then finish(true)
+      elseif key.name == "esc" or key.name == "n" then finish(false) end
+    end
+    return nil
+  end)
+end
+
+-- REPORT-CARD >> features/sample-browser-editing.feature
+local function plsb_octave_key_delta(key)
+  -- Prefer the typed symbol; Caps Lock is irrelevant to these punctuation keys.
+  if key.character == ">" then return 1 end
+  if key.character == "<" then return -1 end
+  local name = key.name and key.name:lower()
+  if name == ">" or name == "greater" then return 1 end
+  if name == "<" or name == "less" then
+    return key.modifiers and key.modifiers:find("shift", 1, true) and 1 or -1
+  end
+end
+
 local function plsb_key_handler(dialog, key)
-  if S.pending_action then return nil end
+  if S.delete_dialog and not S.delete_dialog.visible then S.delete_dialog = nil end
+  if S.pending_action or S.delete_dialog then return nil end
   local name = key.name
+  if S.search_timer and name ~= "esc" and key.state ~= "released" then return nil end
 
   -- key releases: stop keyjazz notes
   if key.state == "released" then
@@ -1417,6 +1720,18 @@ local function plsb_key_handler(dialog, key)
     end
     return key
   end
+
+  local command = key.modifiers and key.modifiers:find("command", 1, true)
+  if command and name == "x" then
+    if not key.repeated then plsb_defer_action(function() plsb_cut_selection(false) end) end
+    return nil
+  elseif command and (name == "back" or name == "backspace") then
+    if not key.repeated then plsb_defer_action(plsb_confirm_delete_file) end
+    return nil
+  end
+
+  local octave_delta = plsb_octave_key_delta(key)
+  if octave_delta then plsb_shift_octave(octave_delta); return nil end
 
   -- navigation + actions (not key-repeat sensitive except arrows)
   if name == "esc" then
@@ -1463,10 +1778,6 @@ local function plsb_key_handler(dialog, key)
       plsb_refresh()
     end
     return nil
-  elseif name == "<" or name == "less" then
-    plsb_shift_octave(-1); return nil
-  elseif name == ">" or name == "greater" then
-    plsb_shift_octave(1); return nil
   end
 
   -- F1-F12 folder presets: Fn recalls, Shift+Fn stores the current folder
@@ -1540,6 +1851,8 @@ function PakettiLoadSampleBrowser_Open()
   S.find_id = "plsb_find"
   S.loopbtn_id = "plsb_loopbtn"
 
+  S.search_root = S.current_dir
+  S.syncing_playback = true
   local content = vb:column {
     margin = 6,
     spacing = 6,
@@ -1554,6 +1867,7 @@ function PakettiLoadSampleBrowser_Open()
             return renoise.app():prompt_for_path("Load Sample Browser: choose a folder")
           end)
           if ok and path and path ~= "" and io.exists(path) then
+            S.search_root = path
             plsb_enter_dir(path)
             plsb_refresh()
           end
@@ -1616,17 +1930,58 @@ function PakettiLoadSampleBrowser_Open()
         },
         vb:row {
           spacing = 6,
+          vb:text{text = "Preview Volume"},
+          vb:slider{width = 180, min = 0, max = 1, value = S.preview_volume or 1,
+            notifier = function(value)
+              S.preview_volume = value
+              local smp = plsb_scratch_sample()
+              if smp then smp.volume = value end
+            end},
+          vb:button{text = "Trim Selection", width = 130,
+            notifier = function() plsb_defer_action(function() plsb_cut_selection(true) end) end},
+        },
+        vb:row {
+          spacing = 6,
+          vb:text{text = "Beatsync"},
+          vb:popup{width = 180, items = {"Off", "Repitch", "Percussion", "Texture"},
+            value = S.beatsync or 1,
+            notifier = function(value)
+              if S.syncing_playback then return end
+              S.beatsync = value
+              local smp = plsb_scratch_sample()
+              if smp then plsb_apply_beatsync(smp) end
+            end},
+        },
+        vb:row {
+          spacing = 6,
+          vb:text{text = "Interpolation"},
+          vb:popup{id = "plsb_interpolation", width = 150,
+            items = {"None", "Linear", "Cubic", "Sinc"}, value = 3,
+            notifier = function(value) plsb_set_playback("interpolation_mode", value) end},
+        },
+        vb:row {
+          spacing = 6,
+          vb:checkbox{id = "plsb_oversampling", value = false,
+            notifier = function(value) plsb_set_playback("oversample_enabled", value) end},
+          vb:text{text = "Oversampling"},
+          vb:checkbox{id = "plsb_autofade", value = false,
+            notifier = function(value) plsb_set_playback("autofade", value) end},
+          vb:text{text = "Autofade"},
+        },
+        vb:row {
+          spacing = 6,
           vb:button{ id = S.loopbtn_id, text = "Loop: Off", width = 110,
             notifier = function() plsb_cycle_loop_mode(1) end },
-          vb:button{ text = "Loop → Selection", width = 130,
+          vb:button{ text = "Selection to Loop", width = 150,
             notifier = function() plsb_loop_to_selection() end },
-          vb:button{ text = "Clear Sel", width = 80,
+          vb:button{ text = "Clear Selection", width = 140,
             notifier = function() plsb_clear_selection() end },
         },
       },
     },
   }
 
+  S.syncing_playback = false
   plsb_rebuild_entries()
 
   -- restore the last highlighted file (by name, so it survives files being added/removed)
