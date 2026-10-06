@@ -242,6 +242,7 @@ function PakettiWavCueWriteCueFile(wav_path, info)
 end
 
 -- Import WAV file with cue markers into a sample
+-- REPORT-CARD >> features/sample-browser-loop-load.feature
 function PakettiWavCueImportWavWithCuesIntoSample(sample, wav_path)
   print("========================================")
   print("PakettiWavCueExtract: Starting WAV CUE extraction")
@@ -250,11 +251,11 @@ function PakettiWavCueImportWavWithCuesIntoSample(sample, wav_path)
   
   -- 1) Parse cues (before Renoise touches the file)
   local info, err = PakettiWavCueParseWavCues(wav_path)
-  if not info then
-    -- no cues or parsing failed; just load the file normally
+  if not info or #info.cues <= 1 then
+    -- A single cue is not a slice set; preserve the WAV as a normal sample.
     print("PakettiWavCueExtract: parse_wav_cues: " .. (err or "unknown error"))
     sample.sample_buffer:load_from(wav_path)
-    renoise.app():show_status("Loaded WAV (no cue markers found)")
+    renoise.app():show_status("Loaded WAV (fewer than two cue markers)")
     return
   end
 

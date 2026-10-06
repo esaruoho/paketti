@@ -1130,6 +1130,13 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiMidiImportUseDelay = true,
   -- Transient Navigation: unified Next/Previous behaviour. false = place a point cursor, true = select the chunk up to the next transient.
   pakettiTransientNavSelectMode = false,
+  -- FEATURE-CARD >> features/transient-integration.feature
+  pakettiTransientNavDetector = 1, -- 1 adaptive Schmitt, 2 level rise / treble
+  pakettiTransientNavSensitivity = 60,
+  pakettiTransientNavThreshold = 40,
+  pakettiTransientNavGapMs = 50,
+  pakettiTransientNavSnapMode = 1, -- 1 onset, 2 peak (level-rise detector)
+  pakettiTransientNavZeroCross = true,
   -- Automate Last Touched Parameter Settings
   pakettiAutomateLastTouched = {
     AutoOpenExternalEditor = true, -- Auto-open VST/AU external editor when watching starts

@@ -724,147 +724,16 @@ if sbx_monitoring_enabled then
   sbx_install_release_doc_observer()
 end
 
+-- FEATURE-CARD >> features/loop-crossfade.feature
 function crossfade_loop(crossfade_length)
-  -- Temporarily disable AutoSamplify monitoring to prevent interference
-  local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
-  
-  -- User-adjustable fade length for loop start/end fades
-  local fade_length = 20
-
-  -- Check for an active instrument
-  local instrument = renoise.song().selected_instrument
-  if not instrument then
-    renoise.app():show_status("No instrument selected.")
-    return
-  end
-
-  -- Check for an active sample
-  local sample = instrument:sample(1)
-  if not sample then
-    renoise.app():show_status("No sample available.")
-    return
-  end
-
-  -- Check if sample has data and looping is enabled
-  local sample_buffer = sample.sample_buffer
-  if not sample_buffer or not sample_buffer.has_sample_data then
-    renoise.app():show_status("Sample has no data.")
-    return
-  end
-
-  if sample.loop_mode == renoise.Sample.LOOP_MODE_OFF then
-    renoise.app():show_status("Loop mode is off.")
-    return
-  end
-
-  local loop_start = sample.loop_start
-  local loop_end = sample.loop_end
-  local num_frames = sample_buffer.number_of_frames
-
-  -- Validate frame ranges for crossfade and fade operations
-  if loop_start <= crossfade_length + fade_length then
-    renoise.app():show_status("Not enough frames before loop_start for crossfade and fades.")
-    return
-  end
-
-  if loop_end <= crossfade_length + fade_length then
-    renoise.app():show_status("Not enough frames before loop_end for crossfade and fades.")
-    return
-  end
-
-  if loop_start + fade_length - 1 > num_frames then
-    renoise.app():show_status("Not enough frames after loop_start for fade-in.")
-    return
-  end
-
-  if loop_end - fade_length < 1 then
-    renoise.app():show_status("Not enough frames before loop_end for fade-out.")
-    return
-  end
-
-  -- Define crossfade regions:
-  -- a-b (fade-in region) is before loop_start
-  local fade_in_start = loop_start - crossfade_length
-  local fade_in_end = loop_start - 1
-
-  -- c-d (fade-out region) is before loop_end
-  local fade_out_start = loop_end - crossfade_length
-  local fade_out_end = loop_end - 1
-
-  -- Prepare sample data changes
-  sample_buffer:prepare_sample_data_changes()
-
-  ---------------------------------------------------
-  -- Crossfade: Mix a-b region into c-d region
-  ---------------------------------------------------
-  for i = 0, crossfade_length - 1 do
-    local fade_in_pos = fade_in_start + i
-    local fade_out_pos = fade_out_start + i
-
-    -- Fade ratios: fade_in ramps 0->1, fade_out ramps 1->0
-    local fade_in_ratio = i / (crossfade_length - 1)
-    local fade_out_ratio = 1 - fade_in_ratio
-
-    for c = 1, sample_buffer.number_of_channels do
-      local fade_in_val = sample_buffer:sample_data(c, fade_in_pos)
-      local fade_out_val = sample_buffer:sample_data(c, fade_out_pos)
-
-      -- Blend the two segments
-      local blended_val = (fade_in_val * fade_in_ratio) + (fade_out_val * fade_out_ratio)
-
-      -- Write the blended value back to the fade_out region (c-d)
-      sample_buffer:set_sample_data(c, fade_out_pos, blended_val)
-    end
-  end
-
-  ---------------------------------------------------
-  -- 20-frame fade-out at loop_end
-  -- Ensures silence right at loop_end
-  ---------------------------------------------------
-  for i = 0, fade_length - 1 do
-    local pos = loop_end - fade_length + i
-    local fade_ratio = 1 - (i / (fade_length - 1))
-    for c = 1, sample_buffer.number_of_channels do
-      local sample_val = sample_buffer:sample_data(c, pos)
-      sample_buffer:set_sample_data(c, pos, sample_val * fade_ratio)
-    end
-  end
-
-  ---------------------------------------------------
-  -- 20-frame fade-in at loop_start
-  -- Ensures sound ramps up from silence at loop_start
-  ---------------------------------------------------
-  for i = 0, fade_length - 1 do
-    local pos = loop_start + i
-    local fade_ratio = i / (fade_length - 1)
-    for c = 1, sample_buffer.number_of_channels do
-      local sample_val = sample_buffer:sample_data(c, pos)
-      sample_buffer:set_sample_data(c, pos, sample_val * fade_ratio)
-    end
-  end
-
-  ---------------------------------------------------
-  -- 20-frame fade-out before loop_start
-  -- Ensures silence leading into the loop_start region
-  ---------------------------------------------------
-  for i = 0, fade_length - 1 do
-    local pos = loop_start - fade_length + i
-    if pos >= 1 and pos <= num_frames then
-      local fade_ratio = 1 - (i / (fade_length - 1))
-      for c = 1, sample_buffer.number_of_channels do
-        local sample_val = sample_buffer:sample_data(c, pos)
-        sample_buffer:set_sample_data(c, pos, sample_val * fade_ratio)
-      end
-    end
-  end
-
-  -- Finalize changes
-  sample_buffer:finalize_sample_data_changes()
-
-  renoise.app():show_status("Crossfade and 20-frame fades applied to create a smooth X-shaped loop.")
-  
-  -- Restore AutoSamplify monitoring state
-  PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+  local sample = renoise.song().selected_sample
+  if not sample then renoise.app():show_status("No sample selected.") return end
+  renoise.song():describe_undo("Paketti Loop Crossfade")
+  -- Keep the legacy selection-end length gesture, using the validated helper.
+  local fade, reason = PakettiLoopCrossfadeSample(sample, sample.loop_start, sample.loop_end,
+    {curve="linear", length_mode="frames", length=crossfade_length}, false)
+  renoise.app():show_status(fade and ("Loop crossfade applied: " .. fade .. " frames.")
+    or ("Crossfade: " .. tostring(reason)))
 end
 
 -- Helper function to determine crossfade_length based on the current selection

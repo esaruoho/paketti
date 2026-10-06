@@ -1,6 +1,8 @@
 -- PakettiTransientNavigation.lua
 -- Tab-to-transient navigation for the Renoise Sample Editor.
 -- REPORT-CARD >> features/transient-navigation-detection.feature
+-- FEATURE-CARD >> features/transient-integration.feature
+local tn_analysis = require("PakettiTransientAnalysis")
 --
 -- The idea (from Pro Tools / REAPER / Acon Acoustica, requested by le(m)on on
 -- Discord): step through a sample by detected attack transients the way Renoise
@@ -41,6 +43,12 @@ local TN_ONSET_PREROLL_MS = 4
 --------------------------------------------------------------------------------
 local tn_cached_positions = nil   -- sorted array of transient frame indices (1-based)
 local tn_cached_key = nil         -- fingerprint of the sample the cache belongs to
+local tn_caches, tn_cache_order = {}, {} -- bounded to eight analyzed samples
+local tn_generation = 0
+local tn_job_key = nil
+local tn_pending_action = nil
+local tn_slicer = nil
+local tn_settings_dialog = nil
 local tn_detecting = false        -- a ProcessSlicer detection is currently running
 
 --------------------------------------------------------------------------------
@@ -52,16 +60,23 @@ local tn_detecting = false        -- a ProcessSlicer detection is currently runn
 local function tn_find_zero_crossing(buffer, pos, search_range_samples, zero_threshold)
   local start_pos = math.max(1, pos - search_range_samples)
   local end_pos = math.min(buffer.number_of_frames, pos + search_range_samples)
+  local function amplitude(frame)
+    local peak = 0
+    for channel = 1, buffer.number_of_channels do
+      peak = math.max(peak, math.abs(buffer:sample_data(channel, frame)))
+    end
+    return peak
+  end
   local zero_crossing_pos = pos
-  local min_amplitude = math.abs(buffer:sample_data(1, pos))
+  local min_amplitude = amplitude(pos)
   for i = pos, start_pos, -1 do
-    local v = math.abs(buffer:sample_data(1, i))
+    local v = amplitude(i)
     if v <= zero_threshold then zero_crossing_pos = i break
     elseif v < min_amplitude then min_amplitude = v zero_crossing_pos = i end
   end
   if zero_crossing_pos == pos then
     for i = pos, end_pos do
-      local v = math.abs(buffer:sample_data(1, i))
+      local v = amplitude(i)
       if v <= zero_threshold then zero_crossing_pos = i break
       elseif v < min_amplitude then min_amplitude = v zero_crossing_pos = i end
     end
@@ -72,7 +87,8 @@ end
 -- Return the selected sample, or nil (with a status message) if there is nothing
 -- usable to navigate.
 local function tn_current_sample()
-  local song = renoise.song()
+  local ok, song = pcall(renoise.song)
+  if not ok or not song then return nil end
   local sample = song.selected_sample
   if not sample then
     renoise.app():show_status("Transient Nav: no sample selected.")
@@ -87,19 +103,44 @@ local function tn_current_sample()
 end
 
 -- Fingerprint identifying which sample the cache belongs to. Includes the frame
--- count so any content resize (including our own crops) invalidates it.
+-- count, object identity, settings and audio probes on both channels. Probes
+-- catch many same-size edits but are not a full content hash; Re-detect remains
+-- available for edits between probe positions.
 local function tn_sample_key(sample)
   local song = renoise.song()
   local buffer = sample.sample_buffer
-  return string.format("%d:%d:%d:%d:%d:%s",
-    song.selected_instrument_index, song.selected_sample_index,
-    buffer.number_of_frames, buffer.sample_rate, buffer.number_of_channels,
-    sample.name)
+  local probes = {}
+  for channel = 1, buffer.number_of_channels do
+    for i = 0, 63 do
+      local frame = 1 + math.floor(i * (buffer.number_of_frames - 1) / 63)
+      probes[#probes + 1] = string.format("%.9g", buffer:sample_data(channel, frame))
+    end
+  end
+  local pref = preferences
+  return table.concat({tostring(sample), tostring(song), buffer.number_of_frames,
+    buffer.sample_rate, buffer.number_of_channels, sample.name,
+    pref.pakettiTransientNavDetector.value, pref.pakettiTransientNavSensitivity.value,
+    pref.pakettiTransientNavThreshold.value, pref.pakettiTransientNavGapMs.value,
+    pref.pakettiTransientNavSnapMode.value, tostring(pref.pakettiTransientNavZeroCross.value),
+    table.concat(probes, ",")}, ":")
 end
 
--- True when the cache is valid for the given sample.
+local function tn_remember(key, positions)
+  if not tn_caches[key] then tn_cache_order[#tn_cache_order + 1] = key end
+  tn_caches[key] = positions
+  while #tn_cache_order > 8 do tn_caches[table.remove(tn_cache_order, 1)] = nil end
+  tn_cached_key, tn_cached_positions = key, positions
+end
+
+-- Restore an analyzed sample instantly, with content/settings-aware identity.
 local function tn_cache_valid(sample)
-  return tn_cached_positions ~= nil and tn_cached_key == tn_sample_key(sample)
+  local key = tn_sample_key(sample)
+  local cached = tn_caches[key]
+  if cached then
+    tn_cached_key, tn_cached_positions = key, cached
+    return true
+  end
+  return false
 end
 
 local function tn_positions_to_string(positions)
@@ -174,84 +215,146 @@ end
 
 -- Called after any destructive edit so the next navigation re-detects.
 function PakettiTransientNavInvalidate()
+  tn_generation = tn_generation + 1
+  if tn_slicer and tn_slicer:running() then tn_slicer:stop() end
+  tn_slicer = nil
+  tn_job_key, tn_pending_action = nil, nil
+  tn_detecting = false
   tn_cached_positions = nil
   tn_cached_key = nil
+  tn_caches, tn_cache_order = {}, {}
 end
 
 -- Run the combined detector over the sample inside a ProcessSlicer (non-blocking),
 -- fill the cache, then call on_done (used to auto-perform the requested jump).
 local function tn_start_detection(sample, on_done)
-  if tn_detecting then
-    renoise.app():show_status("Transient Nav: detection already in progress...")
+  if tn_detecting and tn_job_key == tn_sample_key(sample) then
+    tn_pending_action = on_done
     return
   end
+  if tn_detecting then PakettiTransientNavInvalidate() end
   tn_detecting = true
   local buffer = sample.sample_buffer
   local nframes = buffer.number_of_frames
   local sample_rate = buffer.sample_rate
   local key = tn_sample_key(sample)
+  tn_job_key, tn_pending_action = key, on_done
+  local generation = tn_generation
+  local owner_song = renoise.song()
+  local function still_current()
+    local ok, song = pcall(renoise.song)
+    return generation == tn_generation and ok and song == owner_song
+      and song.selected_sample == sample and sample.sample_buffer.has_sample_data
+      and tn_sample_key(sample) == key
+  end
 
   local min_slice_distance_samples = math.floor((TN_DEFAULTS.min_slice_distance_ms / 1000) * sample_rate)
   local zero_crossing_threshold = TN_DEFAULTS.zero_crossing / 100
   local search_range_samples = math.floor((10 / 1000) * sample_rate)
 
   local slicer = ProcessSlicer(function()
-    local legacy_low = BeatDetector(TN_DEFAULTS.lowpass_freq, TN_DEFAULTS.legacy_rtime,
-      TN_DEFAULTS.legacy_peak_on, TN_DEFAULTS.legacy_peak_off, 'lowpass')
-    legacy_low:setSampleRate(sample_rate)
-    local legacy_high = BeatDetector(TN_DEFAULTS.highpass_freq, TN_DEFAULTS.legacy_rtime,
-      TN_DEFAULTS.legacy_peak_on, TN_DEFAULTS.legacy_peak_off, 'highpass')
-    legacy_high:setSampleRate(sample_rate)
-    local adaptive_low = tn_create_adaptive_schmitt(TN_DEFAULTS.lowpass_freq, "lowpass", sample_rate)
-    local adaptive_high = tn_create_adaptive_schmitt(TN_DEFAULTS.highpass_freq, "highpass", sample_rate)
-
-    local legacy_raw = {}
-    local adaptive_raw = {}
-    for i = 1, nframes do
-      local input = buffer:sample_data(1, i)
-      local legacy_low_hit = legacy_low:Process(input)
-      local legacy_high_hit = legacy_high:Process(input)
-      if legacy_low_hit == true or legacy_high_hit == true then
-        legacy_raw[#legacy_raw + 1] = i
+    -- pcall is yieldable in Renoise's LuaJIT. Always release the job state,
+    -- including a deleted sample or a sample_data error during the scan.
+    local ok, err = pcall(function()
+      if not still_current() then return end
+      if preferences.pakettiTransientNavDetector.value == 2 then
+        local positions = tn_analysis.detect(buffer, {
+          sensitivity=preferences.pakettiTransientNavSensitivity.value,
+          threshold=preferences.pakettiTransientNavThreshold.value,
+          min_gap_ms=preferences.pakettiTransientNavGapMs.value,
+          snap_mode=preferences.pakettiTransientNavSnapMode.value,
+          zero_cross=preferences.pakettiTransientNavZeroCross.value,
+        }, function(progress)
+          renoise.app():show_status(string.format("Transient Nav: level-rise analysis %d%%", math.floor(progress*100)))
+          coroutine.yield()
+          if not still_current() then error("sample or detection settings changed") end
+        end)
+        if still_current() then
+          tn_remember(key, positions)
+          tn_detecting = false
+          renoise.app():show_status("Transient Nav: " .. #positions .. " level-rise transients detected.")
+          if tn_pending_action then tn_pending_action() end
+        end
+        return
+      end
+      local legacy_low = BeatDetector(TN_DEFAULTS.lowpass_freq, TN_DEFAULTS.legacy_rtime,
+        TN_DEFAULTS.legacy_peak_on, TN_DEFAULTS.legacy_peak_off, 'lowpass')
+      legacy_low:setSampleRate(sample_rate)
+      local legacy_high = BeatDetector(TN_DEFAULTS.highpass_freq, TN_DEFAULTS.legacy_rtime,
+        TN_DEFAULTS.legacy_peak_on, TN_DEFAULTS.legacy_peak_off, 'highpass')
+      legacy_high:setSampleRate(sample_rate)
+      local adaptive = {}
+      for channel = 1, buffer.number_of_channels do
+        adaptive[channel] = {
+          tn_create_adaptive_schmitt(TN_DEFAULTS.lowpass_freq, "lowpass", sample_rate),
+          tn_create_adaptive_schmitt(TN_DEFAULTS.highpass_freq, "highpass", sample_rate)}
       end
 
-      local adaptive_low_hit = adaptive_low:process(input)
-      local adaptive_high_hit = adaptive_high:process(input)
-      if adaptive_low_hit == true or adaptive_high_hit == true then
-        adaptive_raw[#adaptive_raw + 1] = i
+      local legacy_raw = {}
+      local adaptive_raw = {}
+      for i = 1, nframes do
+        local input = buffer:sample_data(1, i)
+        local legacy_low_hit = legacy_low:Process(input)
+        local legacy_high_hit = legacy_high:Process(input)
+        if legacy_low_hit == true or legacy_high_hit == true then
+          legacy_raw[#legacy_raw + 1] = i
+        end
+
+        local hit = false
+        for channel, detectors in ipairs(adaptive) do
+          local value = buffer:sample_data(channel, i)
+          local low, high = detectors[1]:process(value), detectors[2]:process(value)
+          if low or high then hit = true end
+        end
+        if hit then adaptive_raw[#adaptive_raw + 1] = i end
+        if i % 16384 == 0 then
+          renoise.app():show_status(string.format("Transient Nav: detecting transients... %d%%",
+            math.floor((i / nframes) * 100)))
+          coroutine.yield()
+          if not still_current() then return end
+        end
       end
-      if i % 16384 == 0 then
-        renoise.app():show_status(string.format("Transient Nav: detecting transients... %d%%",
-          math.floor((i / nframes) * 100)))
-        coroutine.yield()
+
+      table.sort(adaptive_raw)
+      local filtered = {}
+      local last = nil
+      local suppressed = {}
+      for _, pos in ipairs(adaptive_raw) do
+        if not last or (pos - last) >= min_slice_distance_samples then
+          local zc = preferences.pakettiTransientNavZeroCross.value
+            and tn_find_zero_crossing(buffer, pos, search_range_samples, zero_crossing_threshold) or pos
+          filtered[#filtered + 1] = zc
+          last = zc
+        else
+          suppressed[#suppressed + 1] = {pos = pos, distance = pos - last}
+        end
       end
+
+      tn_debug_positions("Legacy level-Schmitt raw hits", legacy_raw)
+      tn_debug_positions("Adaptive Schmitt raw hits", adaptive_raw)
+      tn_debug_suppressed("Suppressed by min spacing", suppressed)
+      tn_debug_positions("Final snapped transients", filtered)
+
+      table.sort(filtered)
+      local unique = {}
+      for _, pos in ipairs(filtered) do
+        if pos ~= unique[#unique] then unique[#unique + 1] = pos end
+      end
+      filtered = unique
+      if not still_current() then return end
+      tn_remember(key, filtered)
+      tn_detecting = false
+      renoise.app():show_status(string.format("Transient Nav: %d transients detected.", #filtered))
+      if tn_pending_action then tn_pending_action() end
+    end)
+    if generation == tn_generation then
+      tn_detecting = false
+      tn_slicer = nil
+      tn_job_key, tn_pending_action = nil, nil
     end
-
-    table.sort(adaptive_raw)
-    local filtered = {}
-    local last = nil
-    local suppressed = {}
-    for _, pos in ipairs(adaptive_raw) do
-      if not last or (pos - last) >= min_slice_distance_samples then
-        local zc = tn_find_zero_crossing(buffer, pos, search_range_samples, zero_crossing_threshold)
-        filtered[#filtered + 1] = zc
-        last = zc
-      else
-        suppressed[#suppressed + 1] = {pos = pos, distance = pos - last}
-      end
-    end
-
-    tn_debug_positions("Legacy level-Schmitt raw hits", legacy_raw)
-    tn_debug_positions("Adaptive Schmitt raw hits", adaptive_raw)
-    tn_debug_suppressed("Suppressed by min spacing", suppressed)
-    tn_debug_positions("Final snapped transients", filtered)
-
-    tn_cached_positions = filtered
-    tn_cached_key = key
-    tn_detecting = false
-    renoise.app():show_status(string.format("Transient Nav: %d transients detected.", #filtered))
-    if on_done then on_done() end
+    if not ok then renoise.app():show_status("Transient Nav: detection stopped: " .. tostring(err)) end
   end)
+  tn_slicer = slicer
   slicer:start()
 end
 
@@ -364,19 +467,19 @@ local function tn_show_onset(buffer, frame, region_end)
   tn_set_display(buffer, frame - preroll, win)
 end
 
--- Augmented boundary list: 1, transients..., number_of_frames.
+-- Augmented exclusive-edge list: 1, transients..., number_of_frames + 1.
 local function tn_boundaries(sample)
   local positions = tn_cached_positions or {}
   local buffer = sample.sample_buffer
   local B = {}
   if positions[1] ~= 1 then B[#B + 1] = 1 end
   for _, p in ipairs(positions) do B[#B + 1] = p end
-  local nf = buffer.number_of_frames
+  local nf = buffer.number_of_frames + 1
   if B[#B] ~= nf then B[#B + 1] = nf end
   return B
 end
 
--- Index k of the chunk [B[k]..B[k+1]] that contains `ref`.
+-- Index k of the chunk [B[k]..B[k+1]-1] that contains `ref`.
 local function tn_current_chunk_index(B, ref)
   for k = 1, #B - 1 do
     if ref >= B[k] and ref < B[k + 1] then return k end
@@ -418,11 +521,11 @@ function PakettiTransientNextRegion()
   local B = tn_boundaries(sample)
   if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
   local ref = tn_selection_is_whole(buffer) and 0 or buffer.selection_start
-  local k = tn_current_chunk_index(B, ref) + 1
+  local k = tn_selection_is_whole(buffer) and 1 or tn_current_chunk_index(B, ref) + 1
   if k > #B - 1 then k = 1 end   -- wrap past the last region back to the first
-  tn_show_region(buffer, B[k], B[k + 1])
+  tn_show_region(buffer, B[k], B[k + 1] - 1)
   renoise.app():show_status(string.format("Transient Nav: region %d/%d  frames %d..%d (%d)",
-    k, #B - 1, B[k], B[k + 1], B[k + 1] - B[k] + 1))
+    k, #B - 1, B[k], B[k + 1] - 1, B[k + 1] - B[k]))
 end
 
 function PakettiTransientPreviousRegion()
@@ -432,11 +535,11 @@ function PakettiTransientPreviousRegion()
   local B = tn_boundaries(sample)
   if #B < 2 then renoise.app():show_status("Transient Nav: no transients detected."); return end
   local ref = tn_selection_is_whole(buffer) and (buffer.number_of_frames + 1) or buffer.selection_start
-  local k = tn_current_chunk_index(B, ref) - 1
+  local k = tn_selection_is_whole(buffer) and (#B - 1) or tn_current_chunk_index(B, ref) - 1
   if k < 1 then k = #B - 1 end   -- wrap before the first region round to the last
-  tn_show_region(buffer, B[k], B[k + 1])
+  tn_show_region(buffer, B[k], B[k + 1] - 1)
   renoise.app():show_status(string.format("Transient Nav: region %d/%d  frames %d..%d (%d)",
-    k, #B - 1, B[k], B[k + 1], B[k + 1] - B[k] + 1))
+    k, #B - 1, B[k], B[k + 1] - 1, B[k + 1] - B[k]))
 end
 
 --------------------------------------------------------------------------------
@@ -453,7 +556,7 @@ function PakettiTransientNextOnset()
   local j = nil
   for i = 1, #positions do if positions[i] > ref then j = i break end end
   if not j then j = 1 end   -- wrap past the last transient back to the first
-  local region_end = positions[j + 1] or buffer.number_of_frames
+  local region_end = positions[j + 1] and (positions[j + 1] - 1) or buffer.number_of_frames
   tn_show_onset(buffer, positions[j], region_end)
   renoise.app():show_status(string.format("Transient Nav: onset %d/%d at frame %d (zoomed)", j, #positions, positions[j]))
 end
@@ -468,7 +571,7 @@ function PakettiTransientPreviousOnset()
   local j = nil
   for i = #positions, 1, -1 do if positions[i] < ref then j = i break end end
   if not j then j = #positions end   -- wrap before the first transient round to the last
-  local region_end = positions[j + 1] or buffer.number_of_frames
+  local region_end = positions[j + 1] and (positions[j + 1] - 1) or buffer.number_of_frames
   tn_show_onset(buffer, positions[j], region_end)
   renoise.app():show_status(string.format("Transient Nav: onset %d/%d at frame %d (zoomed)", j, #positions, positions[j]))
 end
@@ -573,24 +676,30 @@ end
 --------------------------------------------------------------------------------
 local function tn_crop(keep_start, keep_end, cursor_after)
   local sample = tn_current_sample(); if not sample then return end
-  if sample.is_slice_alias then
-    renoise.app():show_status("Transient Nav: cannot crop a slice alias.")
+  if sample.is_slice_alias or sample.sample_buffer.read_only then
+    renoise.app():show_status("Transient Nav: cannot crop a slice alias or read-only buffer.")
     return
   end
   local buffer = sample.sample_buffer
   local nframes = buffer.number_of_frames
   keep_start = math.max(1, math.min(keep_start, nframes))
   keep_end = math.max(1, math.min(keep_end, nframes))
-  if keep_end <= keep_start then
+  if keep_end < keep_start then
     renoise.app():show_status("Transient Nav: nothing left to keep - crop aborted.")
     return
   end
+  if keep_start == 1 and keep_end == nframes then
+    renoise.app():show_status("Transient Nav: already the whole sample.")
+    return
+  end
+  PakettiTransientNavInvalidate()
   local new_len = keep_end - keep_start + 1
   local nch = buffer.number_of_channels
   local rate = buffer.sample_rate
   local depth = buffer.bit_depth
 
   -- Remember frame-referenced properties so we can remap them.
+  local old_loop_mode = sample.loop_mode
   local old_loop_start = sample.loop_start
   local old_loop_end = sample.loop_end
   local surviving_markers = {}
@@ -611,7 +720,11 @@ local function tn_crop(keep_start, keep_end, cursor_after)
   end
 
   -- Rebuild in place.
-  buffer:create_sample_data(rate, depth, nch, new_len)
+  renoise.song():describe_undo("Transient Navigation: Crop Sample")
+  if not buffer:create_sample_data(rate, depth, nch, new_len) then
+    renoise.app():show_status("Transient Nav: crop failed to allocate the new buffer.")
+    return
+  end
   buffer:prepare_sample_data_changes()
   for ch = 1, nch do
     local col = data[ch]
@@ -634,15 +747,19 @@ local function tn_crop(keep_start, keep_end, cursor_after)
   -- Clamp loop points into the new length.
   local ns = math.max(1, math.min(old_loop_start - keep_start + 1, new_len))
   local ne = math.max(1, math.min(old_loop_end - keep_start + 1, new_len))
-  if ne < ns then ne = new_len end
-  pcall(function() sample.loop_start = ns end)
-  pcall(function() sample.loop_end = ne end)
+  if old_loop_end >= keep_start and old_loop_start <= keep_end and ne > ns then
+    sample.loop_start = 1
+    sample.loop_end = ne
+    sample.loop_start = ns
+    sample.loop_mode = old_loop_mode
+  else
+    sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+  end
 
   PakettiTransientNavInvalidate()
 
   local caret = (cursor_after == "end") and new_len or 1
-  buffer.selection_start = caret
-  buffer.selection_end = caret
+  tn_set_selection(buffer, caret, caret)
   renoise.app():show_status(string.format("Transient Nav: cropped to %d frames (kept %d..%d).",
     new_len, keep_start, keep_end))
 end
@@ -660,6 +777,84 @@ function PakettiTransientDeleteRight()
   local buffer = sample.sample_buffer
   tn_crop(1, buffer.selection_end, "end")
 end
+
+-- Independent edges use exclusive end positions, so an end at transient T
+-- selects through T-1 and never includes the next attack.
+function PakettiTransientSelectionEdge(which, direction)
+  local sample = tn_current_sample(); if not sample then return end
+  if not tn_ensure_positions(sample, function() PakettiTransientSelectionEdge(which, direction) end) then return end
+  local buffer, boundaries = sample.sample_buffer, tn_boundaries(sample)
+  local lo, hi = buffer.selection_start, buffer.selection_end + 1
+  if lo == buffer.selection_end then hi = lo end -- point cursor
+  if tn_selection_is_whole(buffer) then lo, hi = 1, buffer.number_of_frames + 1 end
+  local function stop(edge, dir)
+    if dir > 0 then
+      for _, f in ipairs(boundaries) do if f > edge then return f end end
+    else
+      for i=#boundaries,1,-1 do if boundaries[i] < edge then return boundaries[i] end end
+    end
+  end
+  local a,b=lo,hi
+  if which == "both" then
+    if direction > 0 then a,b=stop(lo,-1) or lo,stop(hi,1) or hi
+    else a,b=stop(lo,1),stop(hi,-1) end
+  else
+    -- A point starts a selection toward the requested direction.
+    if lo == hi then which = direction > 0 and "end" or "start" end
+    if which == "start" then a=stop(lo,direction) else b=stop(hi,direction) end
+  end
+  if not a or not b or b <= a then
+    renoise.app():show_status("Transient Nav: selection cannot shrink further or move past the sample edge.")
+    return
+  end
+  tn_set_selection(buffer,a,b-1)
+  tn_follow_view(buffer,which == "start" and a or math.min(b-1,buffer.number_of_frames))
+  renoise.app():show_status(string.format("Transient Nav: selected frames %d..%d",a,b-1))
+end
+
+function PakettiTransientCropSelection()
+  local sample = tn_current_sample(); if not sample then return end
+  local buffer=sample.sample_buffer
+  tn_crop(buffer.selection_start,buffer.selection_end,"start")
+end
+
+function PakettiTransientSettingsDialog()
+  if tn_settings_dialog and tn_settings_dialog.visible then tn_settings_dialog:close(); tn_settings_dialog=nil; return end
+  local vb=renoise.ViewBuilder()
+  local p=preferences
+  local function changed(pref,value)
+    pref.value=value
+    PakettiTransientNavInvalidate()
+    preferences:save_as("preferences.xml")
+  end
+  local content=vb:column{margin=10,spacing=6,
+    vb:text{text="Choose the detector; Next/Previous and selection edges share its results."},
+    vb:row{vb:text{text="Detector",width=130},vb:popup{width=230,
+      items={"Paketti Adaptive Schmitt","Phaos Level Rise / Treble"},value=p.pakettiTransientNavDetector.value,
+      notifier=function(v) changed(p.pakettiTransientNavDetector,v) end}},
+    vb:text{text="Level Rise / Treble settings (adaptive keeps its existing tuning):"},
+    vb:row{vb:text{text="Sensitivity (%)",width=130},vb:valuebox{min=0,max=100,value=p.pakettiTransientNavSensitivity.value,
+      notifier=function(v) changed(p.pakettiTransientNavSensitivity,v) end}},
+    vb:row{vb:text{text="Threshold (dB below peak)",width=180},vb:valuebox{min=6,max=90,value=p.pakettiTransientNavThreshold.value,
+      notifier=function(v) changed(p.pakettiTransientNavThreshold,v) end}},
+    vb:row{vb:text{text="Minimum gap (ms)",width=130},vb:valuebox{min=10,max=2000,value=p.pakettiTransientNavGapMs.value,
+      notifier=function(v) changed(p.pakettiTransientNavGapMs,v) end}},
+    vb:row{vb:text{text="Snap to",width=130},vb:popup{items={"Onset","Peak"},value=p.pakettiTransientNavSnapMode.value,
+      notifier=function(v) changed(p.pakettiTransientNavSnapMode,v) end}},
+    vb:row{vb:checkbox{value=p.pakettiTransientNavZeroCross.value,
+      notifier=function(v) changed(p.pakettiTransientNavZeroCross,v) end},vb:text{text="Zero-crossing snap (both detectors)"}},
+    vb:button{text="Re-detect Selected Sample",pressed=PakettiTransientRedetect}}
+  tn_settings_dialog=renoise.app():show_custom_dialog("Paketti Transient Detection Settings",content,
+    create_keyhandler_for_dialog(function() return tn_settings_dialog end,function(v) tn_settings_dialog=v end))
+end
+
+local function tn_release_document()
+  PakettiTransientNavInvalidate()
+  if tn_settings_dialog and tn_settings_dialog.visible then tn_settings_dialog:close() end
+  tn_settings_dialog=nil
+end
+renoise.tool().app_release_document_observable:add_notifier(tn_release_document)
+renoise.tool().app_new_document_observable:add_notifier(tn_release_document)
 
 --------------------------------------------------------------------------------
 -- Registrations (LAST in the file - definitions above; Paketti rule 18)
@@ -702,3 +897,25 @@ renoise.tool():add_midi_mapping{name="Paketti:Transient Toggle Mode", invoke=fun
 renoise.tool():add_midi_mapping{name="Paketti:Transient Slice at Cursor", invoke=function(message) if message:is_trigger() then PakettiTransientSliceAtCursor() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Transient Delete Left of Cursor", invoke=function(message) if message:is_trigger() then PakettiTransientDeleteLeft() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Transient Delete Right of Cursor", invoke=function(message) if message:is_trigger() then PakettiTransientDeleteRight() end end}
+
+-- FEATURE-CARD >> features/transient-integration.feature
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Detection Settings...",invoke=PakettiTransientSettingsDialog}
+PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Transient Navigation:Detection Settings...",invoke=PakettiTransientSettingsDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Detection Settings...",invoke=PakettiTransientSettingsDialog}
+for _, command in ipairs({
+  {"Selection Start to Previous Transient","start",-1},
+  {"Selection Start to Next Transient","start",1},
+  {"Selection End to Previous Transient","end",-1},
+  {"Selection End to Next Transient","end",1},
+  {"Selection Both Edges Out","both",1},
+  {"Selection Both Edges In","both",-1},
+}) do
+  local which,direction=command[2],command[3]
+  local function invoke() PakettiTransientSelectionEdge(which,direction) end
+  PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:"..command[1],invoke=invoke}
+  renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient "..command[1],invoke=invoke}
+  renoise.tool():add_midi_mapping{name="Paketti:Transient "..command[1],invoke=function(message) if message:is_trigger() then invoke() end end}
+end
+PakettiAddMenuEntry{name="Sample Editor:Paketti:Transient Navigation:Crop to Selection",invoke=PakettiTransientCropSelection}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Transient Crop to Selection",invoke=function(repeated) if not repeated then PakettiTransientCropSelection() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Transient Crop to Selection",invoke=function(message) if message:is_trigger() then PakettiTransientCropSelection() end end}

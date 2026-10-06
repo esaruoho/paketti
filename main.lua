@@ -1487,6 +1487,7 @@ if PAKETTI_API >= 5 then
   timed_require("PakettiAkaiFormats")
 
   timed_require("PakettiProcess")
+  timed_require("PakettiLoopCrossfade")
   timed_require("PakettiHexSliceLoop")
   timed_require("PakettiMergeInstruments")
   timed_require("PakettiXMLizer")

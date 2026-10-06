@@ -22,6 +22,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Issue follow-up utilities](#issue-followup-utilities) — `issue-followup-utilities.feature`
 - [Refresh Special keyjazz delays at every count](#keyjazz-special-cycler) — `keyjazz-special-cycler.feature`
 - [Longer loaded-sample AHDSR release](#loader-ahdsr-release) — `loader-ahdsr-release.feature`
+- [Blend pre-loop audio into the tail without silence dips](#loop-crossfade) — `loop-crossfade.feature`
 - [Paketti Master Bandpass audition filter](#master-bandpass) — `master-bandpass.feature`
 - [Master Low-Cut 200Hz punch toggle](#master-low-cut-200hz) — `master-low-cut-200hz.feature`
 - [Paketti × Claude MCP + probe bridges (Renoise ↔ Claude)](#mcp-claude-bridge) — `mcp-claude-bridge.feature`
@@ -40,6 +41,8 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Quick edit navigation commands](#quick-edit-navigation) — `quick-edit-navigation.feature`
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
 - [Load samples and close the browser after keyboard dispatch returns](#sample-browser-deferred-close) — `sample-browser-deferred-close.feature`
+- [Edit preview audio and confirm source deletion](#sample-browser-editing) — `sample-browser-editing.feature`
+- [Preserve preview loops and reject single-cue slicing](#sample-browser-loop-load) — `sample-browser-loop-load.feature`
 - [Sample Editor export menus live under Export](#sample-editor-export-menu-grouping) — `sample-editor-export-menu-grouping.feature`
 - [Show and change sample playback quality](#sample-playback-quality) — `sample-playback-quality.feature`
 - [Sample Editor slice menus live under Slices](#sample-slice-menu-grouping) — `sample-slice-menu-grouping.feature`
@@ -50,6 +53,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
 - [Preserve crafted envelopes in Timestretch](#stretch-envelope-preservation) — `stretch-envelope-preservation.feature`
 - [Subcolumn-only pattern inversion](#subcolumn-only-invert) — `subcolumn-only-invert.feature`
+- [Combine Paketti and Phaos transient navigation](#transient-integration) — `transient-integration.feature`
 - [Transient navigation detection](#transient-navigation-detection) — `transient-navigation-detection.feature`
 - [Tree menu map generator](#treemenu) — `treemenu.feature`
 - [TX16W IMG exports use Cyclone-compatible item identity](#tx16w-cyclone-images) — `tx16w-cyclone-images.feature`
@@ -352,6 +356,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiApplyLoaderModulationSettings`, `set_stretch_release_480ms` · **Source files:** `PakettiSamples.lua`, `PakettiStretch.lua`, `loader-ahdsr-release.session.md`
 
 **Grade:** @runtime-untested ×3 · @runtime-verified ×1 · @sim-verified ×3
+
+
+<a id="loop-crossfade"></a>
+## Blend pre-loop audio into the tail without silence dips
+
+`features/loop-crossfade.feature` · [session](loop-crossfade.session.md)
+
+**Behaviour (6 scenarios):**
+
+- Linear and Equal Power preserve the original wrap transition — `@sim-verified @runtime-untested`
+- Process selections or individual loops across an instrument — `@sim-verified @runtime-untested`
+- Clean up write failures and report marker failures honestly — `@sim-verified @runtime-untested`
+- Fix legacy targets and end-frame indexing — `@sim-verified @runtime-untested`
+- Configure curves and lengths without accidental repeat processing — `@sim-verified @runtime-untested`
+- Preserve the creative whole-sample reverse blend — `@sim-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiLoopCrossfadeSample`, `PakettiLoopCrossfadeApply`, `PakettiLoopCrossfadeDialog`, `crossfade_loop`, `crossfade_loop_edges_fixed_end`, `crossfade_with_fades` · **Source files:** `PakettiLoopCrossfade.lua`, `PakettiExperimental_Verify.lua`, `PakettiProcess.lua`
+
+**Grade:** @runtime-untested ×6 · @sim-verified ×6
 
 
 <a id="master-bandpass"></a>
@@ -737,6 +760,50 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @runtime-untested ×4 · @sim-verified ×4 · @stock ×1
 
 
+<a id="sample-browser-editing"></a>
+## Edit preview audio and confirm source deletion
+
+`features/sample-browser-editing.feature` · [session](sample-browser-editing.session.md)
+
+**Behaviour (15 scenarios):**
+
+- Preserve selection cuts in the loaded sample — `@sim-verified @runtime-untested`
+- Confirm source file deletion — `@sim-verified @runtime-untested`
+- Keep waveform controls clear and stable — `@built @runtime-untested`
+- Retain the cursor after deleting a file — `@sim-verified @runtime-untested`
+- Carry chosen playback quality into native imports — `@sim-verified @runtime-untested`
+- Adjust playback quality during preview — `@built @runtime-untested`
+- Ignore Caps Lock for octave punctuation — `@sim-verified @runtime-untested`
+- Trim to selected audio — `@sim-verified @runtime-untested`
+- Sync preview and import to song tempo — `@sim-verified @runtime-untested`
+- Search recursively from the browser root — `@sim-verified @runtime-untested`
+- Change preview volume without changing imported gain — `@built @runtime-untested`
+- Follow click playback and whole-sample loops — `@sim-verified @runtime-untested`
+- Clean up the cursor timer — `@sim-verified @runtime-untested`
+- Draw a visible waveform playback cursor — `@built @runtime-untested`
+- Set exact beatsync length independently of mode — `@sim-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `plsb_set_sync`, `plsb_start_playhead`, `plsb_stop_playhead`, `plsb_playhead_position`, `plsb_wave_render`, `plsb_apply_beatsync`, `plsb_octave_key_delta`, `plsb_set_playback`, `plsb_rebuild_entries`, `plsb_cut_selection`, `plsb_confirm_delete_file`, `plsb_do_load`, `plsb_meta_string`, `plsb_key_handler`, `PakettiLoadSampleBrowser_Open` · **Source files:** `PakettiLoadSampleBrowser.lua`, `tests/sample-browser-editing.lua`, `tests/sample-browser-loop-load.lua`
+
+**Grade:** @built ×4 · @runtime-untested ×15 · @sim-verified ×11
+
+
+<a id="sample-browser-loop-load"></a>
+## Preserve preview loops and reject single-cue slicing
+
+`features/sample-browser-loop-load.feature` · [session](sample-browser-loop-load.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Load the exact preview loop — `@sim-verified @runtime-untested`
+- A single cue does not define slices — `@sim-verified @runtime-untested`
+- Keep deliberate multi-cue imports — `@sim-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `plsb_do_load`, `PakettiWavCueImportWavWithCuesIntoSample` · **Source files:** `PakettiLoadSampleBrowser.lua`, `tests/sample-browser-loop-load.lua`, `PakettiWavCueExtract.lua`
+
+**Grade:** @runtime-untested ×3 · @sim-verified ×3
+
+
 <a id="sample-editor-export-menu-grouping"></a>
 ## Sample Editor export menus live under Export
 
@@ -918,6 +985,23 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `invert_content_subcolumn` · **Source files:** `PakettiRequests.lua`, `PakettiMenuConfig.lua`
 
 **Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+
+
+<a id="transient-integration"></a>
+## Combine Paketti and Phaos transient navigation
+
+`features/transient-integration.feature` · [session](transient-integration.session.md)
+
+**Behaviour (4 scenarios):**
+
+- Choose stereo-safe detection — `@sim-verified @runtime-untested`
+- Reject stale background results — `@sim-verified @runtime-untested`
+- Select adjacent regions and move edges independently — `@sim-verified @runtime-untested`
+- Preserve crop metadata and stop on failed allocation — `@sim-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `tn_start_detection`, `tn_sample_key`, `tn_boundaries`, `PakettiTransientSelectionEdge`, `PakettiTransientSettingsDialog`, `tn_crop` · **Source files:** `PakettiTransientAnalysis.lua`, `PakettiTransientNavigation.lua`
+
+**Grade:** @runtime-untested ×4 · @sim-verified ×4
 
 
 <a id="transient-navigation-detection"></a>

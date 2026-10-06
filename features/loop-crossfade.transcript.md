@@ -1,0 +1,1 @@
+# Loop crossfade transcript snapshot

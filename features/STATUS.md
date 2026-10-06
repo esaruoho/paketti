@@ -47,7 +47,7 @@
 | quick-edit-navigation | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-browser-deferred-close | 5 | ✗ | ✗ | — | @runtime-untested @sim-verified @stock |
-| sample-browser-editing | 14 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
+| sample-browser-editing | 15 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | sample-browser-loop-load | 3 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | sample-editor-export-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-playback-quality | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |

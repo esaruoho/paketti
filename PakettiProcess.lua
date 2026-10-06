@@ -3653,6 +3653,11 @@ function crossfade_with_fades()
     return
   end
 
+  if buffer.read_only then
+    renoise.app():show_status("Cannot edit a read-only slice.")
+    return
+  end
+
   local n_ch         = buffer.number_of_channels
   local n_fr         = buffer.number_of_frames
   local fade_frames  = 6
@@ -3668,7 +3673,9 @@ function crossfade_with_fades()
   end
 
   -- 2) Prepare undo/redo & UI updates
+  -- FEATURE-CARD >> features/loop-crossfade.feature
   buffer:prepare_sample_data_changes()
+  local ok, err = pcall(function()
 
   -- 3) Cross-fade + fades
   for ch = 1, n_ch do
@@ -3692,8 +3699,13 @@ function crossfade_with_fades()
     end
   end
 
+  end)
   -- 4) Finalize changes
   buffer:finalize_sample_data_changes()
+  if not ok then
+    renoise.app():show_status("Crossfade failed; Undo may be needed: " .. tostring(err))
+    return
+  end
   renoise.app():show_status("Cross-fade + fades complete.")
 end
 
@@ -3718,12 +3730,17 @@ function crossfade_loop_edges_fixed_end()
     return
   end
   local sample = instr.samples[idx]
+  if not sample then renoise.app():show_status("No sample selected!") return end
   local ls, le = sample.loop_start, sample.loop_end
   if not ls or not le or le <= ls then
     renoise.app():show_status("Invalid loop region!")
     return
   end
   local buf = sample.sample_buffer
+  if buf.read_only then
+    renoise.app():show_status("Cannot edit a read-only slice.")
+    return
+  end
   if not buf.has_sample_data then
     renoise.app():show_status("Sample has no data!")
     return
@@ -3746,7 +3763,9 @@ function crossfade_loop_edges_fixed_end()
     end
   end
 
+  -- FEATURE-CARD >> features/loop-crossfade.feature
   buf:prepare_sample_data_changes()
+  local ok, err = pcall(function()
 
   -- 2) Mirror‐average first/last fade_len frames
   for ch = 1, n_ch do
@@ -3782,14 +3801,19 @@ function crossfade_loop_edges_fixed_end()
   -- 5) Loop‐end fade‐out (before loop_end), fixed off‐by‐one
   for ch = 1, n_ch do
     for i = 1, fade_len do
-      local pos = (le - fade_len) + (i +1)     -- covers [le-fade_len .. le-1]
-      local env = (fade_len - i + 1) / fade_len
+      local pos = le - fade_len + i     -- covers [le-fade_len+1 .. le]
+      local env = fade_len > 1 and (fade_len - i) / (fade_len - 1) or 0
       local v   = buf:sample_data(ch, pos)
       buf:set_sample_data(ch, pos, v * env)
     end
   end
+  end)
 
   buf:finalize_sample_data_changes()
+  if not ok then
+    renoise.app():show_status("Crossfade failed; Undo may be needed: " .. tostring(err))
+    return
+  end
   renoise.app():show_status(
     ("Cross‐fade loop edges + fixed end‐fade complete (%d frames)."):format(fade_len)
   )

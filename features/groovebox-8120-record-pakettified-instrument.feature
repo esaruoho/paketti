@@ -27,6 +27,7 @@ Context: Global
   # RESULT-LOG >> (auto-maintained by convey hooks — newest below)
   #   2026-10-06  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
   #   2026-10-06  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
+  #   2026-10-06  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
   #   2026-10-03  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
   #   2026-10-02  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader
   #   2026-10-02  direct-commit  touched: pakettiPreferencesDefaultInstrumentLoader

@@ -506,18 +506,9 @@ end
 local function plsb_apply_beatsync(smp)
   local mode = S.beatsync or 1
   smp.beat_sync_enabled = false
-  if mode > 1 then
-    local song = renoise.song()
-    local secs = smp.sample_buffer.number_of_frames / smp.sample_buffer.sample_rate
-    local best, err = 1, math.huge
-    for _, beats in ipairs({1, 2, 4, 8, 16, 32, 64}) do
-      local distance = math.abs(math.log(beats * 60 / math.max(0.000001, secs) / song.transport.bpm))
-      if distance < err then best, err = beats, distance end
-    end
-    smp.beat_sync_lines = math.max(1, math.min(512, best * song.transport.lpb))
-    smp.beat_sync_mode = mode - 1
-    smp.beat_sync_enabled = true
-  end
+  smp.beat_sync_lines = math.max(1, math.min(512, math.floor(S.sync_lines or 16)))
+  smp.beat_sync_mode = math.max(1, math.min(3, S.sync_mode or (mode > 1 and mode - 1 or 1)))
+  smp.beat_sync_enabled = mode > 1
 end
 
 -- load the highlighted file into the scratch instrument for preview
@@ -970,6 +961,21 @@ local function plsb_set_playback(property, value)
   smp[property] = value
   S.playback_choices = S.playback_choices or {}
   S.playback_choices[property] = value
+end
+
+-- REPORT-CARD >> features/sample-browser-editing.feature
+local function plsb_set_sync(property, value)
+  if S.syncing_playback then return end
+  if property == "enabled" then
+    S.beatsync = value and ((S.sync_mode or 1) + 1) or 1
+  elseif property == "lines" then
+    S.sync_lines = math.max(1, math.min(512, math.floor(value)))
+  elseif property == "mode" then
+    S.sync_mode = math.max(1, math.min(3, value))
+    if (S.beatsync or 1) > 1 then S.beatsync = S.sync_mode + 1 end
+  end
+  local smp = plsb_scratch_sample()
+  if smp then plsb_apply_beatsync(smp) end
 end
 
 -- map a canvas x (0..WAVE_W) to a frame (1..frames), and back
@@ -1942,15 +1948,16 @@ function PakettiLoadSampleBrowser_Open()
         },
         vb:row {
           spacing = 6,
+          vb:checkbox{value = (S.beatsync or 1) > 1,
+            notifier = function(value) plsb_set_sync("enabled", value) end},
           vb:text{text = "Beatsync"},
-          vb:popup{width = 180, items = {"Off", "Repitch", "Percussion", "Texture"},
-            value = S.beatsync or 1,
-            notifier = function(value)
-              if S.syncing_playback then return end
-              S.beatsync = value
-              local smp = plsb_scratch_sample()
-              if smp then plsb_apply_beatsync(smp) end
-            end},
+          vb:valuebox{width = 80, min = 1, max = 512, value = S.sync_lines or 16,
+            notifier = function(value) plsb_set_sync("lines", value) end},
+          vb:text{text = "lines"},
+          vb:text{text = "Mode"},
+          vb:popup{width = 130, items = {"Repitch", "Percussion", "Texture"},
+            value = S.sync_mode or ((S.beatsync or 1) > 1 and S.beatsync - 1 or 1),
+            notifier = function(value) plsb_set_sync("mode", value) end},
         },
         vb:row {
           spacing = 6,

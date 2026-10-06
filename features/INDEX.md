@@ -65,3 +65,11 @@ Derived views — GENERATED, never hand-edit:
 - [Delete note-offs while preserving data](note-off-cleanup.feature) — four cleanup scopes; Phaos Ideas credit.
 
 - [Checked sample playback quality](sample-playback-quality.feature) — scoped menus, cycling and oversampling toggles.
+
+| `loop-crossfade.feature` | Selection and instrument loop crossfades with safe curves and length; legacy range/target fixes | `loop-crossfade.session.md` | worktree |
+
+- [Paketti + Phaos transient integration](transient-integration.feature) — selectable stereo detectors, selection edges and crop fixes.
+
+- [sample-browser-loop-load](sample-browser-loop-load.feature)
+
+- [sample-browser-editing](sample-browser-editing.feature)
