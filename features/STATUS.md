@@ -29,6 +29,7 @@
 | issue-followup-utilities | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | keyjazz-special-cycler | 4 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | loader-ahdsr-release | 4 | ✗ | ~ partial | — | @runtime-untested @runtime-verified @sim-verified |
+| loop-crossfade | 6 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | master-bandpass | 4 | ✓ | ✗ | — | @build-verified @runtime-untested @shipped |
 | master-low-cut-200hz | 3 | ✗ | — | ✓ | @hw-verified |
 | mcp-claude-bridge | 11 | ✓ | — | ✓ | @built @code-verified @hw-verified @untested |
@@ -56,12 +57,13 @@
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 | stretch-envelope-preservation | 4 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | subcolumn-only-invert | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| transient-integration | 4 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | transient-navigation-detection | 6 | ✓ | — | — | @code-verified @shipped @sim-verified @stock |
 | treemenu | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 47
+- Cards: 49
 - Build-verified: 40
 - Runtime-verified: 3 full + 3 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1

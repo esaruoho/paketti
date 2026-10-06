@@ -75,15 +75,26 @@ local S = {
   meta = {},
   peaks = nil,           -- { ch1 = {{min,max},...}, ch2 = {...} or nil }
   active_notes = {},     -- key_name -> note value
-  dir_id = nil, list_id = nil, meta_id = nil, wave_id = nil,
+  dir_id = nil, list_id = nil, meta_id = nil, wave_id = nil, find_id = nil, loopbtn_id = nil,
   octave_notifier = nil,
   doc_notifier = nil,
   pending_action = nil,
+  -- interactive waveform state
+  loop = nil,            -- { mode, start, end, frames } mirror of the scratch sample's loop
+  sel_range = nil,       -- { frame_a, frame_b } drag-selection on the waveform (1-based)
+  drag = nil,            -- "start" | "end" | "select" while a wave drag is in progress
+  drag_moved = false,    -- did the pointer move since mouse-down (click vs drag)
+  sliced = false,        -- a click-to-play slice marker is currently on the scratch sample
+  -- find / search
+  find_query = "",       -- current filter text ("" = show everything)
 }
 
 -- forward declaration: refreshes the text widgets + waveform canvas (defined below,
 -- but called by functions above its definition)
 local plsb_refresh
+-- forward declaration: removes any click-to-play slice marker from the scratch
+-- sample (assigned in the interactive-waveform block, called by preview + keyjazz above it)
+local plsb_clear_preview_slices
 
 -- The list / path / metadata are normal Renoise text widgets; only the waveform
 -- is drawn on a Canvas.
@@ -288,6 +299,81 @@ local function plsb_loop_mode_name(mode)
   return "Off"
 end
 
+-- find / search ----------------------------------------------------------------
+-- A tiny query language over file + folder names (ported from phaos SimpleBrowser):
+--   kick 909        both words (AND)
+--   kick or snare   either word (also: kick | snare)
+--   -loop / not loop   leave out names containing "loop"
+--   "tr 909"        the exact phrase, spaces included
+--   kick*.wav       * any run of chars, ? any single char
+local function plsb_glob_to_pat(s)
+  -- escape Lua pattern magic, leaving * and ? to become wildcards
+  s = s:gsub("[%^%$%(%)%.%[%]%+%-%%]", "%%%0")
+  s = s:gsub("%*", ".*")
+  s = s:gsub("%?", ".")
+  return s
+end
+
+local function plsb_find_tokens(q)
+  local toks, i, n = {}, 1, #q
+  while i <= n do
+    local c = q:sub(i, i)
+    if c == '"' then
+      local j = q:find('"', i + 1, true)
+      if j then toks[#toks + 1] = q:sub(i + 1, j - 1); i = j + 1
+      else toks[#toks + 1] = q:sub(i + 1); i = n + 1 end
+    elseif c == " " then
+      i = i + 1
+    else
+      local j = q:find(" ", i, true) or (n + 1)
+      toks[#toks + 1] = q:sub(i, j - 1); i = j
+    end
+  end
+  return toks
+end
+
+-- returns a parsed query (list of AND-groups, each a list of OR-alternatives),
+-- or nil for an empty query (= match everything)
+local function plsb_find_parse(q)
+  q = tostring(q or "")
+  if q:match("^%s*$") then return nil end
+  local toks = plsb_find_tokens(q:lower())
+  local groups, want_or, want_not = {}, false, false
+  for _, t in ipairs(toks) do
+    if t == "or" or t == "|" then
+      want_or = true
+    elseif t == "not" then
+      want_not = true
+    else
+      local neg = want_not
+      if t:sub(1, 1) == "-" and #t > 1 then neg = true; t = t:sub(2) end
+      local alt = { neg = neg, pat = plsb_glob_to_pat(t) }
+      if want_or and #groups > 0 then
+        local g = groups[#groups]; g[#g + 1] = alt
+      else
+        groups[#groups + 1] = { alt }
+      end
+      want_or, want_not = false, false
+    end
+  end
+  if #groups == 0 then return nil end
+  return groups
+end
+
+local function plsb_find_match(groups, hay)
+  if not groups then return true end
+  hay = (hay or ""):lower()
+  for _, g in ipairs(groups) do
+    local ok = false
+    for _, alt in ipairs(g) do
+      local found = string.find(hay, alt.pat) ~= nil
+      if found ~= alt.neg then ok = true; break end
+    end
+    if not ok then return false end
+  end
+  return true
+end
+
 -- scratch instrument ----------------------------------------------------------
 local function plsb_cleanup_scratch()
   local song = renoise.song()
@@ -369,6 +455,10 @@ local function plsb_preview_selected()
   S.preview_ok = false
   S.peaks = nil
   S.meta = {}
+  S.loop = nil
+  S.sel_range = nil
+  S.drag = nil
+  if plsb_clear_preview_slices then plsb_clear_preview_slices() end
   local e = S.entries[S.selected]
   if not e or e.kind ~= "file" then S.loaded_path = nil; return end
   S.loaded_path = e.path
@@ -409,6 +499,8 @@ local function plsb_preview_selected()
     S.meta.loop_mode = plsb_loop_mode_name(sample.loop_mode)
     S.meta.loop_start = sample.loop_start
     S.meta.loop_end = sample.loop_end
+    S.loop = { mode = sample.loop_mode, start = sample.loop_start,
+               stop = sample.loop_end, frames = buf.number_of_frames }
     S.peaks = plsb_compute_peaks(buf, 300)
   else
     S.meta.note = "Could not decode for preview"
@@ -433,6 +525,9 @@ local function plsb_rebuild_entries(select_name)
       S.entries[#S.entries + 1] = { kind = "dir", name = d.label, path = d.path }
     end
   else
+    -- the find filter (nil = show everything). Folders are only filtered when the
+    -- query is active, so you can still navigate; the updir "." always stays.
+    local filt = plsb_find_parse(S.find_query)
     -- up-dir entry (unless at a filesystem root)
     local parent = plsb_parent(dir)
     if parent ~= dir then
@@ -443,7 +538,9 @@ local function plsb_rebuild_entries(select_name)
     if ok_dirs and dirs then
       table.sort(dirs, function(a, b) return a:lower() < b:lower() end)
       for _, d in ipairs(dirs) do
-        S.entries[#S.entries + 1] = { kind = "dir", name = d, path = plsb_join(dir, d) }
+        if not filt or plsb_find_match(filt, d) then
+          S.entries[#S.entries + 1] = { kind = "dir", name = d, path = plsb_join(dir, d) }
+        end
       end
     end
     -- files (loadable extensions)
@@ -454,7 +551,9 @@ local function plsb_rebuild_entries(select_name)
     if ok_files and files then
       table.sort(files, function(a, b) return a:lower() < b:lower() end)
       for _, f in ipairs(files) do
-        S.entries[#S.entries + 1] = { kind = "file", name = f, path = plsb_join(dir, f) }
+        if not filt or plsb_find_match(filt, f) then
+          S.entries[#S.entries + 1] = { kind = "file", name = f, path = plsb_join(dir, f) }
+        end
       end
     end
   end
@@ -568,6 +667,33 @@ local function plsb_wave_render(ctx)
     end
     ctx:stroke()
   end
+
+  -- frames->x in this canvas (inlined; the shared helper is defined further down)
+  local frames = (S.loop and S.loop.frames) or S.meta.frames or 1
+  if frames < 1 then frames = 1 end
+  local function fx(f) return (f - 1) / frames * WAVE_W end
+
+  -- drag-selection band
+  if S.sel_range then
+    local a = math.min(S.sel_range[1], S.sel_range[2])
+    local b = math.max(S.sel_range[1], S.sel_range[2])
+    local x1 = fx(a)
+    local x2 = fx(b)
+    ctx.fill_color = { 232, 232, 214, 70 }   -- translucent cream
+    ctx:begin_path(); ctx:rect(x1, 0, math.max(1, x2 - x1), WAVE_H); ctx:fill()
+  end
+
+  -- loop markers (start/end lines + small flags, like the sample editor)
+  if S.loop and S.loop.mode and S.loop.mode ~= renoise.Sample.LOOP_MODE_OFF then
+    local xs = fx(S.loop.start)
+    local xe = fx(S.loop.stop)
+    ctx.fill_color = { 255, 190, 60, 255 }   -- amber loop flags/lines
+    ctx:begin_path(); ctx:rect(xs, 0, 1, WAVE_H); ctx:fill()
+    ctx:begin_path(); ctx:rect(xe, 0, 1, WAVE_H); ctx:fill()
+    -- start flag points right, end flag points left (6x6)
+    ctx:begin_path(); ctx:move_to(xs + 1, 0); ctx:line_to(xs + 7, 0); ctx:line_to(xs + 1, 6); ctx:close_path(); ctx:fill()
+    ctx:begin_path(); ctx:move_to(xe, 0); ctx:line_to(xe - 6, 0); ctx:line_to(xe, 6); ctx:close_path(); ctx:fill()
+  end
 end
 
 
@@ -592,6 +718,11 @@ local function plsb_meta_string()
     lines[#lines + 1] = "Loop:        " .. (m.loop_mode or "Off")
       .. ((m.loop_mode and m.loop_mode ~= "Off")
         and ("  (" .. tostring(m.loop_start or 0) .. " - " .. tostring(m.loop_end or 0) .. ")") or "")
+    if S.sel_range then
+      local a = math.min(S.sel_range[1], S.sel_range[2])
+      local b = math.max(S.sel_range[1], S.sel_range[2])
+      lines[#lines + 1] = "Selection:   " .. a .. " - " .. b .. " frames"
+    end
   elseif m.note then
     lines[#lines + 1] = "Preview:     " .. m.note
   end
@@ -612,6 +743,10 @@ plsb_refresh = function()
   if S.list_id and v[S.list_id] then v[S.list_id]:update() end
   if S.meta_id and v[S.meta_id] then v[S.meta_id].text = plsb_meta_string() end
   if S.wave_id and v[S.wave_id] then v[S.wave_id]:update() end
+  if S.loopbtn_id and v[S.loopbtn_id] then
+    local name = (S.loop and plsb_loop_mode_name(S.loop.mode)) or "Off"
+    v[S.loopbtn_id].text = "Loop: " .. name
+  end
 end
 
 -- keyjazz ---------------------------------------------------------------------
@@ -637,6 +772,8 @@ end
 local function plsb_note_on(key_name)
   if not S.preview_ok or not S.scratch_index then return false end
   if S.active_notes[key_name] then return true end
+  -- a keyjazz note uses the whole sample again: drop any click-to-play slice first
+  if plsb_clear_preview_slices then plsb_clear_preview_slices() end
   local note = plsb_key_to_note(key_name)
   if not note then return false end
   local song = renoise.song()
@@ -666,6 +803,214 @@ end
 local function plsb_all_notes_off()
   for k, _ in pairs(S.active_notes) do plsb_note_off(k) end
   S.active_notes = {}
+end
+
+-- interactive waveform: loop editing, click-to-play, drag ----------------------
+-- Everything here mutates the hidden scratch sample that keyjazz already plays,
+-- so changing the loop (or playing from a point) is heard live on the next note.
+
+local function plsb_scratch_sample()
+  if not S.scratch_index then return nil end
+  local song = renoise.song()
+  local inst = song and song.instruments[S.scratch_index]
+  if not inst or #inst.samples < 1 then return nil end
+  local smp = inst.samples[1]
+  if not smp.sample_buffer.has_sample_data then return nil end
+  return smp
+end
+
+-- map a canvas x (0..WAVE_W) to a frame (1..frames), and back
+local function plsb_frame_at_x(x)
+  local n = (S.loop and S.loop.frames) or (S.meta and S.meta.frames)
+  if not n or n < 1 then return nil end
+  local f = math.floor(x / WAVE_W * n) + 1
+  if f < 1 then f = 1 elseif f > n then f = n end
+  return f
+end
+
+-- keep S.loop in sync with the scratch sample after an edit
+local function plsb_sync_loop()
+  local smp = plsb_scratch_sample()
+  if not smp then S.loop = nil; return end
+  S.loop = { mode = smp.loop_mode, start = smp.loop_start,
+             stop = smp.loop_end, frames = smp.sample_buffer.number_of_frames }
+  S.meta.loop_mode = plsb_loop_mode_name(smp.loop_mode)
+  S.meta.loop_start = smp.loop_start
+  S.meta.loop_end = smp.loop_end
+end
+
+local function plsb_set_loop_mode(mode)
+  local smp = plsb_scratch_sample()
+  if not smp then return end
+  local n = smp.sample_buffer.number_of_frames
+  pcall(function()
+    if mode ~= renoise.Sample.LOOP_MODE_OFF and smp.loop_start >= smp.loop_end then
+      smp.loop_start = 1; smp.loop_end = n
+    end
+    smp.loop_mode = mode
+  end)
+  plsb_sync_loop()
+  if plsb_refresh then plsb_refresh() end
+  renoise.app():show_status("Load Sample: loop " .. plsb_loop_mode_name(mode))
+end
+
+local PLSB_LOOP_CYCLE = {
+  renoise.Sample.LOOP_MODE_OFF, renoise.Sample.LOOP_MODE_FORWARD,
+  renoise.Sample.LOOP_MODE_REVERSE, renoise.Sample.LOOP_MODE_PING_PONG,
+}
+local function plsb_cycle_loop_mode(delta)
+  local smp = plsb_scratch_sample()
+  if not smp then return end
+  local idx = 1
+  for i, m in ipairs(PLSB_LOOP_CYCLE) do if m == smp.loop_mode then idx = i break end end
+  idx = ((idx - 1 + (delta or 1)) % #PLSB_LOOP_CYCLE) + 1
+  plsb_set_loop_mode(PLSB_LOOP_CYCLE[idx])
+end
+
+-- move one loop flag to `frame`; turns a dormant loop on (Forward) so you hear it
+local function plsb_set_loop_point(which, frame)
+  local smp = plsb_scratch_sample()
+  if not smp then return end
+  local n = smp.sample_buffer.number_of_frames
+  frame = math.max(1, math.min(n, math.floor(frame)))
+  pcall(function()
+    if which == "start" then
+      if frame >= smp.loop_end then frame = smp.loop_end - 1 end
+      if frame < 1 then frame = 1 end
+      smp.loop_start = frame
+    else
+      if frame <= smp.loop_start then frame = smp.loop_start + 1 end
+      smp.loop_end = frame
+    end
+    if smp.loop_mode == renoise.Sample.LOOP_MODE_OFF then
+      smp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    end
+  end)
+  plsb_sync_loop()
+  if plsb_refresh then plsb_refresh() end
+end
+
+-- set the loop to the current drag-selection (Forward)
+local function plsb_loop_to_selection()
+  local smp = plsb_scratch_sample()
+  if not smp or not S.sel_range then
+    renoise.app():show_status("Load Sample: drag a selection on the waveform first")
+    return
+  end
+  local n = smp.sample_buffer.number_of_frames
+  local a = math.max(1, math.min(n - 1, math.min(S.sel_range[1], S.sel_range[2])))
+  local b = math.max(a + 1, math.min(n, math.max(S.sel_range[1], S.sel_range[2])))
+  pcall(function()
+    smp.loop_mode = renoise.Sample.LOOP_MODE_OFF   -- reset so start<end never clashes
+    smp.loop_start = 1
+    smp.loop_end = b
+    smp.loop_start = a
+    smp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  end)
+  plsb_sync_loop()
+  if plsb_refresh then plsb_refresh() end
+  renoise.app():show_status("Load Sample: loop = selection (" .. a .. " - " .. b .. ")")
+end
+
+local function plsb_clear_selection()
+  S.sel_range = nil
+  if plsb_refresh then plsb_refresh() end
+end
+
+-- assigned to the forward-declared local so preview + keyjazz (above) can call it
+plsb_clear_preview_slices = function()
+  if not S.sliced then return end
+  S.sliced = false
+  local smp = plsb_scratch_sample()
+  if not smp then return end
+  pcall(function()
+    local marks = {}
+    for _, m in ipairs(smp.slice_markers) do marks[#marks + 1] = m end
+    for _, m in ipairs(marks) do smp:delete_slice_marker(m) end
+  end)
+  pcall(function()
+    smp.sample_mapping.base_note = 48
+    smp.sample_mapping.note_range = { 0, 119 }
+  end)
+end
+
+-- click-to-play: play the scratch sample from `frac` (0..1) of its length.
+-- Uses a temporary slice marker (removed before the next keyjazz note).
+local function plsb_play_from(frac)
+  local smp = plsb_scratch_sample()
+  if not smp then return end
+  plsb_all_notes_off()
+  plsb_clear_preview_slices()
+  local song = renoise.song()
+  local ti = plsb_safe_track_index()
+  local n = smp.sample_buffer.number_of_frames
+  local pos = math.floor(math.max(0, math.min(1, frac)) * n) + 1
+  if pos <= 1 or n < 64 or pos >= n - 16 then
+    pcall(function() song:trigger_instrument_note_on(S.scratch_index, ti, { 48 }, 1.0) end)
+    S.active_notes["__wave__"] = 48
+    return
+  end
+  local ok = pcall(function()
+    smp:insert_slice_marker(pos)
+    S.sliced = true
+    local inst = song.instruments[S.scratch_index]
+    local alias = inst.samples[#inst.samples]          -- the slice starting at pos
+    local base = alias.sample_mapping.base_note
+    song:trigger_instrument_note_on(S.scratch_index, ti, { base }, 1.0)
+    S.active_notes["__wave__"] = base
+  end)
+  if not ok then
+    plsb_clear_preview_slices()
+    pcall(function() song:trigger_instrument_note_on(S.scratch_index, ti, { 48 }, 1.0) end)
+    S.active_notes["__wave__"] = 48
+  end
+end
+
+-- the waveform canvas mouse handler: drag a loop flag, drag to select, click to play
+local function plsb_wave_mouse(ev)
+  if S.pending_action then return end
+  local x = ev.position.x
+  if ev.type == "down" then
+    if ev.button ~= "left" then return end
+    S.drag_moved = false
+    local grabbed
+    if S.loop and S.loop.mode ~= renoise.Sample.LOOP_MODE_OFF then
+      local xs = (S.loop.start - 1) / math.max(1, S.loop.frames) * WAVE_W
+      local xe = (S.loop.stop - 1) / math.max(1, S.loop.frames) * WAVE_W
+      if math.abs(x - xs) <= 6 then grabbed = "start"
+      elseif math.abs(x - xe) <= 6 then grabbed = "end" end
+    end
+    if grabbed then
+      S.drag = grabbed
+    else
+      S.drag = "select"
+      local f = plsb_frame_at_x(x)
+      S.sel_anchor = f
+      S.sel_range = f and { f, f } or nil
+      if plsb_refresh then plsb_refresh() end
+    end
+  elseif ev.type == "move" or ev.type == "drag" then
+    if not S.drag then return end
+    S.drag_moved = true
+    local f = plsb_frame_at_x(x)
+    if not f then return end
+    if S.drag == "start" or S.drag == "end" then
+      plsb_set_loop_point(S.drag, f)
+    elseif S.drag == "select" then
+      S.sel_range = { S.sel_anchor or f, f }
+      if plsb_refresh then plsb_refresh() end
+    end
+  elseif ev.type == "up" then
+    local was = S.drag
+    S.drag = nil
+    if was == "select" and not S.drag_moved then
+      -- a plain click (no drag) = play from that point
+      S.sel_range = nil
+      local f = plsb_frame_at_x(x)
+      local n = (S.loop and S.loop.frames) or 1
+      plsb_play_from(f and ((f - 1) / math.max(1, n)) or 0)
+    end
+  end
 end
 
 -- open / confirm / close ------------------------------------------------------
@@ -838,6 +1183,10 @@ local function plsb_do_load(path, opts)
   local force_new = opts.force_new
   local ext = plsb_ext(path)
 
+  -- the loop the user shaped on the waveform (a mirror of the scratch sample), so
+  -- what you keyjazzed is what gets loaded. nil / Off means "leave the file's own loop".
+  local tuned_loop = S.loop
+
   -- the scratch preview instrument must not be a target candidate or left behind
   plsb_cleanup_scratch()
 
@@ -861,6 +1210,24 @@ local function plsb_do_load(path, opts)
     smp.name = base
     instr.name = string.format("%02X_", tgt - 1) .. base
     pcall(function() PakettiInjectApplyLoaderSettings(smp) end)
+    -- carry the waveform-tuned loop onto the freshly loaded sample (same audio only,
+    -- and never over a cue-sliced load) so the loop you keyjazzed survives the load
+    if tuned_loop and tuned_loop.mode and tuned_loop.mode ~= renoise.Sample.LOOP_MODE_OFF then
+      pcall(function()
+        local buf = smp.sample_buffer
+        if buf.has_sample_data and buf.number_of_frames == tuned_loop.frames
+          and #smp.slice_markers == 0 then
+          local n = buf.number_of_frames
+          local a = math.max(1, math.min(n - 1, tuned_loop.start))
+          local b = math.max(a + 1, math.min(n, tuned_loop.stop))
+          smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+          smp.loop_start = 1
+          smp.loop_end = b
+          smp.loop_start = a
+          smp.loop_mode = tuned_loop.mode
+        end
+      end)
+    end
     renoise.app():show_status("Loaded " .. base .. " into instrument " .. string.format("%02X", tgt - 1))
     plsb_finalize(tgt, jam)
   else
@@ -910,6 +1277,34 @@ end
 
 function PakettiLoadSampleBrowser_ConfirmJam()
   plsb_defer_action(plsb_confirm_jam_now)
+end
+
+-- load a single file into its own pakettified target slot; returns true on success.
+-- Used by the Shift+Enter "load every sample in this folder" path. Native audio only
+-- here (load pti/sf2/mod/etc one at a time with Enter, which uses the async expander).
+local function plsb_load_path(path)
+  local ext = plsb_ext(path)
+  if not PLSB_NATIVE[ext] then return false end
+  local song = renoise.song()
+  local tgt = plsb_pick_target(false)
+  if not tgt then return false end
+  song.selected_instrument_index = tgt
+  pakettiPreferencesDefaultInstrumentLoader()
+  tgt = song.selected_instrument_index
+  local instr = song.instruments[tgt]
+  local smp = instr.samples[1]
+  if not smp then instr:insert_sample_at(1); smp = instr.samples[1] end
+  local base = plsb_basename(path)
+  if ext == "wav" then
+    pcall(function() PakettiWavCueImportWavWithCuesIntoSample(smp, path) end)
+  else
+    pcall(function() smp.sample_buffer:load_from(path) end)
+  end
+  if not smp.sample_buffer.has_sample_data then return false end
+  smp.name = base
+  instr.name = string.format("%02X_", tgt - 1) .. base
+  pcall(function() PakettiInjectApplyLoaderSettings(smp) end)
+  return true
 end
 
 local function plsb_load_folder_now()
@@ -1120,6 +1515,10 @@ function PakettiLoadSampleBrowser_Open()
   end
   plsb_cleanup_scratch()
   S.active_notes = {}
+  S.find_query = ""
+  S.sel_range = nil
+  S.drag = nil
+  S.sliced = false
 
   -- If transport is PLAYING, turn Edit Mode off while the dialog is open so keyjazz
   -- preview works cleanly; remember the state and restore it on close (the jam path
@@ -1138,6 +1537,8 @@ function PakettiLoadSampleBrowser_Open()
   S.list_id = "plsb_list"
   S.meta_id = "plsb_meta"
   S.wave_id = "plsb_wave"
+  S.find_id = "plsb_find"
+  S.loopbtn_id = "plsb_loopbtn"
 
   local content = vb:column {
     margin = 6,
@@ -1160,6 +1561,35 @@ function PakettiLoadSampleBrowser_Open()
       },
       vb:text{ id = S.dir_id, font = "mono", style = "strong", text = "", width = LIST_CANVAS_W - 116 },
     },
+    -- Find: filters the file/folder list. kick 909 (both) · kick or snare · -loop · "tr 909" · kick*.wav
+    vb:row {
+      spacing = 6,
+      vb:text{ text = "Find", font = "bold", width = 34 },
+      vb:textfield{
+        id = S.find_id,
+        width = LIST_CANVAS_W - 34 - 70 - 12,
+        text = S.find_query or "",
+        notifier = function(txt)
+          -- ViewBuilder fires this once while the dialog is being built; ignore the
+          -- no-op so we don't rebuild entries before the dialog exists.
+          txt = txt or ""
+          if txt == (S.find_query or "") then return end
+          S.find_query = txt
+          plsb_rebuild_entries()
+          plsb_refresh()
+        end,
+      },
+      vb:button{
+        text = "Clear",
+        width = 70,
+        notifier = function()
+          S.find_query = ""
+          if S.vb and S.vb.views[S.find_id] then S.vb.views[S.find_id].text = "" end
+          plsb_rebuild_entries()
+          plsb_refresh()
+        end,
+      },
+    },
     vb:row {
       spacing = 10,
       -- the file list is a canvas so the selected row is a full inverted bar
@@ -1176,8 +1606,23 @@ function PakettiLoadSampleBrowser_Open()
         spacing = 6,
         -- the metadata panel is ordinary, human-readable Renoise text
         vb:multiline_text{ id = S.meta_id, font = "mono", text = "", width = META_W, height = META_H },
-        vb:text{ text = "Waveform", font = "bold" },
-        vb:canvas{ id = S.wave_id, width = WAVE_W, height = WAVE_H, mode = "plain", render = plsb_wave_render },
+        vb:text{ text = "Waveform  (click = play from point · drag = select · drag flags = loop)", font = "bold" },
+        -- interactive: click plays from the point, drag selects, drag the loop flags to move the loop
+        vb:canvas{
+          id = S.wave_id, width = WAVE_W, height = WAVE_H, mode = "plain",
+          render = plsb_wave_render,
+          mouse_handler = plsb_wave_mouse,
+          mouse_events = { "down", "up", "move", "drag" },
+        },
+        vb:row {
+          spacing = 6,
+          vb:button{ id = S.loopbtn_id, text = "Loop: Off", width = 110,
+            notifier = function() plsb_cycle_loop_mode(1) end },
+          vb:button{ text = "Loop → Selection", width = 130,
+            notifier = function() plsb_loop_to_selection() end },
+          vb:button{ text = "Clear Sel", width = 80,
+            notifier = function() plsb_clear_selection() end },
+        },
       },
     },
   }
