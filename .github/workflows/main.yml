@@ -57,6 +57,8 @@ jobs:
           echo "apt-get could not install luajit after 3 attempts"
           exit 1
       - name: Check duplicate registrations + brittle files
+        # REPORT-CARD >> features/ci-ignore-test-duplicates.feature
+        # Static scans exclude tests/; the registration harness loads main.lua only.
         run: python3 .spine/check.py "$GITHUB_WORKSPACE"
 
   # ── Job 1: Create a shared release (tag + GitHub release) ──────────
