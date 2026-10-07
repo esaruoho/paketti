@@ -6,15 +6,16 @@
 # RESULT: Worktree delivery; no commit, push or PR. Files: PakettiEightOneTwenty.lua, Paketti0G01_Loader.lua, PLAN.md, card/session/bundle and generated views.
 # WATCH: PakettiEightOneTwentyLiveSampleIndex PakettiEightOneTwentyUpdateLiveSampleName PakettiEightOneTwentyUpdatePlayheadHighlights pakettiEightOneTwentyLivePerStepNames
 # RESULT-LOG >>
+#   2026-10-07  direct-commit  touched: PakettiEightOneTwentyUpdatePlayheadHighlights pakettiEightOneTwentyLivePerStepNames
 #   2026-10-07  direct-commit  touched: PakettiEightOneTwentyLiveSampleIndex PakettiEightOneTwentyUpdateLiveSampleName PakettiEightOneTwentyUpdatePlayheadHighlights pakettiEightOneTwentyLivePerStepNames
 Feature: Follow the Groovebox step highlighter with sample names
   @code-verified @runtime-untested
   Scenario: Show the highlighted Per-Step sample name
     # cite: PakettiEightOneTwenty.lua PakettiEightOneTwentyLiveSampleIndex and PakettiEightOneTwentyUpdateLiveSampleName
     Given Per-Step mode and Live Step Names are enabled
-    When the row's highlighter reaches a displayed step
+    When the row's highlighter reaches an enabled sequence step
     Then the wide button shows that step's sample name from the row instrument
-    And inactive steps also show their chosen sample
+    And empty steps retain the last enabled step sample name
     And unnamed or missing samples display Sample followed by their number
     And long names retain the existing 50-character display limit
     And unchanged names do not cause repeated text assignments
@@ -38,4 +39,13 @@ Feature: Follow the Groovebox step highlighter with sample names
     Given playback is running or stopped
     When the existing highlighter updates from playback or the editing cursor
     Then sample names follow the same displayed step index
-    And a window with no highlighted step restores the normal label
+    And a window with no highlighted step retains the last enabled step sample name
+
+  @built @runtime-untested
+  Scenario: Place Live Step Names beside Collapse
+    # cite: PakettiEightOneTwenty.lua pakettiEightSlotsByOneTwentyDialog controller_follow_row live_sample_names_checkbox
+    Given the Groovebox dialog constructs its second control row
+    When Live Step Names is displayed
+    Then its checkbox and label appear immediately after Collapse in that row
+    And its label uses font bold and style strong
+    And the checkbox is declared locally before the row is constructed

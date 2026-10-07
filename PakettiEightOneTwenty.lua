@@ -673,9 +673,22 @@ playing_observer_fn = nil
 -- Experiment: label-only feedback; never select samples or rewrite the song.
 function PakettiEightOneTwentyLiveSampleIndex(re)
   if PakettiEightOneTwentyStepMode ~= "perstep" or
-    preferences.pakettiEightOneTwentyLivePerStepNames.value ~= true then return nil end
+    preferences.pakettiEightOneTwentyLivePerStepNames.value ~= true then
+    re.live_sample_index = nil
+    re.live_sample_instrument = nil
+    return nil
+  end
+  local instrument_index = re.instrument_popup and re.instrument_popup.value
+  if re.live_sample_instrument ~= instrument_index then
+    re.live_sample_index = nil
+    re.live_sample_instrument = instrument_index
+  end
   local step = re.play_step_index
-  return step and re.step_samples and re.step_samples[step] or nil
+  if step and re.checkboxes and re.checkboxes[step] and re.checkboxes[step].value == true then
+    re.live_sample_index = re.step_samples and re.step_samples[step] or nil
+  end
+  -- Hold the last enabled step's name through rests and unhighlighted windows.
+  return re.live_sample_index
 end
 
 function PakettiEightOneTwentyUpdateLiveSampleName(re, song)
@@ -728,9 +741,6 @@ function PakettiEightOneTwentyUpdatePlayheadHighlights()
       if row_elements.play_step_index ~= display_index then
         row_elements.play_step_index = display_index
         update_row_button_colors(row_elements)
-        if not display_index and row_elements.update_sample_name_label then
-          row_elements.update_sample_name_label()
-        end
         -- Mirror the playhead in the canvas view if it's open.
         if cv_canvas and cv_dialog and cv_dialog.visible then
           cv_canvas:update()
@@ -1743,6 +1753,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     table.insert(checkbox_row_elements, checkboxes[i])
   end
 
+  -- FEATURE-CARD >> features/8120-step-relative-input.feature
   -- MODE2 (per-step sample) row: one numbervaluebox (1-120) under each step
   -- checkbox, choosing WHICH sample triggers on that step. Built always; shown
   -- only while PakettiEightOneTwentyStepMode == "perstep" (toggled via the Mode
@@ -1759,11 +1770,19 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     sample_valueboxes[i] = vb:textfield{
       value = "1",
       width = 30,
-      tooltip = "Step " .. i .. ": which sample (1-120) triggers on this step",
+      tooltip = "Step " .. i .. ": sample (1-120). Type + or - to increase or decrease the current sample by one.",
       notifier = function(value)
         if row_elements.updating_step_samples then return end
-        local n = tonumber(value)
-        if not n then n = row_elements.step_samples[i] or 1 end
+        local current = row_elements.step_samples[i] or 1
+        local input = value:match("^%s*(.-)%s*$")
+        local n
+        if input == "+" then
+          n = current + 1
+        elseif input == "-" then
+          n = current - 1
+        else
+          n = tonumber(input) or current
+        end
         n = math.floor(n)
         if n < 1 then n = 1 end
         if n > 120 then n = 120 end
@@ -3704,29 +3723,6 @@ local randomize_all_yxx_button = vb:button{
     renoise.app():show_status(status_text)
   end
 
-  local collapse_checkbox = vb:checkbox{
-    value = preferences.PakettiGroovebox8120.Collapse.value,
-    notifier = function(value)
-      PakettiGrooveboxCollapseFirstEightTracks(value)
-      -- Update preference to remember user's choice
-      preferences.PakettiGroovebox8120.Collapse.value = value
-    end
-  }
-
-  -- FEATURE-CARD >> features/8120-live-sample-names.feature
-  local live_sample_names_checkbox = vb:checkbox{
-    value = preferences.pakettiEightOneTwentyLivePerStepNames.value,
-    tooltip = "Experiment: the wide sample-name buttons follow the highlighted Per-Step sample. Disable to restore static names.",
-    notifier = function(value)
-      preferences.pakettiEightOneTwentyLivePerStepNames.value = (value == true)
-      for _, re in ipairs(rows) do
-        if re.update_sample_name_label then re.update_sample_name_label() end
-      end
-      PakettiEightOneTwentyUpdatePlayheadHighlights()
-      PakettiEightOneTwentyReturnFocus()
-    end
-  }
-
   -- FEATURE-CARD >> features/8120-perstep-randomize.feature
   randomize_perstep_button = vb:button{
     text = "Random Per-Steps",
@@ -3738,8 +3734,6 @@ local randomize_all_yxx_button = vb:button{
   local global_buttons = vb:row{
     vb:text{text="Global", style="strong", font="bold"},
     randomize_perstep_button,
-    live_sample_names_checkbox,
-    vb:text{text="Live Step Names", tooltip="Experimental Per-Step sample-name display; enabled by default."},
     vb:button{text="Clear All", notifier = clear_all},
     vb:button{text="Random Steps", midi_mapping="Paketti:Paketti Groovebox 8120:Randomize All", notifier = randomize_all},
 
@@ -3748,8 +3742,6 @@ local randomize_all_yxx_button = vb:button{
     reverse_all_button,
     randomize_all_yxx_button,
     vb:space{width=8},
-    collapse_checkbox,
-    vb:text{text="Collapse", style="strong", font="bold"},
     vb:button{
       text="Reset Output Delay",
       notifier=function()
@@ -4589,6 +4581,30 @@ function pakettiEightSlotsByOneTwentyDialog()
   local global_pitch_label = vb:text{text="Global Pitch", style="strong", font="bold"}
   local global_pitch_column = vb:row{global_pitch_rotary, global_pitch_label}
 
+  -- FEATURE-CARD >> features/8120-live-sample-names.feature
+  local live_sample_names_checkbox = vb:checkbox{
+    value = preferences.pakettiEightOneTwentyLivePerStepNames.value,
+    tooltip = "Experiment: the wide sample-name buttons follow the highlighted Per-Step sample. Disable to restore static names.",
+    notifier = function(value)
+      preferences.pakettiEightOneTwentyLivePerStepNames.value = (value == true)
+      for _, re in ipairs(rows) do
+        if re.update_sample_name_label then re.update_sample_name_label() end
+      end
+      PakettiEightOneTwentyUpdatePlayheadHighlights()
+      PakettiEightOneTwentyReturnFocus()
+    end
+  }
+
+  -- FEATURE-CARD >> features/8120-collapse-scope.feature
+  local collapse_checkbox = vb:checkbox{
+    value = preferences.PakettiGroovebox8120.Collapse.value,
+    notifier = function(value)
+      PakettiGrooveboxCollapseFirstEightTracks(value)
+      -- Update preference to remember user's choice
+      preferences.PakettiGroovebox8120.Collapse.value = value
+    end
+  }
+
   -- Second control row: per-controller follow checkboxes + MK1->MK2 + Initialize EQ30,
   -- moved off the top row so the dialog isn't so wide.
   local controller_follow_row = vb:row{
@@ -4608,7 +4624,12 @@ function pakettiEightSlotsByOneTwentyDialog()
       end
     },
     vb:space{width=8},
-    init_eq30_button
+    init_eq30_button,
+    collapse_checkbox,
+    vb:text{text="Collapse", style="strong", font="bold"},
+    live_sample_names_checkbox,
+    vb:text{text="Live Step Names", style="strong", font="bold", tooltip="Experimental Per-Step sample-name display; enabled by default."},
+
   }
   local top_row = vb:row{global_controls, vb:space{width=8}, global_pitch_column}
   local dc = vb:column{top_row, controller_follow_row, global_groove_controls, global_buttons, global_step_buttons, vb:space{height=8}}
@@ -5063,10 +5084,17 @@ function pakettiEightSlotsByOneTwentyDialog()
       print(string.format("8120 KEY: name='%s' mod='%s' repeated=%s focusedField=%s",
         tostring(key.name), tostring(key.modifiers), tostring(key.repeated), focused))
     end
-    -- Up/Down arrows nudge the focused per-step sample field by +/-1 (MODE2).
-    -- We find the focused field via its edit_mode flag (true when focused).
+    -- FEATURE-CARD >> features/8120-step-relative-input.feature
+    -- Consume relative-input keys before they replace the selected field text.
+    -- Use character for + because its physical key/modifier varies by layout.
+    local delta
     if key.modifiers == "" and (key.name == "up" or key.name == "down") then
-      local delta = (key.name == "up") and 1 or -1
+      delta = (key.name == "up") and 1 or -1
+    elseif (key.modifiers == "" or key.modifiers == "shift") and
+      (key.character == "+" or key.character == "-" or key.name == "+" or key.name == "-") then
+      delta = (key.character == "+" or key.name == "+") and 1 or -1
+    end
+    if delta then
       for _, re in ipairs(rows) do
         if re.sample_valueboxes then
           for i, tf in ipairs(re.sample_valueboxes) do

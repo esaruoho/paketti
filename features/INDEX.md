@@ -83,3 +83,7 @@ Derived views — GENERATED, never hand-edit:
 - [Ignore test fixtures in CI source scans](ci-ignore-test-duplicates.feature) — [session](ci-ignore-test-duplicates.session.md); worktree, no commit.
 
 - [8120-live-sample-names](8120-live-sample-names.feature) — worktree; [8120-live-sample-names.session.md](8120-live-sample-names.session.md).
+
+- [8120-collapse-scope](8120-collapse-scope.feature) — worktree; [session](8120-collapse-scope.session.md).
+
+- [8120-step-relative-input](8120-step-relative-input.feature) — worktree; [session](8120-step-relative-input.session.md).

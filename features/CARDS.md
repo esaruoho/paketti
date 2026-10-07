@@ -6,8 +6,10 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 ## Contents
 
+- [Construct the Collapse checkbox in its consuming dialog scope](#8120-collapse-scope) — `8120-collapse-scope.feature`
 - [Follow the Groovebox step highlighter with sample names](#8120-live-sample-names) — `8120-live-sample-names.feature`
 - [Randomize Groovebox 8120 per-step sample choices](#8120-perstep-randomize) — `8120-perstep-randomize.feature`
+- [Adjust per-step sample numbers with typed plus and minus](#8120-step-relative-input) — `8120-step-relative-input.feature`
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
 - [Ignore test fixtures in CI source scans](#ci-ignore-test-duplicates) — `ci-ignore-test-duplicates.feature`
 - [Clipboard Pattern to Phrase conversion](#clipboard-pattern-to-phrase) — `clipboard-pattern-to-phrase.feature`
@@ -64,20 +66,36 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [TX16W IMG exports use Cyclone-compatible item identity](#tx16w-cyclone-images) — `tx16w-cyclone-images.feature`
 
 
+<a id="8120-collapse-scope"></a>
+## Construct the Collapse checkbox in its consuming dialog scope
+
+`features/8120-collapse-scope.feature` · [session](8120-collapse-scope.session.md)
+
+**Behaviour (2 scenarios):**
+
+- Resolve the relocated Collapse control locally — `@code-verified @runtime-untested`
+- Preserve Collapse behavior — `@built @runtime-untested`
+
+**How it does it:** **Key procs:** `pakettiEightSlotsByOneTwentyDialog`, `collapse_checkbox` · **Source files:** `PakettiEightOneTwenty.lua`
+
+**Grade:** @built ×1 · @code-verified ×1 · @runtime-untested ×2
+
+
 <a id="8120-live-sample-names"></a>
 ## Follow the Groovebox step highlighter with sample names
 
 `features/8120-live-sample-names.feature` · [session](8120-live-sample-names.session.md)
 
-**Behaviour (3 scenarios):**
+**Behaviour (4 scenarios):**
 
 - Show the highlighted Per-Step sample name — `@code-verified @runtime-untested`
 - Experiment starts enabled and is reversible — `@built @runtime-untested`
 - Follow the existing highlighter's timing — `@code-verified @runtime-untested`
+- Place Live Step Names beside Collapse — `@built @runtime-untested`
 
 **How it does it:** **Key procs:** `PakettiEightOneTwentyLiveSampleIndex`, `PakettiEightOneTwentyUpdateLiveSampleName`, `PakettiEightOneTwentyUpdatePlayheadHighlights`, `pakettiEightOneTwentyLivePerStepNames` · **Source files:** `PakettiEightOneTwenty.lua`, `Paketti0G01_Loader.lua`
 
-**Grade:** @built ×1 · @code-verified ×2 · @runtime-untested ×3
+**Grade:** @built ×2 · @code-verified ×2 · @runtime-untested ×4
 
 
 <a id="8120-perstep-randomize"></a>
@@ -92,6 +110,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Support all displayed step counts — `@code-verified @runtime-untested`
 
 **How it does it:** **Key procs:** `PakettiEightOneTwentyRandomizePerStepRow`, `PakettiEightOneTwentyRandomizeAllPerStep`, `PakettiEightOneTwentyApplyStepMode` · **Source files:** `PakettiEightOneTwenty.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3
+
+
+<a id="8120-step-relative-input"></a>
+## Adjust per-step sample numbers with typed plus and minus
+
+`features/8120-step-relative-input.feature` · [session](8120-step-relative-input.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Apply relative input to the current step sample — `@code-verified @runtime-untested`
+- Keep sample numbers within their existing bounds — `@code-verified @runtime-untested`
+- Consume relative keypresses while a sample field is focused — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `sample_valueboxes`, `updating_step_samples` · **Source files:** `PakettiEightOneTwenty.lua`
 
 **Grade:** @code-verified ×3 · @runtime-untested ×3
 

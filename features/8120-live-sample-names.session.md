@@ -22,3 +22,13 @@ The existing 40ms highlighter timer checks sample names, assigning text only whe
 Lua syntax and scoped whitespace checks passed. A temporary Lua mock verified step changes, inactive-step display, no repeated assignments for unchanged text, edits at the same step, unnamed fallback, truncation, preference and mode guards, frozen-window restoration, stopped-cursor following and selection preservation. Live Renoise visual verification remains untested. Delivered in the worktree; no commit, push or PR made.
 
 Card: [8120-live-sample-names.feature](8120-live-sample-names.feature). Transcript bundles are implementation-time snapshots.
+
+## Enabled-step refinement
+
+Esa found updating through empty steps too noisy and requested changes only when a sequence step exists. The resolver now advances the sample name only for checked steps, retaining the last enabled sample through rests and highlighter gaps. The held sample is reset when changing instruments, disabling the experiment, or leaving Per-Step mode. This supersedes the initial inactive-step behavior above.
+
+Verification: Lua syntax and a focused mock passed for enabled-step advancement, rests/gaps holding names, instrument-change invalidation and disable/reset behavior. Live Renoise verification remains pending.
+
+## Follow-up: move Live Step Names beside Collapse
+
+User requested: “move Live Step Names + checkbox to the same row as Collapse. and make sure the text is in bold+strong”. Moved checkbox construction from create_global_controls into pakettiEightSlotsByOneTwentyDialog to keep its declaration in the consuming row's scope. Placed checkbox and label immediately after Collapse, with font="bold" and style="strong". Existing notifier is preserved. Lua syntax validation passed; runtime layout remains untested in Renoise.
