@@ -79,3 +79,5 @@ Derived views — GENERATED, never hand-edit:
 - [pattern-matrix-duplicate-x](pattern-matrix-duplicate-x.feature) — worktree; session: [pattern-matrix-duplicate-x.session.md](pattern-matrix-duplicate-x.session.md).
 
 - [8120-perstep-randomize](8120-perstep-randomize.feature) — worktree; [8120-perstep-randomize.session.md](8120-perstep-randomize.session.md).
+
+- [Ignore test fixtures in CI source scans](ci-ignore-test-duplicates.feature) — [session](ci-ignore-test-duplicates.session.md); worktree, no commit.

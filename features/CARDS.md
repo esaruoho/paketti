@@ -8,6 +8,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - [Randomize Groovebox 8120 per-step sample choices](#8120-perstep-randomize) — `8120-perstep-randomize.feature`
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
+- [Ignore test fixtures in CI source scans](#ci-ignore-test-duplicates) — `ci-ignore-test-duplicates.feature`
 - [Clipboard Pattern to Phrase conversion](#clipboard-pattern-to-phrase) — `clipboard-pattern-to-phrase.feature`
 - [Command Wheel adjustments use one router](#command-wheel-adjustments) — `command-wheel-adjustments.feature`
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
@@ -89,6 +90,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - <what happens, in a few words>
 - <another behavior>
+
+
+<a id="ci-ignore-test-duplicates"></a>
+## Ignore test fixtures in CI source scans
+
+`features/ci-ignore-test-duplicates.feature` · [session](ci-ignore-test-duplicates.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Test helper copies never create source duplicate failures — `@build-verified`
+- Real source duplicates remain detectable — `@build-verified`
+- Registration validation keeps the real startup path — `@code-verified`
+
+**How it does it:** **Key procs:** `_source_lua_paths`, `_duplicate_globals`, `_undeclared_calls` · **Source files:** `.spine/check.py`, `.spine/harness.lua`
+
+**Grade:** @build-verified ×2 · @code-verified ×1
 
 
 <a id="clipboard-pattern-to-phrase"></a>

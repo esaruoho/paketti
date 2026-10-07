@@ -24,7 +24,7 @@ Feature: Randomize Groovebox 8120 per-step sample choices
     # cite: PakettiEightOneTwenty.lua PakettiEightOneTwentyRandomizeAllPerStep and PakettiEightOneTwentyApplyStepMode
     Given the dialog is open
     When the user selects Per-Step mode
-    Then Global Randomize Per-Step is visible
+    Then the global Random Per-Steps button is visible
     And clicking it randomizes sample choices for all rows with samples
     When the user selects Single mode
     Then the global button is hidden

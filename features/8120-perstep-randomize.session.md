@@ -22,3 +22,7 @@ Each row button randomizes all its displayed sample selectors. Global action doe
 Lua syntax and scoped whitespace checks passed. A temporary Lua mock verified 8/16/32 selectors, matching state/text, bounds, empty instruments, the 120 cap, one print per row, eight-row global updates, mode guards and visibility transitions. Live Renoise testing remains unverified. Worktree delivery only; no commit or push performed.
 
 Card: [8120-perstep-randomize.feature](8120-perstep-randomize.feature). Bundles are snapshots taken during implementation.
+
+## Label refinement
+
+Esa requested the global button be renamed to “Random Per-Steps” to reduce its width. Updated only the global button label and the card’s corresponding claim; the row button remains “Randomize Per-Step”. Lua syntax verification passed.
