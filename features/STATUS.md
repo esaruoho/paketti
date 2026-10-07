@@ -37,6 +37,7 @@
 | mlx-renoise-bridge | 10 | ✓ | — | ✓ | @built @code-verified @designed @hw-verified |
 | music-mouse | 36 | ✓ | ✓ | — | @built @code-verified @mcp-verified @runtime-verified @stock @user-verified |
 | netdrive-2logic-watcher | 12 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| netdrive-zero-byte-guard | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | normalize-selected-channel | 6 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | note-off-cleanup | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | parameter-editor-close | 2 | ✗ | ~ partial | — | @runtime-untested @runtime-verified @sim-verified |
@@ -65,8 +66,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 51
-- Build-verified: 41
+- Cards: 52
+- Build-verified: 42
 - Runtime-verified: 3 full + 3 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

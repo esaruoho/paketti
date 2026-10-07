@@ -3388,8 +3388,10 @@ function pakettiPlayerProNoteCanvasInsertNote(note)
     for track_index = start_track, end_track do
       local track = song:track(track_index)
       if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-        -- For EditStep mode with selection, first clear the entire selection, then write on EditStep lines
-        if note_editstep_enabled then
+        -- For EditStep mode with selection, optionally clear the entire selection first, then write on EditStep lines.
+        -- When "Clear Selection Before Write" is OFF, skip the clear so existing content on the gap (non-EditStep)
+        -- lines is preserved -- an augmented/mixed write rather than a destructive fill.
+        if note_editstep_enabled and preferences.pakettiPlayerProNoteCanvasClearSelection.value then
           -- First pass: Clear the entire selection (both notes and instruments)
           for clear_line_index = start_line, end_line do
             local note_column = song:pattern(pattern_index):track(track_index):line(clear_line_index).note_columns[1]

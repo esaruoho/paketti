@@ -7,6 +7,10 @@ The existing Global hide-external-editors shortcut (Cmd-H when assigned) now als
 ### Fix: Timestretch envelope activation preserves crafted AHDSR settings
 Timestretch no longer changes envelope enabled state at all. Paketti reload leaves existing AHDSR parameters, operator, enabled state, sample looping and new-note action untouched. Removed the duplicate startup checkbox that fired its destructive reset handler when synchronizing an already-enabled envelope. Release and Release Scaling controls edit only their parameter and use the selected sample's assigned modulation set.
 
+### 2026-10-07 - Fix: PlayerPro Note Grid — "Clear Selection Before Write" now actually works
+The "Clear Selection Before Write" checkbox in the PlayerPro Note Grid Dialog had no effect — with EditStep on, writing a note into a selection always wiped the whole selection first, even with the box unchecked. Now unchecking it performs an augmented/mixed write: the note is placed only on the EditStep lines and the gap (non-EditStep) lines keep their existing content. Checked (the default) still clears the selection first.
+- Menu: `Main Menu:Tools:Paketti:PlayerPro:PlayerPro Note Grid Dialog`
+
 ### 2026-10-06 - Fix: Load Sample Browser — a tuned loop now loads in the right place
 When you shaped a loop on the waveform and then loaded the sample, the loop could end up at the very first frame (right length, wrong place, nothing heard) if your loader preferences resampled or normalized the file on load, because the loop was only carried across when the loaded frame count exactly matched the preview. The loop is now mapped by position (a fraction of the sample length) and applied every time, so it lands where you put it even when the loader changed the frame count or added cue slices.
 
