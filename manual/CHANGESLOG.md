@@ -7,6 +7,12 @@ The existing Global hide-external-editors shortcut (Cmd-H when assigned) now als
 ### Fix: Timestretch envelope activation preserves crafted AHDSR settings
 Timestretch no longer changes envelope enabled state at all. Paketti reload leaves existing AHDSR parameters, operator, enabled state, sample looping and new-note action untouched. Removed the duplicate startup checkbox that fired its destructive reset handler when synchronizing an already-enabled envelope. Release and Release Scaling controls edit only their parameter and use the selected sample's assigned modulation set.
 
+### 2026-10-07 - Feature: Groovebox 8120 — Global Groove / Delay Column switch
+A new switch next to the Global Groove sliders lets you render the shuffle as delay-column values instead of Renoise's transport groove. Set it to Delay Column and the groove turns Off, but every 8120 track gets the equivalent per-line delay baked onto its notes — the exact math that reproduces the same Global Groove (100% groove = delay AA = two-thirds of a line, LPB-scaled). Because it bakes into the pattern writer, the groove survives every step toggle, slider move, and step-count change; moving a groove slider or Random Groove re-bakes the delays live. Switch back to Global Groove and the baked delays are cleared and the transport shuffle comes back on. Exact for LPB 4 and 8; LPB16 and above use the same scaled approximation the existing "Convert Global Groove to Delay" tool warns about.
+- Keybinding: `Global:Paketti:Paketti Groovebox 8120 Toggle Groove Delay Mode`
+- MIDI Mapping: `Paketti:Paketti Groovebox 8120:Toggle Groove Delay Mode`
+- Menu: `Main Menu:Tools:Paketti:Groovebox:Paketti Groovebox 8120`
+
 ### 2026-10-07 - Fix: Groovebox 8120 — reopening keeps Per-Step mode instead of reverting to Single
 When you were in Per-Step mode and the dialog closed (for example after Renoise reloaded Paketti), reopening the Groovebox 8120 came back in Single mode, which then overwrote your per-step notes on the next edit. The dialog now detects the Per-Step signature (the one-note-per-sample kit it stamps when you enter Per-Step) directly from the song and restores Per-Step before rebuilding the interface — the Mode button, the per-step valuebox rows and the step checkboxes all come up in Per-Step, with each step's sample number read back from the pattern. Genuine Single-mode songs are untouched.
 - Menu: `Main Menu:Tools:Paketti:Groovebox:Paketti Groovebox 8120`

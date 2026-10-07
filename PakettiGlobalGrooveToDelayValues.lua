@@ -1,3 +1,44 @@
+-- Pure math shared with the Groovebox 8120 Delay-Column mode.
+-- Given a 0-based line index, the song LPB, and the 4 groove amounts (0..1),
+-- returns the delay-column value (0..255) that reproduces Global Groove on that
+-- line, or 0 when the line is on the grid. Mirrors pakettiGrooveToDelay()'s
+-- formula (100% groove = 170 = 2/3 of a line, scaled by LPB) and its position
+-- map (LPB4 = every 2nd row; LPB8 = rows 3/7/11/15; LPB16+ = those scaled).
+-- Exact for LPB 4 and 8; LPB16+ is the scaled approximation (no note-moving),
+-- the same imprecision pakettiGrooveToDelay() already warns about.
+function PakettiGrooveDelayForLine(line0, lpb, ga)
+  if not ga then return 0 end
+  local function groove_to_delay(groove)
+    local delay = math.floor(((groove or 0) * 170) + 0.5)
+    if lpb == 8 then
+      delay = delay * 2
+    elseif lpb >= 16 then
+      delay = delay * (lpb / 8)
+    end
+    if delay > 255 then delay = 255 end
+    return delay
+  end
+  if lpb <= 4 then
+    -- Every odd (0-based) line is a shuffle line; the 4 amounts cycle every 8 lines.
+    if line0 % 2 == 1 then
+      local idx = math.floor(((line0 % 8) + 1) / 2)  -- 1,3,5,7 -> 1,2,3,4
+      return groove_to_delay(ga[idx])
+    end
+    return 0
+  else
+    local scale = (lpb == 8) and 1 or (lpb / 8)
+    local cycle = lpb * 2
+    local positions = {3 * scale, 7 * scale, 11 * scale, 15 * scale}
+    local L = line0 + 1  -- 1-based, matching pakettiGrooveToDelay()
+    for idx, pos in ipairs(positions) do
+      if L % cycle == pos % cycle then
+        return groove_to_delay(ga[idx])
+      end
+    end
+    return 0
+  end
+end
+
 function pakettiGrooveToDelay()
   local song=renoise.song()
   local pattern_index = song.selected_pattern_index

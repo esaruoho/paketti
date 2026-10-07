@@ -42,6 +42,7 @@
 | note-off-cleanup | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | parameter-editor-close | 2 | ✗ | ~ partial | — | @runtime-untested @runtime-verified @sim-verified |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
+| pattern-matrix-duplicate-x | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested |
 | pattern-song-jumps | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | pattern-transform-shortcuts | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | pedal-record | 11 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
@@ -66,8 +67,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 52
-- Build-verified: 42
+- Cards: 53
+- Build-verified: 43
 - Runtime-verified: 3 full + 3 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

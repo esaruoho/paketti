@@ -47,6 +47,13 @@ PakettiEightOneTwentyStepMode = "single"
 -- the slider must NOT re-choke (that would silence all but one sample again).
 PakettiEightOneTwentyNotePerSampleActive = false
 
+-- Delay-Column groove mode. When true, Global Groove is turned OFF and each row's
+-- print_to_pattern bakes the groove-equivalent per-line delay (via
+-- PakettiGrooveDelayForLine) onto its note-bearing lines, so the shuffle survives
+-- every step/slider/step-count edit. Flipping back to Global Groove clears the
+-- delays (next print writes 0) and re-enables transport.groove_enabled.
+PakettiEightOneTwentyGrooveDelayMode = false
+
 -- Remap one instrument's samples to one-note-per-sample so the NOTE value selects
 -- the sample: sample i -> base_note (i-1), note_range {i-1,i-1}, velocity {0,127}.
 -- This is what makes per-step sample selection possible (and is how a native
@@ -531,6 +538,8 @@ track_names = {}  -- Initialize as empty table to avoid nil errors
 track_indices = {}  -- Initialize as empty table to avoid nil errors
 instrument_names = {}  -- Initialize as empty table to avoid nil errors
 local play_checkbox, follow_checkbox, bpm_display, groove_enabled_checkbox, random_gate_button, fill_empty_label, fill_empty_slider, global_step_buttons, global_controls
+local groove_mode_switch  -- "Global Groove" <-> "Delay Column" selector (kept in sync when toggled via keybinding/MIDI)
+local groove_delay_mode_busy = false  -- reentry guard: syncing the switch above re-fires its notifier
 local mode_button  -- the "Mode" button that flips StepMode single<->perstep for all rows
 local local_groove_sliders, local_groove_labels
 local number_buttons_row
@@ -2459,6 +2468,24 @@ function row_elements.print_to_pattern()
       end
     end
   end
+
+  -- Delay-Column groove: bake the Global-Groove-equivalent per-line delay onto
+  -- every note-bearing line of this track, keyed to the ABSOLUTE line position so
+  -- the shuffle phase stays correct no matter the step count or how the repeat
+  -- copy above duplicated the block. When the mode is off we do nothing here, so
+  -- the delays cleared to 0 by the write above remain cleared -- that is how
+  -- flipping back to Global Groove removes the imprint on the next print.
+  if PakettiEightOneTwentyGrooveDelayMode then
+    local lpb = song.transport.lpb
+    local ga = song.transport.groove_amounts
+    if not track.delay_column_visible then track.delay_column_visible = true end
+    for line = 1, pattern_length do
+      local nc = track_in_pattern:line(line).note_columns[1]
+      if nc and nc.note_value ~= 121 then
+        nc.delay_value = PakettiGrooveDelayForLine(line - 1, lpb, ga)
+      end
+    end
+  end
 end
 
   -- Function to Update Sample Name Label.
@@ -3252,6 +3279,41 @@ function PakettiEightOneTwentyToggleStepMode()
   PakettiEightOneTwentyReturnFocus()
 end
 
+-- Switch between Global Groove (Renoise transport shuffle) and Delay Column
+-- (the same groove baked as per-line delays across the 8 groovebox tracks).
+-- Delay Column turns transport.groove_enabled OFF and reprints every row so
+-- print_to_pattern bakes PakettiGrooveDelayForLine onto the notes; Global Groove
+-- re-enables the shuffle and the reprint clears the baked delays (writes 0).
+function PakettiEightOneTwentySetGrooveDelayMode(enabled)
+  if groove_delay_mode_busy then return end
+  groove_delay_mode_busy = true
+  PakettiEightOneTwentyGrooveDelayMode = enabled and true or false
+  local song = renoise.song()
+  if PakettiEightOneTwentyGrooveDelayMode then
+    song.transport.groove_enabled = false
+    if groove_enabled_checkbox then groove_enabled_checkbox.value = false end
+  else
+    song.transport.groove_enabled = true
+    if groove_enabled_checkbox then groove_enabled_checkbox.value = true end
+  end
+  -- Keep the UI switch in sync when toggled from a keybinding/MIDI mapping.
+  if groove_mode_switch then
+    groove_mode_switch.value = PakettiEightOneTwentyGrooveDelayMode and 2 or 1
+  end
+  if rows then
+    for _, re in ipairs(rows) do
+      if re.print_to_pattern then re.print_to_pattern() end
+    end
+  end
+  if PakettiEightOneTwentyGrooveDelayMode then
+    renoise.app():show_status("Groovebox 8120: Delay Column groove ON — Global Groove disabled, equivalent delays baked across the 8 tracks.")
+  else
+    renoise.app():show_status("Groovebox 8120: Global Groove ON — baked delays cleared.")
+  end
+  groove_delay_mode_busy = false
+  PakettiEightOneTwentyReturnFocus()
+end
+
 -- Function to create global controls
 function create_global_controls()
   play_checkbox = vb:checkbox{value = renoise.song().transport.playing, midi_mapping = "Paketti:Paketti Groovebox 8120:Play Control", notifier=function(value)
@@ -3308,13 +3370,40 @@ function create_global_controls()
         groove_values[j] = local_groove_sliders[j].value
       end
       renoise.song().transport.groove_amounts = groove_values
-      renoise.song().transport.groove_enabled = true
-      groove_enabled_checkbox.value = true
+      if PakettiEightOneTwentyGrooveDelayMode then
+        -- Delay-Column mode: keep Global Groove off and re-bake the new amounts
+        -- as per-line delays across all 8 rows instead of enabling the shuffle.
+        renoise.song().transport.groove_enabled = false
+        groove_enabled_checkbox.value = false
+        if rows then
+          for _, re in ipairs(rows) do
+            if re.print_to_pattern then re.print_to_pattern() end
+          end
+        end
+      else
+        renoise.song().transport.groove_enabled = true
+        groove_enabled_checkbox.value = true
+      end
       renoise.song().selected_track_index = renoise.song().sequencer_track_count + 1
       PakettiEightOneTwentyReturnFocus()
     end}
     groove_controls:add_child(vb:row{local_groove_sliders[i], local_groove_labels[i]})
   end
+
+  -- Switch: Global Groove (transport shuffle) vs Delay Column (baked per-line
+  -- delays that reproduce the same shuffle, surviving every edit).
+  groove_mode_switch = vb:switch{
+    items = {"Global Groove", "Delay Column"},
+    width = 160,
+    value = PakettiEightOneTwentyGrooveDelayMode and 2 or 1,
+    tooltip = "Global Groove = Renoise's transport shuffle. Delay Column = turn that off and bake the equivalent per-line delay onto every 8120 track, so the groove survives step/slider edits. Exact for LPB 4 and 8; LPB16+ is approximate.",
+    notifier = function(value)
+      if initializing then return end
+      PakettiEightOneTwentySetGrooveDelayMode(value == 2)
+    end
+  }
+  groove_controls:add_child(vb:space{width=8})
+  groove_controls:add_child(groove_mode_switch)
 
   random_gate_button = vb:button{ text="Random Gate", midi_mapping="Paketti:Paketti Groovebox 8120:Random Gate", notifier=function()
     if initializing then return end
@@ -4213,7 +4302,18 @@ function randomize_groove()
     groove_values[i] = random_value
   end
   renoise.song().transport.groove_amounts = groove_values
-  renoise.song().transport.groove_enabled = true
+  if PakettiEightOneTwentyGrooveDelayMode then
+    -- Delay-Column mode: keep the shuffle off and re-bake the randomized amounts.
+    renoise.song().transport.groove_enabled = false
+    if groove_enabled_checkbox then groove_enabled_checkbox.value = false end
+    if rows then
+      for _, re in ipairs(rows) do
+        if re.print_to_pattern then re.print_to_pattern() end
+      end
+    end
+  else
+    renoise.song().transport.groove_enabled = true
+  end
   renoise.song().selected_track_index = renoise.song().sequencer_track_count + 1
 --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
   renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
@@ -6144,6 +6244,8 @@ function PakettiEightOneTwentyMidiMixToggleFollow()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 Toggle Step Mode", invoke=function() PakettiEightOneTwentyToggleStepMode() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 Toggle Groove Delay Mode", invoke=function() PakettiEightOneTwentySetGrooveDelayMode(not PakettiEightOneTwentyGrooveDelayMode) end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Groove Delay Mode",invoke=function(message) if message:is_trigger() then PakettiEightOneTwentySetGrooveDelayMode(not PakettiEightOneTwentyGrooveDelayMode) end end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Next Page", invoke=function() PakettiEightOneTwentyMidiMixNextPage() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Previous Page", invoke=function() PakettiEightOneTwentyMidiMixPrevPage() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 MidiMix Toggle Follow Page", invoke=function() PakettiEightOneTwentyMidiMixToggleFollow() end}
