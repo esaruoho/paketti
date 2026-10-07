@@ -4131,6 +4131,14 @@ local function PakettiNetDriveWatcherCreateTriggerTrack(song, instrument_index, 
 end
 
 function PakettiNetDriveWatcherLoadFile(path)
+  -- FEATURE-CARD >> features/netdrive-zero-byte-guard.feature
+  -- Ableton can truncate a queued file while writing its next take.
+  local stat = PakettiNetDriveWatcherStat(path)
+  if not stat then return false end
+  if (tonumber(stat.size) or 0) <= 0 then
+    renoise.app():show_status("NetDrive watcher: Zero Bytes - stop loading")
+    return false, "empty"
+  end
   local ok, err = pcall(function()
     local song = renoise.song()
     local new_index = song.selected_instrument_index + 1
@@ -4264,7 +4272,12 @@ function PakettiNetDriveWatcherProcessQueue()
       if stat then
         local mtime = stat.mtime or 0
         local signature = PakettiNetDriveWatcherSignature(path, stat)
-        if PakettiNetDriveWatcherBeforeCutoff(mtime) then
+        if (tonumber(stat.size) or 0) <= 0 then
+          state.known[path] = signature
+          state.pending[path] = nil
+          state.load_fail[path] = nil
+          renoise.app():show_status("NetDrive watcher: Zero Bytes - stop loading")
+        elseif PakettiNetDriveWatcherBeforeCutoff(mtime) then
           -- Too old for the cutoff; remember it so it is not re-queued.
           state.known[path] = signature
         else
@@ -4273,11 +4286,17 @@ function PakettiNetDriveWatcherProcessQueue()
               "Loading %s\n(%d left in queue)",
               PakettiNetDriveWatcherBasename(path), #state.load_queue)
           end
-          if PakettiNetDriveWatcherLoadFile(path) then
+          local did_load, skip_reason = PakettiNetDriveWatcherLoadFile(path)
+          if did_load then
             loaded = loaded + 1
             state.known[path] = signature
             state.load_fail[path] = nil
             PakettiNetDriveWatcherAdvanceLoadAfter(mtime)
+          elseif skip_reason == "empty" then
+            -- Leave this changed signature eligible for polling once bytes arrive.
+            state.known[path] = nil
+            state.pending[path] = nil
+            state.load_fail[path] = nil
           else
             failed = failed + 1
             state.load_fail[path] = (state.load_fail[path] or 0) + 1
@@ -4393,6 +4412,18 @@ function PakettiNetDriveWatcherTick()
     local stable_seconds = PakettiNetDriveWatcherStableSeconds()
 
     local function queue_or_load_changed_file(path, signature, size, mtime, pending)
+      -- FEATURE-CARD >> features/netdrive-zero-byte-guard.feature
+      -- An unchanged empty placeholder is not a completed recording.
+      if (tonumber(size) or 0) <= 0 then
+        if not pending or pending.signature ~= signature then
+          renoise.app():show_status("NetDrive watcher: Zero Bytes - stop loading")
+        end
+        state.pending[path] = {
+          signature = signature, size = size, mtime = mtime,
+          seen_at = now, retries = 0
+        }
+        return
+      end
       if not pending or pending.signature ~= signature then
         state.pending[path] = {
           signature = signature,
@@ -4639,7 +4670,10 @@ function PakettiNetDriveWatcherStart(is_manual)
         local newer = (mtime > cutoff)
         local same_instant_new =
           (cutoff > 0 and mtime == cutoff and signature ~= last_loaded_signature)
-        if (newer or same_instant_new) and not PakettiNetDriveWatcherBeforeCutoff(mtime) then
+        if (tonumber(stat.size) or 0) <= 0 then
+          state.known[path] = signature
+          renoise.app():show_status("NetDrive watcher: Zero Bytes - stop loading")
+        elseif (newer or same_instant_new) and not PakettiNetDriveWatcherBeforeCutoff(mtime) then
           state.queued[path] = true          -- claim it so the tick ignores it
           table.insert(to_load, path)
         else

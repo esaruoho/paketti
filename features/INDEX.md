@@ -73,3 +73,5 @@ Derived views — GENERATED, never hand-edit:
 - [sample-browser-loop-load](sample-browser-loop-load.feature)
 
 - [sample-browser-editing](sample-browser-editing.feature)
+
+- [Skip empty NetDrive recordings](netdrive-zero-byte-guard.feature) — worktree; session: [netdrive-zero-byte-guard.session.md](netdrive-zero-byte-guard.session.md).

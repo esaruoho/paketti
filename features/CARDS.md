@@ -30,6 +30,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Human → local-LLM → Renoise bridge (zero Claude, zero Anthropic tokens)](#mlx-renoise-bridge) — `mlx-renoise-bridge.feature`
 - [Music Mouse — Laurie Spiegel's "Intelligent Instrument" (1986) in Renoise](#music-mouse) — `music-mouse.feature`
 - [NetDrive 2logic watcher](#netdrive-2logic-watcher) — `netdrive-2logic-watcher.feature`
+- [Skip empty NetDrive recordings](#netdrive-zero-byte-guard) — `netdrive-zero-byte-guard.feature`
 - [Normalize selected sample selection](#normalize-selected-channel) — `normalize-selected-channel.feature`
 - [Delete note-offs while preserving neighboring data](#note-off-cleanup) — `note-off-cleanup.feature`
 - [Close the unfocused parameter editor](#parameter-editor-close) — `parameter-editor-close.feature`
@@ -553,6 +554,24 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiNetDriveWatcher`, `PakettiNetDriveWatcherStart`, `PakettiNetDriveWatcherTick`, `PakettiNetDriveWatcherLoadFile`, `PakettiNetDriveWatcherRefreshTimer`, `pakettiNetDriveWatcherFolder`, `pakettiNetDriveWatcherPollSeconds` · **Source files:** `Paketti0G01_Loader.lua`, `preferences.xml`, `PakettiSamples.lua`
 
 **Grade:** @code-verified ×11 · @runtime-untested ×11 · @shipped ×11 · @stock ×1
+
+
+<a id="netdrive-zero-byte-guard"></a>
+## Skip empty NetDrive recordings
+
+`features/netdrive-zero-byte-guard.feature` · [session](netdrive-zero-byte-guard.session.md)
+
+**What it does:** As a user recording in Ableton, I want empty placeholders skipped before import.
+
+**Behaviour (3 scenarios):**
+
+- Hold empty files until bytes arrive and stabilize — `@built @sim-verified @runtime-untested`
+- Reject a file truncated after queuing — `@built @sim-verified @runtime-untested`
+- Skip empty files during startup — `@built @code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiNetDriveWatcherLoadFile`, `PakettiNetDriveWatcherProcessQueue`, `PakettiNetDriveWatcherTick`, `PakettiNetDriveWatcherStart` · **Source files:** `PakettiSamples.lua`
+
+**Grade:** @built ×3 · @code-verified ×1 · @runtime-untested ×3 · @sim-verified ×2
 
 
 <a id="normalize-selected-channel"></a>

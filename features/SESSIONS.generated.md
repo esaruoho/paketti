@@ -132,4 +132,4 @@
 - Resume: `claude --resume 3ea59e53-695a-4ddc-b408-71ae9976d38b`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/3ea59e53-695a-4ddc-b408-71ae9976d38b.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (4): TEMPLATE.feature, menu-registration-duplicates.feature, netdrive-zero-byte-guard.feature, song-lifecycle-safety.feature
+- Cards touched (6): TEMPLATE.feature, groovebox-8120-default-instrument-slots.feature, groovebox-8120-record-pakettified-instrument.feature, menu-registration-duplicates.feature, netdrive-zero-byte-guard.feature, song-lifecycle-safety.feature
