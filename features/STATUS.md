@@ -24,6 +24,7 @@
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | disk-browser-refresh | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| duplicate-instrument-devices | 4 | ✓ | ~ partial | — | @code-verified @runtime-untested @runtime-verified |
 | dynamic-toolbar-actions | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | eq10-keyboard-controls | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
@@ -72,8 +73,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 58
-- Build-verified: 48
-- Runtime-verified: 3 full + 3 partial
+- Cards: 59
+- Build-verified: 49
+- Runtime-verified: 3 full + 4 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

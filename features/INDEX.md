@@ -87,3 +87,5 @@ Derived views — GENERATED, never hand-edit:
 - [8120-collapse-scope](8120-collapse-scope.feature) — worktree; [session](8120-collapse-scope.session.md).
 
 - [8120-step-relative-input](8120-step-relative-input.feature) — worktree; [session](8120-step-relative-input.session.md).
+
+- [Preserve duplicated instrument devices](duplicate-instrument-devices.feature) — worktree; shared preset/name copier and macro retargeting; [session](duplicate-instrument-devices.session.md).

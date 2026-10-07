@@ -2869,41 +2869,15 @@ function duplicateTrackDuplicateInstrument()
     end
   end
 
-  -- Copy Track DSPs and handle Instr. Automation
-  local has_instr_automation = false
-  local old_instr_automation_device = nil
+  -- Match Create A&B: new Macros devices bind to the selected instrument.
+  song.selected_instrument_index = new_instrument_index
+
+  -- REPORT-CARD >> features/duplicate-instrument-devices.feature
+  -- Keep device order, complete presets and custom names; retarget instrument devices.
   for dsp_index = 2, #old_track.devices do
     local old_device = old_track.devices[dsp_index]
-
-    if old_device.device_path:find("Instr. Automation") then
-      has_instr_automation = true
-      old_instr_automation_device = old_device
-    else
-      local new_device = new_track:insert_device_at(old_device.device_path, dsp_index)
-      for parameter_index = 1, #old_device.parameters do
-        new_device.parameters[parameter_index].value = old_device.parameters[parameter_index].value
-        new_device.parameters[parameter_index].show_in_mixer = old_device.parameters[parameter_index].show_in_mixer
-      end
-      new_device.is_maximized = old_device.is_maximized
-    end
-  end
-
-  -- Create a new Instr. Automation device if the original track had one
-  if has_instr_automation then
-    -- Select the new instrument
-    song.selected_instrument_index = new_instrument_index
-
-    local new_device = new_track:insert_device_at("Audio/Effects/Native/*Instr. Automation", #new_track.devices + 1)
-
-    -- Extract XML from the old device
-    local old_device_xml = old_instr_automation_device.active_preset_data
-    -- Modify the XML to update the instrument references
-    local new_device_xml = old_device_xml:gsub("<instrument>(%d+)</instrument>", function(instr_index)
-      return string.format("<instrument>%d</instrument>", new_instrument_index - 1)
-    end)
-    -- Apply the modified XML to the new device
-    new_device.active_preset_data = new_device_xml
-    new_device.is_maximized = old_instr_automation_device.is_maximized
+    local new_device = new_track:insert_device_at(old_device.device_path, dsp_index)
+    PakettiCopyDuplicatedInstrumentDevice(old_device, new_device, new_instrument_index)
   end
 
   -- Adjust visibility settings for the new track

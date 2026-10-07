@@ -17,6 +17,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
 - [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
 - [Disk Browser refresh nudge](#disk-browser-refresh) — `disk-browser-refresh.feature`
+- [Preserve devices when duplicating a track and instrument](#duplicate-instrument-devices) — `duplicate-instrument-devices.feature`
 - [Dynamic Macro Toolbar action safety](#dynamic-toolbar-actions) — `dynamic-toolbar-actions.feature`
 - [EQ10 keyboard controls](#eq10-keyboard-controls) — `eq10-keyboard-controls.feature`
 - [Execute configurable shell commands](#execute-command-slots) — `execute-command-slots.feature`
@@ -256,6 +257,23 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiRefreshDiskBrowser` · **Source files:** `Paketti35.lua`, `PakettiMenuConfig.lua`
 
 **Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
+
+
+<a id="duplicate-instrument-devices"></a>
+## Preserve devices when duplicating a track and instrument
+
+`features/duplicate-instrument-devices.feature` · [session](duplicate-instrument-devices.session.md)
+
+**Behaviour (4 scenarios):**
+
+- Bind Instrument Macros from 0B to 0C — `@code-verified @runtime-untested`
+- Preserve the wavetable LFO identity and setup — `@code-verified @runtime-untested`
+- Retain instrument automation retargeting — `@code-verified @runtime-untested`
+- Preserve normalized macro values when binding to a duplicate — `@code-verified @runtime-verified`
+
+**How it does it:** **Key procs:** `PakettiCopyDuplicatedInstrumentDevice`, `duplicateTrackAndInstrumentCore`, `duplicateTrackDuplicateInstrument` · **Source files:** `PakettiSamples.lua`, `tests/duplicate-instrument-devices.lua`, `PakettiRequests.lua`
+
+**Grade:** @code-verified ×4 · @runtime-untested ×3 · @runtime-verified ×1
 
 
 <a id="dynamic-toolbar-actions"></a>

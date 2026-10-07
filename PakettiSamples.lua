@@ -7448,6 +7448,29 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 ---------
+-- REPORT-CARD >> features/duplicate-instrument-devices.feature
+-- Presets include LFO routing/settings that are not exposed as parameters.
+function PakettiCopyDuplicatedInstrumentDevice(old_device, new_device, new_instrument_index)
+  local preset = old_device.active_preset_data
+  if old_device.device_path == "Audio/Effects/Native/*Instr. Automation" then
+    preset = preset:gsub("<instrument>(%d+)</instrument>", function()
+      return string.format("<instrument>%d</instrument>", new_instrument_index - 1)
+    end)
+  end
+  new_device.active_preset_data = preset
+  for parameter_index, parameter in ipairs(old_device.parameters) do
+    new_device.parameters[parameter_index].value = parameter.value
+    new_device.parameters[parameter_index].show_in_mixer = parameter.show_in_mixer
+  end
+  if old_device.device_path == "Audio/Effects/Native/*Instr. Automation" then
+    -- Parameter copying must not restore the original instrument selector.
+    new_device.active_preset_data = preset
+  end
+  -- Applying a preset can reset these properties, so restore them last.
+  new_device.display_name = old_device.display_name
+  new_device.is_maximized = old_device.is_maximized
+end
+
 -- Core function to duplicate track and instrument with configurable options
 -- Parameters:
 --   copy_dsp: boolean - whether to copy DSP devices
@@ -7522,27 +7545,16 @@ function duplicateTrackAndInstrumentCore(copy_dsp, copy_automation, jump_to_edit
   new_track.prefx_volume.value = selected_track.prefx_volume.value
   new_track.postfx_volume.value = selected_track.postfx_volume.value
   
+  -- Like Create A&B, select the new instrument BEFORE inserting Macros.
+  -- Renoise binds a newly inserted Instrument Macros device to this selection.
+  song.selected_instrument_index = instrument_index + 1
+
   -- Copy DSP devices and their settings (if enabled)
   if copy_dsp then
     for device_index = 2, #selected_track.devices do  -- Start from 2 to skip Track Volume device
       local old_device = selected_track.devices[device_index]
       local new_device = new_track:insert_device_at(old_device.device_path, device_index)
-      -- Copy device parameters and mixer settings
-      for param_index = 1, #old_device.parameters do
-        new_device.parameters[param_index].value = old_device.parameters[param_index].value
-        new_device.parameters[param_index].show_in_mixer = old_device.parameters[param_index].show_in_mixer
-      end
-      -- Copy device display settings
-      new_device.is_maximized = old_device.is_maximized
-      -- Handle Instrument Automation device specially
-      if old_device.device_path:find("Instr. Automation") then
-        local old_xml = old_device.active_preset_data
-        local new_xml = old_xml:gsub("<instrument>(%d+)</instrument>", 
-          function(instr_index)
-            return string.format("<instrument>%d</instrument>", instrument_index)
-          end)
-        new_device.active_preset_data = new_xml
-      end
+      PakettiCopyDuplicatedInstrumentDevice(old_device, new_device, instrument_index + 1)
     end
   end
   
