@@ -6,6 +6,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 ## Contents
 
+- [Follow the Groovebox step highlighter with sample names](#8120-live-sample-names) — `8120-live-sample-names.feature`
 - [Randomize Groovebox 8120 per-step sample choices](#8120-perstep-randomize) — `8120-perstep-randomize.feature`
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
 - [Ignore test fixtures in CI source scans](#ci-ignore-test-duplicates) — `ci-ignore-test-duplicates.feature`
@@ -61,6 +62,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Transient navigation detection](#transient-navigation-detection) — `transient-navigation-detection.feature`
 - [Tree menu map generator](#treemenu) — `treemenu.feature`
 - [TX16W IMG exports use Cyclone-compatible item identity](#tx16w-cyclone-images) — `tx16w-cyclone-images.feature`
+
+
+<a id="8120-live-sample-names"></a>
+## Follow the Groovebox step highlighter with sample names
+
+`features/8120-live-sample-names.feature` · [session](8120-live-sample-names.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Show the highlighted Per-Step sample name — `@code-verified @runtime-untested`
+- Experiment starts enabled and is reversible — `@built @runtime-untested`
+- Follow the existing highlighter's timing — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiEightOneTwentyLiveSampleIndex`, `PakettiEightOneTwentyUpdateLiveSampleName`, `PakettiEightOneTwentyUpdatePlayheadHighlights`, `pakettiEightOneTwentyLivePerStepNames` · **Source files:** `PakettiEightOneTwenty.lua`, `Paketti0G01_Loader.lua`
+
+**Grade:** @built ×1 · @code-verified ×2 · @runtime-untested ×3
 
 
 <a id="8120-perstep-randomize"></a>

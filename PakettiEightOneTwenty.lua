@@ -669,6 +669,26 @@ end
 playhead_timer_fn = nil
 playing_observer_fn = nil
 
+-- FEATURE-CARD >> features/8120-live-sample-names.feature
+-- Experiment: label-only feedback; never select samples or rewrite the song.
+function PakettiEightOneTwentyLiveSampleIndex(re)
+  if PakettiEightOneTwentyStepMode ~= "perstep" or
+    preferences.pakettiEightOneTwentyLivePerStepNames.value ~= true then return nil end
+  local step = re.play_step_index
+  return step and re.step_samples and re.step_samples[step] or nil
+end
+
+function PakettiEightOneTwentyUpdateLiveSampleName(re, song)
+  local sample_index = PakettiEightOneTwentyLiveSampleIndex(re)
+  if not sample_index or not re.sample_name_label or not re.instrument_popup then return end
+  local instrument = song.instruments[re.instrument_popup.value]
+  local sample = instrument and instrument.samples[sample_index]
+  local name = sample and sample.name or ""
+  if name == "" then name = "Sample " .. tostring(sample_index) end
+  if #name > 50 then name = name:sub(1, 47) .. "..." end
+  if re.sample_name_label.text ~= name then re.sample_name_label.text = name end
+end
+
 -- Update current-play-position highlight for all rows
 function PakettiEightOneTwentyUpdatePlayheadHighlights()
   if not dialog or not dialog.visible then return end
@@ -708,11 +728,17 @@ function PakettiEightOneTwentyUpdatePlayheadHighlights()
       if row_elements.play_step_index ~= display_index then
         row_elements.play_step_index = display_index
         update_row_button_colors(row_elements)
+        if not display_index and row_elements.update_sample_name_label then
+          row_elements.update_sample_name_label()
+        end
         -- Mirror the playhead in the canvas view if it's open.
         if cv_canvas and cv_dialog and cv_dialog.visible then
           cv_canvas:update()
         end
       end
+      -- Check the current sample too: edits/randomization can change its name
+      -- without moving the highlighted step. Text is assigned only if changed.
+      PakettiEightOneTwentyUpdateLiveSampleName(row_elements, song)
     end
   end
 end
@@ -2499,7 +2525,7 @@ end
     local instrument = renoise.song().instruments[row_elements.instrument_popup.value]
     local sample_name = "No sample available"
     if instrument and #instrument.samples > 0 then
-      local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(instrument)
+      local smp_idx = PakettiEightOneTwentyLiveSampleIndex(row_elements) or PakettiEightOneTwentyFindPrimarySampleIndex(instrument)
       local sample = smp_idx and instrument.samples[smp_idx] or nil
       if sample then
         sample_name = sample.name ~= "" and sample.name or string.format("Sample %d", smp_idx)
@@ -3272,6 +3298,7 @@ function PakettiEightOneTwentyApplyStepMode()
   for _, re in ipairs(rows) do
     if re.perstep_row then re.perstep_row.visible = perstep end
     if re.single_strip then re.single_strip.visible = not perstep end
+    if re.update_sample_name_label then re.update_sample_name_label() end
   end
   if randomize_perstep_button then randomize_perstep_button.visible = perstep end
   if mode_button then
@@ -3686,9 +3713,23 @@ local randomize_all_yxx_button = vb:button{
     end
   }
 
+  -- FEATURE-CARD >> features/8120-live-sample-names.feature
+  local live_sample_names_checkbox = vb:checkbox{
+    value = preferences.pakettiEightOneTwentyLivePerStepNames.value,
+    tooltip = "Experiment: the wide sample-name buttons follow the highlighted Per-Step sample. Disable to restore static names.",
+    notifier = function(value)
+      preferences.pakettiEightOneTwentyLivePerStepNames.value = (value == true)
+      for _, re in ipairs(rows) do
+        if re.update_sample_name_label then re.update_sample_name_label() end
+      end
+      PakettiEightOneTwentyUpdatePlayheadHighlights()
+      PakettiEightOneTwentyReturnFocus()
+    end
+  }
+
   -- FEATURE-CARD >> features/8120-perstep-randomize.feature
   randomize_perstep_button = vb:button{
-    text = "Global Randomize Per-Step",
+    text = "Random Per-Steps",
     visible = (PakettiEightOneTwentyStepMode == "perstep"),
     tooltip = "Randomize per-step sample choices for all rows; keep steps and Yxx unchanged.",
     notifier = PakettiEightOneTwentyRandomizeAllPerStep
@@ -3697,6 +3738,8 @@ local randomize_all_yxx_button = vb:button{
   local global_buttons = vb:row{
     vb:text{text="Global", style="strong", font="bold"},
     randomize_perstep_button,
+    live_sample_names_checkbox,
+    vb:text{text="Live Step Names", tooltip="Experimental Per-Step sample-name display; enabled by default."},
     vb:button{text="Clear All", notifier = clear_all},
     vb:button{text="Random Steps", midi_mapping="Paketti:Paketti Groovebox 8120:Randomize All", notifier = randomize_all},
 
