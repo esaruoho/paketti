@@ -2704,7 +2704,11 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:Initialize for Groovebox 8120"
   renoise.tool():add_menu_entry{name="Mixer:Paketti:Devices:Move DSPs to Next Track",invoke=function() move_dsps_to_adjacent_track(1) end}
   renoise.tool():add_menu_entry{name="Mixer:Paketti:Tracks:Create Group and Move DSPs",invoke=create_group_and_move_dsps}
   renoise.tool():add_menu_entry{name="Mixer:Paketti:Pattern:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+  renoise.tool():add_menu_entry{name="Mixer:Paketti:Pattern:Duplicate Pattern Below & Clear Muted X",invoke=duplicate_pattern_and_clear_muted_below_x}
   renoise.tool():add_menu_entry{name="Mixer:Paketti:Pattern:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+  renoise.tool():add_menu_entry{name="Mixer:Paketti:Pattern:Duplicate Pattern Above & Clear Muted X",invoke=duplicate_pattern_and_clear_muted_above_x}
   renoise.tool():add_menu_entry{name="--Mixer:Paketti:Uncollapse All Tracks",invoke=function() Uncollapser() end}
   renoise.tool():add_menu_entry{name="Mixer:Paketti:Collapse All Tracks",invoke=function() Collapser() end}
 
@@ -3147,7 +3151,11 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:CapsLockChassis:Wide 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:CapsLockChassis:Custom Pattern (EditStep Based)", invoke=function() PakettiCapsLockPatternCustom() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Note-Off Paste (from Selection)", invoke=function() noteOffPaste() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Duplicate Pattern Above & Clear Muted X",invoke=duplicate_pattern_and_clear_muted_above_x}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Duplicate Pattern Below & Clear Muted X",invoke=duplicate_pattern_and_clear_muted_below_x}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Wonkify Current Pattern",invoke=PakettiWonkifyCurrentPattern}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Duplicate & Wonkify Pattern",invoke=PakettiWonkifyDuplicatePattern}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Wonkify Generate Chain",invoke=PakettiWonkifyGenerateChain}
@@ -3966,7 +3974,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Inter
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Flood Fill Note and Instrument",invoke=pakettiFloodFill}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Flood Fill Note and Instrument with EditStep",invoke=pakettiFloodFillWithEditStep}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Above & Clear Muted X",invoke=duplicate_pattern_and_clear_muted_above_x}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Below & Clear Muted X",invoke=duplicate_pattern_and_clear_muted_below_x}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Wonkify Current Pattern",invoke=PakettiWonkifyCurrentPattern}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate & Wonkify Pattern",invoke=PakettiWonkifyDuplicatePattern}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Wonkify Generate Chain",invoke=PakettiWonkifyGenerateChain}
@@ -4149,7 +4161,11 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clone Pattern (Withou
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Duplicate Pattern Above & Clear Muted",invoke=function() duplicate_pattern_and_clear_muted_above() end}
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate Pattern Above & Clear Muted X",invoke=function() duplicate_pattern_and_clear_muted_above_x() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted",invoke=function() duplicate_pattern_and_clear_muted() end}
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted X",invoke=function() duplicate_pattern_and_clear_muted_below_x() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wonkify Current Pattern",invoke=PakettiWonkifyCurrentPattern}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate & Wonkify Pattern",invoke=PakettiWonkifyDuplicatePattern}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wonkify Generate Chain",invoke=PakettiWonkifyGenerateChain}

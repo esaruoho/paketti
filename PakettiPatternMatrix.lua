@@ -78,10 +78,19 @@ function PakettiHandoverPatternLoopAndPlayback(song, prior_state, new_seq_index)
   return handed_over
 end
 
-function duplicate_pattern_and_clear_muted_above()
+function duplicate_pattern_and_clear_muted_above(use_matrix_mutes)
   local song=renoise.song()
   local current_pattern_index=song.selected_pattern_index
   local current_sequence_index=song.selected_sequence_index
+
+  -- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+  -- Snapshot before insertion: inserting above shifts the source sequence slot.
+  local matrix_mutes = {}
+  if use_matrix_mutes == true then
+    for track_index = 1, song.sequencer_track_count do
+      matrix_mutes[track_index] = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    end
+  end
 
   -- Capture loop+playback state BEFORE we mutate the sequence, so that
   -- if the user is playing and looping this pattern we can hand the loop
@@ -103,14 +112,19 @@ function duplicate_pattern_and_clear_muted_above()
   if original_name == "" then
     original_name = "Pattern " .. tostring(current_pattern_index)
   end
-  song.patterns[new_pattern_index].name = original_name .. " (mutes cleared)"
+  song.patterns[new_pattern_index].name = original_name .. (use_matrix_mutes == true and " (Matrix mutes cleared X)" or " (mutes cleared)")
 
   -- Select the new sequence index
   song.selected_sequence_index = new_sequence_index
 
   -- Apply mute states from the original pattern to the new pattern in the sequencer
-  for track_index = 1, #song.tracks do
-    local is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+  for track_index = 1, (use_matrix_mutes == true and song.sequencer_track_count or #song.tracks) do
+    local is_muted
+    if use_matrix_mutes == true then
+      is_muted = matrix_mutes[track_index]
+    else
+      is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    end
     song.sequencer:set_track_sequence_slot_is_muted(track_index, new_sequence_index, is_muted)
     if is_muted then
       print("Track " .. track_index .. " was muted in the original sequence; muting in new sequence.")
@@ -140,7 +154,8 @@ function duplicate_pattern_and_clear_muted_above()
   -- Identify tracks that are muted or off, then clear them in the new pattern
   local muted_tracks = {}
   for i, track in ipairs(song.tracks) do
-    if track.mute_state == renoise.Track.MUTE_STATE_MUTED or track.mute_state == renoise.Track.MUTE_STATE_OFF then
+    if (use_matrix_mutes == true and matrix_mutes[i] == true) or
+      (use_matrix_mutes ~= true and (track.mute_state == renoise.Track.MUTE_STATE_MUTED or track.mute_state == renoise.Track.MUTE_STATE_OFF)) then
       table.insert(muted_tracks, i)
       print("Track " .. i .. " is muted or off. Preparing to clear it.")
     end
@@ -155,7 +170,7 @@ function duplicate_pattern_and_clear_muted_above()
   -- keeps hearing the same loop, but on the new pattern slot — no glitch.
   local handed_over = PakettiHandoverPatternLoopAndPlayback(song, prior_loop_state, new_sequence_index)
   local handover_suffix = handed_over and " [loop+playback moved to new pattern]" or ""
-  renoise.app():show_status("Duplicated pattern above current sequence with mute states, complete automation, and cleared muted tracks." .. handover_suffix)
+  renoise.app():show_status("Duplicated pattern above current sequence with mute states, complete automation, and cleared muted tracks." .. (use_matrix_mutes == true and " [X: Pattern Matrix slot mutes]" or "") .. handover_suffix)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted_above}
@@ -167,10 +182,19 @@ renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Above & Clear Mu
 
 
 
-function duplicate_pattern_and_clear_muted()
+function duplicate_pattern_and_clear_muted(use_matrix_mutes)
   local song=renoise.song()
   local current_pattern_index=song.selected_pattern_index
   local current_sequence_index=song.selected_sequence_index
+
+  -- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+  -- Snapshot before insertion: inserting above shifts the source sequence slot.
+  local matrix_mutes = {}
+  if use_matrix_mutes == true then
+    for track_index = 1, song.sequencer_track_count do
+      matrix_mutes[track_index] = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    end
+  end
 
   -- Capture loop+playback state BEFORE we mutate the sequence, so that
   -- if the user is playing and looping this pattern we can hand the loop
@@ -192,14 +216,19 @@ function duplicate_pattern_and_clear_muted()
   if original_name == "" then
     original_name = "Pattern " .. tostring(current_pattern_index)
   end
-  song.patterns[new_pattern_index].name = original_name .. " (mutes cleared)"
+  song.patterns[new_pattern_index].name = original_name .. (use_matrix_mutes == true and " (Matrix mutes cleared X)" or " (mutes cleared)")
 
   -- Select the new sequence index
   song.selected_sequence_index = new_sequence_index
 
   -- Apply mute states from the original pattern to the new pattern in the sequencer
-  for track_index = 1, #song.tracks do
-    local is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+  for track_index = 1, (use_matrix_mutes == true and song.sequencer_track_count or #song.tracks) do
+    local is_muted
+    if use_matrix_mutes == true then
+      is_muted = matrix_mutes[track_index]
+    else
+      is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    end
     song.sequencer:set_track_sequence_slot_is_muted(track_index, new_sequence_index, is_muted)
     if is_muted then
     end
@@ -227,7 +256,8 @@ function duplicate_pattern_and_clear_muted()
   -- Identify tracks that are muted or off, then clear them in the new pattern
   local muted_tracks = {}
   for i, track in ipairs(song.tracks) do
-    if track.mute_state == renoise.Track.MUTE_STATE_MUTED or track.mute_state == renoise.Track.MUTE_STATE_OFF then
+    if (use_matrix_mutes == true and matrix_mutes[i] == true) or
+      (use_matrix_mutes ~= true and (track.mute_state == renoise.Track.MUTE_STATE_MUTED or track.mute_state == renoise.Track.MUTE_STATE_OFF)) then
       table.insert(muted_tracks, i)
     end
   end
@@ -240,13 +270,31 @@ function duplicate_pattern_and_clear_muted()
   -- keeps hearing the same loop, but on the new pattern slot — no glitch.
   local handed_over = PakettiHandoverPatternLoopAndPlayback(song, prior_loop_state, new_sequence_index)
   local handover_suffix = handed_over and " [loop+playback moved to new pattern]" or ""
-  renoise.app():show_status("Duplicated pattern below current sequence with mute states, complete automation, and cleared muted tracks." .. handover_suffix)
+  renoise.app():show_status("Duplicated pattern below current sequence with mute states, complete automation, and cleared muted tracks." .. (use_matrix_mutes == true and " [X: Pattern Matrix slot mutes]" or "") .. handover_suffix)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+
+-- FEATURE-CARD >> features/pattern-matrix-duplicate-x.feature
+function duplicate_pattern_and_clear_muted_above_x()
+  duplicate_pattern_and_clear_muted_above(true)
+end
+
+function duplicate_pattern_and_clear_muted_below_x()
+  duplicate_pattern_and_clear_muted(true)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks X",invoke=duplicate_pattern_and_clear_muted_above_x}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern Above & Clear Muted Tracks X",invoke=duplicate_pattern_and_clear_muted_above_x}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern Above & Clear Muted Tracks X",invoke=duplicate_pattern_and_clear_muted_above_x}
+renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Above & Clear Muted X",invoke=duplicate_pattern_and_clear_muted_above_x}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Below & Clear Muted Tracks X",invoke=duplicate_pattern_and_clear_muted_below_x}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern Below & Clear Muted Tracks X",invoke=duplicate_pattern_and_clear_muted_below_x}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted Tracks X",invoke=duplicate_pattern_and_clear_muted_below_x}
+renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Below & Clear Muted X",invoke=duplicate_pattern_and_clear_muted_below_x}
 
 ---------------------------------------------------------------------------
 -- Clone Sequence Without Automation (#691)

@@ -14,6 +14,7 @@
 |------|----:|:-----:|:----------:|:--------:|----------------|
 | 2026-06-11-groovebox-controller-follow-and-menu | 9 | ✓ | — | ✗ | @built @code-verified @hw-untested @logic-verified @superseded |
 | 2026-06-11-ui-fixes-and-menu-config | 8 | ✓ | ✓ | — | @built @code-verified @logic-verified @runtime-verified |
+| 8120-perstep-randomize | 3 | ✓ | ✗ | — | @code-verified @runtime-untested |
 | clipboard-pattern-to-phrase | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | command-wheel-adjustments | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
@@ -67,8 +68,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 53
-- Build-verified: 43
+- Cards: 54
+- Build-verified: 44
 - Runtime-verified: 3 full + 3 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

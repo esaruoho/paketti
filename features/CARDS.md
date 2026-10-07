@@ -6,6 +6,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 ## Contents
 
+- [Randomize Groovebox 8120 per-step sample choices](#8120-perstep-randomize) — `8120-perstep-randomize.feature`
 - [<Short name of the thing Paketti does>](#TEMPLATE) — `TEMPLATE.feature`
 - [Clipboard Pattern to Phrase conversion](#clipboard-pattern-to-phrase) — `clipboard-pattern-to-phrase.feature`
 - [Command Wheel adjustments use one router](#command-wheel-adjustments) — `command-wheel-adjustments.feature`
@@ -36,6 +37,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Close the unfocused parameter editor](#parameter-editor-close) — `parameter-editor-close.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
+- [Duplicate patterns with Pattern Matrix slot mutes X](#pattern-matrix-duplicate-x) — `pattern-matrix-duplicate-x.feature`
 - [Pattern and song row jumps](#pattern-song-jumps) — `pattern-song-jumps.feature`
 - [Pattern transform shortcuts](#pattern-transform-shortcuts) — `pattern-transform-shortcuts.feature`
 - [Pedal Record](#pedal-record) — `pedal-record.feature`
@@ -58,6 +60,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Transient navigation detection](#transient-navigation-detection) — `transient-navigation-detection.feature`
 - [Tree menu map generator](#treemenu) — `treemenu.feature`
 - [TX16W IMG exports use Cyclone-compatible item identity](#tx16w-cyclone-images) — `tx16w-cyclone-images.feature`
+
+
+<a id="8120-perstep-randomize"></a>
+## Randomize Groovebox 8120 per-step sample choices
+
+`features/8120-perstep-randomize.feature` · [session](8120-perstep-randomize.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Randomize one row's sample choices — `@code-verified @runtime-untested`
+- Randomize all rows only in Per-Step mode — `@code-verified @runtime-untested`
+- Support all displayed step counts — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiEightOneTwentyRandomizePerStepRow`, `PakettiEightOneTwentyRandomizeAllPerStep`, `PakettiEightOneTwentyApplyStepMode` · **Source files:** `PakettiEightOneTwenty.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3
 
 
 <a id="TEMPLATE"></a>
@@ -657,6 +675,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 - Replicate the current row down the pattern
 - Toggle the Pattern Matrix
+
+
+<a id="pattern-matrix-duplicate-x"></a>
+## Duplicate patterns with Pattern Matrix slot mutes X
+
+`features/pattern-matrix-duplicate-x.feature` · [session](pattern-matrix-duplicate-x.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Clear source Matrix-muted tracks above or below — `@code-verified @runtime-untested`
+- Preserve pattern length and hand over looping playback — `@code-verified @runtime-untested`
+- Expose both flavors alongside existing commands — `@built @runtime-untested`
+
+**How it does it:** **Key procs:** `duplicate_pattern_and_clear_muted_above`, `duplicate_pattern_and_clear_muted`, `duplicate_pattern_and_clear_muted_above_x`, `duplicate_pattern_and_clear_muted_below_x` · **Source files:** `PakettiPatternMatrix.lua`, `PakettiMenuConfig.lua`
+
+**Grade:** @built ×1 · @code-verified ×2 · @runtime-untested ×3
 
 
 <a id="pattern-song-jumps"></a>

@@ -75,3 +75,7 @@ Derived views — GENERATED, never hand-edit:
 - [sample-browser-editing](sample-browser-editing.feature)
 
 - [Skip empty NetDrive recordings](netdrive-zero-byte-guard.feature) — worktree; session: [netdrive-zero-byte-guard.session.md](netdrive-zero-byte-guard.session.md).
+
+- [pattern-matrix-duplicate-x](pattern-matrix-duplicate-x.feature) — worktree; session: [pattern-matrix-duplicate-x.session.md](pattern-matrix-duplicate-x.session.md).
+
+- [8120-perstep-randomize](8120-perstep-randomize.feature) — worktree; [8120-perstep-randomize.session.md](8120-perstep-randomize.session.md).

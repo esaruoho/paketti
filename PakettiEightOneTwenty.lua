@@ -540,6 +540,7 @@ instrument_names = {}  -- Initialize as empty table to avoid nil errors
 local play_checkbox, follow_checkbox, bpm_display, groove_enabled_checkbox, random_gate_button, fill_empty_label, fill_empty_slider, global_step_buttons, global_controls
 local groove_mode_switch  -- "Global Groove" <-> "Delay Column" selector (kept in sync when toggled via keybinding/MIDI)
 local groove_delay_mode_busy = false  -- reentry guard: syncing the switch above re-fires its notifier
+local randomize_perstep_button  -- global control, visible only in Per-Step mode
 local mode_button  -- the "Mode" button that flips StepMode single<->perstep for all rows
 local local_groove_sliders, local_groove_labels
 local number_buttons_row
@@ -3027,6 +3028,23 @@ end
 
   local left_controls = vb:column{labels_row, rotaries_row, toggles_labels_row, toggles_row}
 
+  -- FEATURE-CARD >> features/8120-perstep-randomize.feature
+  table.insert(sample_valuebox_row_elements, vb:button{
+    text = "Randomize Per-Step",
+    tooltip = "Randomize this row's per-step sample choices using its instrument's samples; keep steps and Yxx unchanged.",
+    notifier = function()
+      if initializing or PakettiEightOneTwentyStepMode ~= "perstep" then return end
+      trueRandomSeed()
+      if PakettiEightOneTwentyRandomizePerStepRow(row_elements) then
+        PakettiEightOneTwentyHighlightRow(row_index)
+        renoise.app():show_status("Randomized Per-Step sample choices for row " .. row_index .. ".")
+      else
+        renoise.app():show_status("No samples available for Per-Step randomization in row " .. row_index .. ".")
+      end
+      PakettiEightOneTwentyReturnFocus()
+    end
+  })
+
   -- MODE2 per-step sample row (hidden unless StepMode == "perstep")
   local perstep_row = vb:row(sample_valuebox_row_elements)
   perstep_row.visible = (PakettiEightOneTwentyStepMode == "perstep")
@@ -3216,6 +3234,36 @@ end
   return row, row_elements
 end
 
+-- FEATURE-CARD >> features/8120-perstep-randomize.feature
+-- Update selectors as one batch, then print once without changing gates or Yxx.
+function PakettiEightOneTwentyRandomizePerStepRow(re)
+  if initializing or PakettiEightOneTwentyStepMode ~= "perstep" then return false end
+  if not re or not re.instrument_popup or not re.sample_valueboxes or not re.step_samples then return false end
+  local instrument = renoise.song().instruments[re.instrument_popup.value]
+  local sample_count = instrument and math.min(#instrument.samples, 120) or 0
+  if sample_count == 0 then return false end
+  re.updating_step_samples = true
+  for i = 1, #re.sample_valueboxes do
+    local sample_number = math.random(1, sample_count)
+    re.step_samples[i] = sample_number
+    re.sample_valueboxes[i].value = tostring(sample_number)
+  end
+  re.updating_step_samples = false
+  re.print_to_pattern()
+  return true
+end
+
+function PakettiEightOneTwentyRandomizeAllPerStep()
+  if initializing or PakettiEightOneTwentyStepMode ~= "perstep" then return end
+  trueRandomSeed()
+  local changed = 0
+  for _, re in ipairs(rows) do
+    if PakettiEightOneTwentyRandomizePerStepRow(re) then changed = changed + 1 end
+  end
+  renoise.app():show_status("Randomized Per-Step sample choices for " .. changed .. " rows.")
+  PakettiEightOneTwentyReturnFocus()
+end
+
 -- Apply the current StepMode to every row: show the per-step valuebox row in
 -- "perstep", show the MODE1 control strip in "single", and re-print so the
 -- pattern reflects the active mode. Safe to call any time after rows are built.
@@ -3225,6 +3273,7 @@ function PakettiEightOneTwentyApplyStepMode()
     if re.perstep_row then re.perstep_row.visible = perstep end
     if re.single_strip then re.single_strip.visible = not perstep end
   end
+  if randomize_perstep_button then randomize_perstep_button.visible = perstep end
   if mode_button then
     mode_button.text = perstep and "Mode: Per-Step" or "Mode: Single"
   end
@@ -3637,8 +3686,17 @@ local randomize_all_yxx_button = vb:button{
     end
   }
 
+  -- FEATURE-CARD >> features/8120-perstep-randomize.feature
+  randomize_perstep_button = vb:button{
+    text = "Global Randomize Per-Step",
+    visible = (PakettiEightOneTwentyStepMode == "perstep"),
+    tooltip = "Randomize per-step sample choices for all rows; keep steps and Yxx unchanged.",
+    notifier = PakettiEightOneTwentyRandomizeAllPerStep
+  }
+
   local global_buttons = vb:row{
     vb:text{text="Global", style="strong", font="bold"},
+    randomize_perstep_button,
     vb:button{text="Clear All", notifier = clear_all},
     vb:button{text="Random Steps", midi_mapping="Paketti:Paketti Groovebox 8120:Randomize All", notifier = randomize_all},
 
