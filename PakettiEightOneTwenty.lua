@@ -81,6 +81,65 @@ function PakettiEightOneTwentySampleNumberToNote(sample_number)
   if note > 119 then note = 119 end
   return note
 end
+
+-- True when an instrument carries the one-note-per-sample signature that
+-- PakettiEightOneTwentyRemapInstrumentNotePerSample stamps on entering MODE2:
+-- at least two samples, each writable mapping pinned to its single note i-1.
+-- A choked single-sample kit (note_range {0,119}) fails this, so it cleanly
+-- separates "has entered Per-Step" from legacy Single-mode instruments.
+function PakettiEightOneTwentyInstrumentIsNotePerSample(instrument)
+  if not instrument then return false end
+  local n = #instrument.samples
+  if n < 2 then return false end
+  local matched = 0
+  for i = 1, math.min(n, 120) do
+    local sample = instrument.samples[i]
+    local mapping = sample and sample.sample_mapping
+    if mapping and not mapping.read_only then
+      local lo = mapping.note_range and mapping.note_range[1]
+      local hi = mapping.note_range and mapping.note_range[2]
+      if lo == (i - 1) and hi == (i - 1) then
+        matched = matched + 1
+      else
+        return false
+      end
+    end
+  end
+  return matched >= 2
+end
+
+-- After a Paketti reload the StepMode globals reset to single (file load resets
+-- PakettiEightOneTwentyStepMode/NotePerSampleActive). If the song's 8120 tracks
+-- are still playing a remapped one-note-per-sample kit, the user was in Per-Step
+-- when they closed the dialog. Restore that mode BEFORE the dialog is rebuilt so
+-- reopening doesn't silently drop back to Single and overwrite the per-step
+-- notes on the first interaction. Only ever restores (never forces Single), so
+-- genuine Single songs are untouched.
+function PakettiEightOneTwentyRestoreStepModeFromSong()
+  local song = renoise.song()
+  if not song then return end
+  local pattern = song.selected_pattern
+  if not pattern then return end
+  for t = 1, #song.tracks do
+    local track = song.tracks[t]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER and track.name:match("^8120_") then
+      local ptrack = pattern.tracks[t]
+      local nlines = pattern.number_of_lines
+      for line = 1, nlines do
+        local nc = ptrack.lines[line].note_columns[1]
+        if nc and not nc.is_empty and nc.note_string ~= "---" and nc.instrument_value ~= 255 then
+          local inst = song.instruments[nc.instrument_value + 1]
+          if PakettiEightOneTwentyInstrumentIsNotePerSample(inst) then
+            PakettiEightOneTwentyNotePerSampleActive = true
+            PakettiEightOneTwentyStepMode = "perstep"
+            return
+          end
+          break  -- only the first sounding step of each 8120 track is probed
+        end
+      end
+    end
+  end
+end
 --
 -- NOTE: Step mode can be changed dynamically:
 -- 1. Use the "16 Steps / 32 Steps" switch in the groovebox interface
@@ -2464,8 +2523,28 @@ end
     for line = 1, math.min(line_count, MAX_STEPS) do
       local note_line = pattern.tracks[track_index].lines[line].note_columns[1]
       local effect_column = pattern.tracks[track_index].lines[line].effect_columns[1]
-      if note_line and note_line.note_string == "C-4" then
+      -- In Per-Step (note-per-sample) mode a step's note is the sample number,
+      -- not C-4, so read any sounding note as an active step and rebuild
+      -- step_samples from it. Legacy Single mode still keys on C-4.
+      local is_active
+      if PakettiEightOneTwentyNotePerSampleActive then
+        is_active = note_line and (not note_line.is_empty) and note_line.note_string ~= "---"
+      else
+        is_active = note_line and note_line.note_string == "C-4"
+      end
+      if is_active then
         checkboxes[line].value = true
+        if PakettiEightOneTwentyNotePerSampleActive and row_elements.step_samples then
+          local sn = note_line.note_value + 1
+          if sn < 1 then sn = 1 end
+          if sn > 120 then sn = 120 end
+          row_elements.step_samples[line] = sn
+          if sample_valueboxes and sample_valueboxes[line] then
+            row_elements.updating_step_samples = true
+            sample_valueboxes[line].value = tostring(sn)
+            row_elements.updating_step_samples = false
+          end
+        end
         if effect_column and effect_column.number_string == "0Y" then
           yxx_checkboxes[line].value = true
           yxx_valuebox.value = effect_column.amount_value
@@ -4223,6 +4302,12 @@ function pakettiEightSlotsByOneTwentyDialog()
       beatsync_visible = pref_val and true or false
     end
   end
+
+  -- If the song still carries the Per-Step (one-note-per-sample) signature, restore
+  -- that mode now — before the global controls and rows are built — so the Mode
+  -- button, the per-step valuebox rows and the pattern readback all come up in
+  -- Per-Step instead of reverting to Single and clobbering the per-step notes.
+  PakettiEightOneTwentyRestoreStepModeFromSong()
 
   local global_controls, global_groove_controls, global_buttons, global_step_buttons = create_global_controls()
   -- Add 'Initialize EQ30' to the top control row (6.2+ only — PakettiEQ30 uses Canvas)

@@ -8,17 +8,13 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**22 card conversations** plugged in:
+**21 card conversations** plugged in:
 
 ### `91b424ac-0b08-4f39-b48d-72e9193f1242`  (2026-09-05 → 2026-09-07)
 - Resume: `claude --resume 91b424ac-0b08-4f39-b48d-72e9193f1242`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/91b424ac-0b08-4f39-b48d-72e9193f1242.jsonl
 - Tooling touched: STATUS.md
 - Cards touched (1): tx16w-cyclone-images.feature
-
-### `f2b5ddaf-c8cf-483e-b509-827b8028e6d3`  (2026-09-06 → 2026-09-07)
-- Resume: `claude --resume f2b5ddaf-c8cf-483e-b509-827b8028e6d3`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/f2b5ddaf-c8cf-483e-b509-827b8028e6d3.jsonl
 
 ### `5a50bc65-6668-49ff-8936-2e315a06a10a`  (2026-09-08)
 - Resume: `claude --resume 5a50bc65-6668-49ff-8936-2e315a06a10a`
@@ -136,4 +132,4 @@
 - Resume: `claude --resume 3ea59e53-695a-4ddc-b408-71ae9976d38b`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/3ea59e53-695a-4ddc-b408-71ae9976d38b.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): TEMPLATE.feature, netdrive-zero-byte-guard.feature, song-lifecycle-safety.feature
+- Cards touched (4): TEMPLATE.feature, menu-registration-duplicates.feature, netdrive-zero-byte-guard.feature, song-lifecycle-safety.feature

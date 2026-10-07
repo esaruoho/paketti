@@ -7,6 +7,10 @@ The existing Global hide-external-editors shortcut (Cmd-H when assigned) now als
 ### Fix: Timestretch envelope activation preserves crafted AHDSR settings
 Timestretch no longer changes envelope enabled state at all. Paketti reload leaves existing AHDSR parameters, operator, enabled state, sample looping and new-note action untouched. Removed the duplicate startup checkbox that fired its destructive reset handler when synchronizing an already-enabled envelope. Release and Release Scaling controls edit only their parameter and use the selected sample's assigned modulation set.
 
+### 2026-10-07 - Fix: Groovebox 8120 — reopening keeps Per-Step mode instead of reverting to Single
+When you were in Per-Step mode and the dialog closed (for example after Renoise reloaded Paketti), reopening the Groovebox 8120 came back in Single mode, which then overwrote your per-step notes on the next edit. The dialog now detects the Per-Step signature (the one-note-per-sample kit it stamps when you enter Per-Step) directly from the song and restores Per-Step before rebuilding the interface — the Mode button, the per-step valuebox rows and the step checkboxes all come up in Per-Step, with each step's sample number read back from the pattern. Genuine Single-mode songs are untouched.
+- Menu: `Main Menu:Tools:Paketti:Groovebox:Paketti Groovebox 8120`
+
 ### 2026-10-07 - Fix: PlayerPro Note Grid — "Clear Selection Before Write" now actually works
 The "Clear Selection Before Write" checkbox in the PlayerPro Note Grid Dialog had no effect — with EditStep on, writing a note into a selection always wiped the whole selection first, even with the box unchecked. Now unchecking it performs an augmented/mixed write: the note is placed only on the EditStep lines and the gap (non-EditStep) lines keep their existing content. Checked (the default) still clears the selection first.
 - Menu: `Main Menu:Tools:Paketti:PlayerPro:PlayerPro Note Grid Dialog`
