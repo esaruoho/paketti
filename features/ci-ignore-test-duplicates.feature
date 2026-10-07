@@ -7,6 +7,7 @@
 # .github/workflows/main.yml, PLAN.md, this card and its session.
 # WATCH: _source_lua_paths _duplicate_globals _undeclared_calls
 # RESULT-LOG >>
+#   2026-10-07  direct-commit  touched: _source_lua_paths
 Feature: Ignore test fixtures in CI source scans
   @build-verified
   Scenario: Test helper copies never create source duplicate failures

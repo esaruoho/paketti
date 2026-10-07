@@ -123,11 +123,18 @@ _DUP_ALLOWED = {
 }
 
 
+# REPORT-CARD >> features/ci-ignore-test-duplicates.feature
+def _source_lua_paths(root):
+    """Static source scans exclude test fixtures that Renoise never loads."""
+    return sorted(p for p in glob.glob(os.path.join(root, '**', '*.lua'), recursive=True)
+                  if not set(os.path.relpath(p, root).split(os.sep)[:-1])
+                  & {'.git', '.spine', 'tests'})
+
+
 def _duplicate_globals(root):
     """Global `function name(...)` defined in more than one place."""
     seen = {}
-    paths = [p for p in glob.glob(os.path.join(root, '**', '*.lua'), recursive=True)
-             if '/.git/' not in p and '/.spine/' not in p]
+    paths = _source_lua_paths(root)
     for p in sorted(paths):
         rel = os.path.relpath(p, root)
         try:
@@ -143,8 +150,7 @@ def _duplicate_globals(root):
 
 
 def _undeclared_calls(root):
-    paths = [p for p in glob.glob(os.path.join(root, '**', '*.lua'), recursive=True)
-             if '/.git/' not in p and '/.spine/' not in p]
+    paths = _source_lua_paths(root)
     code = {}
     for p in paths:
         try:
