@@ -29,6 +29,11 @@ Constants.ALGO_REVERSED = 2
 Constants.ALGO_SYNAPTIC = 3
 Constants.ALGO_SYNAPTIC_SLIDE = 4
 
+-- Channel Modes
+Constants.CHANNEL_MIX = 1
+Constants.CHANNEL_LEFT = 2
+Constants.CHANNEL_RIGHT = 3
+
 -- Windowing Types
 Constants.WINDOW_RECTANGLE = 1
 Constants.WINDOW_HANN = 2

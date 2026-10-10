@@ -23,8 +23,8 @@ local target_source = nil
 local target_blocks = {}
 
 -- Separate Analysis Settings
-local brain_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN }
-local target_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN }
+local brain_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN, channel_mode = Constants.CHANNEL_MIX }
+local target_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN, channel_mode = Constants.CHANNEL_MIX }
 
 -- Matching Settings
 local ratio = Constants.DEFAULT_RATIO
@@ -49,7 +49,6 @@ local brain_gain = 1.0
 local function update_job_ui(is_running)
   if vb and vb.views.btn_cancel then
     vb.views.btn_cancel.visible = is_running
-    -- Note: Disable other buttons logic could be added here
   end
 end
 
@@ -97,7 +96,9 @@ function MainDialog.show()
           vb:text{ text = "Overlap:" },
           vb:popup{ items = { "25%", "50%", "75%" }, value = 2, notifier = function(v) target_settings.overlap = ({0.25,0.5,0.75})[v] end },
           vb:text{ text = "Window:" },
-          vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, notifier = function(v) target_settings.window_type = v end }
+          vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, notifier = function(v) target_settings.window_type = v end },
+          vb:text{ text = "Channel:" },
+          vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, notifier = function(v) target_settings.channel_mode = v end }
         },
         vb:row{
           vb:button{
@@ -108,7 +109,7 @@ function MainDialog.show()
               if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
                 JobRunner.start(
                   function(job)
-                    local pcm, rate = SampleReader.read_mono(smp)
+                    local pcm, rate = SampleReader.read_channel(smp, target_settings.channel_mode)
                     if not pcm then error("Failed to read sample") end
                     target_source = SourceRef.create(9999, smp.name, pcm, rate)
                     target_blocks = BlockGenerator.generate(target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1, job)
@@ -150,7 +151,9 @@ function MainDialog.show()
           vb:text{ text = "Overlap:" },
           vb:popup{ items = { "25%", "50%", "75%" }, value = 2, notifier = function(v) brain_settings.overlap = ({0.25,0.5,0.75})[v] end },
           vb:text{ text = "Window:" },
-          vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, notifier = function(v) brain_settings.window_type = v end }
+          vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, notifier = function(v) brain_settings.window_type = v end },
+          vb:text{ text = "Channel:" },
+          vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, notifier = function(v) brain_settings.channel_mode = v end }
         },
         vb:row{
           spacing = 6,
@@ -162,7 +165,7 @@ function MainDialog.show()
               if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
                 JobRunner.start(
                   function(job)
-                    local pcm, rate = SampleReader.read_mono(smp)
+                    local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode)
                     if not pcm then error("Failed to read sample") end
                     
                     local src_id = #brain_sources + 1
@@ -324,7 +327,7 @@ function MainDialog.show()
             end,
             function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
             function(out_pcm)
-              SampleWriter.write_new_instrument(out_pcm, Constants.DEFAULT_SAMPLE_RATE, "SampleBrain")
+              SampleWriter.write_new_instrument(out_pcm, nil, Constants.DEFAULT_SAMPLE_RATE, "SampleBrain")
               vb.views.job_status.text = string.format("Rendered %d frames.", #out_pcm)
               update_job_ui(false)
               renoise.app():show_status("SampleBrain render complete!")
