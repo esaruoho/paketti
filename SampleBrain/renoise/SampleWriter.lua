@@ -29,7 +29,11 @@ function SampleWriter.write_new_instrument(pcm_left, pcm_right, sample_rate, nam
   local num_channels = pcm_right and 2 or 1
 
   local buffer = smp.sample_buffer
-  buffer:create_sample_data(sample_rate, 32, num_channels, num_frames)
+  local ok = buffer:create_sample_data(sample_rate, 32, num_channels, num_frames)
+  if not ok then
+    song:delete_instrument_at(#song.instruments)
+    error("SampleBrain: Failed to allocate sample buffer memory in Renoise.")
+  end
 
   buffer:prepare_sample_data_changes()
   if num_channels == 1 then

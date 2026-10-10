@@ -279,7 +279,9 @@ function MainDialog.show()
           vb:text{ text = "Norm Mix:" },
           vb:valuebox{ min = 0.0, max = 1.0, value = n_mix, step = 0.1, notifier = function(v) n_mix = v end },
           vb:text{ text = "Target Mix:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = target_mix, step = 0.1, notifier = function(v) target_mix = v end }
+          vb:valuebox{ min = 0.0, max = 1.0, value = target_mix, step = 0.1, notifier = function(v) target_mix = v end },
+          vb:text{ text = "Slide Err:" },
+          vb:valuebox{ min = 0.1, max = 500.0, value = slide_error, step = 1.0, notifier = function(v) slide_error = v end }
         }
       }
     },
@@ -313,6 +315,7 @@ function MainDialog.show()
                 usage_importance = usage_importance,
                 usage_falloff = usage_falloff,
                 stickiness = stickiness,
+                slide_error = slide_error,
                 algo = algo,
                 stretch = stretch,
                 autotune = autotune,

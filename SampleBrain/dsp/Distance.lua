@@ -85,7 +85,7 @@ function Distance.compare_descriptors(fft_a, mfcc_a, fft_b, mfcc_b, ratio, fft_s
     end
   end
 
-  local fft_norm = (fft_len > 0) and (fft_acc / fft_len) or 0.0
+  local fft_norm = (#fft_a > 0) and (fft_acc / #fft_a) or 0.0
   local mfcc_norm = (mfcc_len > 0) and (mfcc_acc / mfcc_len) or 0.0
 
   if ratio == 0 then
