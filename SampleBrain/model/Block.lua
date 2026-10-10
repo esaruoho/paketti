@@ -33,9 +33,11 @@ function Block.create(id, source_ref, source_block_index, start_frame, length, w
     raw_windowed[i] = pcm[i] * window_coeffs[i]
   end
 
-  local fft = FFT.magnitude_spectrum(raw_windowed, Constants.FFT_BINS_CROPPED)
-  local mfcc = MFCC.compute(raw_windowed, sample_rate, Constants.MFCC_FILTERS)
-  local dom_freq = FFT.calculate_dominant_freq(raw_windowed, sample_rate)
+  local r_real, r_imag = FFT.forward(raw_windowed)
+  local r_n = #r_real
+  local fft = FFT.samplebrain_spectrum_from_fft(r_real, r_n, Constants.FFT_BINS_CROPPED)
+  local mfcc = MFCC.compute_from_fft(r_real, r_imag, r_n, sample_rate, Constants.MFCC_FILTERS)
+  local dom_freq = FFT.calculate_dominant_freq_from_fft(r_real, r_n, sample_rate)
 
   -- Peak-normalized windowed copy
   local n_pcm = Distance.normalise(pcm)
@@ -44,9 +46,11 @@ function Block.create(id, source_ref, source_block_index, start_frame, length, w
     n_windowed[i] = n_pcm[i] * window_coeffs[i]
   end
 
-  local n_fft = FFT.magnitude_spectrum(n_windowed, Constants.FFT_BINS_CROPPED)
-  local n_mfcc = MFCC.compute(n_windowed, sample_rate, Constants.MFCC_FILTERS)
-  local n_dom_freq = FFT.calculate_dominant_freq(n_windowed, sample_rate)
+  local n_real, n_imag = FFT.forward(n_windowed)
+  local nn_n = #n_real
+  local n_fft = FFT.samplebrain_spectrum_from_fft(n_real, nn_n, Constants.FFT_BINS_CROPPED)
+  local n_mfcc = MFCC.compute_from_fft(n_real, n_imag, nn_n, sample_rate, Constants.MFCC_FILTERS)
+  local n_dom_freq = FFT.calculate_dominant_freq_from_fft(n_real, nn_n, sample_rate)
 
   local self_obj = setmetatable({
     id = id,
@@ -55,6 +59,7 @@ function Block.create(id, source_ref, source_block_index, start_frame, length, w
     start_frame = start_frame,
     length = length,
     sample_rate = sample_rate,
+    window_type = window_type,
 
     fft = fft,
     mfcc = mfcc,
@@ -82,6 +87,28 @@ end
 function Block:get_n_pcm()
   local pcm = self:get_pcm()
   return Distance.normalise(pcm)
+end
+
+--- Get windowed raw PCM for this block (upstream compatibility)
+-- @return table Windowed float array
+function Block:get_windowed_pcm()
+  local pcm = self:get_pcm()
+  local coeffs = Window.coefficients(self.length, self.window_type)
+  for i = 1, self.length do
+    pcm[i] = pcm[i] * coeffs[i]
+  end
+  return pcm
+end
+
+--- Get windowed normalized PCM for this block (upstream compatibility)
+-- @return table Windowed normalized float array
+function Block:get_normalized_windowed_pcm()
+  local pcm = self:get_n_pcm()
+  local coeffs = Window.coefficients(self.length, self.window_type)
+  for i = 1, self.length do
+    pcm[i] = pcm[i] * coeffs[i]
+  end
+  return pcm
 end
 
 return Block

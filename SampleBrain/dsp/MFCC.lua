@@ -18,17 +18,11 @@ local function mel_to_hz(mel)
   return 700.0 * (10.0 ^ (mel / 2595.0) - 1.0)
 end
 
---- Compute MFCC vector (12 coefficients by default)
--- @param real_in table Array of real floats (PCM block)
--- @param sample_rate number Sample rate
--- @param num_coeffs integer Number of coefficients (default 12)
--- @return table MFCC vector (1-indexed array of floats)
-function MFCC.compute(real_in, sample_rate, num_coeffs)
+--- Compute MFCC vector from precomputed FFT
+function MFCC.compute_from_fft(real, imag, n, sample_rate, num_coeffs)
   sample_rate = sample_rate or Constants.DEFAULT_SAMPLE_RATE
   num_coeffs = num_coeffs or Constants.MFCC_FILTERS
 
-  local real, imag = FFT.forward(real_in)
-  local n = #real
   local half = math.floor(n / 2)
 
   -- Power spectrum
@@ -92,6 +86,16 @@ function MFCC.compute(real_in, sample_rate, num_coeffs)
   end
 
   return mfcc
+end
+
+--- Compute MFCC vector (12 coefficients by default)
+-- @param real_in table Array of real floats (PCM block)
+-- @param sample_rate number Sample rate
+-- @param num_coeffs integer Number of coefficients (default 12)
+-- @return table MFCC vector (1-indexed array of floats)
+function MFCC.compute(real_in, sample_rate, num_coeffs)
+  local real, imag = FFT.forward(real_in)
+  return MFCC.compute_from_fft(real, imag, #real, sample_rate, num_coeffs)
 end
 
 return MFCC

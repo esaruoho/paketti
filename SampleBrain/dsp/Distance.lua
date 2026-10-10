@@ -20,10 +20,10 @@ function Distance.normalise(pcm)
   local len = #pcm
   if len == 0 then return {} end
 
-  local min_val = pcm[1]
-  local max_val = pcm[1]
+  local min_val = 1e38
+  local max_val = 0.0
 
-  for i = 2, len do
+  for i = 1, len do
     local v = pcm[i]
     if v < min_val then min_val = v end
     if v > max_val then max_val = v end

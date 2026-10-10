@@ -131,38 +131,54 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local target_blk = dec.target_blk
     local matched_blk = dec.matched_blk
 
-    local pcm_raw = matched_blk:get_pcm() or {}
-    local pcm_n = matched_blk:get_n_pcm() or pcm_raw
+    local pcm_raw = matched_blk:get_windowed_pcm() or {}
+    local pcm_n = matched_blk:get_normalized_windowed_pcm() or pcm_raw
 
-    -- Construct grain blending raw and normalized PCM, and target mix
+    local target_pcm = target_blk:get_windowed_pcm() or {}
+    local target_len = #target_pcm
+
     local grain = {}
-    local len = math.max(#pcm_raw, #pcm_n)
-    local target_pcm = target_blk:get_pcm() or {}
+    local pitch_scale = 1.0
 
-    for i = 1, len do
-      local r_s = pcm_raw[i] or 0.0
-      local n_s = pcm_n[i] or 0.0
-      local brain_sample = r_s * (1.0 - n_mix) + n_s * n_mix
-
-      local t_s = target_pcm[i] or 0.0
-      grain[i] = brain_sample * (1.0 - target_mix) + t_s * target_mix
-    end
-
-    -- Autotune pitch shifting
+    -- Autotune pitch shifting scale
     if autotune > 0 and target_blk.dominant_freq and matched_blk.dominant_freq and matched_blk.dominant_freq > 0 then
-      local pitch_scale = target_blk.dominant_freq / matched_blk.dominant_freq
+      pitch_scale = target_blk.dominant_freq / matched_blk.dominant_freq
       local max_scale = 1.0 + (autotune * autotune) * 100.0
       if pitch_scale > max_scale then pitch_scale = max_scale end
       if pitch_scale < 1.0 / max_scale then pitch_scale = 1.0 / max_scale end
+    end
 
-      grain = resample_grain(grain, pitch_scale)
+    local src_len = math.max(#pcm_raw, #pcm_n)
+    
+    -- Source cursor rendering matching upstream SampleBrain
+    for i = 1, target_len do
+      local src_pos = ((i - 1) * pitch_scale) % src_len
+      local idx0 = math.floor(src_pos)
+      local idx1 = (idx0 + 1) % src_len
+      local frac = src_pos - idx0
+
+      -- +1 for 1-based indexing in Lua
+      local s0_r = pcm_raw[idx0 + 1] or 0.0
+      local s1_r = pcm_raw[idx1 + 1] or 0.0
+      local r_s = s0_r * (1.0 - frac) + s1_r * frac
+
+      local s0_n = pcm_n[idx0 + 1] or 0.0
+      local s1_n = pcm_n[idx1 + 1] or 0.0
+      local n_s = s0_n * (1.0 - frac) + s1_n * frac
+
+      local brain_sample = r_s * (1.0 - n_mix) + n_s * n_mix
+      local t_s = target_pcm[i] or 0.0
+
+      grain[i] = brain_sample * (1.0 - target_mix) + t_s * target_mix
     end
 
     local start_frame = dec.render_step * hop + 1
-    ola:add_grain(grain, start_frame, brain_gain, window_type)
+    ola:add_grain(grain, start_frame, brain_gain, Constants.WINDOW_RECTANGLE)
   end
 
-  ola:normalize(0.98)
+  if options.normalize then
+    ola:normalize(0.98)
+  end
   return ola.buffer
 end
 

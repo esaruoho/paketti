@@ -49,6 +49,7 @@ local autotune = 0.0
 local n_mix = 0.0
 local target_mix = 0.0
 local brain_gain = 1.0
+local normalize_output = false
 
 local function update_job_ui(is_running)
   if vb and vb.views.btn_cancel then
@@ -96,7 +97,7 @@ function MainDialog.show()
         vb:row{
           spacing = 6,
           vb:text{ text = "Block:" },
-          vb:popup{ items = { "512", "1024", "2048", "4096" }, value = 2, notifier = function(v) target_settings.block_size = ({512,1024,2048,4096})[v] end },
+          vb:popup{ items = { "256", "500", "512", "768", "1000", "1024", "1500", "2048", "3000", "4096" }, value = 6, notifier = function(v) target_settings.block_size = ({256,500,512,768,1000,1024,1500,2048,3000,4096})[v] end },
           vb:text{ text = "Overlap:" },
           vb:popup{ items = { "25%", "50%", "75%" }, value = 2, notifier = function(v) target_settings.overlap = ({0.25,0.5,0.75})[v] end },
           vb:text{ text = "Window:" },
@@ -152,7 +153,7 @@ function MainDialog.show()
         vb:row{
           spacing = 6,
           vb:text{ text = "Block:" },
-          vb:popup{ items = { "512", "1024", "2048", "4096" }, value = 2, notifier = function(v) brain_settings.block_size = ({512,1024,2048,4096})[v] end },
+          vb:popup{ items = { "256", "500", "512", "768", "1000", "1024", "1500", "2048", "3000", "4096" }, value = 6, notifier = function(v) brain_settings.block_size = ({256,500,512,768,1000,1024,1500,2048,3000,4096})[v] end },
           vb:text{ text = "Overlap:" },
           vb:popup{ items = { "25%", "50%", "75%" }, value = 2, notifier = function(v) brain_settings.overlap = ({0.25,0.5,0.75})[v] end },
           vb:text{ text = "Window:" },
@@ -313,6 +314,11 @@ function MainDialog.show()
           vb:valuebox{ min = 0.0, max = 1.0, value = target_mix, step = 0.1, notifier = function(v) target_mix = v end },
           vb:text{ text = "Slide Err:" },
           vb:valuebox{ min = 0.1, max = 500.0, value = slide_error, step = 1.0, notifier = function(v) slide_error = v end }
+        },
+        vb:row{
+          spacing = 6,
+          vb:checkbox{ value = normalize_output, notifier = function(v) normalize_output = v end },
+          vb:text{ text = "Output Normalize (0.98 ceiling)" }
         }
       }
     },
@@ -368,6 +374,7 @@ function MainDialog.show()
                 autotune = autotune,
                 n_mix = n_mix,
                 target_mix = target_mix,
+                normalize = normalize_output,
                 num_synapses = num_synapses,
                 brain_gain = brain_gain,
                 job = job
