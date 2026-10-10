@@ -8,19 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**21 card conversations** plugged in:
-
-### `91b424ac-0b08-4f39-b48d-72e9193f1242`  (2026-09-05 → 2026-09-07)
-- Resume: `claude --resume 91b424ac-0b08-4f39-b48d-72e9193f1242`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/91b424ac-0b08-4f39-b48d-72e9193f1242.jsonl
-- Tooling touched: STATUS.md
-- Cards touched (1): tx16w-cyclone-images.feature
-
-### `5a50bc65-6668-49ff-8936-2e315a06a10a`  (2026-09-08)
-- Resume: `claude --resume 5a50bc65-6668-49ff-8936-2e315a06a10a`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/5a50bc65-6668-49ff-8936-2e315a06a10a.jsonl
-- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): TEMPLATE.feature, song-lifecycle-safety.feature, tx16w-cyclone-images.feature
+**19 card conversations** plugged in:
 
 ### `0e70704f-a9a4-4791-8837-eeaeff7dd35b`  (2026-09-09)
 - Resume: `claude --resume 0e70704f-a9a4-4791-8837-eeaeff7dd35b`
