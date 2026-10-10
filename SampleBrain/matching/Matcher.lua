@@ -68,7 +68,7 @@ end
 --- Basic Minimum Distance Search
 function Matcher:search_basic(target_block, options)
   local min_dist = math.huge
-  local closest_index = 1
+  local closest_index = nil
 
   for i = 1, #self.brain_blocks do
     local b = self.brain_blocks[i]
@@ -85,6 +85,10 @@ function Matcher:search_basic(target_block, options)
     end
   end
 
+  if not closest_index then
+    return nil, math.huge, "No enabled brain blocks"
+  end
+
   self:deplete_usage(options.usage_falloff)
   self.brain_blocks[closest_index].usage = (self.brain_blocks[closest_index].usage or 0) + Constants.USAGE_FACTOR
   self.current_error = min_dist
@@ -96,7 +100,7 @@ end
 --- Reversed Maximum Distance Search
 function Matcher:search_reversed(target_block, options)
   local max_dist = -1.0
-  local furthest_index = 1
+  local furthest_index = nil
 
   for i = 1, #self.brain_blocks do
     local b = self.brain_blocks[i]
@@ -111,6 +115,10 @@ function Matcher:search_reversed(target_block, options)
         furthest_index = i
       end
     end
+  end
+
+  if not furthest_index then
+    return nil, math.huge, "No enabled brain blocks"
   end
 
   self:deplete_usage(options.usage_falloff)
@@ -130,7 +138,7 @@ function Matcher:search_synaptic(target_block, options)
   end
 
   local min_dist = math.huge
-  local closest_index = self.current_block_index
+  local closest_index = nil
   local num_syn = math.min(#cur_block.synapses, options.num_synapses or Constants.DEFAULT_NUM_SYNAPSES)
 
   for s = 1, num_syn do
@@ -147,6 +155,11 @@ function Matcher:search_synaptic(target_block, options)
         closest_index = syn_idx
       end
     end
+  end
+
+  if not closest_index then
+    -- If all synapses are disabled or none valid, fallback
+    return self:search_basic(target_block, options)
   end
 
   self:deplete_usage(options.usage_falloff)

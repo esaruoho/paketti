@@ -76,7 +76,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
   -- Phase 1: Search & Decision Stream Generation
   while target_idx <= #target_blocks do
     local target_blk = target_blocks[target_idx]
-    local matched_blk, dist = matcher:search(target_blk, {
+    local matched_blk, dist, err = matcher:search(target_blk, {
       algo = algo,
       ratio = ratio,
       n_ratio = n_ratio,
@@ -88,14 +88,16 @@ function Renderer.render(brain_blocks, target_blocks, options)
       num_synapses = options.num_synapses
     })
 
-    if matched_blk then
-      decisions[#decisions + 1] = {
+    if not matched_blk then
+      return nil, err or "Matcher returned no block"
+    end
+
+    decisions[#decisions + 1] = {
         target_blk = target_blk,
         matched_blk = matched_blk,
         render_step = render_step,
         dist = dist
       }
-    end
 
     -- Target step logic (incorporating Synaptic Slide & Stretch)
     if algo == Constants.ALGO_SYNAPTIC_SLIDE then

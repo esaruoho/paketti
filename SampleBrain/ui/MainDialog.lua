@@ -26,6 +26,10 @@ local target_blocks = {}
 local brain_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN, channel_mode = Constants.CHANNEL_MIX }
 local target_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN, channel_mode = Constants.CHANNEL_MIX }
 
+local target_blocks_signature = ""
+local synapses_signature = ""
+local brain_settings_signature = ""
+
 -- Matching Settings
 local ratio = Constants.DEFAULT_RATIO
 local n_ratio = Constants.DEFAULT_N_RATIO
@@ -117,6 +121,7 @@ function MainDialog.show()
                   end,
                   function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
                   function(res)
+                    target_blocks_signature = string.format("%d_%f_%d_%d", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode)
                     vb.views.target_status.text = string.format("Target: %s (%d blocks)", res.smp_name ~= "" and res.smp_name or "Untitled", res.block_count)
                     vb.views.job_status.text = ""
                     update_job_ui(false)
@@ -160,41 +165,65 @@ function MainDialog.show()
           vb:button{
             text = "Add Current Sample to Brain", width = 180,
             notifier = function()
-              if JobRunner.is_running() then return end
               local smp = renoise.song().selected_sample
               if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
-                JobRunner.start(
-                  function(job)
-                    local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode)
-                    if not pcm then error("Failed to read sample") end
-                    
-                    local src_id = #brain_sources + 1
-                    local ref = SourceRef.create(src_id, smp.name, pcm, rate)
-                    brain_sources[src_id] = ref
-                    
-                    local start_id = #brain_blocks + 1
-                    local blocks = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
-                    for _, b in ipairs(blocks) do
-                      brain_blocks[#brain_blocks + 1] = b
-                    end
-                    synapses_built = false
-                  end,
-                  function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
-                  function()
-                    vb.views.brain_status.text = string.format("Brain: %d samples, %d total blocks", #brain_sources, #brain_blocks)
-                    vb.views.job_status.text = ""
-                    update_job_ui(false)
-                  end,
-                  function(err)
-                    vb.views.job_status.text = "Brain analysis failed."
-                    update_job_ui(false)
-                    renoise.app():show_error("Brain analysis failed: " .. tostring(err))
-                  end
-                )
-                update_job_ui(true)
+                local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode)
+                if not pcm then 
+                  renoise.app():show_warning("Failed to read sample") 
+                  return
+                end
+                
+                local src_id = #brain_sources + 1
+                local ref = SourceRef.create(src_id, smp.name, pcm, rate)
+                brain_sources[src_id] = ref
+                
+                brain_settings_signature = ""
+                vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (STALE)", #brain_sources, #brain_blocks)
               else
                 renoise.app():show_warning("Selected sample has no audio data.")
               end
+            end
+          },
+          vb:button{
+            text = "Generate / Rebuild Brain", width = 160,
+            notifier = function()
+              if JobRunner.is_running() then return end
+              if #brain_sources == 0 then
+                renoise.app():show_warning("No brain sources added.")
+                return
+              end
+              
+              JobRunner.start(
+                function(job)
+                  brain_blocks = {}
+                  local start_id = 1
+                  for i = 1, #brain_sources do
+                    local ref = brain_sources[i]
+                    if ref.enabled then
+                      local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
+                      for _, b in ipairs(blocks) do
+                        brain_blocks[#brain_blocks + 1] = b
+                      end
+                      start_id = next_id
+                    end
+                  end
+                  synapses_built = false
+                end,
+                function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
+                function()
+                  brain_settings_signature = string.format("%d_%f_%d_%d_%d", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources)
+                  vb.views.brain_status.text = string.format("Brain: %d samples, %d total blocks", #brain_sources, #brain_blocks)
+                  vb.views.job_status.text = ""
+                  update_job_ui(false)
+                end,
+                function(err)
+                  brain_settings_signature = ""
+                  vb.views.job_status.text = "Brain analysis failed."
+                  update_job_ui(false)
+                  renoise.app():show_error("Brain analysis failed: " .. tostring(err))
+                end
+              )
+              update_job_ui(true)
             end
           },
           vb:button{
@@ -204,6 +233,7 @@ function MainDialog.show()
               brain_sources = {}
               brain_blocks = {}
               synapses_built = false
+              brain_settings_signature = ""
               vb.views.brain_status.text = "Brain: Empty"
             end
           },
@@ -220,6 +250,7 @@ function MainDialog.show()
                 function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
                 function(count)
                   synapses_built = true
+                  synapses_signature = string.format("%f_%f_%d_%d", ratio, n_ratio, fft_start, fft_end)
                   vb.views.brain_status.text = string.format("Brain: %d blocks, %d synapses grown!", #brain_blocks, count)
                   vb.views.job_status.text = ""
                   update_job_ui(false)
@@ -299,11 +330,27 @@ function MainDialog.show()
             return
           end
 
+          local current_target_signature = string.format("%d_%f_%d_%d", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode)
+          if target_blocks_signature ~= current_target_signature then
+            renoise.app():show_warning("Target settings have changed. Please re-analyze the target sample before rendering.")
+            return
+          end
+
+          local current_brain_signature = string.format("%d_%f_%d_%d_%d", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources)
+          if brain_settings_signature ~= current_brain_signature then
+            renoise.app():show_warning("Brain settings or sources have changed. Please click 'Generate / Rebuild Brain' before rendering.")
+            return
+          end
+
           JobRunner.start(
             function(job)
-              if (algo == Constants.ALGO_SYNAPTIC or algo == Constants.ALGO_SYNAPTIC_SLIDE) and not synapses_built then
-                SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, fft_start, fft_end, job)
-                synapses_built = true
+              if (algo == Constants.ALGO_SYNAPTIC or algo == Constants.ALGO_SYNAPTIC_SLIDE) then
+                local current_synapse_signature = string.format("%f_%f_%d_%d", ratio, n_ratio, fft_start, fft_end)
+                if not synapses_built or synapses_signature ~= current_synapse_signature then
+                  SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, fft_start, fft_end, job)
+                  synapses_built = true
+                  synapses_signature = current_synapse_signature
+                end
               end
 
               local options = {
@@ -326,11 +373,14 @@ function MainDialog.show()
                 job = job
               }
 
-              return Renderer.render(brain_blocks, target_blocks, options)
+              local out_pcm, err = Renderer.render(brain_blocks, target_blocks, options)
+              if not out_pcm then error(err) end
+              return out_pcm
             end,
             function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
             function(out_pcm)
-              SampleWriter.write_new_instrument(out_pcm, nil, Constants.DEFAULT_SAMPLE_RATE, "SampleBrain")
+              local out_rate = target_source and target_source.sample_rate or Constants.DEFAULT_SAMPLE_RATE
+              SampleWriter.write_new_instrument(out_pcm, nil, out_rate, "SampleBrain")
               vb.views.job_status.text = string.format("Rendered %d frames.", #out_pcm)
               update_job_ui(false)
               renoise.app():show_status("SampleBrain render complete!")
