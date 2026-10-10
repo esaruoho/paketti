@@ -7,6 +7,7 @@ local BlockGenerator = require("SampleBrain.analysis.BlockGenerator")
 local SynapseBuilder = require("SampleBrain.analysis.SynapseBuilder")
 local Renderer = require("SampleBrain.render.Renderer")
 local SourceRef = require("SampleBrain.model.SourceRef")
+local JobRunner = require("SampleBrain.jobs.JobRunner")
 local Constants = require("SampleBrain.Constants")
 
 local MainDialog = {}
@@ -45,6 +46,13 @@ local n_mix = 0.0
 local target_mix = 0.0
 local brain_gain = 1.0
 
+local function update_job_ui(is_running)
+  if vb and vb.views.btn_cancel then
+    vb.views.btn_cancel.visible = is_running
+    -- Note: Disable other buttons logic could be added here
+  end
+end
+
 function MainDialog.show()
   if dialog and dialog.visible then
     dialog:show()
@@ -57,9 +65,23 @@ function MainDialog.show()
     margin = 10,
     spacing = 8,
 
-    -- Title
+    -- Title & Global Job Status
     vb:row{
-      vb:text{ text = "SAMPLEBRAIN FOR RENOISE", font = "bold", style = "strong" }
+      vb:text{ text = "SAMPLEBRAIN FOR RENOISE", font = "bold", style = "strong" },
+      vb:space{ width = 20 },
+      vb:button{
+        id = "btn_cancel",
+        text = "Cancel Job",
+        visible = false,
+        notifier = function()
+          if JobRunner.is_running() then
+            JobRunner.cancel()
+            vb.views.job_status.text = "Job cancelled."
+            update_job_ui(false)
+          end
+        end
+      },
+      vb:text{ id = "job_status", text = "", style = "italic" }
     },
 
     -- Target Section
@@ -81,14 +103,30 @@ function MainDialog.show()
           vb:button{
             text = "Set Current Sample as Target", width = 180,
             notifier = function()
+              if JobRunner.is_running() then return end
               local smp = renoise.song().selected_sample
               if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
-                local pcm, rate = SampleReader.read_mono(smp)
-                if pcm then
-                  target_source = SourceRef.create(9999, smp.name, pcm, rate)
-                  target_blocks = BlockGenerator.generate(target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1)
-                  vb.views.target_status.text = string.format("Target: %s (%d blocks)", smp.name ~= "" and smp.name or "Untitled", #target_blocks)
-                end
+                JobRunner.start(
+                  function(job)
+                    local pcm, rate = SampleReader.read_mono(smp)
+                    if not pcm then error("Failed to read sample") end
+                    target_source = SourceRef.create(9999, smp.name, pcm, rate)
+                    target_blocks = BlockGenerator.generate(target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1, job)
+                    return { smp_name = smp.name, block_count = #target_blocks }
+                  end,
+                  function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
+                  function(res)
+                    vb.views.target_status.text = string.format("Target: %s (%d blocks)", res.smp_name ~= "" and res.smp_name or "Untitled", res.block_count)
+                    vb.views.job_status.text = ""
+                    update_job_ui(false)
+                  end,
+                  function(err)
+                    vb.views.job_status.text = "Target analysis failed."
+                    update_job_ui(false)
+                    renoise.app():show_error("Target analysis failed: " .. tostring(err))
+                  end
+                )
+                update_job_ui(true)
               else
                 renoise.app():show_warning("Selected sample has no audio data.")
               end
@@ -119,29 +157,47 @@ function MainDialog.show()
           vb:button{
             text = "Add Current Sample to Brain", width = 180,
             notifier = function()
+              if JobRunner.is_running() then return end
               local smp = renoise.song().selected_sample
               if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
-                local pcm, rate = SampleReader.read_mono(smp)
-                if pcm then
-                  local src_id = #brain_sources + 1
-                  local ref = SourceRef.create(src_id, smp.name, pcm, rate)
-                  brain_sources[src_id] = ref
-                  
-                  local start_id = #brain_blocks + 1
-                  local blocks = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id)
-                  for _, b in ipairs(blocks) do
-                    brain_blocks[#brain_blocks + 1] = b
+                JobRunner.start(
+                  function(job)
+                    local pcm, rate = SampleReader.read_mono(smp)
+                    if not pcm then error("Failed to read sample") end
+                    
+                    local src_id = #brain_sources + 1
+                    local ref = SourceRef.create(src_id, smp.name, pcm, rate)
+                    brain_sources[src_id] = ref
+                    
+                    local start_id = #brain_blocks + 1
+                    local blocks = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
+                    for _, b in ipairs(blocks) do
+                      brain_blocks[#brain_blocks + 1] = b
+                    end
+                    synapses_built = false
+                  end,
+                  function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
+                  function()
+                    vb.views.brain_status.text = string.format("Brain: %d samples, %d total blocks", #brain_sources, #brain_blocks)
+                    vb.views.job_status.text = ""
+                    update_job_ui(false)
+                  end,
+                  function(err)
+                    vb.views.job_status.text = "Brain analysis failed."
+                    update_job_ui(false)
+                    renoise.app():show_error("Brain analysis failed: " .. tostring(err))
                   end
-                  
-                  synapses_built = false
-                  vb.views.brain_status.text = string.format("Brain: %d samples, %d total blocks", #brain_sources, #brain_blocks)
-                end
+                )
+                update_job_ui(true)
+              else
+                renoise.app():show_warning("Selected sample has no audio data.")
               end
             end
           },
           vb:button{
             text = "Clear Brain", width = 90,
             notifier = function()
+              if JobRunner.is_running() then return end
               brain_sources = {}
               brain_blocks = {}
               synapses_built = false
@@ -151,11 +207,28 @@ function MainDialog.show()
           vb:button{
             text = "Grow Synapses", width = 110,
             notifier = function()
+              if JobRunner.is_running() then return end
               if #brain_blocks == 0 then return end
-              local count = SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end)
-              synapses_built = true
-              vb.views.brain_status.text = string.format("Brain: %d blocks, %d synapses grown!", #brain_blocks, count)
-              renoise.app():show_status("SampleBrain: Synapses generated.")
+              
+              JobRunner.start(
+                function(job)
+                  return SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, fft_start, fft_end, job)
+                end,
+                function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
+                function(count)
+                  synapses_built = true
+                  vb.views.brain_status.text = string.format("Brain: %d blocks, %d synapses grown!", #brain_blocks, count)
+                  vb.views.job_status.text = ""
+                  update_job_ui(false)
+                  renoise.app():show_status("SampleBrain: Synapses generated.")
+                end,
+                function(err)
+                  vb.views.job_status.text = "Synapse generation failed."
+                  update_job_ui(false)
+                  renoise.app():show_error("Synapse generation failed: " .. tostring(err))
+                end
+              )
+              update_job_ui(true)
             end
           }
         },
@@ -215,39 +288,59 @@ function MainDialog.show()
         text = "Render SampleBrain Output",
         width = 200, height = 30,
         notifier = function()
+          if JobRunner.is_running() then return end
           if #target_blocks == 0 or #brain_blocks == 0 then
             renoise.app():show_warning("Need both Target and Brain samples.")
             return
           end
 
-          vb.views.render_status.text = "Rendering..."
+          JobRunner.start(
+            function(job)
+              if (algo == Constants.ALGO_SYNAPTIC or algo == Constants.ALGO_SYNAPTIC_SLIDE) and not synapses_built then
+                SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, fft_start, fft_end, job)
+                synapses_built = true
+              end
 
-          local options = {
-            block_size = target_settings.block_size,
-            overlap = target_settings.overlap,
-            window_type = target_settings.window_type,
-            ratio = ratio, n_ratio = n_ratio,
-            fft_start = fft_start, fft_end = fft_end,
-            usage_importance = usage_importance,
-            usage_falloff = usage_falloff,
-            stickiness = stickiness,
-            algo = algo,
-            stretch = stretch,
-            autotune = autotune,
-            n_mix = n_mix,
-            target_mix = target_mix,
-            num_synapses = num_synapses,
-            brain_gain = brain_gain
-          }
+              local options = {
+                block_size = target_settings.block_size,
+                overlap = target_settings.overlap,
+                window_type = target_settings.window_type,
+                ratio = ratio, n_ratio = n_ratio,
+                fft_start = fft_start, fft_end = fft_end,
+                usage_importance = usage_importance,
+                usage_falloff = usage_falloff,
+                stickiness = stickiness,
+                algo = algo,
+                stretch = stretch,
+                autotune = autotune,
+                n_mix = n_mix,
+                target_mix = target_mix,
+                num_synapses = num_synapses,
+                brain_gain = brain_gain,
+                job = job
+              }
 
-          local out_pcm = Renderer.render(brain_blocks, target_blocks, options)
-          SampleWriter.write_new_instrument(out_pcm, Constants.DEFAULT_SAMPLE_RATE, "SampleBrain")
-
-          vb.views.render_status.text = string.format("Rendered %d frames.", #out_pcm)
-          renoise.app():show_status("SampleBrain render complete!")
+              return Renderer.render(brain_blocks, target_blocks, options)
+            end,
+            function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
+            function(out_pcm)
+              SampleWriter.write_new_instrument(out_pcm, Constants.DEFAULT_SAMPLE_RATE, "SampleBrain")
+              vb.views.job_status.text = string.format("Rendered %d frames.", #out_pcm)
+              update_job_ui(false)
+              renoise.app():show_status("SampleBrain render complete!")
+              if synapses_built then
+                 vb.views.brain_status.text = string.format("Brain: %d blocks (Auto-synapses grown)", #brain_blocks)
+              end
+            end,
+            function(err)
+              vb.views.job_status.text = "Rendering failed."
+              update_job_ui(false)
+              renoise.app():show_error("Render failed: " .. tostring(err))
+            end
+          )
+          update_job_ui(true)
         end
-      },
-      vb:text{ id = "render_status", text = "Ready.", style = "italic" }
+      }
     }
   }
 

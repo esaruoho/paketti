@@ -4,6 +4,7 @@
 local Matcher = require("SampleBrain.matching.Matcher")
 local OverlapAdd = require("SampleBrain.render.OverlapAdd")
 local Constants = require("SampleBrain.Constants")
+local JobRunner = require("SampleBrain.jobs.JobRunner")
 
 local Renderer = {}
 
@@ -124,6 +125,10 @@ function Renderer.render(brain_blocks, target_blocks, options)
     end
 
     render_step = render_step + 1
+    
+    if options.job and render_step % 20 == 0 then
+      JobRunner.yield(options.job, target_idx / #target_blocks, string.format("Rendering blocks %d / %d", target_idx, #target_blocks))
+    end
 
     -- Safety check to prevent infinite loop
     if render_step > #target_blocks * stretch * 10 then

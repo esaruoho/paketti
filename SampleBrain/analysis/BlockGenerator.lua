@@ -3,6 +3,7 @@
 
 local Block = require("SampleBrain.model.Block")
 local Constants = require("SampleBrain.Constants")
+local JobRunner = require("SampleBrain.jobs.JobRunner")
 
 local BlockGenerator = {}
 
@@ -12,9 +13,10 @@ local BlockGenerator = {}
 -- @param overlap number Overlap fraction 0.0..0.9 (default 0.5)
 -- @param window_type integer Window type constant
 -- @param start_id integer Starting ID for generated blocks (default 1)
+-- @param job table Optional job object for yielding
 -- @return table Array of Block instances
 -- @return integer Next available block ID
-function BlockGenerator.generate(source_ref, block_size, overlap, window_type, start_id)
+function BlockGenerator.generate(source_ref, block_size, overlap, window_type, start_id, job)
   block_size = block_size or Constants.DEFAULT_BLOCK_SIZE
   overlap = overlap or Constants.DEFAULT_OVERLAP
   window_type = window_type or Constants.WINDOW_HANN
@@ -26,6 +28,7 @@ function BlockGenerator.generate(source_ref, block_size, overlap, window_type, s
   
   local pos = 1
   local source_block_index = 1
+  local count = 0
   
   while pos + block_size - 1 <= total_samples do
     local blk = Block.create(block_id, source_ref, source_block_index, pos, block_size, window_type)
@@ -34,6 +37,11 @@ function BlockGenerator.generate(source_ref, block_size, overlap, window_type, s
     block_id = block_id + 1
     source_block_index = source_block_index + 1
     pos = pos + hop
+    count = count + 1
+
+    if job and count % 20 == 0 then
+      JobRunner.yield(job, pos / total_samples, string.format("Analyzing block %d...", source_block_index))
+    end
   end
 
   return blocks, block_id

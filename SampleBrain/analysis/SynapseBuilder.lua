@@ -3,6 +3,7 @@
 
 local Distance = require("SampleBrain.dsp.Distance")
 local Constants = require("SampleBrain.Constants")
+local JobRunner = require("SampleBrain.jobs.JobRunner")
 
 local SynapseBuilder = {}
 
@@ -13,8 +14,9 @@ local SynapseBuilder = {}
 -- @param n_ratio number Raw/Norm mix ratio
 -- @param fft_start integer Optional FFT start bin
 -- @param fft_end integer Optional FFT end bin
+-- @param job table Optional job object for yielding
 -- @return integer Total synapses created
-function SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, fft_start, fft_end)
+function SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, fft_start, fft_end, job)
   num_synapses = math.min(num_synapses or Constants.DEFAULT_NUM_SYNAPSES, 1000)
   ratio = ratio or Constants.DEFAULT_RATIO
   n_ratio = n_ratio or Constants.DEFAULT_N_RATIO
@@ -49,6 +51,10 @@ function SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, 
       end
 
       total_synapses_created = total_synapses_created + #block_a.synapses
+    end
+
+    if job and i % 10 == 0 then
+      JobRunner.yield(job, i / total_blocks, string.format("Building synapses %d%%", math.floor(i / total_blocks * 100)))
     end
   end
 
