@@ -9,4 +9,10 @@ function Init.show_dialog()
   MainDialog.show()
 end
 
+if renoise and renoise.tool then
+  renoise.tool().app_new_document_observable:add_notifier(function()
+    MainDialog.reset_state()
+  end)
+end
+
 return Init

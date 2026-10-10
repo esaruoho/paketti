@@ -8,6 +8,7 @@ local SynapseBuilder = require("SampleBrain.analysis.SynapseBuilder")
 local Renderer = require("SampleBrain.render.Renderer")
 local SourceRef = require("SampleBrain.model.SourceRef")
 local JobRunner = require("SampleBrain.jobs.JobRunner")
+local Session = require("SampleBrain.persistence.Session")
 local Constants = require("SampleBrain.Constants")
 
 local MainDialog = {}
@@ -23,8 +24,8 @@ local target_source = nil
 local target_blocks = {}
 
 -- Separate Analysis Settings
-local brain_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN, channel_mode = Constants.CHANNEL_MIX }
-local target_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN, channel_mode = Constants.CHANNEL_MIX }
+local brain_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN, channel_mode = Constants.CHANNEL_MIX, use_selection = false }
+local target_settings = { block_size = 1024, overlap = 0.5, window_type = Constants.WINDOW_HANN, channel_mode = Constants.CHANNEL_MIX, use_selection = false }
 
 local target_blocks_signature = ""
 local synapses_signature = ""
@@ -54,6 +55,27 @@ local normalize_output = false
 local function update_job_ui(is_running)
   if vb and vb.views.btn_cancel then
     vb.views.btn_cancel.visible = is_running
+  end
+end
+
+function MainDialog.reset_state()
+  JobRunner.cancel()
+  brain_sources = {}
+  brain_blocks = {}
+  target_source = nil
+  target_blocks = {}
+  target_blocks_signature = ""
+  synapses_signature = ""
+  brain_settings_signature = ""
+  synapses_built = false
+  if vb and vb.views.brain_status then
+    vb.views.brain_status.text = "Brain: Empty"
+  end
+  if vb and vb.views.target_status then
+    vb.views.target_status.text = "Target: None selected"
+  end
+  if vb and vb.views.job_status then
+    vb.views.job_status.text = "Reset on new document."
   end
 end
 
@@ -103,7 +125,9 @@ function MainDialog.show()
           vb:text{ text = "Window:" },
           vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, notifier = function(v) target_settings.window_type = v end },
           vb:text{ text = "Channel:" },
-          vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, notifier = function(v) target_settings.channel_mode = v end }
+          vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, notifier = function(v) target_settings.channel_mode = v end },
+          vb:checkbox{ value = target_settings.use_selection, notifier = function(v) target_settings.use_selection = v end },
+          vb:text{ text = "Selection Only" }
         },
         vb:row{
           vb:button{
@@ -114,7 +138,7 @@ function MainDialog.show()
               if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
                 JobRunner.start(
                   function(job)
-                    local pcm, rate = SampleReader.read_channel(smp, target_settings.channel_mode)
+                    local pcm, rate = SampleReader.read_channel(smp, target_settings.channel_mode, target_settings.use_selection)
                     if not pcm then error("Failed to read sample") end
                     target_source = SourceRef.create(9999, smp.name, pcm, rate)
                     target_blocks = BlockGenerator.generate(target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1, job)
@@ -159,16 +183,18 @@ function MainDialog.show()
           vb:text{ text = "Window:" },
           vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, notifier = function(v) brain_settings.window_type = v end },
           vb:text{ text = "Channel:" },
-          vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, notifier = function(v) brain_settings.channel_mode = v end }
+          vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, notifier = function(v) brain_settings.channel_mode = v end },
+          vb:checkbox{ value = brain_settings.use_selection, notifier = function(v) brain_settings.use_selection = v end },
+          vb:text{ text = "Selection Only" }
         },
         vb:row{
           spacing = 6,
           vb:button{
-            text = "Add Current Sample to Brain", width = 180,
+            text = "Add Current Sample", width = 130,
             notifier = function()
               local smp = renoise.song().selected_sample
               if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
-                local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode)
+                local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
                 if not pcm then 
                   renoise.app():show_warning("Failed to read sample") 
                   return
@@ -185,6 +211,49 @@ function MainDialog.show()
               end
             end
           },
+          vb:button{
+            text = "Add Instrument Samples", width = 140,
+            notifier = function()
+              local inst = renoise.song().selected_instrument
+              if not inst then return end
+              local count = 0
+              for _, smp in ipairs(inst.samples) do
+                if smp.sample_buffer and smp.sample_buffer.has_sample_data then
+                  local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
+                  if pcm then
+                    local src_id = #brain_sources + 1
+                    brain_sources[src_id] = SourceRef.create(src_id, smp.name, pcm, rate)
+                    count = count + 1
+                  end
+                end
+              end
+              brain_settings_signature = ""
+              vb.views.brain_status.text = string.format("Brain: %d sources (+%d), %d blocks (STALE)", #brain_sources, count, #brain_blocks)
+            end
+          },
+          vb:button{
+            text = "Add All Song Samples", width = 140,
+            notifier = function()
+              local count = 0
+              for _, inst in ipairs(renoise.song().instruments) do
+                for _, smp in ipairs(inst.samples) do
+                  if smp.sample_buffer and smp.sample_buffer.has_sample_data then
+                    local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
+                    if pcm then
+                      local src_id = #brain_sources + 1
+                      brain_sources[src_id] = SourceRef.create(src_id, smp.name ~= "" and smp.name or "Untitled", pcm, rate)
+                      count = count + 1
+                    end
+                  end
+                end
+              end
+              brain_settings_signature = ""
+              vb.views.brain_status.text = string.format("Brain: %d sources (+%d), %d blocks (STALE)", #brain_sources, count, #brain_blocks)
+            end
+          }
+        },
+        vb:row{
+          spacing = 6,
           vb:button{
             text = "Generate / Rebuild Brain", width = 160,
             notifier = function()
@@ -323,7 +392,7 @@ function MainDialog.show()
       }
     },
 
-    -- Render Action
+    -- Render Action & Persistence
     vb:row{
       spacing = 10,
       vb:button{
@@ -402,6 +471,71 @@ function MainDialog.show()
             end
           )
           update_job_ui(true)
+        end
+      },
+      vb:button{
+        text = "Save Session...",
+        width = 110, height = 30,
+        notifier = function()
+          local path = renoise.app():prompt_for_filename_to_write("sb_session", "Save SampleBrain Session")
+          if path ~= "" then
+            local state = {
+              version = 1,
+              brain_settings = brain_settings,
+              target_settings = target_settings,
+              params = {
+                ratio = ratio, n_ratio = n_ratio,
+                fft_start = fft_start, fft_end = fft_end,
+                usage_importance = usage_importance,
+                usage_falloff = usage_falloff,
+                stickiness = stickiness,
+                slide_error = slide_error,
+                algo = algo, stretch = stretch,
+                autotune = autotune, n_mix = n_mix,
+                target_mix = target_mix,
+                normalize_output = normalize_output
+              }
+            }
+            local ok, err = Session.save(path, state)
+            if ok then
+              renoise.app():show_status("SampleBrain session saved successfully.")
+            else
+              renoise.app():show_error("Failed to save session: " .. tostring(err))
+            end
+          end
+        end
+      },
+      vb:button{
+        text = "Load Session...",
+        width = 110, height = 30,
+        notifier = function()
+          local path = renoise.app():prompt_for_filename_to_read({ "*.sb_session", "*.txt" }, "Load SampleBrain Session")
+          if path ~= "" then
+            local state, err = Session.load(path)
+            if state and state.params then
+              ratio = state.params.ratio or ratio
+              n_ratio = state.params.n_ratio or n_ratio
+              fft_start = state.params.fft_start or fft_start
+              fft_end = state.params.fft_end or fft_end
+              usage_importance = state.params.usage_importance or usage_importance
+              usage_falloff = state.params.usage_falloff or usage_falloff
+              stickiness = state.params.stickiness or stickiness
+              slide_error = state.params.slide_error or slide_error
+              algo = state.params.algo or algo
+              stretch = state.params.stretch or stretch
+              autotune = state.params.autotune or autotune
+              n_mix = state.params.n_mix or n_mix
+              target_mix = state.params.target_mix or target_mix
+              normalize_output = state.params.normalize_output or false
+              
+              if state.brain_settings then brain_settings = state.brain_settings end
+              if state.target_settings then target_settings = state.target_settings end
+              
+              renoise.app():show_status("SampleBrain session loaded successfully.")
+            else
+              renoise.app():show_error("Failed to load session: " .. tostring(err))
+            end
+          end
         end
       }
     }

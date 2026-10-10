@@ -75,14 +75,20 @@ function MFCC.compute_from_fft(real, imag, n, sample_rate, num_coeffs)
     energies[m] = math.log(math.max(sum, 1e-12))
   end
 
-  -- Discrete Cosine Transform (DCT-II)
+  -- Discrete Cosine Transform (DCT-II) matching Aquila Dct::dct scaling
+  local c0 = math.sqrt(1.0 / num_coeffs)
+  local cn = math.sqrt(2.0 / num_coeffs)
+
   local mfcc = {}
   for i = 1, num_coeffs do
+    local n_idx = i - 1
     local sum = 0.0
     for j = 1, num_coeffs do
-      sum = sum + energies[j] * math.cos(math.pi * (i - 1) * (j - 0.5) / num_coeffs)
+      local k_idx = j - 1
+      sum = sum + energies[j] * math.cos((math.pi * (2 * k_idx + 1) * n_idx) / (2.0 * num_coeffs))
     end
-    mfcc[i] = sum
+    local scale = (n_idx == 0) and c0 or cn
+    mfcc[i] = sum * scale
   end
 
   return mfcc
