@@ -29,29 +29,25 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
 
   for i = 1, total_blocks do
     local block_a = brain_blocks[i]
-    if block_a.source_ref.enabled then
-      local candidates = {}
+    local candidates = {}
 
-      for j = 1, total_blocks do
-        if i ~= j then
-          local block_b = brain_blocks[j]
-          if block_b.source_ref.enabled then
-            local dist = Distance.compare_blocks(block_a, block_b, ratio, n_ratio, 0.0, fft_start, fft_end)
-            candidates[#candidates + 1] = { index = j, distance = dist }
-          end
-        end
+    for j = 1, total_blocks do
+      if i ~= j then
+        local block_b = brain_blocks[j]
+        local dist = Distance.compare_blocks(block_a, block_b, ratio, n_ratio, 0.0, fft_start, fft_end)
+        candidates[#candidates + 1] = { index = j, distance = dist }
       end
-
-      table.sort(candidates, function(a, b) return a.distance < b.distance end)
-
-      block_a.synapses = {}
-      local num_to_store = math.min(num_to_store_limit, #candidates)
-      for n = 1, num_to_store do
-        block_a.synapses[n] = candidates[n].index
-      end
-
-      total_synapses_created = total_synapses_created + #block_a.synapses
     end
+
+    table.sort(candidates, function(a, b) return a.distance < b.distance end)
+
+    block_a.synapses = {}
+    local num_to_store = math.min(num_to_store_limit, #candidates)
+    for n = 1, num_to_store do
+      block_a.synapses[n] = candidates[n].index
+    end
+
+    total_synapses_created = total_synapses_created + #block_a.synapses
 
     if job and i % 10 == 0 then
       JobRunner.yield(job, i / total_blocks, string.format("Building synapses %d%%", math.floor(i / total_blocks * 100)))

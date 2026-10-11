@@ -100,4 +100,19 @@ for algo_id, algo_name in ipairs({ "Basic", "Reversed", "Synaptic", "Synaptic Sl
   print(string.format("[PASS] Render mode %s (%d frames output)", algo_name, #out_pcm))
 end
 
+-- Test 9: Safe Session Serialization
+local Session = require("SampleBrain.persistence.Session")
+local test_state = {
+  version = 1,
+  params = { ratio = 0.7, stickiness = 0.25, is_active = true, name = "Test Session" }
+}
+local tmp_path = "/tmp/test_samplebrain_session.sb_session"
+local save_ok = Session.save(tmp_path, test_state)
+assert(save_ok, "Session save failed")
+
+local loaded_state = Session.load(tmp_path)
+assert(loaded_state ~= nil and loaded_state.params.ratio == 0.7 and loaded_state.params.is_active == true, "Safe Session load failed")
+os.remove(tmp_path)
+print("[PASS] Safe Session serialization (save & safe load)")
+
 print("\nALL SAMPLEBRAIN SYSTEM TESTS PASSED SUCCESSFULLY!")

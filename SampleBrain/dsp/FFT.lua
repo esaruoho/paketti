@@ -190,7 +190,7 @@ function FFT.samplebrain_spectrum_from_fft(real, n, output_bins)
   local bins = {}
   for b = 1, output_bins do
     local start_idx = math.floor((b - 1) / output_bins * half) + 1
-    local end_idx = math.floor(b / output_bins * half)
+    local end_idx = math.floor(b / output_bins * half) + 1
     if end_idx < start_idx then end_idx = start_idx end
 
     local sum_val = 0.0

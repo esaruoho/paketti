@@ -34,9 +34,7 @@ function Matcher:deplete_usage(falloff)
   falloff = falloff or Constants.USAGE_FALLOFF
   for i = 1, #self.brain_blocks do
     local b = self.brain_blocks[i]
-    if b.source_ref.enabled then
-      b.usage = (b.usage or 0.0) * falloff
-    end
+    b.usage = (b.usage or 0.0) * falloff
   end
 end
 

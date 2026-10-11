@@ -9,20 +9,36 @@ SourceRef.__index = SourceRef
 -- @param name string Display name for the source
 -- @param pcm table The full PCM float array for the entire source
 -- @param sample_rate number Sample rate
--- @param range_start number (Optional) 1-based start frame in PCM
--- @param range_end number (Optional) 1-based end frame in PCM
-function SourceRef.create(id, name, pcm, sample_rate, range_start, range_end)
+-- @param renoise_sample renoise.Sample (Optional) Renoise sample reference for re-reading
+function SourceRef.create(id, name, pcm, sample_rate, renoise_sample)
   local self_obj = setmetatable({
     id = id,
     name = name,
     pcm = pcm,
     sample_rate = sample_rate,
-    range_start = range_start or 1,
-    range_end = range_end or #pcm,
+    renoise_sample = renoise_sample,
+    range_start = 1,
+    range_end = #pcm,
     enabled = true
   }, SourceRef)
   
   return self_obj
+end
+
+--- Re-read source PCM buffer from Renoise using current settings
+-- @param channel_mode integer Channel mode
+-- @param use_selection boolean Selection flag
+function SourceRef:reload(channel_mode, use_selection)
+  if self.renoise_sample then
+    local SampleReader = require("SampleBrain.renoise.SampleReader")
+    local pcm, rate = SampleReader.read_channel(self.renoise_sample, channel_mode, use_selection)
+    if pcm then
+      self.pcm = pcm
+      self.sample_rate = rate
+      self.range_start = 1
+      self.range_end = #pcm
+    end
+  end
 end
 
 --- Get a slice of PCM data from this source

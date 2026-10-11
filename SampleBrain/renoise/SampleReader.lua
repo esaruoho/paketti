@@ -24,9 +24,13 @@ function SampleReader.read_channel(renoise_sample, channel_mode, use_selection)
   local start_frame = 1
   local end_frame = buffer.number_of_frames
 
-  if use_selection and renoise_sample.selection_range and #renoise_sample.selection_range == 2 then
-    start_frame = math.max(1, renoise_sample.selection_range[1])
-    end_frame = math.min(buffer.number_of_frames, renoise_sample.selection_range[2])
+  if use_selection then
+    local s = buffer.selection_start
+    local e = buffer.selection_end
+    if s and e and e >= s and s > 0 then
+      start_frame = s
+      end_frame = math.min(buffer.number_of_frames, e)
+    end
   end
 
   local num_channels = buffer.number_of_channels

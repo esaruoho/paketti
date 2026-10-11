@@ -201,7 +201,7 @@ function MainDialog.show()
                 end
                 
                 local src_id = #brain_sources + 1
-                local ref = SourceRef.create(src_id, smp.name, pcm, rate)
+                local ref = SourceRef.create(src_id, smp.name, pcm, rate, smp)
                 brain_sources[src_id] = ref
                 
                 brain_settings_signature = ""
@@ -222,7 +222,7 @@ function MainDialog.show()
                   local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
                   if pcm then
                     local src_id = #brain_sources + 1
-                    brain_sources[src_id] = SourceRef.create(src_id, smp.name, pcm, rate)
+                    brain_sources[src_id] = SourceRef.create(src_id, smp.name, pcm, rate, smp)
                     count = count + 1
                   end
                 end
@@ -241,7 +241,7 @@ function MainDialog.show()
                     local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
                     if pcm then
                       local src_id = #brain_sources + 1
-                      brain_sources[src_id] = SourceRef.create(src_id, smp.name ~= "" and smp.name or "Untitled", pcm, rate)
+                      brain_sources[src_id] = SourceRef.create(src_id, smp.name ~= "" and smp.name or "Untitled", pcm, rate, smp)
                       count = count + 1
                     end
                   end
@@ -270,6 +270,7 @@ function MainDialog.show()
                   for i = 1, #brain_sources do
                     local ref = brain_sources[i]
                     if ref.enabled then
+                      ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
                       local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
                       for _, b in ipairs(blocks) do
                         brain_blocks[#brain_blocks + 1] = b
