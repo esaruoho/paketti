@@ -19,6 +19,15 @@ function OverlapAdd.create(total_frames)
   }, OverlapAdd)
 end
 
+function OverlapAdd:resize(new_length)
+  if new_length > self.length then
+    for i = self.length + 1, new_length do
+      self.buffer[i] = 0.0
+    end
+    self.length = new_length
+  end
+end
+
 --- Add a windowed grain block into output buffer at start_frame
 -- @param grain_pcm table Array of float PCM
 -- @param start_frame integer 1-based start frame in buffer

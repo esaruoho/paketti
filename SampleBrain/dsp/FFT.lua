@@ -186,6 +186,7 @@ end
 function FFT.samplebrain_spectrum_from_fft(real, n, output_bins)
   output_bins = output_bins or 100
   local half = math.floor(n / 2)
+  local valid_bins = half + 1 -- include Nyquist bin
 
   local bins = {}
   for b = 1, output_bins do
@@ -195,7 +196,7 @@ function FFT.samplebrain_spectrum_from_fft(real, n, output_bins)
 
     local sum_val = 0.0
     for i = start_idx, end_idx do
-      if i <= half then
+      if i <= valid_bins then
         sum_val = sum_val + (real[i] * real[i])
       end
     end

@@ -149,13 +149,18 @@ function Renderer.render(brain_blocks, target_blocks, options)
     end
 
     local src_len = math.max(#pcm_raw, #pcm_n)
-    
-    -- Source cursor rendering matching upstream SampleBrain
-    for i = 1, target_len do
-      local src_pos = ((i - 1) * pitch_scale) % src_len
-      local idx0 = math.floor(src_pos)
+    local max_output_len = math.max(target_len, src_len * 2) -- safeguard for long stretched tails
+
+    -- Upstream Source Cursor Rendering Semantics
+    -- Render event duration matches the source block's lifespan. 
+    -- The cursor wraps around the source until output duration passes the source block's length.
+    local source_position = 0.0
+    local block_pos = 0
+
+    while source_position < src_len and block_pos < max_output_len do
+      local idx0 = math.floor(source_position)
       local idx1 = (idx0 + 1) % src_len
-      local frac = src_pos - idx0
+      local frac = source_position - idx0
 
       -- +1 for 1-based indexing in Lua
       local s0_r = pcm_raw[idx0 + 1] or 0.0
@@ -167,12 +172,31 @@ function Renderer.render(brain_blocks, target_blocks, options)
       local n_s = s0_n * (1.0 - frac) + s1_n * frac
 
       local brain_sample = r_s * (1.0 - n_mix) + n_s * n_mix
-      local t_s = target_pcm[i] or 0.0
+      local t_s = 0.0
 
-      grain[i] = brain_sample * (1.0 - target_mix) + t_s * target_mix
+      if block_pos < target_len then
+        t_s = target_pcm[block_pos + 1] or 0.0
+      end
+
+      grain[block_pos + 1] = brain_sample * (1.0 - target_mix) + t_s * target_mix
+
+      source_position = source_position + pitch_scale
+
+      if block_pos < src_len and source_position >= src_len then
+        source_position = source_position % src_len
+      end
+
+      block_pos = block_pos + 1
     end
 
+    -- Update total bounds based on actual rendered grain tails
     local start_frame = dec.render_step * hop + 1
+    local end_frame = start_frame + #grain - 1
+    if end_frame > total_output_frames then
+      total_output_frames = end_frame
+      ola:resize(total_output_frames)
+    end
+
     ola:add_grain(grain, start_frame, brain_gain, Constants.WINDOW_RECTANGLE)
   end
 
