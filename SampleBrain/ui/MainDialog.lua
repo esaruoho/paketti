@@ -146,7 +146,7 @@ function MainDialog.show()
                   end,
                   function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
                   function(res)
-                    target_blocks_signature = string.format("%d_%f_%d_%d", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode)
+                    target_blocks_signature = string.format("%d_%f_%d_%d_%s", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode, tostring(target_settings.use_selection))
                     vb.views.target_status.text = string.format("Target: %s (%d blocks)", res.smp_name ~= "" and res.smp_name or "Untitled", res.block_count)
                     vb.views.job_status.text = ""
                     update_job_ui(false)
@@ -265,7 +265,7 @@ function MainDialog.show()
               
               JobRunner.start(
                 function(job)
-                  brain_blocks = {}
+                  local temp_blocks = {}
                   local start_id = 1
                   for i = 1, #brain_sources do
                     local ref = brain_sources[i]
@@ -273,16 +273,18 @@ function MainDialog.show()
                       ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
                       local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
                       for _, b in ipairs(blocks) do
-                        brain_blocks[#brain_blocks + 1] = b
+                        temp_blocks[#temp_blocks + 1] = b
                       end
                       start_id = next_id
                     end
                   end
-                  synapses_built = false
+                  return temp_blocks
                 end,
                 function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
-                function()
-                  brain_settings_signature = string.format("%d_%f_%d_%d_%d", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources)
+                function(temp_blocks)
+                  brain_blocks = temp_blocks
+                  synapses_built = false
+                  brain_settings_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
                   vb.views.brain_status.text = string.format("Brain: %d samples, %d total blocks", #brain_sources, #brain_blocks)
                   vb.views.job_status.text = ""
                   update_job_ui(false)
@@ -406,13 +408,13 @@ function MainDialog.show()
             return
           end
 
-          local current_target_signature = string.format("%d_%f_%d_%d", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode)
+          local current_target_signature = string.format("%d_%f_%d_%d_%s", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode, tostring(target_settings.use_selection))
           if target_blocks_signature ~= current_target_signature then
             renoise.app():show_warning("Target settings have changed. Please re-analyze the target sample before rendering.")
             return
           end
 
-          local current_brain_signature = string.format("%d_%f_%d_%d_%d", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources)
+          local current_brain_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
           if brain_settings_signature ~= current_brain_signature then
             renoise.app():show_warning("Brain settings or sources have changed. Please click 'Generate / Rebuild Brain' before rendering.")
             return
