@@ -195,16 +195,27 @@ function MainDialog.show()
           vb:button{
             text = "Add Current Sample", width = 130,
             notifier = function()
-              local smp = renoise.song().selected_sample
+              local song = renoise.song()
+              local inst = song.selected_instrument
+              local smp = song.selected_sample
               if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
+                local inst_idx = song.selected_instrument_index
+                local smp_idx = song.selected_sample_index
                 local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
                 if not pcm then 
                   renoise.app():show_warning("Failed to read sample") 
                   return
                 end
                 
+                -- Capture exact start/end based on selection mode
+                local s_start, s_end = 1, smp.sample_buffer.number_of_frames
+                if brain_settings.use_selection and smp.sample_buffer.selection_start > 0 and smp.sample_buffer.selection_end > 0 then
+                  s_start = smp.sample_buffer.selection_start
+                  s_end = smp.sample_buffer.selection_end
+                end
+
                 local src_id = #brain_sources + 1
-                local ref = SourceRef.create(src_id, smp.name, pcm, rate, smp)
+                local ref = SourceRef.create(src_id, smp.name, pcm, rate, inst_idx, smp_idx, s_start, s_end)
                 brain_sources[src_id] = ref
                 
                 brain_settings_signature = ""
@@ -217,15 +228,23 @@ function MainDialog.show()
           vb:button{
             text = "Add Instrument Samples", width = 140,
             notifier = function()
-              local inst = renoise.song().selected_instrument
+              local song = renoise.song()
+              local inst = song.selected_instrument
               if not inst then return end
+              local inst_idx = song.selected_instrument_index
               local count = 0
-              for _, smp in ipairs(inst.samples) do
+              for smp_idx, smp in ipairs(inst.samples) do
                 if smp.sample_buffer and smp.sample_buffer.has_sample_data then
                   local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
                   if pcm then
+                    local s_start, s_end = 1, smp.sample_buffer.number_of_frames
+                    if brain_settings.use_selection and smp.sample_buffer.selection_start > 0 and smp.sample_buffer.selection_end > 0 then
+                      s_start = smp.sample_buffer.selection_start
+                      s_end = smp.sample_buffer.selection_end
+                    end
+
                     local src_id = #brain_sources + 1
-                    brain_sources[src_id] = SourceRef.create(src_id, smp.name, pcm, rate, smp)
+                    brain_sources[src_id] = SourceRef.create(src_id, smp.name, pcm, rate, inst_idx, smp_idx, s_start, s_end)
                     count = count + 1
                   end
                 end
@@ -237,14 +256,21 @@ function MainDialog.show()
           vb:button{
             text = "Add All Song Samples", width = 140,
             notifier = function()
+              local song = renoise.song()
               local count = 0
-              for _, inst in ipairs(renoise.song().instruments) do
-                for _, smp in ipairs(inst.samples) do
+              for inst_idx, inst in ipairs(song.instruments) do
+                for smp_idx, smp in ipairs(inst.samples) do
                   if smp.sample_buffer and smp.sample_buffer.has_sample_data then
                     local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
                     if pcm then
+                      local s_start, s_end = 1, smp.sample_buffer.number_of_frames
+                      if brain_settings.use_selection and smp.sample_buffer.selection_start > 0 and smp.sample_buffer.selection_end > 0 then
+                        s_start = smp.sample_buffer.selection_start
+                        s_end = smp.sample_buffer.selection_end
+                      end
+
                       local src_id = #brain_sources + 1
-                      brain_sources[src_id] = SourceRef.create(src_id, smp.name ~= "" and smp.name or "Untitled", pcm, rate, smp)
+                      brain_sources[src_id] = SourceRef.create(src_id, smp.name ~= "" and smp.name or "Untitled", pcm, rate, inst_idx, smp_idx, s_start, s_end)
                       count = count + 1
                     end
                   end

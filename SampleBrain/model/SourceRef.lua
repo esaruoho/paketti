@@ -9,16 +9,18 @@ SourceRef.__index = SourceRef
 -- @param name string Display name for the source
 -- @param pcm table The full PCM float array for the entire source
 -- @param sample_rate number Sample rate
--- @param renoise_sample renoise.Sample (Optional) Renoise sample reference for re-reading
+-- @param instrument_index integer (Optional) Renoise instrument index
+-- @param sample_index integer (Optional) Renoise sample index
 -- @param range_start number Fixed selection start captured at add time
 -- @param range_end number Fixed selection end captured at add time
-function SourceRef.create(id, name, pcm, sample_rate, renoise_sample, range_start, range_end)
+function SourceRef.create(id, name, pcm, sample_rate, instrument_index, sample_index, range_start, range_end)
   local self_obj = setmetatable({
     id = id,
     name = name,
     pcm = pcm,
     sample_rate = sample_rate,
-    renoise_sample = renoise_sample,
+    instrument_index = instrument_index,
+    sample_index = sample_index,
     -- Store the explicit bounds provided when added.
     -- Default to the size of the PCM array if none provided.
     captured_range_start = range_start or 1,
@@ -31,19 +33,36 @@ function SourceRef.create(id, name, pcm, sample_rate, renoise_sample, range_star
   return self_obj
 end
 
+--- Get the Renoise Sample object, if valid
+function SourceRef:get_renoise_sample()
+  if not self.instrument_index or not self.sample_index then return nil end
+  if not renoise or not renoise.song then return nil end
+  local song = renoise.song()
+  local inst = song.instruments[self.instrument_index]
+  if not inst then return nil end
+  local smp = inst.samples[self.sample_index]
+  if not smp then return nil end
+  if smp.name ~= self.name then
+    -- Optional fallback warning if reordered, but for now we trust the indices.
+    -- To be robust against reorders, we'd loop instruments/samples seeking id/name pairs.
+  end
+  return smp
+end
+
 --- Re-read source PCM buffer from Renoise using current settings
 -- @param channel_mode integer Channel mode
 -- @param use_selection boolean Selection flag
 function SourceRef:reload(channel_mode, use_selection)
-  if self.renoise_sample then
+  local smp = self:get_renoise_sample()
+  if smp then
     local SampleReader = require("SampleBrain.renoise.SampleReader")
     
     -- When reloading, use the exact range captured when the sample was added,
     -- UNLESS the user explicitly toggled "Selection Only" off, in which case we read the whole buffer.
     local start_f = use_selection and self.captured_range_start or 1
-    local end_f = use_selection and self.captured_range_end or self.renoise_sample.sample_buffer.number_of_frames
+    local end_f = use_selection and self.captured_range_end or smp.sample_buffer.number_of_frames
 
-    local pcm, rate = SampleReader.read_channel_exact(self.renoise_sample, channel_mode, start_f, end_f)
+    local pcm, rate = SampleReader.read_channel_exact(smp, channel_mode, start_f, end_f)
     if pcm then
       self.pcm = pcm
       self.sample_rate = rate
