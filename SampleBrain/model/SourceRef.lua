@@ -33,7 +33,7 @@ function SourceRef.create(id, name, pcm, sample_rate, instrument_index, sample_i
   return self_obj
 end
 
---- Get the Renoise Sample object, if valid
+--- Get the Renoise Sample object, if valid and identity matches
 function SourceRef:get_renoise_sample()
   if not self.instrument_index or not self.sample_index then return nil end
   if not renoise or not renoise.song then return nil end
@@ -42,9 +42,10 @@ function SourceRef:get_renoise_sample()
   if not inst then return nil end
   local smp = inst.samples[self.sample_index]
   if not smp then return nil end
-  if smp.name ~= self.name then
-    -- Optional fallback warning if reordered, but for now we trust the indices.
-    -- To be robust against reorders, we'd loop instruments/samples seeking id/name pairs.
+  
+  -- Validate sample identity by name to prevent reading the wrong sample after structural edits
+  if self.name and self.name ~= "" and smp.name ~= self.name then
+    return nil
   end
   return smp
 end

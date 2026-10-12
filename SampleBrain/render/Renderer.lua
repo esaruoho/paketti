@@ -73,6 +73,9 @@ function Renderer.render(brain_blocks, target_blocks, options)
   local target_idx = 1
   local render_step = 0
 
+  local slide_attempts = 0
+  local max_slide_attempts = options.max_slide_attempts or 100
+
   -- Phase 1: Search & Decision Stream Generation
   while target_idx <= #target_blocks do
     local target_blk = target_blocks[target_idx]
@@ -93,16 +96,23 @@ function Renderer.render(brain_blocks, target_blocks, options)
     end
 
     decisions[#decisions + 1] = {
-        target_blk = target_blk,
-        matched_blk = matched_blk,
-        render_step = render_step,
-        dist = dist
-      }
+      target_blk = target_blk,
+      matched_blk = matched_blk,
+      render_step = render_step,
+      dist = dist
+    }
 
     -- Target step logic (incorporating Synaptic Slide & Stretch)
     if algo == Constants.ALGO_SYNAPTIC_SLIDE then
-      if matcher.current_error < slide_error and (render_step % stretch == 0) then
+      if slide_attempts >= max_slide_attempts then
+        -- Force target advance if slide_error threshold cannot be satisfied within repeat limit
         target_idx = target_idx + 1
+        slide_attempts = 0
+      elseif matcher.current_error < slide_error and (render_step % stretch == 0) then
+        target_idx = target_idx + 1
+        slide_attempts = 0
+      else
+        slide_attempts = slide_attempts + 1
       end
     else
       if render_step % stretch == 0 then
@@ -114,11 +124,6 @@ function Renderer.render(brain_blocks, target_blocks, options)
 
     if options.job then
       JobRunner.yield(options.job, target_idx / #target_blocks, string.format("Matching block %d / %d", target_idx, #target_blocks), false)
-    end
-
-    -- Safety check to prevent infinite loop in slide mode
-    if render_step > #target_blocks * stretch * 10 then
-      break
     end
   end
 
@@ -198,9 +203,9 @@ function Renderer.render(brain_blocks, target_blocks, options)
 
       block_pos = block_pos + 1
 
-      -- Dynamic rate-aware watchdog cap derived from cursor_step
-      local max_natural_event_len = math.ceil(src_len / math.max(cursor_step, 1e-6)) + target_len
-      local watchdog_cap = max_natural_event_len * 2
+      -- Dynamic rate-aware watchdog cap (accounting for both src_len wrapping phase and pitch shift)
+      local max_natural_event_len = math.max(src_len, math.ceil(src_len / math.max(cursor_step, 1e-6))) + target_len
+      local watchdog_cap = max_natural_event_len * 5
       if block_pos > watchdog_cap then
         break
       end
