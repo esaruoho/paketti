@@ -149,7 +149,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
     end
 
     local src_len = math.max(#pcm_raw, #pcm_n)
-    local max_output_len = math.max(target_len, src_len * 2) -- safeguard for long stretched tails
+    local comp_gain = brain_gain * (options.normalize and 1.0 or 0.2)
 
     -- Upstream Source Cursor Rendering Semantics
     -- Render event duration matches the source block's lifespan. 
@@ -157,19 +157,23 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local source_position = 0.0
     local block_pos = 0
 
-    while source_position < src_len and block_pos < max_output_len do
+    while source_position < src_len do
       local idx0 = math.floor(source_position)
-      local idx1 = (idx0 + 1) % src_len
-      local frac = source_position - idx0
+      local r_s, n_s
 
-      -- +1 for 1-based indexing in Lua
-      local s0_r = pcm_raw[idx0 + 1] or 0.0
-      local s1_r = pcm_raw[idx1 + 1] or 0.0
-      local r_s = s0_r * (1.0 - frac) + s1_r * frac
+      if idx0 >= src_len - 1 then
+        r_s = pcm_raw[src_len] or 0.0
+        n_s = pcm_n[src_len] or 0.0
+      else
+        local frac = source_position - idx0
+        local s0_r = pcm_raw[idx0 + 1] or 0.0
+        local s1_r = pcm_raw[idx0 + 2] or 0.0
+        r_s = s0_r * (1.0 - frac) + s1_r * frac
 
-      local s0_n = pcm_n[idx0 + 1] or 0.0
-      local s1_n = pcm_n[idx1 + 1] or 0.0
-      local n_s = s0_n * (1.0 - frac) + s1_n * frac
+        local s0_n = pcm_n[idx0 + 1] or 0.0
+        local s1_n = pcm_n[idx0 + 2] or 0.0
+        n_s = s0_n * (1.0 - frac) + s1_n * frac
+      end
 
       local brain_sample = r_s * (1.0 - n_mix) + n_s * n_mix
       local t_s = 0.0
@@ -182,11 +186,16 @@ function Renderer.render(brain_blocks, target_blocks, options)
 
       source_position = source_position + pitch_scale
 
-      if block_pos < src_len and source_position >= src_len then
-        source_position = source_position % src_len
+      if block_pos < src_len and source_position > src_len then
+        source_position = 0.0
       end
 
       block_pos = block_pos + 1
+
+      -- Emergency safeguard for extreme downward pitch shifts
+      if block_pos > math.max(target_len, src_len * 105) then
+        break
+      end
     end
 
     -- Update total bounds based on actual rendered grain tails
@@ -197,7 +206,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
       ola:resize(total_output_frames)
     end
 
-    ola:add_grain(grain, start_frame, brain_gain, Constants.WINDOW_RECTANGLE)
+    ola:add_grain(grain, start_frame, comp_gain, Constants.WINDOW_RECTANGLE)
   end
 
   if options.normalize then
