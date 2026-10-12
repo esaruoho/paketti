@@ -10,13 +10,19 @@ SourceRef.__index = SourceRef
 -- @param pcm table The full PCM float array for the entire source
 -- @param sample_rate number Sample rate
 -- @param renoise_sample renoise.Sample (Optional) Renoise sample reference for re-reading
-function SourceRef.create(id, name, pcm, sample_rate, renoise_sample)
+-- @param range_start number Fixed selection start captured at add time
+-- @param range_end number Fixed selection end captured at add time
+function SourceRef.create(id, name, pcm, sample_rate, renoise_sample, range_start, range_end)
   local self_obj = setmetatable({
     id = id,
     name = name,
     pcm = pcm,
     sample_rate = sample_rate,
     renoise_sample = renoise_sample,
+    -- Store the explicit bounds provided when added.
+    -- Default to the size of the PCM array if none provided.
+    captured_range_start = range_start or 1,
+    captured_range_end = range_end or #pcm,
     range_start = 1,
     range_end = #pcm,
     enabled = true
@@ -31,7 +37,13 @@ end
 function SourceRef:reload(channel_mode, use_selection)
   if self.renoise_sample then
     local SampleReader = require("SampleBrain.renoise.SampleReader")
-    local pcm, rate = SampleReader.read_channel(self.renoise_sample, channel_mode, use_selection)
+    
+    -- When reloading, use the exact range captured when the sample was added,
+    -- UNLESS the user explicitly toggled "Selection Only" off, in which case we read the whole buffer.
+    local start_f = use_selection and self.captured_range_start or 1
+    local end_f = use_selection and self.captured_range_end or self.renoise_sample.sample_buffer.number_of_frames
+
+    local pcm, rate = SampleReader.read_channel_exact(self.renoise_sample, channel_mode, start_f, end_f)
     if pcm then
       self.pcm = pcm
       self.sample_rate = rate
