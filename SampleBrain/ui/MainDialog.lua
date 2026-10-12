@@ -140,12 +140,15 @@ function MainDialog.show()
                   function(job)
                     local pcm, rate = SampleReader.read_channel(smp, target_settings.channel_mode, target_settings.use_selection)
                     if not pcm then error("Failed to read sample") end
-                    target_source = SourceRef.create(9999, smp.name, pcm, rate)
-                    target_blocks = BlockGenerator.generate(target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1, job)
-                    return { smp_name = smp.name, block_count = #target_blocks }
+                    
+                    local temp_target_source = SourceRef.create(9999, smp.name, pcm, rate, smp)
+                    local temp_target_blocks = BlockGenerator.generate(temp_target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1, job)
+                    return { temp_source = temp_target_source, temp_blocks = temp_target_blocks, smp_name = smp.name, block_count = #temp_target_blocks }
                   end,
                   function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
                   function(res)
+                    target_source = res.temp_source
+                    target_blocks = res.temp_blocks
                     target_blocks_signature = string.format("%d_%f_%d_%d_%s", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode, tostring(target_settings.use_selection))
                     vb.views.target_status.text = string.format("Target: %s (%d blocks)", res.smp_name ~= "" and res.smp_name or "Untitled", res.block_count)
                     vb.views.job_status.text = ""
