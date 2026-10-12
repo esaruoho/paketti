@@ -7,34 +7,52 @@ local Constants = require("SampleBrain.Constants")
 local Matcher = {}
 Matcher.__index = Matcher
 
+local Distance = require("SampleBrain.dsp.Distance")
+local Constants = require("SampleBrain.Constants")
+
+local Matcher = {}
+Matcher.__index = Matcher
+
+local function create_prng(seed)
+  local state = (seed or 12345) % 2147483647
+  if state <= 0 then state = state + 2147483646 end
+  return function(min_val, max_val)
+    state = (state * 16807) % 2147483647
+    local frac = (state - 1) / 2147483646.0
+    if min_val and max_val then
+      return math.floor(min_val + frac * (max_val - min_val + 1))
+    else
+      return frac
+    end
+  end
+end
+
 function Matcher.create(brain_blocks)
-  return setmetatable({
+  local m = setmetatable({
     brain_blocks = brain_blocks or {},
     current_block_index = 1,
-    current_error = 0.0
+    current_error = 0.0,
+    usage_table = {},
+    prng = create_prng(12345)
   }, Matcher)
+  return m
 end
 
 function Matcher:reset(seed)
-  if seed then
-    math.randomseed(seed)
-  end
+  self.prng = create_prng(seed or 12345)
+  self.usage_table = {}
   if #self.brain_blocks > 0 then
-    self.current_block_index = math.random(1, #self.brain_blocks)
+    self.current_block_index = self.prng(1, #self.brain_blocks)
   else
     self.current_block_index = 1
   end
   self.current_error = 0.0
-  for i = 1, #self.brain_blocks do
-    self.brain_blocks[i].usage = 0.0
-  end
 end
 
 function Matcher:deplete_usage(falloff)
   falloff = falloff or Constants.USAGE_FALLOFF
-  for i = 1, #self.brain_blocks do
-    local b = self.brain_blocks[i]
-    b.usage = (b.usage or 0.0) * falloff
+  for idx, val in pairs(self.usage_table) do
+    self.usage_table[idx] = val * falloff
   end
 end
 
@@ -55,10 +73,11 @@ function Matcher:stickify(target_block, closest_index, dist, options)
     end
 
     if allow_stick then
+      local candidate_usage = self.usage_table[next_index] or 0.0
       local dist_to_next = Distance.compare_blocks(
         target_block, next_blk,
         options.ratio, options.n_ratio, options.usage_importance,
-        options.fft_start, options.fft_end, options.channel
+        options.fft_start, options.fft_end, options.channel, candidate_usage
       )
 
       if dist_to_next * (1.0 - stickiness) < dist * stickiness then
@@ -80,10 +99,11 @@ function Matcher:search_basic(target_block, options)
   for i = 1, #self.brain_blocks do
     local b = self.brain_blocks[i]
     if b.source_ref.enabled then
+      local candidate_usage = self.usage_table[i] or 0.0
       local dist = Distance.compare_blocks(
         target_block, b,
         options.ratio, options.n_ratio, options.usage_importance,
-        options.fft_start, options.fft_end, options.channel
+        options.fft_start, options.fft_end, options.channel, candidate_usage
       )
       if dist < min_dist then
         min_dist = dist
@@ -97,7 +117,7 @@ function Matcher:search_basic(target_block, options)
   end
 
   self:deplete_usage(options.usage_falloff)
-  self.brain_blocks[closest_index].usage = (self.brain_blocks[closest_index].usage or 0) + Constants.USAGE_FACTOR
+  self.usage_table[closest_index] = (self.usage_table[closest_index] or 0.0) + Constants.USAGE_FACTOR
   self.current_error = min_dist
 
   local chosen_idx = self:stickify(target_block, closest_index, min_dist, options)
@@ -112,10 +132,11 @@ function Matcher:search_reversed(target_block, options)
   for i = 1, #self.brain_blocks do
     local b = self.brain_blocks[i]
     if b.source_ref.enabled then
+      local candidate_usage = self.usage_table[i] or 0.0
       local dist = Distance.compare_blocks(
         target_block, b,
         options.ratio, options.n_ratio, options.usage_importance,
-        options.fft_start, options.fft_end, options.channel
+        options.fft_start, options.fft_end, options.channel, candidate_usage
       )
       if dist > max_dist then
         max_dist = dist
@@ -129,7 +150,7 @@ function Matcher:search_reversed(target_block, options)
   end
 
   self:deplete_usage(options.usage_falloff)
-  self.brain_blocks[furthest_index].usage = (self.brain_blocks[furthest_index].usage or 0) + Constants.USAGE_FACTOR
+  self.usage_table[furthest_index] = (self.usage_table[furthest_index] or 0.0) + Constants.USAGE_FACTOR
   self.current_error = max_dist
   self.current_block_index = furthest_index
 
@@ -160,10 +181,11 @@ function Matcher:search_synaptic(target_block, options)
     local syn_idx = synapses[s]
     local other_blk = self.brain_blocks[syn_idx]
     if other_blk and other_blk.source_ref.enabled then
+      local candidate_usage = self.usage_table[syn_idx] or 0.0
       local dist = Distance.compare_blocks(
         target_block, other_blk,
         options.ratio, options.n_ratio, options.usage_importance,
-        options.fft_start, options.fft_end, options.channel
+        options.fft_start, options.fft_end, options.channel, candidate_usage
       )
       if dist < min_dist then
         min_dist = dist
@@ -177,7 +199,7 @@ function Matcher:search_synaptic(target_block, options)
     if fallback_mode == Constants.FALLBACK_HOLD_CURRENT then
       -- Upstream: return current block immediately without calling stickify
       self:deplete_usage(options.usage_falloff)
-      self.brain_blocks[self.current_block_index].usage = (self.brain_blocks[self.current_block_index].usage or 0) + Constants.USAGE_FACTOR
+      self.usage_table[self.current_block_index] = (self.usage_table[self.current_block_index] or 0.0) + Constants.USAGE_FACTOR
       self.current_error = math.huge
       return self.brain_blocks[self.current_block_index], math.huge
     else
@@ -187,7 +209,7 @@ function Matcher:search_synaptic(target_block, options)
   end
 
   self:deplete_usage(options.usage_falloff)
-  self.brain_blocks[self.current_block_index].usage = (self.brain_blocks[self.current_block_index].usage or 0) + Constants.USAGE_FACTOR
+  self.usage_table[closest_index] = (self.usage_table[closest_index] or 0.0) + Constants.USAGE_FACTOR
   self.current_error = min_dist
 
   local chosen_idx = self:stickify(target_block, closest_index, min_dist, options)

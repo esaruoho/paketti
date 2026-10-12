@@ -106,8 +106,9 @@ end
 -- @param fft_start integer Optional FFT start bin for comparison
 -- @param fft_end integer Optional FFT end bin for comparison
 -- @param channel string Optional channel selection ("left", "right", "mono")
+-- @param candidate_usage number Optional usage penalty provided by Matcher instance
 -- @return number Total distance score (lower is closer match)
-function Distance.compare_blocks(block_a, block_b, ratio, n_ratio, usage_importance, fft_start, fft_end, channel)
+function Distance.compare_blocks(block_a, block_b, ratio, n_ratio, usage_importance, fft_start, fft_end, channel, candidate_usage)
   ratio = ratio or Constants.DEFAULT_RATIO
   n_ratio = n_ratio or Constants.DEFAULT_N_RATIO
   usage_importance = usage_importance or Constants.DEFAULT_USAGE_IMPORTANCE
@@ -160,7 +161,7 @@ function Distance.compare_blocks(block_a, block_b, ratio, n_ratio, usage_importa
   )
 
   local feat_dist = blend(raw_dist, norm_dist, n_ratio)
-  local usage = block_b.usage or 0.0
+  local usage = candidate_usage or block_b.usage or 0.0
 
   return blend(feat_dist, usage, usage_importance)
 end

@@ -213,4 +213,16 @@ local freq_10k_err = math.abs(blk_10k.dominant_freq - 10000.0)
 assert(freq_10k_err < 500.0, string.format("Pass-band frequency verification failed: dominant freq = %.1f Hz", blk_10k.dominant_freq))
 print(string.format("[PASS] Resampler pass-band verification: 10kHz tone at 96kHz preserved (dominant freq = %.1f Hz)", blk_10k.dominant_freq))
 
+-- Test 14: Matcher Usage State Isolation Test
+local m_left = Matcher.create(brain_set)
+local m_right = Matcher.create(brain_set)
+m_left:reset(100)
+m_right:reset(200)
+
+local match_l_res = m_left:search(blk_t, { algo = Constants.ALGO_BASIC, channel = "left", usage_importance = 1.0 })
+
+assert(m_left.usage_table[1] ~= nil and m_left.usage_table[1] > 0, "Left matcher should record usage")
+assert(m_right.usage_table[1] == nil, "Right matcher usage_table must remain isolated from Left matcher operations")
+print("[PASS] Matcher usage state isolation verified (Left matcher search leaves Right matcher usage untouched)")
+
 print("\nALL SAMPLEBRAIN SYSTEM TESTS PASSED SUCCESSFULLY!")
