@@ -226,12 +226,19 @@ assert(m_right.usage_table[1] == nil, "Right matcher usage_table must remain iso
 print("[PASS] Matcher usage state isolation verified (Left matcher search leaves Right matcher usage untouched)")
 
 -- Test 15: Synaptic Search Usage-Target Verification Test
-local m_syn = Matcher.create(brain_set)
-m_syn:reset(1)
-local initial_node = m_syn.current_block_index
-local syn_result = m_syn:search_synaptic(blk_t, { algo = Constants.ALGO_SYNAPTIC, usage_importance = 1.0 })
+blk_a.synapses = { 2 }
+blk_b.synapses = { 1 }
 
-assert(m_syn.usage_table[initial_node] ~= nil and m_syn.usage_table[initial_node] > 0, "Synaptic search must penalize departing current_block_index")
-print(string.format("[PASS] Synaptic search usage factor correctly penalized departing node %d", initial_node))
+local m_syn = Matcher.create(brain_set)
+m_syn.current_block_index = 1
+m_syn.usage_table = {}
+
+local initial_node = m_syn.current_block_index
+local syn_result = m_syn:search_synaptic(blk_t, { algo = Constants.ALGO_SYNAPTIC, stickiness = 0.0, usage_importance = 1.0 })
+
+assert(m_syn.current_block_index ~= initial_node, "Synaptic search must advance matcher to candidate node")
+assert(m_syn.usage_table[initial_node] ~= nil and m_syn.usage_table[initial_node] > 0, "Departing current_block_index must receive usage factor penalty")
+assert((m_syn.usage_table[m_syn.current_block_index] or 0) == 0, "Newly selected candidate node must not receive usage penalty merely for winning")
+print(string.format("[PASS] Synaptic search usage factor correctly penalized departing node %d while candidate node %d remained unpenalized", initial_node, m_syn.current_block_index))
 
 print("\nALL SAMPLEBRAIN SYSTEM TESTS PASSED SUCCESSFULLY!")
