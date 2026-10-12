@@ -4,7 +4,18 @@
 local Distance = require("SampleBrain.dsp.Distance")
 local Constants = require("SampleBrain.Constants")
 
+-- REPORT-CARD >> features/samplebrain-diagnostics.feature
+local JobRunner = require("SampleBrain.jobs.JobRunner")
+local Logger = require("SampleBrain.Logger")
 local Matcher = {}
+
+local function checkpoint(options, index, total)
+  if options.job and (index == 1 or index % 20 == 0 or index == total) then
+    JobRunner.yield(options.job, options.progress or 0, string.format(
+      "Matching block %d / %d (%s): candidate %d / %d",
+      options.target_index or 0, options.target_total or 0, options.channel or "mono", index, total), false)
+  end
+end
 Matcher.__index = Matcher
 
 local function create_prng(seed)
@@ -163,6 +174,7 @@ function Matcher:search_synaptic(target_block, options)
   end
 
   if not cur_block or not synapses or #synapses == 0 then
+    Logger.write("Synaptic search: missing graph; falling back to exhaustive basic search, channel=" .. channel)
     -- Fallback to basic search if graph not initialized
     return self:search_basic(target_block, options)
   end

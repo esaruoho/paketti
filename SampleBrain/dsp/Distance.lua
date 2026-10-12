@@ -72,7 +72,8 @@ function Distance.compare_descriptors(fft_a, mfcc_a, fft_b, mfcc_b, ratio, fft_s
   
   if fft_len > 0 and ratio < 1.0 then
     for i = fft_start, fft_end do
-      fft_acc = fft_acc + square(fft_a[i] - fft_b[i])
+      local diff = fft_a[i] - fft_b[i]
+      fft_acc = fft_acc + diff * diff
     end
   end
 
@@ -81,7 +82,8 @@ function Distance.compare_descriptors(fft_a, mfcc_a, fft_b, mfcc_b, ratio, fft_s
   
   if mfcc_len > 0 and ratio > 0.0 then
     for i = 1, mfcc_len do
-      mfcc_acc = mfcc_acc + square(mfcc_a[i] - mfcc_b[i])
+      local diff = mfcc_a[i] - mfcc_b[i]
+      mfcc_acc = mfcc_acc + diff * diff
     end
   end
 
@@ -113,57 +115,57 @@ function Distance.compare_blocks(block_a, block_b, ratio, n_ratio, usage_importa
   n_ratio = n_ratio or Constants.DEFAULT_N_RATIO
   usage_importance = usage_importance or Constants.DEFAULT_USAGE_IMPORTANCE
 
-  local fft_a, mfcc_a, n_fft_a, n_mfcc_a
-  local fft_b, mfcc_b, n_fft_b, n_mfcc_b
+  local fft_a, mfcc_a
+  local fft_b, mfcc_b
 
   if channel == "left" then
     fft_a = block_a.fft_l or block_a.fft
     mfcc_a = block_a.mfcc_l or block_a.mfcc
-    n_fft_a = block_a.n_fft_l or block_a.n_fft
-    n_mfcc_a = block_a.n_mfcc_l or block_a.n_mfcc
-
     fft_b = block_b.fft_l or block_b.fft
     mfcc_b = block_b.mfcc_l or block_b.mfcc
-    n_fft_b = block_b.n_fft_l or block_b.n_fft
-    n_mfcc_b = block_b.n_mfcc_l or block_b.n_mfcc
   elseif channel == "right" then
     fft_a = block_a.fft_r or block_a.fft
     mfcc_a = block_a.mfcc_r or block_a.mfcc
-    n_fft_a = block_a.n_fft_r or block_a.n_fft
-    n_mfcc_a = block_a.n_mfcc_r or block_a.n_mfcc
-
     fft_b = block_b.fft_r or block_b.fft
     mfcc_b = block_b.mfcc_r or block_b.mfcc
-    n_fft_b = block_b.n_fft_r or block_b.n_fft
-    n_mfcc_b = block_b.n_mfcc_r or block_b.n_mfcc
   else
     fft_a = block_a.fft
     mfcc_a = block_a.mfcc
-    n_fft_a = block_a.n_fft
-    n_mfcc_a = block_a.n_mfcc
-
     fft_b = block_b.fft
     mfcc_b = block_b.mfcc
-    n_fft_b = block_b.n_fft
-    n_mfcc_b = block_b.n_mfcc
   end
 
-  local raw_dist = Distance.compare_descriptors(
-    fft_a, mfcc_a,
-    fft_b, mfcc_b,
-    ratio, fft_start, fft_end
-  )
+  local raw_dist = Distance.compare_descriptors(fft_a, mfcc_a, fft_b, mfcc_b, ratio, fft_start, fft_end)
+  local dist = raw_dist
 
-  local norm_dist = Distance.compare_descriptors(
-    n_fft_a, n_mfcc_a,
-    n_fft_b, n_mfcc_b,
-    ratio, fft_start, fft_end
-  )
+  if n_ratio > 0 then
+    local n_fft_a, n_mfcc_a, n_fft_b, n_mfcc_b
+    if channel == "left" then
+      n_fft_a = block_a.n_fft_l or block_a.n_fft
+      n_mfcc_a = block_a.n_mfcc_l or block_a.n_mfcc
+      n_fft_b = block_b.n_fft_l or block_b.n_fft
+      n_mfcc_b = block_b.n_mfcc_l or block_b.n_mfcc
+    elseif channel == "right" then
+      n_fft_a = block_a.n_fft_r or block_a.n_fft
+      n_mfcc_a = block_a.n_mfcc_r or block_a.n_mfcc
+      n_fft_b = block_b.n_fft_r or block_b.n_fft
+      n_mfcc_b = block_b.n_mfcc_r or block_b.n_mfcc
+    else
+      n_fft_a = block_a.n_fft
+      n_mfcc_a = block_a.n_mfcc
+      n_fft_b = block_b.n_fft
+      n_mfcc_b = block_b.n_mfcc
+    end
+    local norm_dist = Distance.compare_descriptors(n_fft_a, n_mfcc_a, n_fft_b, n_mfcc_b, ratio, fft_start, fft_end)
+    dist = blend(raw_dist, norm_dist, n_ratio)
+  end
 
-  local feat_dist = blend(raw_dist, norm_dist, n_ratio)
-  local usage = candidate_usage or block_b.usage or 0.0
+  if usage_importance > 0 then
+    local usage = candidate_usage or block_b.usage or 0.0
+    dist = blend(dist, usage, usage_importance)
+  end
 
-  return blend(feat_dist, usage, usage_importance)
+  return dist
 end
 
 return Distance
