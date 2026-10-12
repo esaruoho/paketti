@@ -151,6 +151,12 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local src_len = math.max(#pcm_raw, #pcm_n)
     local comp_gain = brain_gain * (options.normalize and 1.0 or 0.2)
 
+    -- Sample-rate compensation scale
+    local src_rate = matched_blk.sample_rate or Constants.DEFAULT_SAMPLE_RATE
+    local dst_rate = target_blk.sample_rate or Constants.DEFAULT_SAMPLE_RATE
+    local rate_scale = (src_rate > 0 and dst_rate > 0) and (src_rate / dst_rate) or 1.0
+    local cursor_step = pitch_scale * rate_scale
+
     -- Upstream Source Cursor Rendering Semantics
     -- Render event duration matches the source block's lifespan. 
     -- The cursor wraps around the source until output duration passes the source block's length.
@@ -184,7 +190,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
 
       grain[block_pos + 1] = brain_sample * (1.0 - target_mix) + t_s * target_mix
 
-      source_position = source_position + pitch_scale
+      source_position = source_position + cursor_step
 
       if block_pos < src_len and source_position > src_len then
         source_position = 0.0

@@ -337,12 +337,14 @@ function MainDialog.show()
                   local start_id = 1
                   for i = 1, #brain_sources do
                     local ref = brain_sources[i]
-                    ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
-                    local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
-                    for _, b in ipairs(blocks) do
-                      temp_blocks[#temp_blocks + 1] = b
+                    local ok, reload_err = ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
+                    if ok then
+                      local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
+                      for _, b in ipairs(blocks) do
+                        temp_blocks[#temp_blocks + 1] = b
+                      end
+                      start_id = next_id
                     end
-                    start_id = next_id
                   end
                   return temp_blocks
                 end,
@@ -366,6 +368,19 @@ function MainDialog.show()
             end
           },
           vb:button{
+            text = "Remove Last Source", width = 130,
+            notifier = function()
+              if JobRunner.is_running() then return end
+              if #brain_sources > 0 then
+                table.remove(brain_sources, #brain_sources)
+                brain_settings_signature = ""
+                synapses_built = false
+                vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (STALE)", #brain_sources, #brain_blocks)
+                refresh_source_list()
+              end
+            end
+          },
+          vb:button{
             text = "Clear Brain", width = 90,
             notifier = function()
               if JobRunner.is_running() then return end
@@ -374,6 +389,7 @@ function MainDialog.show()
               synapses_built = false
               brain_settings_signature = ""
               vb.views.brain_status.text = "Brain: Empty"
+              refresh_source_list()
             end
           },
           vb:button{

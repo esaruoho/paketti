@@ -27,6 +27,8 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
   local num_to_store_limit = math.min(max_synapses, total_blocks - 1)
   local total_synapses_created = 0
 
+  local temp_graph = {}
+
   for i = 1, total_blocks do
     local block_a = brain_blocks[i]
     local candidates = {}
@@ -41,17 +43,23 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
 
     table.sort(candidates, function(a, b) return a.distance < b.distance end)
 
-    block_a.synapses = {}
+    local block_synapses = {}
     local num_to_store = math.min(num_to_store_limit, #candidates)
     for n = 1, num_to_store do
-      block_a.synapses[n] = candidates[n].index
+      block_synapses[n] = candidates[n].index
     end
+    temp_graph[i] = block_synapses
 
-    total_synapses_created = total_synapses_created + #block_a.synapses
+    total_synapses_created = total_synapses_created + #block_synapses
 
     if job then
       JobRunner.yield(job, i / total_blocks, string.format("Building synapses %d%%", math.floor(i / total_blocks * 100)), false)
     end
+  end
+
+  -- Atomic commit to live blocks
+  for i = 1, total_blocks do
+    brain_blocks[i].synapses = temp_graph[i]
   end
 
   return total_synapses_created

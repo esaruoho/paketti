@@ -52,24 +52,31 @@ end
 --- Re-read source PCM buffer from Renoise using current settings
 -- @param channel_mode integer Channel mode
 -- @param use_selection boolean Selection flag
+-- @return boolean true if reload succeeded
+-- @return string error message if reload failed
 function SourceRef:reload(channel_mode, use_selection)
   local smp = self:get_renoise_sample()
-  if smp then
-    local SampleReader = require("SampleBrain.renoise.SampleReader")
-    
-    -- When reloading, use the exact range captured when the sample was added,
-    -- UNLESS the user explicitly toggled "Selection Only" off, in which case we read the whole buffer.
-    local start_f = use_selection and self.captured_range_start or 1
-    local end_f = use_selection and self.captured_range_end or smp.sample_buffer.number_of_frames
-
-    local pcm, rate = SampleReader.read_channel_exact(smp, channel_mode, start_f, end_f)
-    if pcm then
-      self.pcm = pcm
-      self.sample_rate = rate
-      self.range_start = 1
-      self.range_end = #pcm
-    end
+  if not smp or not smp.sample_buffer or not smp.sample_buffer.has_sample_data then
+    return false, string.format("Source sample '%s' no longer exists in Renoise.", self.name)
   end
+
+  local SampleReader = require("SampleBrain.renoise.SampleReader")
+  
+  -- When reloading, use the exact range captured when the sample was added,
+  -- UNLESS the user explicitly toggled "Selection Only" off, in which case we read the whole buffer.
+  local start_f = use_selection and self.captured_range_start or 1
+  local end_f = use_selection and self.captured_range_end or smp.sample_buffer.number_of_frames
+
+  local pcm, rate = SampleReader.read_channel_exact(smp, channel_mode, start_f, end_f)
+  if not pcm then
+    return false, string.format("Failed to read audio data for '%s'.", self.name)
+  end
+
+  self.pcm = pcm
+  self.sample_rate = rate
+  self.range_start = 1
+  self.range_end = #pcm
+  return true
 end
 
 --- Get a slice of PCM data from this source
