@@ -5,17 +5,25 @@ local Constants = require("SampleBrain.Constants")
 
 local Window = {}
 
+local window_cache = {}
+
 --- Create window coefficients table (1-indexed Lua table of size `size`)
 -- @param size integer Window length
 -- @param window_type integer One of Constants.WINDOW_*
 -- @return table Array of floats
 function Window.coefficients(size, window_type)
   window_type = window_type or Constants.WINDOW_HANN
+  local cache_key = size * 100 + window_type
+  if window_cache[cache_key] then
+    return window_cache[cache_key]
+  end
+
   local w = {}
   local sz = size - 1
 
   if sz <= 0 then
     for i = 1, size do w[i] = 1.0 end
+    window_cache[cache_key] = w
     return w
   end
 
@@ -84,6 +92,7 @@ function Window.coefficients(size, window_type)
     return Window.coefficients(size, Constants.WINDOW_HANN)
   end
 
+  window_cache[cache_key] = w
   return w
 end
 

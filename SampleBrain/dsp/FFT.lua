@@ -116,6 +116,49 @@ local function inverse_radix2(real_in, imag_in)
   return out_r, out_i
 end
 
+local bluestein_cache = {}
+
+local function get_bluestein_tables(n)
+  if bluestein_cache[n] then
+    return bluestein_cache[n]
+  end
+
+  local m = next_power_of_two(n * 2 - 1)
+  local b_real, b_imag = {}, {}
+  local cos_table, sin_table = {}, {}
+
+  for i = 1, m do
+    b_real[i], b_imag[i] = 0.0, 0.0
+  end
+
+  for i = 0, n - 1 do
+    local angle = math.pi * i * i / n
+    local c = math.cos(angle)
+    local s = math.sin(angle)
+    cos_table[i + 1] = c
+    sin_table[i + 1] = s
+
+    b_real[i + 1] = c
+    b_imag[i + 1] = s
+    if i > 0 then
+      b_real[m - i + 1] = c
+      b_imag[m - i + 1] = s
+    end
+  end
+
+  local B_r, B_i = forward_radix2(b_real, b_imag)
+
+  local entry = {
+    m = m,
+    cos = cos_table,
+    sin = sin_table,
+    B_r = B_r,
+    B_i = B_i
+  }
+  bluestein_cache[n] = entry
+  return entry
+end
+
 --- Forward FFT supporting arbitrary length via Bluestein's Algorithm
 -- @param real_in table Array of real floats (1-indexed)
 -- @return real table Real output array
@@ -127,58 +170,47 @@ function FFT.forward(real_in)
     return forward_radix2(real_in, {})
   end
 
-  -- Bluestein chirp-z transform
-  local m = next_power_of_two(n * 2 - 1)
-  
+  -- Fast Memoized Bluestein chirp-z transform
+  local bt = get_bluestein_tables(n)
+  local m = bt.m
+  local cos_table = bt.cos
+  local sin_table = bt.sin
+  local B_r, B_i = bt.B_r, bt.B_i
+
   local a_real, a_imag = {}, {}
-  local b_real, b_imag = {}, {}
-  
   for i = 1, m do
     a_real[i], a_imag[i] = 0.0, 0.0
-    b_real[i], b_imag[i] = 0.0, 0.0
   end
-  
+
   for i = 0, n - 1 do
-    local angle = math.pi * i * i / n
-    local c = math.cos(angle)
-    local s = math.sin(angle)
-    
-    local rn = real_in[i+1] or 0.0
-    a_real[i+1] = rn * c
-    a_imag[i+1] = -rn * s
-    
-    b_real[i+1] = c
-    b_imag[i+1] = s
-    if i > 0 then
-      b_real[m - i + 1] = c
-      b_imag[m - i + 1] = s
-    end
+    local c = cos_table[i + 1]
+    local s = sin_table[i + 1]
+    local rn = real_in[i + 1] or 0.0
+    a_real[i + 1] = rn * c
+    a_imag[i + 1] = -rn * s
   end
-  
+
   local A_r, A_i = forward_radix2(a_real, a_imag)
-  local B_r, B_i = forward_radix2(b_real, b_imag)
-  
+
   local C_r, C_i = {}, {}
   for i = 1, m do
     C_r[i] = A_r[i] * B_r[i] - A_i[i] * B_i[i]
     C_i[i] = A_r[i] * B_i[i] + A_i[i] * B_r[i]
   end
-  
+
   local c_r, c_i = inverse_radix2(C_r, C_i)
-  
+
   local out_real, out_imag = {}, {}
   for i = 0, n - 1 do
-    local angle = math.pi * i * i / n
-    local c = math.cos(angle)
-    local s = math.sin(angle)
-    
-    local r_val = c_r[i+1]
-    local i_val = c_i[i+1]
-    
-    out_real[i+1] = r_val * c - i_val * (-s)
-    out_imag[i+1] = r_val * (-s) + i_val * c
+    local c = cos_table[i + 1]
+    local s = sin_table[i + 1]
+    local r_val = c_r[i + 1]
+    local i_val = c_i[i + 1]
+
+    out_real[i + 1] = r_val * c - i_val * (-s)
+    out_imag[i + 1] = r_val * (-s) + i_val * c
   end
-  
+
   return out_real, out_imag
 end
 
