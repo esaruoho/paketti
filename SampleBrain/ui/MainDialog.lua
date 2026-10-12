@@ -152,11 +152,9 @@ function MainDialog.show()
     },
 
     -- Target Section
-    vb:group{
-      width = "100%", style = "panel",
-      vb:column{
-        margin = 6, spacing = 4,
-        vb:row{ vb:text{ text = "Target Audio", font = "bold" } },
+    vb:column{
+      width = "100%", style = "panel", margin = 6, spacing = 4,
+      vb:row{ vb:text{ text = "Target Audio", font = "bold" } },
         vb:row{
           spacing = 6,
           vb:text{ text = "Block:" },
@@ -219,15 +217,12 @@ function MainDialog.show()
           },
           vb:text{ id = "target_status", text = "Target: None selected", style = "disabled" }
         }
-      }
     },
 
     -- Brain Section
-    vb:group{
-      width = "100%", style = "panel",
-      vb:column{
-        margin = 6, spacing = 4,
-        vb:row{ vb:text{ text = "Brain Sources", font = "bold" } },
+    vb:column{
+      width = "100%", style = "panel", margin = 6, spacing = 4,
+      vb:row{ vb:text{ text = "Brain Sources", font = "bold" } },
         
         -- Interactive Source List
         vb:row{
@@ -506,15 +501,12 @@ function MainDialog.show()
           }
         },
         vb:row{ vb:text{ id = "brain_status", text = "Brain: Empty", style = "disabled" } }
-      }
     },
 
     -- Match & Output Params
-    vb:group{
-      width = "100%", style = "panel",
-      vb:column{
-        margin = 6, spacing = 6,
-        vb:text{ text = "Match & Render Settings", font = "bold" },
+    vb:column{
+      width = "100%", style = "panel", margin = 6, spacing = 6,
+      vb:text{ text = "Match & Render Settings", font = "bold" },
         vb:row{
           spacing = 6,
           vb:text{ text = "Algo:" },
@@ -564,7 +556,6 @@ function MainDialog.show()
           vb:text{ text = "Num Synapses:" },
           vb:valuebox{ min = 1, max = 1000, value = num_synapses, step = 1, notifier = function(v) num_synapses = v end }
         }
-      }
     },
 
     -- Render Action & Persistence
