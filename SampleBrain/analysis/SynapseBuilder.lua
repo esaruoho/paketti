@@ -16,7 +16,7 @@ local SynapseBuilder = {}
 -- @param fft_end integer Optional FFT end bin
 -- @param job table Optional job object for yielding
 -- @return integer Total synapses created
-function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, fft_start, fft_end, job)
+function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, fft_start, fft_end, job, channel)
   max_synapses = math.min(max_synapses or 1000, 1000)
   ratio = ratio or Constants.DEFAULT_RATIO
   n_ratio = n_ratio or Constants.DEFAULT_N_RATIO
@@ -36,7 +36,7 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
     for j = 1, total_blocks do
       if i ~= j then
         local block_b = brain_blocks[j]
-        local dist = Distance.compare_blocks(block_a, block_b, ratio, n_ratio, 0.0, fft_start, fft_end)
+        local dist = Distance.compare_blocks(block_a, block_b, ratio, n_ratio, 0.0, fft_start, fft_end, channel)
         candidates[#candidates + 1] = { index = j, distance = dist }
       end
     end
@@ -59,7 +59,13 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
 
   -- Atomic commit to live blocks
   for i = 1, total_blocks do
-    brain_blocks[i].synapses = temp_graph[i]
+    if channel == "left" then
+      brain_blocks[i].synapses_l = temp_graph[i]
+    elseif channel == "right" then
+      brain_blocks[i].synapses_r = temp_graph[i]
+    else
+      brain_blocks[i].synapses = temp_graph[i]
+    end
   end
 
   return total_synapses_created

@@ -139,17 +139,25 @@ end
 --- Synaptic Graph Search
 function Matcher:search_synaptic(target_block, options)
   local cur_block = self.brain_blocks[self.current_block_index]
-  if not cur_block or not cur_block.synapses or #cur_block.synapses == 0 then
+  local channel = (options and options.channel) or "mono"
+  local synapses = cur_block and cur_block.synapses
+  if cur_block and channel == "left" and cur_block.synapses_l then
+    synapses = cur_block.synapses_l
+  elseif cur_block and channel == "right" and cur_block.synapses_r then
+    synapses = cur_block.synapses_r
+  end
+
+  if not cur_block or not synapses or #synapses == 0 then
     -- Fallback to basic search if graph not initialized
     return self:search_basic(target_block, options)
   end
 
   local min_dist = math.huge
   local closest_index = nil
-  local num_syn = math.min(#cur_block.synapses, options.num_synapses or Constants.DEFAULT_NUM_SYNAPSES)
+  local num_syn = math.min(#synapses, options.num_synapses or Constants.DEFAULT_NUM_SYNAPSES)
 
   for s = 1, num_syn do
-    local syn_idx = cur_block.synapses[s]
+    local syn_idx = synapses[s]
     local other_blk = self.brain_blocks[syn_idx]
     if other_blk and other_blk.source_ref.enabled then
       local dist = Distance.compare_blocks(

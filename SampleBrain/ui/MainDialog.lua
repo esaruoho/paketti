@@ -471,13 +471,21 @@ function MainDialog.show()
               
               JobRunner.start(
                 function(job)
-                  return SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job)
+                  local count = SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "mono")
+                  if independent_stereo then
+                    SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "left")
+                    SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "right")
+                  end
+                  return count
                 end,
                 function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
                 function(count)
                   synapses_built = true
-                  synapses_signature = string.format("%f_%f_%d_%d", ratio, n_ratio, fft_start, fft_end)
+                  synapses_signature = string.format("%f_%f_%d_%d_%s", ratio, n_ratio, fft_start, fft_end, tostring(independent_stereo))
                   vb.views.brain_status.text = string.format("Brain: %d blocks, %d synapses grown!", #brain_blocks, count)
+                  vb.views.job_status.text = ""
+                  update_job_ui(false)
+                end,
                   vb.views.job_status.text = ""
                   update_job_ui(false)
                   renoise.app():show_status("SampleBrain: Synapses generated.")
