@@ -148,7 +148,7 @@ function MainDialog.show()
           end
         end
       },
-      vb:text{ id = "job_status", text = "", style = "italic" }
+      vb:text{ id = "job_status", text = "", style = "disabled" }
     },
 
     -- Target Section
@@ -217,7 +217,7 @@ function MainDialog.show()
               end
             end
           },
-          vb:text{ id = "target_status", text = "Target: None selected", style = "italic" }
+          vb:text{ id = "target_status", text = "Target: None selected", style = "disabled" }
         }
       }
     },
@@ -505,7 +505,7 @@ function MainDialog.show()
             end
           }
         },
-        vb:row{ vb:text{ id = "brain_status", text = "Brain: Empty", style = "italic" } }
+        vb:row{ vb:text{ id = "brain_status", text = "Brain: Empty", style = "disabled" } }
       }
     },
 
