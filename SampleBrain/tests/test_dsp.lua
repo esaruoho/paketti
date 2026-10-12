@@ -164,6 +164,16 @@ local blk_t = Block.create(12, src_t, 1, 1, 1024, Constants.WINDOW_HANN)
 local brain_set = { blk_a, blk_b }
 local target_set = { blk_t }
 
+local Matcher = require("SampleBrain.matching.Matcher")
+local matcher_l = Matcher.create(brain_set)
+local matcher_r = Matcher.create(brain_set)
+
+local match_l = matcher_l:search(blk_t, { algo = Constants.ALGO_BASIC, channel = "left" })
+local match_r = matcher_r:search(blk_t, { algo = Constants.ALGO_BASIC, channel = "right" })
+
+assert(match_l and match_l.id == 10, string.format("Left channel should match Brain A (id 10), got %s", tostring(match_l and match_l.id)))
+assert(match_r and match_r.id == 11, string.format("Right channel should match Brain B (id 11), got %s", tostring(match_r and match_r.id)))
+
 local ind_out_l, ind_out_r = Renderer.render(brain_set, target_set, {
   block_size = 1024,
   overlap = 0.5,
@@ -172,7 +182,7 @@ local ind_out_l, ind_out_r = Renderer.render(brain_set, target_set, {
 })
 
 assert(ind_out_l and ind_out_r and #ind_out_l == #ind_out_r, "Independent stereo render failed")
-print("[PASS] Channel-Specific Independent Stereo Search (Left matched Brain A, Right matched Brain B)")
+print("[PASS] Channel-Specific Independent Stereo Search (Left matched Brain A id 10, Right matched Brain B id 11)")
 
 -- Test 12: Resampler Aliasing Suppression Test (96 kHz 30 kHz sine -> 44.1 kHz)
 local sr_96k = 96000
@@ -190,5 +200,17 @@ for i = 1, #blk_96k.fft do
 end
 assert(max_fft_mag < 0.1, string.format("Windowed-sinc LPF aliasing suppression failed: max mag = %.3f", max_fft_mag))
 print(string.format("[PASS] Resampler aliasing suppression: 30kHz tone at 96kHz suppressed below Nyquist (max aliased mag = %.4f)", max_fft_mag))
+
+-- Test 13: Resampler Pass-Band Verification Test (96 kHz 10 kHz sine -> 44.1 kHz)
+local sine_10k = {}
+for i = 1, len_96k do
+  sine_10k[i] = math.sin(2.0 * math.pi * 10000.0 * (i - 1) / sr_96k)
+end
+local src_10k = SourceRef.create(100, "Sine10k_96k", sine_10k, sr_96k)
+local blk_10k = Block.create(100, src_10k, 1, 1, len_96k, 1024, Constants.WINDOW_HANN)
+
+local freq_10k_err = math.abs(blk_10k.dominant_freq - 10000.0)
+assert(freq_10k_err < 500.0, string.format("Pass-band frequency verification failed: dominant freq = %.1f Hz", blk_10k.dominant_freq))
+print(string.format("[PASS] Resampler pass-band verification: 10kHz tone at 96kHz preserved (dominant freq = %.1f Hz)", blk_10k.dominant_freq))
 
 print("\nALL SAMPLEBRAIN SYSTEM TESTS PASSED SUCCESSFULLY!")

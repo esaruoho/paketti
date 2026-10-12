@@ -85,6 +85,19 @@ local function refresh_source_list()
   end
 end
 
+local function make_synapse_signature()
+  return string.format("%f_%f_%d_%d_%s", ratio, n_ratio, fft_start, fft_end, tostring(independent_stereo))
+end
+
+local function build_required_graphs(job)
+  local count = SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "mono")
+  if independent_stereo then
+    SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "left")
+    SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "right")
+  end
+  return count
+end
+
 function MainDialog.reset_state()
   JobRunner.cancel()
   brain_sources = {}
@@ -471,21 +484,13 @@ function MainDialog.show()
               
               JobRunner.start(
                 function(job)
-                  local count = SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "mono")
-                  if independent_stereo then
-                    SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "left")
-                    SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job, "right")
-                  end
-                  return count
+                  return build_required_graphs(job)
                 end,
                 function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
                 function(count)
                   synapses_built = true
-                  synapses_signature = string.format("%f_%f_%d_%d_%s", ratio, n_ratio, fft_start, fft_end, tostring(independent_stereo))
+                  synapses_signature = make_synapse_signature()
                   vb.views.brain_status.text = string.format("Brain: %d blocks, %d synapses grown!", #brain_blocks, count)
-                  vb.views.job_status.text = ""
-                  update_job_ui(false)
-                end,
                   vb.views.job_status.text = ""
                   update_job_ui(false)
                   renoise.app():show_status("SampleBrain: Synapses generated.")
@@ -590,9 +595,9 @@ function MainDialog.show()
           JobRunner.start(
             function(job)
               if (algo == Constants.ALGO_SYNAPTIC or algo == Constants.ALGO_SYNAPTIC_SLIDE) then
-                local current_synapse_signature = string.format("%f_%f_%d_%d", ratio, n_ratio, fft_start, fft_end)
+                local current_synapse_signature = make_synapse_signature()
                 if not synapses_built or synapses_signature ~= current_synapse_signature then
-                  SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job)
+                  build_required_graphs(job)
                   synapses_built = true
                   synapses_signature = current_synapse_signature
                 end
