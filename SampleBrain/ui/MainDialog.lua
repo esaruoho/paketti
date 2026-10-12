@@ -511,53 +511,64 @@ function MainDialog.show()
       width = 600, style = "panel", margin = 6, spacing = 6,
       vb:text{ text = "Match & Render Settings", font = "bold" },
         vb:row{
-          spacing = 6,
-          vb:text{ text = "Algo:" },
-          vb:popup{ items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, notifier = function(v) algo = v end },
-          vb:text{ text = "FFT Start Bin:" },
-          vb:valuebox{ min = 1, max = 100, value = fft_start, steps = { 1, 5 }, notifier = function(v) fft_start = v end },
-          vb:text{ text = "FFT End Bin:" },
-          vb:valuebox{ min = 1, max = 100, value = fft_end, steps = { 1, 5 }, notifier = function(v) fft_end = v end }
+          spacing = 4,
+          vb:text{ text = "Algo:", width = 110 },
+          vb:popup{ items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 120, notifier = function(v) algo = v end },
+          vb:space{ width = 15 },
+          vb:text{ text = "FFT Start Bin:", width = 95 },
+          vb:valuebox{ min = 1, max = 100, value = fft_start, steps = { 1, 5 }, width = 60, notifier = function(v) fft_start = v end },
+          vb:space{ width = 15 },
+          vb:text{ text = "FFT End Bin:", width = 85 },
+          vb:valuebox{ min = 1, max = 100, value = fft_end, steps = { 1, 5 }, width = 60, notifier = function(v) fft_end = v end }
         },
         vb:row{
-          spacing = 6,
-          vb:text{ text = "FFT/MFCC Ratio:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = ratio, steps = { 0.01, 0.1 }, notifier = function(v) ratio = v end },
-          vb:text{ text = "Raw/Norm Ratio:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = n_ratio, steps = { 0.01, 0.1 }, notifier = function(v) n_ratio = v end },
-          vb:text{ text = "Stickiness:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = stickiness, steps = { 0.01, 0.05 }, notifier = function(v) stickiness = v end }
+          spacing = 4,
+          vb:text{ text = "FFT/MFCC Ratio:", width = 110 },
+          vb:valuebox{ min = 0.0, max = 1.0, value = ratio, steps = { 0.01, 0.1 }, width = 60, notifier = function(v) ratio = v end },
+          vb:space{ width = 75 },
+          vb:text{ text = "Raw/Norm Ratio:", width = 95 },
+          vb:valuebox{ min = 0.0, max = 1.0, value = n_ratio, steps = { 0.01, 0.1 }, width = 60, notifier = function(v) n_ratio = v end },
+          vb:space{ width = 15 },
+          vb:text{ text = "Stickiness:", width = 85 },
+          vb:valuebox{ min = 0.0, max = 1.0, value = stickiness, steps = { 0.01, 0.05 }, width = 60, notifier = function(v) stickiness = v end }
         },
         vb:row{
-          spacing = 6,
-          vb:text{ text = "Novelty:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = usage_importance, steps = { 0.01, 0.05 }, notifier = function(v) usage_importance = v end },
-          vb:text{ text = "Boredom:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, notifier = function(v) usage_falloff = v end },
-          vb:text{ text = "Stretch:" },
-          vb:valuebox{ min = 1, max = 8, value = stretch, steps = { 1, 2 }, notifier = function(v) stretch = v end }
+          spacing = 4,
+          vb:text{ text = "Novelty:", width = 110 },
+          vb:valuebox{ min = 0.0, max = 1.0, value = usage_importance, steps = { 0.01, 0.05 }, width = 60, notifier = function(v) usage_importance = v end },
+          vb:space{ width = 75 },
+          vb:text{ text = "Boredom:", width = 95 },
+          vb:valuebox{ min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, width = 60, notifier = function(v) usage_falloff = v end },
+          vb:space{ width = 15 },
+          vb:text{ text = "Stretch:", width = 85 },
+          vb:valuebox{ min = 1, max = 8, value = stretch, steps = { 1, 2 }, width = 60, notifier = function(v) stretch = v end }
         },
         vb:row{
-          spacing = 6,
-          vb:text{ text = "Autotune:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = autotune, steps = { 0.01, 0.1 }, notifier = function(v) autotune = v end },
-          vb:text{ text = "Norm Mix:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = n_mix, steps = { 0.01, 0.1 }, notifier = function(v) n_mix = v end },
-          vb:text{ text = "Target Mix:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = target_mix, steps = { 0.01, 0.1 }, notifier = function(v) target_mix = v end },
-          vb:text{ text = "Slide Err:" },
-          vb:valuebox{ min = 0.1, max = 500.0, value = slide_error, steps = { 0.1, 1.0 }, notifier = function(v) slide_error = v end }
+          spacing = 4,
+          vb:text{ text = "Autotune:", width = 110 },
+          vb:valuebox{ min = 0.0, max = 1.0, value = autotune, steps = { 0.01, 0.1 }, width = 60, notifier = function(v) autotune = v end },
+          vb:space{ width = 75 },
+          vb:text{ text = "Norm Mix:", width = 95 },
+          vb:valuebox{ min = 0.0, max = 1.0, value = n_mix, steps = { 0.01, 0.1 }, width = 60, notifier = function(v) n_mix = v end },
+          vb:space{ width = 15 },
+          vb:text{ text = "Target Mix:", width = 85 },
+          vb:valuebox{ min = 0.0, max = 1.0, value = target_mix, steps = { 0.01, 0.1 }, width = 60, notifier = function(v) target_mix = v end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "Slide Err:", width = 110 },
+          vb:valuebox{ min = 0.1, max = 500.0, value = slide_error, steps = { 0.1, 1.0 }, width = 60, notifier = function(v) slide_error = v end },
+          vb:space{ width = 75 },
+          vb:text{ text = "Num Synapses:", width = 95 },
+          vb:valuebox{ min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, width = 60, notifier = function(v) num_synapses = v end }
         },
         vb:row{
           spacing = 6,
           vb:checkbox{ value = normalize_output, notifier = function(v) normalize_output = v end },
           vb:text{ text = "Output Normalize (0.98 ceiling)" },
-          vb:space{ width = 10 },
+          vb:space{ width = 20 },
           vb:checkbox{ value = independent_stereo, notifier = function(v) independent_stereo = v end },
-          vb:text{ text = "Independent Stereo Search" },
-          vb:space{ width = 10 },
-          vb:text{ text = "Num Synapses:" },
-          vb:valuebox{ min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, notifier = function(v) num_synapses = v end }
+          vb:text{ text = "Independent Stereo Search" }
         }
     },
 
