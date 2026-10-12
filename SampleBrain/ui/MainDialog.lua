@@ -337,14 +337,12 @@ function MainDialog.show()
                   local start_id = 1
                   for i = 1, #brain_sources do
                     local ref = brain_sources[i]
-                    if ref.enabled then
-                      ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
-                      local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
-                      for _, b in ipairs(blocks) do
-                        temp_blocks[#temp_blocks + 1] = b
-                      end
-                      start_id = next_id
+                    ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
+                    local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
+                    for _, b in ipairs(blocks) do
+                      temp_blocks[#temp_blocks + 1] = b
                     end
+                    start_id = next_id
                   end
                   return temp_blocks
                 end,
@@ -386,7 +384,7 @@ function MainDialog.show()
               
               JobRunner.start(
                 function(job)
-                  return SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, fft_start, fft_end, job)
+                  return SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job)
                 end,
                 function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
                 function(count)
@@ -496,7 +494,7 @@ function MainDialog.show()
               if (algo == Constants.ALGO_SYNAPTIC or algo == Constants.ALGO_SYNAPTIC_SLIDE) then
                 local current_synapse_signature = string.format("%f_%f_%d_%d", ratio, n_ratio, fft_start, fft_end)
                 if not synapses_built or synapses_signature ~= current_synapse_signature then
-                  SynapseBuilder.build_fixed(brain_blocks, num_synapses, ratio, n_ratio, fft_start, fft_end, job)
+                  SynapseBuilder.build_fixed(brain_blocks, 1000, ratio, n_ratio, fft_start, fft_end, job)
                   synapses_built = true
                   synapses_signature = current_synapse_signature
                 end
