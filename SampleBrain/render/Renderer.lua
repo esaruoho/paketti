@@ -291,6 +291,10 @@ function Renderer.render(brain_blocks, target_blocks, options)
 
     ola_l:add_grain(grain_l, start_frame, comp_gain, Constants.WINDOW_RECTANGLE)
     ola_r:add_grain(grain_r, start_frame, comp_gain, Constants.WINDOW_RECTANGLE)
+
+    if options.job then
+      JobRunner.yield(options.job, idx / #decisions, string.format("Rendering audio %d / %d", idx, #decisions), false)
+    end
   end
 
   if options.normalize then

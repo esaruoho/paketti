@@ -39,6 +39,11 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
         local dist = Distance.compare_blocks(block_a, block_b, ratio, n_ratio, 0.0, fft_start, fft_end, channel)
         candidates[#candidates + 1] = { index = j, distance = dist }
       end
+      if job and (j % 20 == 0) then
+        local total_comps = total_blocks * total_blocks
+        local current_comp = (i - 1) * total_blocks + j
+        JobRunner.yield(job, current_comp / total_comps, string.format("Building synapses %d%%", math.floor(current_comp / total_comps * 100)), false)
+      end
     end
 
     table.sort(candidates, function(a, b) return a.distance < b.distance end)
