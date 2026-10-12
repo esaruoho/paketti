@@ -225,4 +225,13 @@ assert(m_left.usage_table[1] ~= nil and m_left.usage_table[1] > 0, "Left matcher
 assert(m_right.usage_table[1] == nil, "Right matcher usage_table must remain isolated from Left matcher operations")
 print("[PASS] Matcher usage state isolation verified (Left matcher search leaves Right matcher usage untouched)")
 
+-- Test 15: Synaptic Search Usage-Target Verification Test
+local m_syn = Matcher.create(brain_set)
+m_syn:reset(1)
+local initial_node = m_syn.current_block_index
+local syn_result = m_syn:search_synaptic(blk_t, { algo = Constants.ALGO_SYNAPTIC, usage_importance = 1.0 })
+
+assert(m_syn.usage_table[initial_node] ~= nil and m_syn.usage_table[initial_node] > 0, "Synaptic search must penalize departing current_block_index")
+print(string.format("[PASS] Synaptic search usage factor correctly penalized departing node %d", initial_node))
+
 print("\nALL SAMPLEBRAIN SYSTEM TESTS PASSED SUCCESSFULLY!")

@@ -7,12 +7,6 @@ local Constants = require("SampleBrain.Constants")
 local Matcher = {}
 Matcher.__index = Matcher
 
-local Distance = require("SampleBrain.dsp.Distance")
-local Constants = require("SampleBrain.Constants")
-
-local Matcher = {}
-Matcher.__index = Matcher
-
 local function create_prng(seed)
   local state = (seed or 12345) % 2147483647
   if state <= 0 then state = state + 2147483646 end
@@ -208,8 +202,10 @@ function Matcher:search_synaptic(target_block, options)
     end
   end
 
+  local current_index = self.current_block_index
+
   self:deplete_usage(options.usage_falloff)
-  self.usage_table[closest_index] = (self.usage_table[closest_index] or 0.0) + Constants.USAGE_FACTOR
+  self.usage_table[current_index] = (self.usage_table[current_index] or 0.0) + Constants.USAGE_FACTOR
   self.current_error = min_dist
 
   local chosen_idx = self:stickify(target_block, closest_index, min_dist, options)
