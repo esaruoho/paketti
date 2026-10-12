@@ -136,6 +136,55 @@ function MainDialog.reset_state()
   end
 end
 
+local function randomize_all_settings()
+  ratio = math.floor(math.random() * 100) / 100
+  n_ratio = math.floor(math.random() * 100) / 100
+  fft_start = math.random(1, 15)
+  fft_end = math.random(60, 100)
+  usage_importance = math.floor(math.random() * 100) / 100
+  usage_falloff = math.floor(math.random() * 100) / 100
+  stickiness = math.floor(math.random() * 100) / 100
+  stretch = math.random(1, 8)
+  algo = math.random(1, 4)
+  num_synapses = math.random(10, 200)
+  slide_error = math.random(200, 3000)
+  autotune = math.floor(math.random() * 100) / 100
+  n_mix = math.floor(math.random() * 100) / 100
+  target_mix = math.floor(math.random() * 50) / 100
+  independent_stereo = (math.random() > 0.5)
+
+  if vb then
+    if vb.views.slide_ratio then vb.views.slide_ratio.value = ratio end
+    if vb.views.box_ratio then vb.views.box_ratio.value = ratio end
+    if vb.views.slide_n_ratio then vb.views.slide_n_ratio.value = n_ratio end
+    if vb.views.box_n_ratio then vb.views.box_n_ratio.value = n_ratio end
+    if vb.views.box_fft_start then vb.views.box_fft_start.value = fft_start end
+    if vb.views.box_fft_end then vb.views.box_fft_end.value = fft_end end
+    if vb.views.slide_novelty then vb.views.slide_novelty.value = usage_importance end
+    if vb.views.box_novelty then vb.views.box_novelty.value = usage_importance end
+    if vb.views.slide_boredom then vb.views.slide_boredom.value = usage_falloff end
+    if vb.views.box_boredom then vb.views.box_boredom.value = usage_falloff end
+    if vb.views.slide_stickiness then vb.views.slide_stickiness.value = stickiness end
+    if vb.views.box_stickiness then vb.views.box_stickiness.value = stickiness end
+    if vb.views.slide_stretch then vb.views.slide_stretch.value = stretch end
+    if vb.views.box_stretch then vb.views.box_stretch.value = stretch end
+    if vb.views.popup_algo then vb.views.popup_algo.value = algo end
+    if vb.views.slide_synapses then vb.views.slide_synapses.value = num_synapses end
+    if vb.views.box_synapses then vb.views.box_synapses.value = num_synapses end
+    if vb.views.slide_error then vb.views.slide_error.value = slide_error end
+    if vb.views.box_error then vb.views.box_error.value = slide_error end
+    if vb.views.slide_autotune then vb.views.slide_autotune.value = autotune end
+    if vb.views.box_autotune then vb.views.box_autotune.value = autotune end
+    if vb.views.slide_nmix then vb.views.slide_nmix.value = n_mix end
+    if vb.views.box_nmix then vb.views.box_nmix.value = n_mix end
+    if vb.views.slide_tmix then vb.views.slide_tmix.value = target_mix end
+    if vb.views.box_tmix then vb.views.box_tmix.value = target_mix end
+    if vb.views.chk_stereo then vb.views.chk_stereo.value = independent_stereo end
+  end
+
+  renoise.app():show_status("SampleBrain: Parameters randomized!")
+end
+
 local function run_batch_render(count)
   if JobRunner.is_running() then return end
   if #target_blocks == 0 or #brain_blocks == 0 then
@@ -173,13 +222,17 @@ local function run_batch_render(count)
       for i = 1, count do
         if job.cancelled then break end
 
-        -- Systematic parameter variation per pass
-        local pass_algo = algos[((i - 1) % #algos) + 1]
-        local pass_ratio = math.max(0.0, math.min(1.0, ratio + ((i - 1) - count / 2) * 0.06))
-        local pass_stickiness = math.max(0.0, math.min(1.0, stickiness + ((i % 5) * 0.12)))
-        local pass_autotune = math.max(0.0, math.min(1.0, autotune + ((i % 4) * 0.10)))
-        local pass_stretch = math.max(1, math.min(50, stretch + (i % 3)))
-        local pass_slide_error = math.max(10, math.min(10000, slide_error + (i * 120)))
+        -- Rich randomized parameter variations per pass around or across the parameter space
+        local pass_algo = algos[math.random(1, #algos)]
+        local pass_ratio = math.floor(math.max(0.0, math.min(1.0, ratio + (math.random() - 0.5) * 0.6)) * 100) / 100
+        local pass_n_ratio = math.floor(math.max(0.0, math.min(1.0, n_ratio + (math.random() - 0.5) * 0.6)) * 100) / 100
+        local pass_stickiness = math.floor(math.max(0.0, math.min(1.0, stickiness + (math.random() - 0.5) * 0.6)) * 100) / 100
+        local pass_autotune = math.floor(math.max(0.0, math.min(1.0, autotune + (math.random() - 0.5) * 0.6)) * 100) / 100
+        local pass_stretch = math.max(1, math.min(8, math.floor(stretch + math.random(-2, 2))))
+        local pass_slide_error = math.max(100, math.min(5000, math.floor(slide_error + math.random(-800, 800))))
+        local pass_n_mix = math.floor(math.max(0.0, math.min(1.0, n_mix + (math.random() - 0.5) * 0.5)) * 100) / 100
+        local pass_target_mix = math.floor(math.max(0.0, math.min(1.0, target_mix + (math.random() - 0.5) * 0.5)) * 100) / 100
+        local pass_independent_stereo = (math.random() > 0.5)
 
         local options = {
           block_size = target_settings.block_size,
@@ -187,7 +240,7 @@ local function run_batch_render(count)
           window_type = target_settings.window_type,
           algo = pass_algo,
           ratio = pass_ratio,
-          n_ratio = n_ratio,
+          n_ratio = pass_n_ratio,
           fft_start = fft_start,
           fft_end = fft_end,
           usage_importance = usage_importance,
@@ -196,12 +249,12 @@ local function run_batch_render(count)
           slide_error = pass_slide_error,
           stretch = pass_stretch,
           autotune = pass_autotune,
-          n_mix = n_mix,
-          target_mix = target_mix,
+          n_mix = pass_n_mix,
+          target_mix = pass_target_mix,
           normalize = normalize_output,
           num_synapses = num_synapses,
           brain_gain = brain_gain,
-          independent_stereo = independent_stereo,
+          independent_stereo = pass_independent_stereo,
           job = job
         }
 
@@ -211,7 +264,7 @@ local function run_batch_render(count)
         results[#results + 1] = {
           left = out_l,
           right = out_r,
-          name = string.format("Paketti SB [%02d/%02d] %s (ratio=%.2f, tune=%.2f)", i, count, algo_names[pass_algo], pass_ratio, pass_autotune)
+          name = string.format("Paketti SB [%02d/%02d] %s (ratio=%.2f, tune=%.2f, st=%d)", i, count, algo_names[pass_algo], pass_ratio, pass_autotune, pass_stretch)
         }
       end
 
@@ -262,7 +315,16 @@ function MainDialog.show()
       -- Left Column: Brain Tweaks
       vb:column{
         width = 280, style = "panel", margin = 6, spacing = 4,
-        vb:row{ vb:text{ text = "brain tweaks", font = "bold" } },
+        vb:row{
+          vb:text{ text = "brain tweaks", font = "bold" },
+          vb:space{ width = 60 },
+          vb:button{
+            text = "Randomize", width = 85,
+            notifier = function()
+              randomize_all_settings()
+            end
+          }
+        },
         
         vb:row{
           spacing = 2,
@@ -312,7 +374,7 @@ function MainDialog.show()
         vb:row{
           spacing = 2,
           vb:text{ text = "algorithm", width = 100 },
-          vb:popup{ items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 162, notifier = function(v) algo = v end }
+          vb:popup{ id = "popup_algo", items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 162, notifier = function(v) algo = v end }
         },
         vb:row{
           spacing = 2,
@@ -431,7 +493,7 @@ function MainDialog.show()
         },
         vb:row{
           spacing = 4,
-          vb:checkbox{ value = independent_stereo, notifier = function(v) independent_stereo = v end },
+          vb:checkbox{ id = "chk_stereo", value = independent_stereo, notifier = function(v) independent_stereo = v end },
           vb:text{ text = "independent stereo search" }
         },
         vb:row{
