@@ -198,8 +198,10 @@ function Renderer.render(brain_blocks, target_blocks, options)
 
       block_pos = block_pos + 1
 
-      -- Emergency safeguard for extreme downward pitch shifts
-      if block_pos > math.max(target_len, src_len * 105) then
+      -- Dynamic rate-aware watchdog cap derived from cursor_step
+      local max_natural_event_len = math.ceil(src_len / math.max(cursor_step, 1e-6)) + target_len
+      local watchdog_cap = max_natural_event_len * 2
+      if block_pos > watchdog_cap then
         break
       end
     end

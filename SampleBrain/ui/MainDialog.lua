@@ -338,13 +338,14 @@ function MainDialog.show()
                   for i = 1, #brain_sources do
                     local ref = brain_sources[i]
                     local ok, reload_err = ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
-                    if ok then
-                      local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
-                      for _, b in ipairs(blocks) do
-                        temp_blocks[#temp_blocks + 1] = b
-                      end
-                      start_id = next_id
+                    if not ok then
+                      error(string.format("Brain source %d '%s' could not be reloaded: %s", i, ref.name, reload_err or "Sample missing"))
                     end
+                    local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
+                    for _, b in ipairs(blocks) do
+                      temp_blocks[#temp_blocks + 1] = b
+                    end
+                    start_id = next_id
                   end
                   return temp_blocks
                 end,
