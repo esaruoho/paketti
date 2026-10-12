@@ -14,9 +14,19 @@ local function idle_handler()
   end
 
   if current_job.cancelled then
+    local finished_job = current_job
     current_job = nil
+    if renoise and renoise.tool and renoise.tool().app_idle_observable:has_notifier(idle_handler) then
+      renoise.tool().app_idle_observable:remove_notifier(idle_handler)
+    end
+    if finished_job.on_cancel then
+      finished_job.on_cancel()
+    end
     return
   end
+
+  -- Record start time for time-budgeted yields
+  current_job.last_yield_time = os.clock()
 
   local status, err = coroutine.resume(current_job.co, current_job)
 
@@ -50,8 +60,9 @@ end
 -- @param on_progress function Callback for progress updates `function(percent, message)`
 -- @param on_complete function Callback when finished `function(result)`
 -- @param on_error function Callback on error `function(err)`
+-- @param on_cancel function (Optional) Callback on cancellation `function()`
 -- @return boolean true if started successfully
-function JobRunner.start(func, on_progress, on_complete, on_error)
+function JobRunner.start(func, on_progress, on_complete, on_error, on_cancel)
   if current_job then
     return false, "A job is already running."
   end
@@ -61,7 +72,9 @@ function JobRunner.start(func, on_progress, on_complete, on_error)
     on_progress = on_progress,
     on_complete = on_complete,
     on_error = on_error,
-    cancelled = false
+    on_cancel = on_cancel,
+    cancelled = false,
+    last_yield_time = os.clock()
   }
 
   if renoise and renoise.tool then
@@ -82,7 +95,9 @@ end
 function JobRunner.cancel()
   if current_job then
     current_job.cancelled = true
-    current_job = nil
+    -- We do NOT set current_job = nil here. 
+    -- The next idle_handler execution will notice current_job.cancelled == true, 
+    -- fire on_cancel(), and properly deregister the idle_handler.
   end
 end
 
@@ -92,17 +107,25 @@ function JobRunner.is_running()
 end
 
 --- Yield from within a job coroutine, optionally updating progress
+-- Yielding happens only if forced or if the CPU time budget (e.g., 10ms) is exceeded.
 -- @param job table The job instance passed to the coroutine
 -- @param percent number 0.0 to 1.0 progress
 -- @param message string Optional status message
-function JobRunner.yield(job, percent, message)
+-- @param force boolean If true, yield regardless of elapsed time
+function JobRunner.yield(job, percent, message, force)
   if job.cancelled then
     coroutine.yield()
   end
-  if job.on_progress and percent then
-    job.on_progress(percent, message)
+  
+  -- Use ~10ms CPU budget limit
+  local elapsed = os.clock() - job.last_yield_time
+  if force or elapsed > 0.010 then
+    if job.on_progress and percent then
+      job.on_progress(percent, message)
+    end
+    coroutine.yield()
+    job.last_yield_time = os.clock() -- Reset timer after waking back up
   end
-  coroutine.yield()
 end
 
 return JobRunner

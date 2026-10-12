@@ -39,8 +39,8 @@ function BlockGenerator.generate(source_ref, block_size, overlap, window_type, s
     pos = pos + hop
     count = count + 1
 
-    if job and count % 20 == 0 then
-      JobRunner.yield(job, pos / total_samples, string.format("Analyzing block %d...", source_block_index))
+    if job then
+      JobRunner.yield(job, pos / total_samples, string.format("Analyzing block %d...", source_block_index), false)
     end
   end
 

@@ -49,8 +49,8 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
 
     total_synapses_created = total_synapses_created + #block_a.synapses
 
-    if job and i % 10 == 0 then
-      JobRunner.yield(job, i / total_blocks, string.format("Building synapses %d%%", math.floor(i / total_blocks * 100)))
+    if job then
+      JobRunner.yield(job, i / total_blocks, string.format("Building synapses %d%%", math.floor(i / total_blocks * 100)), false)
     end
   end
 

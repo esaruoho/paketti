@@ -112,8 +112,8 @@ function Renderer.render(brain_blocks, target_blocks, options)
 
     render_step = render_step + 1
 
-    if options.job and render_step % 20 == 0 then
-      JobRunner.yield(options.job, target_idx / #target_blocks, string.format("Matching block %d / %d", target_idx, #target_blocks))
+    if options.job then
+      JobRunner.yield(options.job, target_idx / #target_blocks, string.format("Matching block %d / %d", target_idx, #target_blocks), false)
     end
 
     -- Safety check to prevent infinite loop in slide mode
