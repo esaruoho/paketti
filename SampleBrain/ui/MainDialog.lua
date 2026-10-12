@@ -58,6 +58,20 @@ local function update_job_ui(is_running)
   end
 end
 
+local function refresh_source_list()
+  if not vb or not vb.views.brain_source_list then return end
+  if #brain_sources == 0 then
+    vb.views.brain_source_list.text = "No sources added."
+    return
+  end
+  local lines = {}
+  for i, ref in ipairs(brain_sources) do
+    local state = ref.enabled and "[x]" or "[ ]"
+    lines[#lines + 1] = string.format("%02d: %s %s (frames %d..%d)", i, state, ref.name, ref.captured_range_start, ref.captured_range_end)
+  end
+  vb.views.brain_source_list.text = table.concat(lines, "\n")
+end
+
 function MainDialog.reset_state()
   JobRunner.cancel()
   brain_sources = {}
@@ -68,6 +82,7 @@ function MainDialog.reset_state()
   synapses_signature = ""
   brain_settings_signature = ""
   synapses_built = false
+  refresh_source_list()
   if vb and vb.views.brain_status then
     vb.views.brain_status.text = "Brain: Empty"
   end
@@ -177,6 +192,18 @@ function MainDialog.show()
       vb:column{
         margin = 6, spacing = 4,
         vb:row{ vb:text{ text = "Brain Sources", font = "bold" } },
+        
+        -- Interactive Source List
+        vb:row{
+          vb:multiline_text{
+            id = "brain_source_list",
+            text = "No sources added.",
+            width = "100%",
+            height = 60,
+            font = "mono"
+          }
+        },
+
         vb:row{
           spacing = 6,
           vb:text{ text = "Block:" },
@@ -220,6 +247,7 @@ function MainDialog.show()
                 
                 brain_settings_signature = ""
                 vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (STALE)", #brain_sources, #brain_blocks)
+                refresh_source_list()
               else
                 renoise.app():show_warning("Selected sample has no audio data.")
               end
@@ -251,6 +279,7 @@ function MainDialog.show()
               end
               brain_settings_signature = ""
               vb.views.brain_status.text = string.format("Brain: %d sources (+%d), %d blocks (STALE)", #brain_sources, count, #brain_blocks)
+              refresh_source_list()
             end
           },
           vb:button{
@@ -278,6 +307,7 @@ function MainDialog.show()
               end
               brain_settings_signature = ""
               vb.views.brain_status.text = string.format("Brain: %d sources (+%d), %d blocks (STALE)", #brain_sources, count, #brain_blocks)
+              refresh_source_list()
             end
           }
         },
