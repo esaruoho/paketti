@@ -249,64 +249,65 @@ function MainDialog.show()
         
         vb:row{
           spacing = 2,
-          vb:text{ text = "fft / mfcc", width = 105 },
-          vb:minislider{ id = "slide_ratio", min = 0.0, max = 1.0, value = ratio, width = 100, notifier = function(v) ratio = v; vb.views.box_ratio.value = v end },
-          vb:valuebox{ id = "box_ratio", min = 0.0, max = 1.0, value = ratio, steps = { 0.01, 0.1 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) ratio = v; vb.views.slide_ratio.value = v end }
+          vb:text{ text = "fft / mfcc", width = 100 },
+          vb:minislider{ id = "slide_ratio", min = 0.0, max = 1.0, value = ratio, width = 90, notifier = function(v) ratio = v; vb.views.box_ratio.value = v end },
+          vb:valuebox{ id = "box_ratio", min = 0.0, max = 1.0, value = ratio, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) ratio = v; vb.views.slide_ratio.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "raw / norm", width = 105 },
-          vb:minislider{ id = "slide_n_ratio", min = 0.0, max = 1.0, value = n_ratio, width = 100, notifier = function(v) n_ratio = v; vb.views.box_n_ratio.value = v end },
-          vb:valuebox{ id = "box_n_ratio", min = 0.0, max = 1.0, value = n_ratio, steps = { 0.01, 0.1 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_ratio = v; vb.views.slide_n_ratio.value = v end }
+          vb:text{ text = "raw / norm", width = 100 },
+          vb:minislider{ id = "slide_n_ratio", min = 0.0, max = 1.0, value = n_ratio, width = 90, notifier = function(v) n_ratio = v; vb.views.box_n_ratio.value = v end },
+          vb:valuebox{ id = "box_n_ratio", min = 0.0, max = 1.0, value = n_ratio, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_ratio = v; vb.views.slide_n_ratio.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "fft subsection", width = 105 },
-          vb:text{ text = "S:" },
-          vb:valuebox{ id = "box_fft_start", min = 1, max = 100, value = fft_start, steps = { 1, 5 }, width = 55, notifier = function(v) fft_start = v end },
-          vb:text{ text = "E:" },
-          vb:valuebox{ id = "box_fft_end", min = 1, max = 100, value = fft_end, steps = { 1, 5 }, width = 55, notifier = function(v) fft_end = v end }
+          vb:text{ text = "fft subsection", width = 100 },
+          vb:text{ text = "S:", width = 13 },
+          vb:valuebox{ id = "box_fft_start", min = 1, max = 100, value = fft_start, steps = { 1, 5 }, width = 45, notifier = function(v) fft_start = v end },
+          vb:space{ width = 12 },
+          vb:text{ text = "E:", width = 13 },
+          vb:valuebox{ id = "box_fft_end", min = 1, max = 100, value = fft_end, steps = { 1, 5 }, width = 68, notifier = function(v) fft_end = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "novelty", width = 105 },
-          vb:minislider{ id = "slide_novelty", min = 0.0, max = 1.0, value = usage_importance, width = 100, notifier = function(v) usage_importance = v; vb.views.box_novelty.value = v end },
-          vb:valuebox{ id = "box_novelty", min = 0.0, max = 1.0, value = usage_importance, steps = { 0.01, 0.05 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_importance = v; vb.views.slide_novelty.value = v end }
+          vb:text{ text = "novelty", width = 100 },
+          vb:minislider{ id = "slide_novelty", min = 0.0, max = 1.0, value = usage_importance, width = 90, notifier = function(v) usage_importance = v; vb.views.box_novelty.value = v end },
+          vb:valuebox{ id = "box_novelty", min = 0.0, max = 1.0, value = usage_importance, steps = { 0.01, 0.05 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_importance = v; vb.views.slide_novelty.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "boredom", width = 105 },
-          vb:minislider{ id = "slide_boredom", min = 0.0, max = 1.0, value = usage_falloff, width = 100, notifier = function(v) usage_falloff = v; vb.views.box_boredom.value = v end },
-          vb:valuebox{ id = "box_boredom", min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_falloff = v; vb.views.slide_boredom.value = v end }
+          vb:text{ text = "boredom", width = 100 },
+          vb:minislider{ id = "slide_boredom", min = 0.0, max = 1.0, value = usage_falloff, width = 90, notifier = function(v) usage_falloff = v; vb.views.box_boredom.value = v end },
+          vb:valuebox{ id = "box_boredom", min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_falloff = v; vb.views.slide_boredom.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "stickyness", width = 105 },
-          vb:minislider{ id = "slide_stickiness", min = 0.0, max = 1.0, value = stickiness, width = 100, notifier = function(v) stickiness = v; vb.views.box_stickiness.value = v end },
-          vb:valuebox{ id = "box_stickiness", min = 0.0, max = 1.0, value = stickiness, steps = { 0.01, 0.05 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) stickiness = v; vb.views.slide_stickiness.value = v end }
+          vb:text{ text = "stickyness", width = 100 },
+          vb:minislider{ id = "slide_stickiness", min = 0.0, max = 1.0, value = stickiness, width = 90, notifier = function(v) stickiness = v; vb.views.box_stickiness.value = v end },
+          vb:valuebox{ id = "box_stickiness", min = 0.0, max = 1.0, value = stickiness, steps = { 0.01, 0.05 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) stickiness = v; vb.views.slide_stickiness.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "search stretch", width = 105 },
-          vb:minislider{ id = "slide_stretch", min = 1, max = 50, value = stretch, width = 100, notifier = function(v) stretch = v; vb.views.box_stretch.value = v end },
-          vb:valuebox{ id = "box_stretch", min = 1, max = 50, value = stretch, steps = { 1, 5 }, width = 55, notifier = function(v) stretch = v; vb.views.slide_stretch.value = v end }
+          vb:text{ text = "search stretch", width = 100 },
+          vb:minislider{ id = "slide_stretch", min = 1, max = 50, value = stretch, width = 90, notifier = function(v) stretch = v; vb.views.box_stretch.value = v end },
+          vb:valuebox{ id = "box_stretch", min = 1, max = 50, value = stretch, steps = { 1, 5 }, width = 68, notifier = function(v) stretch = v; vb.views.slide_stretch.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "algorithm", width = 105 },
-          vb:popup{ items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 158, notifier = function(v) algo = v end }
+          vb:text{ text = "algorithm", width = 100 },
+          vb:popup{ items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 162, notifier = function(v) algo = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "num synapses", width = 105 },
-          vb:minislider{ id = "slide_synapses", min = 1, max = 1000, value = num_synapses, width = 100, notifier = function(v) num_synapses = v; vb.views.box_synapses.value = v end },
-          vb:valuebox{ id = "box_synapses", min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, width = 55, notifier = function(v) num_synapses = v; vb.views.slide_synapses.value = v end }
+          vb:text{ text = "num synapses", width = 100 },
+          vb:minislider{ id = "slide_synapses", min = 1, max = 1000, value = num_synapses, width = 90, notifier = function(v) num_synapses = v; vb.views.box_synapses.value = v end },
+          vb:valuebox{ id = "box_synapses", min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, width = 68, notifier = function(v) num_synapses = v; vb.views.slide_synapses.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "slide error", width = 105 },
-          vb:minislider{ id = "slide_error", min = 0, max = 10000, value = slide_error, width = 100, notifier = function(v) slide_error = v; vb.views.box_error.value = v end },
-          vb:valuebox{ id = "box_error", min = 0, max = 10000, value = slide_error, steps = { 10, 100 }, width = 55, tostring = function(v) return string.format("%d", math.floor(v)) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) slide_error = v; vb.views.slide_error.value = v end }
+          vb:text{ text = "slide error", width = 100 },
+          vb:minislider{ id = "slide_error", min = 0, max = 10000, value = slide_error, width = 90, notifier = function(v) slide_error = v; vb.views.box_error.value = v end },
+          vb:valuebox{ id = "box_error", min = 0, max = 10000, value = slide_error, steps = { 10, 100 }, width = 68, tostring = function(v) return string.format("%d", math.floor(v)) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) slide_error = v; vb.views.slide_error.value = v end }
         }
       },
 
@@ -395,21 +396,21 @@ function MainDialog.show()
 
         vb:row{
           spacing = 2,
-          vb:text{ text = "autotune", width = 90 },
-          vb:minislider{ id = "slide_autotune", min = 0.0, max = 1.0, value = autotune, width = 100, notifier = function(v) autotune = v; vb.views.box_autotune.value = v end },
-          vb:valuebox{ id = "box_autotune", min = 0.0, max = 1.0, value = autotune, steps = { 0.01, 0.1 }, width = 50, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) autotune = v; vb.views.slide_autotune.value = v end }
+          vb:text{ text = "autotune", width = 85 },
+          vb:minislider{ id = "slide_autotune", min = 0.0, max = 1.0, value = autotune, width = 88, notifier = function(v) autotune = v; vb.views.box_autotune.value = v end },
+          vb:valuebox{ id = "box_autotune", min = 0.0, max = 1.0, value = autotune, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) autotune = v; vb.views.slide_autotune.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "normalised", width = 90 },
-          vb:minislider{ id = "slide_nmix", min = 0.0, max = 1.0, value = n_mix, width = 100, notifier = function(v) n_mix = v; vb.views.box_nmix.value = v end },
-          vb:valuebox{ id = "box_nmix", min = 0.0, max = 1.0, value = n_mix, steps = { 0.01, 0.1 }, width = 50, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_mix = v; vb.views.slide_nmix.value = v end }
+          vb:text{ text = "normalised", width = 85 },
+          vb:minislider{ id = "slide_nmix", min = 0.0, max = 1.0, value = n_mix, width = 88, notifier = function(v) n_mix = v; vb.views.box_nmix.value = v end },
+          vb:valuebox{ id = "box_nmix", min = 0.0, max = 1.0, value = n_mix, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_mix = v; vb.views.slide_nmix.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "brain / target", width = 90 },
-          vb:minislider{ id = "slide_tmix", min = 0.0, max = 1.0, value = target_mix, width = 100, notifier = function(v) target_mix = v; vb.views.box_tmix.value = v end },
-          vb:valuebox{ id = "box_tmix", min = 0.0, max = 1.0, value = target_mix, steps = { 0.01, 0.1 }, width = 50, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) target_mix = v; vb.views.slide_tmix.value = v end }
+          vb:text{ text = "brain / target", width = 85 },
+          vb:minislider{ id = "slide_tmix", min = 0.0, max = 1.0, value = target_mix, width = 88, notifier = function(v) target_mix = v; vb.views.box_tmix.value = v end },
+          vb:valuebox{ id = "box_tmix", min = 0.0, max = 1.0, value = target_mix, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) target_mix = v; vb.views.slide_tmix.value = v end }
         },
         vb:row{
           spacing = 4,
@@ -892,7 +893,7 @@ function MainDialog.show()
           end
         end
       },
-      vb:text{ id = "job_status", text = "", style = "disabled" }
+      vb:text{ id = "job_status", text = "", width = 230, style = "disabled" }
     }
   }
 
