@@ -478,7 +478,14 @@ function MainDialog.show()
             text = "Grow Synapses", width = 110,
             notifier = function()
               if JobRunner.is_running() then return end
-              if #brain_blocks == 0 then return end
+              if #brain_sources == 0 then
+                renoise.app():show_warning("No brain sources added. Please add brain sources and click 'Generate / Rebuild Brain' first.")
+                return
+              end
+              if #brain_blocks == 0 then
+                renoise.app():show_warning("Brain has not been built yet. Please click 'Generate / Rebuild Brain' before growing synapses.")
+                return
+              end
               
               JobRunner.start(
                 function(job)
