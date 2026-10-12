@@ -200,20 +200,39 @@ end
 function Block:get_normalized_windowed_pcm_stereo()
   local l_pcm, r_pcm = self.source_ref:get_stereo_slice(self.start_frame, self.length)
   
-  -- Shared stereo pair normalization preserves L/R level balance
+  -- Step 1: Remove DC midpoint from each channel individually
+  local min_l, max_l = 1e9, -1e9
+  local min_r, max_r = 1e9, -1e9
+  for i = 1, #l_pcm do
+    local vl = l_pcm[i] or 0.0
+    local vr = r_pcm[i] or 0.0
+    if vl < min_l then min_l = vl end
+    if vl > max_l then max_l = vl end
+    if vr < min_r then min_r = vr end
+    if vr > max_r then max_r = vr end
+  end
+
+  local mid_l = (min_l + max_l) * 0.5
+  local mid_r = (min_r + max_r) * 0.5
+
   local max_peak = 0.0
   for i = 1, #l_pcm do
-    local abs_l = math.abs(l_pcm[i] or 0.0)
-    local abs_r = math.abs(r_pcm[i] or 0.0)
+    local cl = (l_pcm[i] or 0.0) - mid_l
+    local cr = (r_pcm[i] or 0.0) - mid_r
+    l_pcm[i] = cl
+    r_pcm[i] = cr
+    local abs_l = math.abs(cl)
+    local abs_r = math.abs(cr)
     if abs_l > max_peak then max_peak = abs_l end
     if abs_r > max_peak then max_peak = abs_r end
   end
 
+  -- Step 2: Shared peak normalization preserves L/R level balance
   if max_peak > 1e-12 then
     local scale = 1.0 / max_peak
     for i = 1, #l_pcm do
-      l_pcm[i] = (l_pcm[i] or 0.0) * scale
-      r_pcm[i] = (r_pcm[i] or 0.0) * scale
+      l_pcm[i] = l_pcm[i] * scale
+      r_pcm[i] = r_pcm[i] * scale
     end
   end
 

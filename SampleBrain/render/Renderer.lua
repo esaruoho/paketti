@@ -105,10 +105,11 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local dist_r = dist_l
     if independent_stereo then
       local m_r, d_r, e_r = matcher_r:search(target_blk, search_opts)
-      if m_r then
-        matched_blk_r = m_r
-        dist_r = d_r
+      if not m_r then
+        return nil, e_r or "Right matcher returned no block"
       end
+      matched_blk_r = m_r
+      dist_r = d_r
     end
 
     decisions[#decisions + 1] = {
@@ -165,46 +166,64 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local target_len = #targ_l
     local grain_l = {}
     local grain_r = {}
-    local pitch_scale = 1.0
 
-    -- Autotune pitch shifting scale
-    if autotune > 0 and target_blk.dominant_freq and matched_l.dominant_freq and matched_l.dominant_freq > 0 then
-      pitch_scale = target_blk.dominant_freq / matched_l.dominant_freq
-      local max_scale = 1.0 + (autotune * autotune) * 100.0
-      if pitch_scale > max_scale then pitch_scale = max_scale end
-      if pitch_scale < 1.0 / max_scale then pitch_scale = 1.0 / max_scale end
-    end
-
-    local src_len = math.max(#raw_l, #n_raw_l)
+    local src_len_l = math.max(#raw_l, #n_raw_l)
+    local src_len_r = math.max(#raw_r, #n_raw_r)
     local comp_gain = brain_gain * (options.normalize and 1.0 or 0.2)
 
-    -- Sample-rate compensation scale
-    local src_rate = matched_l.sample_rate or Constants.DEFAULT_SAMPLE_RATE
+    -- Sample-rate compensation scale for Left and Right channels
     local dst_rate = target_blk.sample_rate or Constants.DEFAULT_SAMPLE_RATE
-    local rate_scale = (src_rate > 0 and dst_rate > 0) and (src_rate / dst_rate) or 1.0
-    local cursor_step = pitch_scale * rate_scale
+    local src_rate_l = matched_l.sample_rate or Constants.DEFAULT_SAMPLE_RATE
+    local src_rate_r = matched_r.sample_rate or Constants.DEFAULT_SAMPLE_RATE
 
-    -- Upstream Source Cursor Rendering Semantics
-    -- Render event duration matches the source block's lifespan. 
-    -- The cursor wraps around the source until output duration passes the source block's length.
-    local source_position = 0.0
+    -- Independent pitch scales
+    local pitch_scale_l = 1.0
+    local pitch_scale_r = 1.0
+
+    if autotune > 0 and target_blk.dominant_freq then
+      if matched_l.dominant_freq and matched_l.dominant_freq > 0 then
+        pitch_scale_l = target_blk.dominant_freq / matched_l.dominant_freq
+        local max_scale = 1.0 + (autotune * autotune) * 100.0
+        if pitch_scale_l > max_scale then pitch_scale_l = max_scale end
+        if pitch_scale_l < 1.0 / max_scale then pitch_scale_l = 1.0 / max_scale end
+      end
+      if matched_r.dominant_freq and matched_r.dominant_freq > 0 then
+        pitch_scale_r = target_blk.dominant_freq / matched_r.dominant_freq
+        local max_scale = 1.0 + (autotune * autotune) * 100.0
+        if pitch_scale_r > max_scale then pitch_scale_r = max_scale end
+        if pitch_scale_r < 1.0 / max_scale then pitch_scale_r = 1.0 / max_scale end
+      end
+    end
+
+    local cursor_step_l = pitch_scale_l * ((src_rate_l > 0 and dst_rate > 0) and (src_rate_l / dst_rate) or 1.0)
+    local cursor_step_r = pitch_scale_r * ((src_rate_r > 0 and dst_rate > 0) and (src_rate_r / dst_rate) or 1.0)
+
+    -- Upstream Source Cursor Rendering Semantics (Independent L/R Cursors)
+    local source_position_l = 0.0
+    local source_position_r = 0.0
     local block_pos = 0
 
-    while source_position < src_len do
-      local idx0 = math.floor(source_position)
+    while (source_position_l < src_len_l or source_position_r < src_len_r) do
+      local idx0_l = math.floor(source_position_l)
+      local idx0_r = math.floor(source_position_r)
       local r_s_l, r_s_r, n_s_l, n_s_r
 
-      if idx0 >= src_len - 1 then
-        r_s_l = raw_l[src_len] or 0.0
-        r_s_r = raw_r[src_len] or 0.0
-        n_s_l = n_raw_l[src_len] or 0.0
-        n_s_r = n_raw_r[src_len] or 0.0
+      if idx0_l >= src_len_l - 1 then
+        r_s_l = raw_l[src_len_l] or 0.0
+        n_s_l = n_raw_l[src_len_l] or 0.0
       else
-        local frac = source_position - idx0
-        r_s_l = (raw_l[idx0 + 1] or 0.0) * (1.0 - frac) + (raw_l[idx0 + 2] or 0.0) * frac
-        r_s_r = (raw_r[idx0 + 1] or 0.0) * (1.0 - frac) + (raw_r[idx0 + 2] or 0.0) * frac
-        n_s_l = (n_raw_l[idx0 + 1] or 0.0) * (1.0 - frac) + (n_raw_l[idx0 + 2] or 0.0) * frac
-        n_s_r = (n_raw_r[idx0 + 1] or 0.0) * (1.0 - frac) + (n_raw_r[idx0 + 2] or 0.0) * frac
+        local frac = source_position_l - idx0_l
+        r_s_l = (raw_l[idx0_l + 1] or 0.0) * (1.0 - frac) + (raw_l[idx0_l + 2] or 0.0) * frac
+        n_s_l = (n_raw_l[idx0_l + 1] or 0.0) * (1.0 - frac) + (n_raw_l[idx0_l + 2] or 0.0) * frac
+      end
+
+      if idx0_r >= src_len_r - 1 then
+        r_s_r = raw_r[src_len_r] or 0.0
+        n_s_r = n_raw_r[src_len_r] or 0.0
+      else
+        local frac = source_position_r - idx0_r
+        r_s_r = (raw_r[idx0_r + 1] or 0.0) * (1.0 - frac) + (raw_r[idx0_r + 2] or 0.0) * frac
+        n_s_r = (n_raw_r[idx0_r + 1] or 0.0) * (1.0 - frac) + (n_raw_r[idx0_r + 2] or 0.0) * frac
       end
 
       local brain_sample_l = r_s_l * (1.0 - n_mix) + n_s_l * n_mix
@@ -221,17 +240,22 @@ function Renderer.render(brain_blocks, target_blocks, options)
       grain_l[block_pos + 1] = brain_sample_l * (1.0 - target_mix) + t_s_l * target_mix
       grain_r[block_pos + 1] = brain_sample_r * (1.0 - target_mix) + t_s_r * target_mix
 
-      source_position = source_position + cursor_step
+      source_position_l = source_position_l + cursor_step_l
+      source_position_r = source_position_r + cursor_step_r
 
-      if block_pos < src_len and source_position > src_len then
-        source_position = 0.0
+      if block_pos < src_len_l and source_position_l > src_len_l then
+        source_position_l = 0.0
+      end
+      if block_pos < src_len_r and source_position_r > src_len_r then
+        source_position_r = 0.0
       end
 
       block_pos = block_pos + 1
 
-      -- Dynamic rate-aware watchdog cap (accounting for both src_len wrapping phase and pitch shift)
-      local max_natural_event_len = math.max(src_len, math.ceil(src_len / math.max(cursor_step, 1e-6))) + target_len
-      local watchdog_cap = max_natural_event_len * 5
+      -- Dynamic rate-aware watchdog cap (accounting for both L and R lifespans)
+      local max_len_l = math.max(src_len_l, math.ceil(src_len_l / math.max(cursor_step_l, 1e-6)))
+      local max_len_r = math.max(src_len_r, math.ceil(src_len_r / math.max(cursor_step_r, 1e-6)))
+      local watchdog_cap = (math.max(max_len_l, max_len_r) + target_len) * 5
       if block_pos > watchdog_cap then
         break
       end

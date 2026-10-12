@@ -37,10 +37,10 @@ print(string.format("[PASS] Dominant frequency parity: Lua %.3f Hz vs C++ %.3f H
 for idx = 1, 12 do
   local c_lua = blk440.mfcc[idx] or 0.0
   local c_cpp = oracle.mfcc_440[idx]
-  local diff = math.abs(c_lua - c_cpp)
-  assert(diff < 2.0, string.format("MFCC coef %d mismatch: Lua %.3f vs C++ %.3f", idx, c_lua, c_cpp))
+  local rel_diff = math.abs(c_lua - c_cpp) / math.max(math.abs(c_cpp), 1.0)
+  assert(rel_diff < 0.001, string.format("MFCC coef %d relative mismatch: Lua %.5f vs C++ %.5f", idx, c_lua, c_cpp))
 end
-print("[PASS] Aquila MFCC 12-coefficient vector matches C++ oracle within tolerance")
+print("[PASS] Aquila MFCC 12-coefficient vector matches C++ oracle within 0.1% relative tolerance")
 
 -- Test 3: Distance Metric Parity
 local s880_pcm = {}
@@ -52,7 +52,8 @@ local dist_self = Distance.compare_blocks(blk440, blk440, 0.5, 0.5, 0.0)
 local dist_diff = Distance.compare_blocks(blk440, blk880, 0.5, 0.5, 0.0)
 
 assert(dist_self == 0.0, "Self distance should be exactly 0.0")
-assert(dist_diff > 0.0, "Different blocks distance should be positive")
-print(string.format("[PASS] Distance metric parity: self_dist = %.1f, diff_dist = %.1e", dist_self, dist_diff))
+local dist_rel_err = math.abs(dist_diff - oracle.dist_diff) / oracle.dist_diff
+assert(dist_rel_err < 0.001, string.format("Distance metric relative error too high: Lua %.3e vs C++ %.3e", dist_diff, oracle.dist_diff))
+print(string.format("[PASS] Distance metric parity: self_dist = %.1f, diff_dist = %.5e (matches C++ oracle)", dist_self, dist_diff))
 
 print("\nALL C++ ORACLE DIFFERENTIAL TESTS PASSED SUCCESSFULLY!")
