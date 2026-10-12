@@ -167,8 +167,11 @@ function Matcher:search_synaptic(target_block, options)
   if not closest_index then
     local fallback_mode = options.fallback_mode or Constants.FALLBACK_HOLD_CURRENT
     if fallback_mode == Constants.FALLBACK_HOLD_CURRENT then
-      -- If all synapses are disabled or none valid, just hold on current block (Upstream default)
-      closest_index = self.current_block_index
+      -- Upstream: return current block immediately without calling stickify
+      self:deplete_usage(options.usage_falloff)
+      self.brain_blocks[self.current_block_index].usage = (self.brain_blocks[self.current_block_index].usage or 0) + Constants.USAGE_FACTOR
+      self.current_error = math.huge
+      return self.brain_blocks[self.current_block_index], math.huge
     else
       -- Fallback to global basic search across all active blocks
       return self:search_basic(target_block, options)
