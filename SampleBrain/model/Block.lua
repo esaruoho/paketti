@@ -10,6 +10,25 @@ local Constants = require("SampleBrain.Constants")
 local Block = {}
 Block.__index = Block
 
+local CANONICAL_ANALYSIS_RATE = 44100
+
+local function resample_to_rate(in_pcm, in_rate, out_rate)
+  if in_rate == out_rate or #in_pcm == 0 then return in_pcm end
+  local scale = in_rate / out_rate
+  local out_len = math.max(1, math.floor(#in_pcm / scale))
+  local out_pcm = {}
+  for i = 1, out_len do
+    local src_pos = (i - 1) * scale + 1
+    local idx0 = math.floor(src_pos)
+    local idx1 = math.min(#in_pcm, idx0 + 1)
+    local frac = src_pos - idx0
+    local s0 = in_pcm[idx0] or 0.0
+    local s1 = in_pcm[idx1] or 0.0
+    out_pcm[i] = s0 * (1.0 - frac) + s1 * frac
+  end
+  return out_pcm
+end
+
 --- Create a new Block linked to a SourceRef
 -- @param id number Unique block ID within the system
 -- @param source_ref table SourceRef instance providing PCM
@@ -25,32 +44,36 @@ function Block.create(id, source_ref, source_block_index, start_frame, length, w
   local pcm = source_ref:get_pcm_slice(start_frame, length)
   local sample_rate = source_ref.sample_rate
 
-  local window_coeffs = Window.coefficients(length, window_type)
+  -- Canonical analysis resampling to 44100 Hz ensures rate-invariant descriptor matching
+  local raw_analysis_pcm = resample_to_rate(pcm, sample_rate, CANONICAL_ANALYSIS_RATE)
+  local analysis_len = #raw_analysis_pcm
+  local window_coeffs = Window.coefficients(analysis_len, window_type)
 
   -- Raw windowed copy
   local raw_windowed = {}
-  for i = 1, length do
-    raw_windowed[i] = pcm[i] * window_coeffs[i]
+  for i = 1, analysis_len do
+    raw_windowed[i] = raw_analysis_pcm[i] * window_coeffs[i]
   end
 
   local r_real, r_imag = FFT.forward(raw_windowed)
   local r_n = #r_real
   local fft = FFT.samplebrain_spectrum_from_fft(r_real, r_n, Constants.FFT_BINS_CROPPED)
-  local mfcc = MFCC.compute_from_fft(r_real, r_imag, r_n, sample_rate, Constants.MFCC_FILTERS)
-  local dom_freq = FFT.calculate_dominant_freq_from_fft(r_real, r_n, sample_rate)
+  local mfcc = MFCC.compute_from_fft(r_real, r_imag, r_n, CANONICAL_ANALYSIS_RATE, Constants.MFCC_FILTERS)
+  local dom_freq = FFT.calculate_dominant_freq_from_fft(r_real, r_n, CANONICAL_ANALYSIS_RATE)
 
   -- Peak-normalized windowed copy
   local n_pcm = Distance.normalise(pcm)
+  local n_analysis_pcm = resample_to_rate(n_pcm, sample_rate, CANONICAL_ANALYSIS_RATE)
   local n_windowed = {}
-  for i = 1, length do
-    n_windowed[i] = n_pcm[i] * window_coeffs[i]
+  for i = 1, analysis_len do
+    n_windowed[i] = n_analysis_pcm[i] * window_coeffs[i]
   end
 
   local n_real, n_imag = FFT.forward(n_windowed)
   local nn_n = #n_real
   local n_fft = FFT.samplebrain_spectrum_from_fft(n_real, nn_n, Constants.FFT_BINS_CROPPED)
-  local n_mfcc = MFCC.compute_from_fft(n_real, n_imag, nn_n, sample_rate, Constants.MFCC_FILTERS)
-  local n_dom_freq = FFT.calculate_dominant_freq_from_fft(n_real, nn_n, sample_rate)
+  local n_mfcc = MFCC.compute_from_fft(n_real, n_imag, nn_n, CANONICAL_ANALYSIS_RATE, Constants.MFCC_FILTERS)
+  local n_dom_freq = FFT.calculate_dominant_freq_from_fft(n_real, nn_n, CANONICAL_ANALYSIS_RATE)
 
   local self_obj = setmetatable({
     id = id,

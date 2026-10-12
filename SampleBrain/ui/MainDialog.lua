@@ -382,6 +382,24 @@ function MainDialog.show()
             end
           },
           vb:button{
+            text = "Enable All", width = 80,
+            notifier = function()
+              for _, ref in ipairs(brain_sources) do
+                ref.enabled = true
+              end
+              refresh_source_list()
+            end
+          },
+          vb:button{
+            text = "Disable All", width = 80,
+            notifier = function()
+              for _, ref in ipairs(brain_sources) do
+                ref.enabled = false
+              end
+              refresh_source_list()
+            end
+          },
+          vb:button{
             text = "Clear Brain", width = 90,
             notifier = function()
               if JobRunner.is_running() then return end
