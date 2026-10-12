@@ -512,38 +512,38 @@ function MainDialog.show()
           vb:text{ text = "Algo:" },
           vb:popup{ items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, notifier = function(v) algo = v end },
           vb:text{ text = "FFT Start Bin:" },
-          vb:valuebox{ min = 1, max = 100, value = fft_start, step = 1, notifier = function(v) fft_start = v end },
+          vb:valuebox{ min = 1, max = 100, value = fft_start, steps = 1, notifier = function(v) fft_start = v end },
           vb:text{ text = "FFT End Bin:" },
-          vb:valuebox{ min = 1, max = 100, value = fft_end, step = 1, notifier = function(v) fft_end = v end }
+          vb:valuebox{ min = 1, max = 100, value = fft_end, steps = 1, notifier = function(v) fft_end = v end }
         },
         vb:row{
           spacing = 6,
           vb:text{ text = "FFT/MFCC Ratio:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = ratio, step = 0.1, notifier = function(v) ratio = v end },
+          vb:valuebox{ min = 0.0, max = 1.0, value = ratio, steps = 0.1, notifier = function(v) ratio = v end },
           vb:text{ text = "Raw/Norm Ratio:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = n_ratio, step = 0.1, notifier = function(v) n_ratio = v end },
+          vb:valuebox{ min = 0.0, max = 1.0, value = n_ratio, steps = 0.1, notifier = function(v) n_ratio = v end },
           vb:text{ text = "Stickiness:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = stickiness, step = 0.05, notifier = function(v) stickiness = v end }
+          vb:valuebox{ min = 0.0, max = 1.0, value = stickiness, steps = 0.05, notifier = function(v) stickiness = v end }
         },
         vb:row{
           spacing = 6,
           vb:text{ text = "Novelty:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = usage_importance, step = 0.05, notifier = function(v) usage_importance = v end },
+          vb:valuebox{ min = 0.0, max = 1.0, value = usage_importance, steps = 0.05, notifier = function(v) usage_importance = v end },
           vb:text{ text = "Boredom:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = usage_falloff, step = 0.05, notifier = function(v) usage_falloff = v end },
+          vb:valuebox{ min = 0.0, max = 1.0, value = usage_falloff, steps = 0.05, notifier = function(v) usage_falloff = v end },
           vb:text{ text = "Stretch:" },
-          vb:valuebox{ min = 1, max = 8, value = stretch, step = 1, notifier = function(v) stretch = v end }
+          vb:valuebox{ min = 1, max = 8, value = stretch, steps = 1, notifier = function(v) stretch = v end }
         },
         vb:row{
           spacing = 6,
           vb:text{ text = "Autotune:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = autotune, step = 0.1, notifier = function(v) autotune = v end },
+          vb:valuebox{ min = 0.0, max = 1.0, value = autotune, steps = 0.1, notifier = function(v) autotune = v end },
           vb:text{ text = "Norm Mix:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = n_mix, step = 0.1, notifier = function(v) n_mix = v end },
+          vb:valuebox{ min = 0.0, max = 1.0, value = n_mix, steps = 0.1, notifier = function(v) n_mix = v end },
           vb:text{ text = "Target Mix:" },
-          vb:valuebox{ min = 0.0, max = 1.0, value = target_mix, step = 0.1, notifier = function(v) target_mix = v end },
+          vb:valuebox{ min = 0.0, max = 1.0, value = target_mix, steps = 0.1, notifier = function(v) target_mix = v end },
           vb:text{ text = "Slide Err:" },
-          vb:valuebox{ min = 0.1, max = 500.0, value = slide_error, step = 1.0, notifier = function(v) slide_error = v end }
+          vb:valuebox{ min = 0.1, max = 500.0, value = slide_error, steps = 1.0, notifier = function(v) slide_error = v end }
         },
         vb:row{
           spacing = 6,
@@ -554,7 +554,7 @@ function MainDialog.show()
           vb:text{ text = "Independent Stereo Search" },
           vb:space{ width = 10 },
           vb:text{ text = "Num Synapses:" },
-          vb:valuebox{ min = 1, max = 1000, value = num_synapses, step = 1, notifier = function(v) num_synapses = v end }
+          vb:valuebox{ min = 1, max = 1000, value = num_synapses, steps = 1, notifier = function(v) num_synapses = v end }
         }
     },
 
