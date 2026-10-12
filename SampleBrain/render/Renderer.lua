@@ -64,8 +64,11 @@ function Renderer.render(brain_blocks, target_blocks, options)
   local brain_gain = options.brain_gain or 1.0
   local slide_error = options.slide_error or Constants.DEFAULT_SLIDE_ERROR
 
-  local matcher = Matcher.create(brain_blocks)
-  matcher:reset(options.seed)
+  local independent_stereo = options.independent_stereo or false
+  local matcher_l = Matcher.create(brain_blocks)
+  local matcher_r = independent_stereo and Matcher.create(brain_blocks) or matcher_l
+  matcher_l:reset(options.seed)
+  if independent_stereo then matcher_r:reset((options.seed or 12345) + 1) end
 
   local target_rate = (target_blocks[1] and target_blocks[1].sample_rate) or Constants.DEFAULT_SAMPLE_RATE
   local canonical_hop = math.max(1, math.floor(block_size * (1.0 - overlap)))
@@ -81,7 +84,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
   -- Phase 1: Search & Decision Stream Generation
   while target_idx <= #target_blocks do
     local target_blk = target_blocks[target_idx]
-    local matched_blk, dist, err = matcher:search(target_blk, {
+    local search_opts = {
       algo = algo,
       ratio = ratio,
       n_ratio = n_ratio,
@@ -91,17 +94,30 @@ function Renderer.render(brain_blocks, target_blocks, options)
       fft_start = fft_start,
       fft_end = fft_end,
       num_synapses = options.num_synapses
-    })
+    }
 
-    if not matched_blk then
-      return nil, err or "Matcher returned no block"
+    local matched_blk_l, dist_l, err_l = matcher_l:search(target_blk, search_opts)
+    if not matched_blk_l then
+      return nil, err_l or "Left matcher returned no block"
+    end
+
+    local matched_blk_r = matched_blk_l
+    local dist_r = dist_l
+    if independent_stereo then
+      local m_r, d_r, e_r = matcher_r:search(target_blk, search_opts)
+      if m_r then
+        matched_blk_r = m_r
+        dist_r = d_r
+      end
     end
 
     decisions[#decisions + 1] = {
       target_blk = target_blk,
-      matched_blk = matched_blk,
+      matched_blk = matched_blk_l,
+      matched_blk_l = matched_blk_l,
+      matched_blk_r = matched_blk_r,
       render_step = render_step,
-      dist = dist
+      dist = dist_l
     }
 
     -- Target step logic (incorporating Synaptic Slide & Stretch)
@@ -110,7 +126,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
         -- Force target advance if slide_error threshold cannot be satisfied within repeat limit
         target_idx = target_idx + 1
         slide_attempts = 0
-      elseif matcher.current_error < slide_error and (render_step % stretch == 0) then
+      elseif matcher_l.current_error < slide_error and (render_step % stretch == 0) then
         target_idx = target_idx + 1
         slide_attempts = 0
       else
@@ -137,10 +153,13 @@ function Renderer.render(brain_blocks, target_blocks, options)
   for idx = 1, #decisions do
     local dec = decisions[idx]
     local target_blk = dec.target_blk
-    local matched_blk = dec.matched_blk
+    local matched_l = dec.matched_blk_l or dec.matched_blk
+    local matched_r = dec.matched_blk_r or dec.matched_blk
 
-    local raw_l, raw_r = matched_blk:get_windowed_pcm_stereo()
-    local n_raw_l, n_raw_r = matched_blk:get_normalized_windowed_pcm_stereo()
+    local raw_l, _ = matched_l:get_windowed_pcm_stereo()
+    local _, raw_r = matched_r:get_windowed_pcm_stereo()
+    local n_raw_l, _ = matched_l:get_normalized_windowed_pcm_stereo()
+    local _, n_raw_r = matched_r:get_normalized_windowed_pcm_stereo()
     local targ_l, targ_r = target_blk:get_windowed_pcm_stereo()
 
     local target_len = #targ_l
@@ -149,8 +168,8 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local pitch_scale = 1.0
 
     -- Autotune pitch shifting scale
-    if autotune > 0 and target_blk.dominant_freq and matched_blk.dominant_freq and matched_blk.dominant_freq > 0 then
-      pitch_scale = target_blk.dominant_freq / matched_blk.dominant_freq
+    if autotune > 0 and target_blk.dominant_freq and matched_l.dominant_freq and matched_l.dominant_freq > 0 then
+      pitch_scale = target_blk.dominant_freq / matched_l.dominant_freq
       local max_scale = 1.0 + (autotune * autotune) * 100.0
       if pitch_scale > max_scale then pitch_scale = max_scale end
       if pitch_scale < 1.0 / max_scale then pitch_scale = 1.0 / max_scale end
@@ -160,7 +179,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local comp_gain = brain_gain * (options.normalize and 1.0 or 0.2)
 
     -- Sample-rate compensation scale
-    local src_rate = matched_blk.sample_rate or Constants.DEFAULT_SAMPLE_RATE
+    local src_rate = matched_l.sample_rate or Constants.DEFAULT_SAMPLE_RATE
     local dst_rate = target_blk.sample_rate or Constants.DEFAULT_SAMPLE_RATE
     local rate_scale = (src_rate > 0 and dst_rate > 0) and (src_rate / dst_rate) or 1.0
     local cursor_step = pitch_scale * rate_scale

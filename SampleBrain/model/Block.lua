@@ -12,29 +12,58 @@ Block.__index = Block
 
 local CANONICAL_ANALYSIS_RATE = 44100
 
+local function windowed_sinc_lpf(pcm, cutoff, filter_size)
+  local n = #pcm
+  if n == 0 or cutoff >= 0.5 then return pcm end
+  filter_size = filter_size or 15
+  if filter_size % 2 == 0 then filter_size = filter_size + 1 end
+  local half_m = math.floor(filter_size / 2)
+
+  local h = {}
+  local sum_h = 0.0
+  for k = -half_m, half_m do
+    local idx = k + half_m + 1
+    local val = 0.0
+    if k == 0 then
+      val = 2.0 * cutoff
+    else
+      val = math.sin(2.0 * math.pi * cutoff * k) / (math.pi * k)
+    end
+    local w = 0.5 * (1.0 + math.cos(math.pi * k / half_m))
+    val = val * w
+    h[idx] = val
+    sum_h = sum_h + val
+  end
+
+  if sum_h > 1e-12 then
+    for i = 1, #h do h[i] = h[i] / sum_h end
+  end
+
+  local out = {}
+  for i = 1, n do
+    local s = 0.0
+    for k = -half_m, half_m do
+      local p_idx = i + k
+      if p_idx >= 1 and p_idx <= n then
+        s = s + pcm[p_idx] * h[k + half_m + 1]
+      end
+    end
+    out[i] = s
+  end
+
+  return out
+end
+
 local function resample_to_length(in_pcm, target_length)
   local in_len = #in_pcm
   if in_len == target_length then return in_pcm end
   if in_len == 0 or target_length <= 0 then return {} end
 
-  -- Anti-aliasing pre-filter for downsampling
+  -- Anti-aliasing windowed-sinc FIR pre-filter for downsampling
   local filtered_pcm = in_pcm
   if in_len > target_length then
-    filtered_pcm = {}
-    local filter_window = math.max(2, math.floor(in_len / target_length + 0.5))
-    local half_w = math.floor(filter_window / 2)
-    for i = 1, in_len do
-      local sum_v = 0.0
-      local cnt = 0
-      for k = -half_w, half_w do
-        local idx = i + k
-        if idx >= 1 and idx <= in_len then
-          sum_v = sum_v + in_pcm[idx]
-          cnt = cnt + 1
-        end
-      end
-      filtered_pcm[i] = (cnt > 0) and (sum_v / cnt) or in_pcm[i]
-    end
+    local cutoff = (target_length / in_len) * 0.45
+    filtered_pcm = windowed_sinc_lpf(in_pcm, cutoff, 15)
   end
 
   local out_pcm = {}
@@ -170,8 +199,24 @@ end
 -- @return table Right channel windowed normalized float array
 function Block:get_normalized_windowed_pcm_stereo()
   local l_pcm, r_pcm = self.source_ref:get_stereo_slice(self.start_frame, self.length)
-  l_pcm = Distance.normalise(l_pcm)
-  r_pcm = Distance.normalise(r_pcm)
+  
+  -- Shared stereo pair normalization preserves L/R level balance
+  local max_peak = 0.0
+  for i = 1, #l_pcm do
+    local abs_l = math.abs(l_pcm[i] or 0.0)
+    local abs_r = math.abs(r_pcm[i] or 0.0)
+    if abs_l > max_peak then max_peak = abs_l end
+    if abs_r > max_peak then max_peak = abs_r end
+  end
+
+  if max_peak > 1e-12 then
+    local scale = 1.0 / max_peak
+    for i = 1, #l_pcm do
+      l_pcm[i] = (l_pcm[i] or 0.0) * scale
+      r_pcm[i] = (r_pcm[i] or 0.0) * scale
+    end
+  end
+
   local coeffs = Window.coefficients(self.length, self.window_type)
   for i = 1, self.length do
     l_pcm[i] = (l_pcm[i] or 0.0) * coeffs[i]

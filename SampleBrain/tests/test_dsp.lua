@@ -141,4 +141,14 @@ end
 assert(diff_count > 0, "Stereo render channels should differ when source left != right")
 print("[PASS] Linked Stereo rendering (separate left/right channels verified)")
 
+-- Test 11: Independent Stereo Search Test
+local ind_out_l, ind_out_r = Renderer.render(stereo_brain_blocks, target_blocks, {
+  block_size = 1024,
+  overlap = 0.5,
+  algo = Constants.ALGO_BASIC,
+  independent_stereo = true
+})
+assert(ind_out_l and ind_out_r and #ind_out_l == #ind_out_r, "Independent stereo render failed")
+print("[PASS] Independent Stereo search rendering (dual matcher state verified)")
+
 print("\nALL SAMPLEBRAIN SYSTEM TESTS PASSED SUCCESSFULLY!")

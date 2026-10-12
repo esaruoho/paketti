@@ -51,6 +51,7 @@ local n_mix = 0.0
 local target_mix = 0.0
 local brain_gain = 1.0
 local normalize_output = false
+local independent_stereo = false
 
 local function update_job_ui(is_running)
   if vb and vb.views.btn_cancel then
@@ -62,14 +63,26 @@ local function refresh_source_list()
   if not vb or not vb.views.brain_source_list then return end
   if #brain_sources == 0 then
     vb.views.brain_source_list.text = "No sources added."
+    if vb.views.source_selector_popup then
+      vb.views.source_selector_popup.items = { "None" }
+      vb.views.source_selector_popup.value = 1
+    end
     return
   end
   local lines = {}
+  local popup_items = {}
   for i, ref in ipairs(brain_sources) do
-    local state = ref.enabled and "[x]" or "[ ]"
-    lines[#lines + 1] = string.format("%02d: %s %s (frames %d..%d)", i, state, ref.name, ref.captured_range_start, ref.captured_range_end)
+    local state = ref.enabled and "[ON]" or "[OFF]"
+    lines[#lines + 1] = string.format("%02d: %s %s (frames %d..%d)", i, ref.enabled and "[x]" or "[ ]", ref.name, ref.captured_range_start, ref.captured_range_end)
+    popup_items[#popup_items + 1] = string.format("%d: %s %s", i, ref.name, state)
   end
   vb.views.brain_source_list.text = table.concat(lines, "\n")
+  if vb.views.source_selector_popup then
+    vb.views.source_selector_popup.items = popup_items
+    if vb.views.source_selector_popup.value > #popup_items then
+      vb.views.source_selector_popup.value = math.max(1, #popup_items)
+    end
+  end
 end
 
 function MainDialog.reset_state()
@@ -211,6 +224,41 @@ function MainDialog.show()
             width = "100%",
             height = 60,
             font = "mono"
+          }
+        },
+
+        -- Individual Source Controls
+        vb:row{
+          spacing = 6,
+          vb:text{ text = "Selected Source:" },
+          vb:popup{
+            id = "source_selector_popup",
+            items = { "None" },
+            value = 1,
+            width = 180
+          },
+          vb:button{
+            text = "Toggle Selected", width = 110,
+            notifier = function()
+              local sel_idx = vb.views.source_selector_popup.value
+              if brain_sources[sel_idx] then
+                brain_sources[sel_idx].enabled = not brain_sources[sel_idx].enabled
+                refresh_source_list()
+              end
+            end
+          },
+          vb:button{
+            text = "Remove Selected", width = 110,
+            notifier = function()
+              local sel_idx = vb.views.source_selector_popup.value
+              if brain_sources[sel_idx] then
+                table.remove(brain_sources, sel_idx)
+                brain_settings_signature = ""
+                synapses_built = false
+                vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (STALE)", #brain_sources, #brain_blocks)
+                refresh_source_list()
+              end
+            end
           }
         },
 
@@ -496,7 +544,10 @@ function MainDialog.show()
           spacing = 6,
           vb:checkbox{ value = normalize_output, notifier = function(v) normalize_output = v end },
           vb:text{ text = "Output Normalize (0.98 ceiling)" },
-          vb:space{ width = 20 },
+          vb:space{ width = 10 },
+          vb:checkbox{ value = independent_stereo, notifier = function(v) independent_stereo = v end },
+          vb:text{ text = "Independent Stereo Search" },
+          vb:space{ width = 10 },
           vb:text{ text = "Num Synapses:" },
           vb:valuebox{ min = 1, max = 1000, value = num_synapses, step = 1, notifier = function(v) num_synapses = v end }
         }
@@ -557,6 +608,7 @@ function MainDialog.show()
                 normalize = normalize_output,
                 num_synapses = num_synapses,
                 brain_gain = brain_gain,
+                independent_stereo = independent_stereo,
                 job = job
               }
 
