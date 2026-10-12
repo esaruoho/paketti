@@ -31,18 +31,19 @@ function BlockGenerator.generate(source_ref, block_size, overlap, window_type, s
   local total_samples = source_ref.range_end - source_ref.range_start + 1
   local blocks = {}
   
-  local pos = 1
+  local block_number = 0
   local source_block_index = 1
-  local count = 0
   
-  while pos + native_block_size - 1 <= total_samples do
+  while true do
+    local pos = math.floor(block_number * canonical_hop * rate_ratio + 0.5) + 1
+    if pos + native_block_size - 1 > total_samples then break end
+
     local blk = Block.create(block_id, source_ref, source_block_index, pos, native_block_size, block_size, window_type)
     blocks[#blocks + 1] = blk
     
     block_id = block_id + 1
     source_block_index = source_block_index + 1
-    pos = pos + native_hop
-    count = count + 1
+    block_number = block_number + 1
 
     if job then
       JobRunner.yield(job, pos / total_samples, string.format("Analyzing block %d...", source_block_index), false)

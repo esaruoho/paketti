@@ -12,15 +12,17 @@ Block.__index = Block
 
 local CANONICAL_ANALYSIS_RATE = 44100
 
-local function resample_to_rate(in_pcm, in_rate, out_rate)
-  if in_rate == out_rate or #in_pcm == 0 then return in_pcm end
-  local scale = in_rate / out_rate
-  local out_len = math.max(1, math.floor(#in_pcm / scale))
+local function resample_to_length(in_pcm, target_length)
+  local in_len = #in_pcm
+  if in_len == target_length then return in_pcm end
+  if in_len == 0 or target_length <= 0 then return {} end
+
   local out_pcm = {}
-  for i = 1, out_len do
+  local scale = (in_len > 1 and target_length > 1) and ((in_len - 1) / (target_length - 1)) or 1.0
+  for i = 1, target_length do
     local src_pos = (i - 1) * scale + 1
     local idx0 = math.floor(src_pos)
-    local idx1 = math.min(#in_pcm, idx0 + 1)
+    local idx1 = math.min(in_len, idx0 + 1)
     local frac = src_pos - idx0
     local s0 = in_pcm[idx0] or 0.0
     local s1 = in_pcm[idx1] or 0.0
@@ -50,15 +52,8 @@ function Block.create(id, source_ref, source_block_index, start_frame, native_le
   local pcm = source_ref:get_pcm_slice(start_frame, native_length)
   local sample_rate = source_ref.sample_rate
 
-  -- Resample native PCM slice to exactly canonical_length at CANONICAL_ANALYSIS_RATE
-  local raw_analysis_pcm = resample_to_rate(pcm, sample_rate, CANONICAL_ANALYSIS_RATE)
-  
-  -- Force exact canonical_length array size
-  if #raw_analysis_pcm < canonical_length then
-    for i = #raw_analysis_pcm + 1, canonical_length do raw_analysis_pcm[i] = 0.0 end
-  elseif #raw_analysis_pcm > canonical_length then
-    for i = canonical_length + 1, #raw_analysis_pcm do raw_analysis_pcm[i] = nil end
-  end
+  -- Resample native PCM slice directly to canonical_length points
+  local raw_analysis_pcm = resample_to_length(pcm, canonical_length)
 
   local window_coeffs = Window.coefficients(canonical_length, window_type)
 

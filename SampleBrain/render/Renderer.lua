@@ -67,7 +67,9 @@ function Renderer.render(brain_blocks, target_blocks, options)
   local matcher = Matcher.create(brain_blocks)
   matcher:reset(options.seed)
 
-  local hop = math.max(1, math.floor(block_size * (1.0 - overlap)))
+  local target_rate = (target_blocks[1] and target_blocks[1].sample_rate) or Constants.DEFAULT_SAMPLE_RATE
+  local canonical_hop = math.max(1, math.floor(block_size * (1.0 - overlap)))
+  local hop = math.max(1, math.floor(canonical_hop * target_rate / Constants.DEFAULT_SAMPLE_RATE + 0.5))
   local decisions = {}
 
   local target_idx = 1
