@@ -22,7 +22,12 @@ function BlockGenerator.generate(source_ref, block_size, overlap, window_type, s
   window_type = window_type or Constants.WINDOW_HANN
   local block_id = start_id or 1
 
-  local hop = math.max(1, math.floor(block_size * (1.0 - overlap)))
+  local CANONICAL_RATE = 44100
+  local rate_ratio = (source_ref.sample_rate and source_ref.sample_rate > 0) and (source_ref.sample_rate / CANONICAL_RATE) or 1.0
+  local native_block_size = math.max(1, math.floor(block_size * rate_ratio + 0.5))
+  local canonical_hop = math.max(1, math.floor(block_size * (1.0 - overlap)))
+  local native_hop = math.max(1, math.floor(canonical_hop * rate_ratio + 0.5))
+
   local total_samples = source_ref.range_end - source_ref.range_start + 1
   local blocks = {}
   
@@ -30,13 +35,13 @@ function BlockGenerator.generate(source_ref, block_size, overlap, window_type, s
   local source_block_index = 1
   local count = 0
   
-  while pos + block_size - 1 <= total_samples do
-    local blk = Block.create(block_id, source_ref, source_block_index, pos, block_size, window_type)
+  while pos + native_block_size - 1 <= total_samples do
+    local blk = Block.create(block_id, source_ref, source_block_index, pos, native_block_size, block_size, window_type)
     blocks[#blocks + 1] = blk
     
     block_id = block_id + 1
     source_block_index = source_block_index + 1
-    pos = pos + hop
+    pos = pos + native_hop
     count = count + 1
 
     if job then

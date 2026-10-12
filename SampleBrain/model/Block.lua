@@ -34,24 +34,37 @@ end
 -- @param source_ref table SourceRef instance providing PCM
 -- @param source_block_index number Index of this block within its SourceRef
 -- @param start_frame number 1-based start frame within the source_ref
--- @param length number Block size in samples
+-- @param native_length number Native block size in Renoise samples
+-- @param canonical_length number Canonical block size for descriptor analysis (default native_length)
 -- @param window_type number Window type constant
 -- @return table Block instance
-function Block.create(id, source_ref, source_block_index, start_frame, length, window_type)
-  local window_type = window_type or Constants.WINDOW_HANN
+function Block.create(id, source_ref, source_block_index, start_frame, native_length, canonical_length, window_type)
+  if type(canonical_length) == "number" and not window_type and (canonical_length <= Constants.WINDOW_DODGY) then
+    window_type = canonical_length
+    canonical_length = native_length
+  end
+  canonical_length = canonical_length or native_length
+  window_type = window_type or Constants.WINDOW_HANN
   
-  -- Extract temporary PCM slice for analysis
-  local pcm = source_ref:get_pcm_slice(start_frame, length)
+  -- Extract temporary native PCM slice for analysis
+  local pcm = source_ref:get_pcm_slice(start_frame, native_length)
   local sample_rate = source_ref.sample_rate
 
-  -- Canonical analysis resampling to 44100 Hz ensures rate-invariant descriptor matching
+  -- Resample native PCM slice to exactly canonical_length at CANONICAL_ANALYSIS_RATE
   local raw_analysis_pcm = resample_to_rate(pcm, sample_rate, CANONICAL_ANALYSIS_RATE)
-  local analysis_len = #raw_analysis_pcm
-  local window_coeffs = Window.coefficients(analysis_len, window_type)
+  
+  -- Force exact canonical_length array size
+  if #raw_analysis_pcm < canonical_length then
+    for i = #raw_analysis_pcm + 1, canonical_length do raw_analysis_pcm[i] = 0.0 end
+  elseif #raw_analysis_pcm > canonical_length then
+    for i = canonical_length + 1, #raw_analysis_pcm do raw_analysis_pcm[i] = nil end
+  end
+
+  local window_coeffs = Window.coefficients(canonical_length, window_type)
 
   -- Raw windowed copy
   local raw_windowed = {}
-  for i = 1, analysis_len do
+  for i = 1, canonical_length do
     raw_windowed[i] = raw_analysis_pcm[i] * window_coeffs[i]
   end
 
@@ -61,11 +74,10 @@ function Block.create(id, source_ref, source_block_index, start_frame, length, w
   local mfcc = MFCC.compute_from_fft(r_real, r_imag, r_n, CANONICAL_ANALYSIS_RATE, Constants.MFCC_FILTERS)
   local dom_freq = FFT.calculate_dominant_freq_from_fft(r_real, r_n, CANONICAL_ANALYSIS_RATE)
 
-  -- Peak-normalized windowed copy
-  local n_pcm = Distance.normalise(pcm)
-  local n_analysis_pcm = resample_to_rate(n_pcm, sample_rate, CANONICAL_ANALYSIS_RATE)
+  -- Peak-normalize AFTER canonical resampling (Section 5 fix)
+  local n_analysis_pcm = Distance.normalise(raw_analysis_pcm)
   local n_windowed = {}
-  for i = 1, analysis_len do
+  for i = 1, canonical_length do
     n_windowed[i] = n_analysis_pcm[i] * window_coeffs[i]
   end
 
@@ -80,7 +92,8 @@ function Block.create(id, source_ref, source_block_index, start_frame, length, w
     source_ref = source_ref,
     source_block_index = source_block_index,
     start_frame = start_frame,
-    length = length,
+    length = native_length,
+    canonical_length = canonical_length,
     sample_rate = sample_rate,
     window_type = window_type,
 
