@@ -6,6 +6,8 @@ local OverlapAdd = require("SampleBrain.render.OverlapAdd")
 local Constants = require("SampleBrain.Constants")
 local JobRunner = require("SampleBrain.jobs.JobRunner")
 
+-- REPORT-CARD >> features/samplebrain-diagnostics.feature
+local Logger = require("SampleBrain.Logger")
 local Renderer = {}
 
 --- Resample grain PCM array by pitch_scale ratio (linear interpolation)
@@ -46,6 +48,14 @@ end
 -- @return table Output float PCM array
 function Renderer.render(brain_blocks, target_blocks, options)
   options = options or {}
+  local render_started = os.clock()
+  Logger.write(string.format("Render start brain_blocks=%d target_blocks=%d", #brain_blocks, #target_blocks))
+  local settings = {}
+  for key, value in pairs(options) do
+    if type(value) ~= "table" then settings[#settings + 1] = tostring(key) .. "=" .. tostring(value) end
+  end
+  table.sort(settings)
+  Logger.write("Render options: " .. table.concat(settings, " "))
   local block_size = options.block_size or Constants.DEFAULT_BLOCK_SIZE
   local overlap = options.overlap or Constants.DEFAULT_OVERLAP
   local window_type = options.window_type or Constants.WINDOW_HANN
@@ -57,7 +67,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
   local fft_start = options.fft_start or 1
   local fft_end = options.fft_end or Constants.FFT_BINS_CROPPED
   local algo = options.algo or Constants.ALGO_BASIC
-  local stretch = options.stretch or 1
+  local stretch = math.max(1, math.floor(options.stretch or 1))
   local autotune = options.autotune or 0.0
   local n_mix = options.n_mix or 0.0
   local target_mix = options.target_mix or 0.0
@@ -79,10 +89,12 @@ function Renderer.render(brain_blocks, target_blocks, options)
   local render_step = 0
 
   local slide_attempts = 0
-  local max_slide_attempts = options.max_slide_attempts or 100
+  local max_slide_attempts = math.min(50, math.max(1, math.floor(options.max_slide_attempts or 20)))
 
   -- Phase 1: Search & Decision Stream Generation
   while target_idx <= #target_blocks do
+    local block_started = os.clock()
+    Logger.write(string.format("Match begin target=%d/%d step=%d slide_attempts=%d", target_idx, #target_blocks, render_step, slide_attempts))
     local target_blk = target_blocks[target_idx]
     local search_opts_l = {
       algo = algo,
@@ -94,6 +106,8 @@ function Renderer.render(brain_blocks, target_blocks, options)
       fft_start = fft_start,
       fft_end = fft_end,
       num_synapses = options.num_synapses,
+      job = options.job, progress = (target_idx - 1) / #target_blocks,
+      target_index = target_idx, target_total = #target_blocks,
       channel = "left"
     }
 
@@ -115,6 +129,8 @@ function Renderer.render(brain_blocks, target_blocks, options)
         fft_start = fft_start,
         fft_end = fft_end,
         num_synapses = options.num_synapses,
+        job = options.job, progress = (target_idx - 1) / #target_blocks,
+        target_index = target_idx, target_total = #target_blocks,
         channel = "right"
       }
       local m_r, d_r, e_r = matcher_r:search(target_blk, search_opts_r)
@@ -125,6 +141,9 @@ function Renderer.render(brain_blocks, target_blocks, options)
       dist_r = d_r
     end
 
+    Logger.write(string.format("Match end target=%d step=%d cpu=%.3fs left_index=%d right_index=%d left_distance=%s right_distance=%s",
+      target_idx, render_step, os.clock() - block_started, matcher_l.current_block_index,
+      matcher_r.current_block_index, tostring(dist_l), tostring(dist_r)))
     decisions[#decisions + 1] = {
       target_blk = target_blk,
       matched_blk = matched_blk_l,
@@ -155,11 +174,18 @@ function Renderer.render(brain_blocks, target_blocks, options)
     render_step = render_step + 1
 
     if options.job then
-      JobRunner.yield(options.job, target_idx / #target_blocks, string.format("Matching block %d / %d", target_idx, #target_blocks), false)
+      local sub_pct = math.min(0.99, slide_attempts / math.max(1, max_slide_attempts))
+      local overall_pct = math.min(1.0, math.max(0.0, ((target_idx - 1) + sub_pct) / math.max(1, #target_blocks)))
+      local msg = string.format("Matching block %d / %d", target_idx, #target_blocks)
+      if slide_attempts > 0 then
+        msg = string.format("Matching block %d / %d (step %d)", target_idx, #target_blocks, slide_attempts + 1)
+      end
+      JobRunner.yield(options.job, overall_pct, msg, false)
     end
   end
 
   -- Phase 2: Overlap-Add Rendering from Decision Stream
+  Logger.write("Overlap-add begin decisions=" .. #decisions)
   local total_output_frames = math.max(1, math.ceil((render_step - 1) * exact_output_hop + block_size))
   local ola_l = OverlapAdd.create(total_output_frames)
   local ola_r = OverlapAdd.create(total_output_frames)
@@ -276,6 +302,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
       local max_len_r = math.max(src_len_r, math.ceil(src_len_r / math.max(cursor_step_r, 1e-6)))
       local watchdog_cap = (math.max(max_len_l, max_len_r) + target_len) * 5
       if block_pos > watchdog_cap then
+        Logger.write(string.format("Grain watchdog decision=%d frames=%d cap=%d", idx, block_pos, watchdog_cap))
         break
       end
     end
@@ -297,6 +324,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
     end
   end
 
+  Logger.write("Overlap-add complete frames=" .. total_output_frames .. " normalize=" .. tostring(options.normalize))
   if options.normalize then
     -- Shared peak normalization to preserve stereo balance
     local max_l = 0.0
@@ -311,6 +339,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
     end
   end
 
+  Logger.write(string.format("Render complete frames=%d cpu=%.3fs", total_output_frames, os.clock() - render_started))
   return ola_l.buffer, ola_r.buffer
 end
 
