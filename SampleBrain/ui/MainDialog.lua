@@ -229,8 +229,8 @@ function MainDialog.show()
           vb:multiline_text{
             id = "brain_source_list",
             text = "No sources added.",
-            width = "100%",
-            height = 60,
+            width = 540,
+            height = 70,
             font = "mono"
           }
         },
@@ -442,24 +442,6 @@ function MainDialog.show()
             end
           },
           vb:button{
-            text = "Enable All", width = 80,
-            notifier = function()
-              for _, ref in ipairs(brain_sources) do
-                ref.enabled = true
-              end
-              refresh_source_list()
-            end
-          },
-          vb:button{
-            text = "Disable All", width = 80,
-            notifier = function()
-              for _, ref in ipairs(brain_sources) do
-                ref.enabled = false
-              end
-              refresh_source_list()
-            end
-          },
-          vb:button{
             text = "Clear Brain", width = 90,
             notifier = function()
               if JobRunner.is_running() then return end
@@ -468,6 +450,27 @@ function MainDialog.show()
               synapses_built = false
               brain_settings_signature = ""
               vb.views.brain_status.text = "Brain: Empty"
+              refresh_source_list()
+            end
+          }
+        },
+        vb:row{
+          spacing = 6,
+          vb:button{
+            text = "Enable All", width = 90,
+            notifier = function()
+              for _, ref in ipairs(brain_sources) do
+                ref.enabled = true
+              end
+              refresh_source_list()
+            end
+          },
+          vb:button{
+            text = "Disable All", width = 90,
+            notifier = function()
+              for _, ref in ipairs(brain_sources) do
+                ref.enabled = false
+              end
               refresh_source_list()
             end
           },
