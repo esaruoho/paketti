@@ -156,7 +156,16 @@ function MainDialog.show()
                     local pcm, rate = SampleReader.read_channel(smp, target_settings.channel_mode, target_settings.use_selection)
                     if not pcm then error("Failed to read sample") end
                     
-                    local temp_target_source = SourceRef.create(9999, smp.name, pcm, rate, smp)
+                    local song = renoise.song()
+                    local inst_idx = song.selected_instrument_index
+                    local smp_idx = song.selected_sample_index
+                    local s_start, s_end = 1, smp.sample_buffer.number_of_frames
+                    if target_settings.use_selection and smp.sample_buffer.selection_start > 0 and smp.sample_buffer.selection_end > 0 then
+                      s_start = smp.sample_buffer.selection_start
+                      s_end = smp.sample_buffer.selection_end
+                    end
+
+                    local temp_target_source = SourceRef.create(9999, smp.name, pcm, rate, inst_idx, smp_idx, s_start, s_end)
                     local temp_target_blocks = BlockGenerator.generate(temp_target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1, job)
                     return { temp_source = temp_target_source, temp_blocks = temp_target_blocks, smp_name = smp.name, block_count = #temp_target_blocks }
                   end,

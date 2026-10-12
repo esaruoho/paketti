@@ -52,11 +52,11 @@ function SampleReader.read_channel(renoise_sample, channel_mode, use_selection)
         pcm[#pcm + 1] = buffer:sample_data(2, f)
       end
     else
-      -- Mono mix down
+      -- Mono sum (SampleBrain upstream compatibility)
       for f = start_frame, end_frame do
         local l = buffer:sample_data(1, f)
         local r = buffer:sample_data(2, f)
-        pcm[#pcm + 1] = (l + r) * 0.5
+        pcm[#pcm + 1] = l + r
       end
     end
   end
@@ -98,11 +98,11 @@ function SampleReader.read_channel_exact(renoise_sample, channel_mode, start_fra
         pcm[#pcm + 1] = buffer:sample_data(2, f)
       end
     else
-      -- Mono mix down
+      -- Mono sum (SampleBrain upstream compatibility)
       for f = start_frame, end_frame do
         local l = buffer:sample_data(1, f)
         local r = buffer:sample_data(2, f)
-        pcm[#pcm + 1] = (l + r) * 0.5
+        pcm[#pcm + 1] = l + r
       end
     end
   end
