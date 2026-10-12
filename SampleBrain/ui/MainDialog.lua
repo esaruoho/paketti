@@ -556,15 +556,15 @@ function MainDialog.show()
                 job = job
               }
 
-              local out_pcm, err = Renderer.render(brain_blocks, target_blocks, options)
-              if not out_pcm then error(err) end
-              return out_pcm
+              local out_l, out_r = Renderer.render(brain_blocks, target_blocks, options)
+              if not out_l then error(out_r or "Render failed") end
+              return { left = out_l, right = out_r }
             end,
             function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
-            function(out_pcm)
+            function(res)
               local out_rate = target_source and target_source.sample_rate or Constants.DEFAULT_SAMPLE_RATE
-              SampleWriter.write_new_instrument(out_pcm, nil, out_rate, "SampleBrain")
-              vb.views.job_status.text = string.format("Rendered %d frames.", #out_pcm)
+              SampleWriter.write_new_instrument(res.left, res.right, out_rate, "SampleBrain")
+              vb.views.job_status.text = string.format("Rendered %d frames.", #res.left)
               update_job_ui(false)
               renoise.app():show_status("SampleBrain render complete!")
               if synapses_built then

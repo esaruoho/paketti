@@ -17,6 +17,26 @@ local function resample_to_length(in_pcm, target_length)
   if in_len == target_length then return in_pcm end
   if in_len == 0 or target_length <= 0 then return {} end
 
+  -- Anti-aliasing pre-filter for downsampling
+  local filtered_pcm = in_pcm
+  if in_len > target_length then
+    filtered_pcm = {}
+    local filter_window = math.max(2, math.floor(in_len / target_length + 0.5))
+    local half_w = math.floor(filter_window / 2)
+    for i = 1, in_len do
+      local sum_v = 0.0
+      local cnt = 0
+      for k = -half_w, half_w do
+        local idx = i + k
+        if idx >= 1 and idx <= in_len then
+          sum_v = sum_v + in_pcm[idx]
+          cnt = cnt + 1
+        end
+      end
+      filtered_pcm[i] = (cnt > 0) and (sum_v / cnt) or in_pcm[i]
+    end
+  end
+
   local out_pcm = {}
   local scale = (in_len > 1 and target_length > 1) and ((in_len - 1) / (target_length - 1)) or 1.0
   for i = 1, target_length do
@@ -24,10 +44,11 @@ local function resample_to_length(in_pcm, target_length)
     local idx0 = math.floor(src_pos)
     local idx1 = math.min(in_len, idx0 + 1)
     local frac = src_pos - idx0
-    local s0 = in_pcm[idx0] or 0.0
-    local s1 = in_pcm[idx1] or 0.0
+    local s0 = filtered_pcm[idx0] or 0.0
+    local s1 = filtered_pcm[idx1] or 0.0
     out_pcm[i] = s0 * (1.0 - frac) + s1 * frac
   end
+
   return out_pcm
 end
 
@@ -129,6 +150,34 @@ function Block:get_windowed_pcm()
     pcm[i] = pcm[i] * coeffs[i]
   end
   return pcm
+end
+
+--- Get windowed stereo PCM arrays (left, right) for this block
+-- @return table Left channel windowed float array
+-- @return table Right channel windowed float array
+function Block:get_windowed_pcm_stereo()
+  local l_pcm, r_pcm = self.source_ref:get_stereo_slice(self.start_frame, self.length)
+  local coeffs = Window.coefficients(self.length, self.window_type)
+  for i = 1, self.length do
+    l_pcm[i] = (l_pcm[i] or 0.0) * coeffs[i]
+    r_pcm[i] = (r_pcm[i] or 0.0) * coeffs[i]
+  end
+  return l_pcm, r_pcm
+end
+
+--- Get windowed normalized stereo PCM arrays (left, right) for this block
+-- @return table Left channel windowed normalized float array
+-- @return table Right channel windowed normalized float array
+function Block:get_normalized_windowed_pcm_stereo()
+  local l_pcm, r_pcm = self.source_ref:get_stereo_slice(self.start_frame, self.length)
+  l_pcm = Distance.normalise(l_pcm)
+  r_pcm = Distance.normalise(r_pcm)
+  local coeffs = Window.coefficients(self.length, self.window_type)
+  for i = 1, self.length do
+    l_pcm[i] = (l_pcm[i] or 0.0) * coeffs[i]
+    r_pcm[i] = (r_pcm[i] or 0.0) * coeffs[i]
+  end
+  return l_pcm, r_pcm
 end
 
 --- Get windowed normalized PCM for this block (upstream compatibility)

@@ -69,7 +69,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
 
   local target_rate = (target_blocks[1] and target_blocks[1].sample_rate) or Constants.DEFAULT_SAMPLE_RATE
   local canonical_hop = math.max(1, math.floor(block_size * (1.0 - overlap)))
-  local hop = math.max(1, math.floor(canonical_hop * target_rate / Constants.DEFAULT_SAMPLE_RATE + 0.5))
+  local exact_output_hop = canonical_hop * target_rate / Constants.DEFAULT_SAMPLE_RATE
   local decisions = {}
 
   local target_idx = 1
@@ -130,7 +130,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
   end
 
   -- Phase 2: Overlap-Add Rendering from Decision Stream
-  local total_output_frames = math.max(1, (render_step - 1) * hop + block_size)
+  local total_output_frames = math.max(1, (render_step - 1) * exact_output_hop + block_size)
   local ola = OverlapAdd.create(total_output_frames)
 
   for idx = 1, #decisions do
@@ -214,7 +214,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
     end
 
     -- Update total bounds based on actual rendered grain tails
-    local start_frame = dec.render_step * hop + 1
+    local start_frame = math.floor(dec.render_step * exact_output_hop + 0.5) + 1
     local end_frame = start_frame + #grain - 1
     if end_frame > total_output_frames then
       total_output_frames = end_frame

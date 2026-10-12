@@ -68,12 +68,17 @@ function SourceRef:reload(channel_mode, use_selection)
   local start_f = use_selection and self.captured_range_start or 1
   local end_f = use_selection and self.captured_range_end or smp.sample_buffer.number_of_frames
 
-  local pcm, rate = SampleReader.read_channel_exact(smp, channel_mode, start_f, end_f)
+  local pcm, rate, num_ch = SampleReader.read_channel_exact(smp, channel_mode, start_f, end_f)
   if not pcm then
     return false, string.format("Failed to read audio data for '%s'.", self.name)
   end
 
+  local pcm_l, pcm_r = SampleReader.read_stereo_exact(smp, start_f, end_f)
+
   self.pcm = pcm
+  self.pcm_left = pcm_l
+  self.pcm_right = pcm_r
+  self.num_channels = num_ch
   self.sample_rate = rate
   self.range_start = 1
   self.range_end = #pcm
@@ -96,6 +101,33 @@ function SourceRef:get_pcm_slice(start_frame, length)
     end
   end
   return slice
+end
+
+--- Get stereo PCM slices (left, right) from this source
+-- @param start_frame number 1-based frame relative to source's range_start
+-- @param length number Length of slice
+-- @return table Left channel slice
+-- @return table Right channel slice
+function SourceRef:get_stereo_slice(start_frame, length)
+  if not self.pcm_left or not self.pcm_right or self.num_channels == 1 then
+    local mono = self:get_pcm_slice(start_frame, length)
+    return mono, mono
+  end
+
+  local slice_l = {}
+  local slice_r = {}
+  local abs_start = self.range_start + start_frame - 1
+  for i = 1, length do
+    local idx = abs_start + i - 1
+    if idx <= self.range_end then
+      slice_l[i] = self.pcm_left[idx] or 0.0
+      slice_r[i] = self.pcm_right[idx] or 0.0
+    else
+      slice_l[i] = 0.0
+      slice_r[i] = 0.0
+    end
+  end
+  return slice_l, slice_r
 end
 
 return SourceRef
