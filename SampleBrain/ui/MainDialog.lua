@@ -1,5 +1,5 @@
 -- SampleBrain/ui/MainDialog.lua
--- Native Renoise ViewBuilder Dialog for SampleBrain
+-- Native Renoise ViewBuilder Dialog for SampleBrain (Authentic 3-Column SampleBrain 0.18 Layout)
 
 local SampleReader = require("SampleBrain.renoise.SampleReader")
 local SampleWriter = require("SampleBrain.renoise.SampleWriter")
@@ -129,164 +129,265 @@ function MainDialog.show()
   vb = renoise.ViewBuilder()
 
   local content = vb:column{
-    width = 620,
-    margin = 10,
-    spacing = 8,
+    width = 840,
+    margin = 8,
+    spacing = 6,
 
-    -- Global Job Status Bar
+    -- 3-Column Main Layout
     vb:row{
-      vb:button{
-        id = "btn_cancel",
-        text = "Cancel Job",
-        visible = false,
-        notifier = function()
-          if JobRunner.is_running() then
-            JobRunner.cancel()
-            vb.views.job_status.text = "Job cancelled."
-            update_job_ui(false)
-          end
-        end
-      },
-      vb:text{ id = "job_status", text = "", style = "disabled" }
-    },
+      spacing = 8,
 
-    -- Target Section
-    vb:column{
-      width = 600, style = "panel", margin = 6, spacing = 6,
-      vb:row{ vb:text{ text = "Target Audio", font = "bold" } },
-      vb:row{
-        spacing = 6,
-        vb:text{ text = "Block:" },
-        vb:popup{ items = { "256", "500", "512", "768", "1000", "1024", "1500", "2048", "3000", "4096" }, value = 6, width = 70, notifier = function(v) target_settings.block_size = ({256,500,512,768,1000,1024,1500,2048,3000,4096})[v] end },
-        vb:text{ text = "Overlap:" },
-        vb:popup{ items = { "25%", "50%", "75%" }, value = 2, width = 55, notifier = function(v) target_settings.overlap = ({0.25,0.5,0.75})[v] end },
-        vb:text{ text = "Window:" },
-        vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, width = 80, notifier = function(v) target_settings.window_type = v end },
-        vb:text{ text = "Channel:" },
-        vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, width = 55, notifier = function(v) target_settings.channel_mode = v end },
-        vb:checkbox{ value = target_settings.use_selection, notifier = function(v) target_settings.use_selection = v end },
-        vb:text{ text = "Selection Only" }
-      },
-      vb:row{
-        spacing = 10,
-        vb:button{
-          text = "Set Current Sample as Target", width = 190,
-          notifier = function()
-            if JobRunner.is_running() then return end
-            local smp = renoise.song().selected_sample
-            if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
-              JobRunner.start(
-                function(job)
-                  local pcm, rate = SampleReader.read_channel(smp, target_settings.channel_mode, target_settings.use_selection)
-                  if not pcm then error("Failed to read sample") end
-                  
-                  local song = renoise.song()
-                  local inst_idx = song.selected_instrument_index
-                  local smp_idx = song.selected_sample_index
-                  local s_start, s_end = 1, smp.sample_buffer.number_of_frames
-                  if target_settings.use_selection and smp.sample_buffer.selection_start > 0 and smp.sample_buffer.selection_end > 0 then
-                    s_start = smp.sample_buffer.selection_start
-                    s_end = smp.sample_buffer.selection_end
-                  end
-
-                  local pcm_l, pcm_r = SampleReader.read_stereo_exact(smp, s_start, s_end)
-                  local temp_target_source = SourceRef.create(9999, smp.name, pcm, rate, inst_idx, smp_idx, s_start, s_end, pcm_l, pcm_r, smp.sample_buffer.number_of_channels)
-                  local temp_target_blocks = BlockGenerator.generate(temp_target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1, job)
-                  return { temp_source = temp_target_source, temp_blocks = temp_target_blocks, smp_name = smp.name, block_count = #temp_target_blocks }
-                end,
-                function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
-                function(res)
-                  target_source = res.temp_source
-                  target_blocks = res.temp_blocks
-                  target_blocks_signature = string.format("%d_%f_%d_%d_%s", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode, tostring(target_settings.use_selection))
-                  vb.views.target_status.text = string.format("Target: %s (%d blocks)", res.smp_name ~= "" and res.smp_name or "Untitled", res.block_count)
-                  vb.views.job_status.text = ""
-                  update_job_ui(false)
-                end,
-                function(err)
-                  vb.views.job_status.text = "Target analysis failed."
-                  update_job_ui(false)
-                  renoise.app():show_error("Target analysis failed: " .. tostring(err))
-                end
-              )
-              update_job_ui(true)
-            else
-              renoise.app():show_warning("Selected sample has no audio data.")
-            end
-          end
-        },
-        vb:text{ id = "target_status", text = "Target: None selected", style = "disabled" }
-      }
-    },
-
-    -- Brain Section
-    vb:column{
-      width = 600, style = "panel", margin = 6, spacing = 6,
-      vb:row{ vb:text{ text = "Brain Sources", font = "bold" } },
-      
-      -- Interactive Source List
-      vb:row{
-        vb:multiline_text{
-          id = "brain_source_list",
-          text = "No sources added.",
-          width = 584,
-          height = 70,
-          font = "mono"
-        }
-      },
-
-      -- Individual Source Controls
-      vb:row{
-        spacing = 8,
-        vb:text{ text = "Selected Source:" },
-        vb:popup{
-          id = "source_selector_popup",
-          items = { "None" },
-          value = 1,
-          width = 200
-        },
-        vb:button{
-          text = "Toggle Selected", width = 120,
-          notifier = function()
-            local sel_idx = vb.views.source_selector_popup.value
-            if brain_sources[sel_idx] then
-              brain_sources[sel_idx].enabled = not brain_sources[sel_idx].enabled
-              refresh_source_list()
-            end
-          end
-        },
-        vb:button{
-          text = "Remove Selected", width = 120,
-          notifier = function()
-            local sel_idx = vb.views.source_selector_popup.value
-            if brain_sources[sel_idx] then
-              table.remove(brain_sources, sel_idx)
-              brain_settings_signature = ""
-              synapses_built = false
-              vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (STALE)", #brain_sources, #brain_blocks)
-              refresh_source_list()
-            end
-          end
-        }
-      },
-
-      vb:row{
-        spacing = 6,
-        vb:text{ text = "Block:" },
-        vb:popup{ items = { "256", "500", "512", "768", "1000", "1024", "1500", "2048", "3000", "4096" }, value = 6, width = 70, notifier = function(v) brain_settings.block_size = ({256,500,512,768,1000,1024,1500,2048,3000,4096})[v] end },
-        vb:text{ text = "Overlap:" },
-        vb:popup{ items = { "25%", "50%", "75%" }, value = 2, width = 55, notifier = function(v) brain_settings.overlap = ({0.25,0.5,0.75})[v] end },
-        vb:text{ text = "Window:" },
-        vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, width = 80, notifier = function(v) brain_settings.window_type = v end },
-        vb:text{ text = "Channel:" },
-        vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, width = 55, notifier = function(v) brain_settings.channel_mode = v end },
-        vb:checkbox{ value = brain_settings.use_selection, notifier = function(v) brain_settings.use_selection = v end },
-        vb:text{ text = "Selection Only" }
-      },
+      -- Left Column: Brain Tweaks
+      vb:column{
+        width = 280, style = "panel", margin = 6, spacing = 4,
+        vb:row{ vb:text{ text = "brain tweaks", font = "bold" } },
+        
         vb:row{
-          spacing = 6,
+          spacing = 2,
+          vb:text{ text = "fft / mfcc", width = 105 },
+          vb:minislider{ id = "slide_ratio", min = 0.0, max = 1.0, value = ratio, width = 100, notifier = function(v) ratio = v; vb.views.box_ratio.value = v end },
+          vb:valuebox{ id = "box_ratio", min = 0.0, max = 1.0, value = ratio, steps = { 0.01, 0.1 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) ratio = v; vb.views.slide_ratio.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "raw / norm", width = 105 },
+          vb:minislider{ id = "slide_n_ratio", min = 0.0, max = 1.0, value = n_ratio, width = 100, notifier = function(v) n_ratio = v; vb.views.box_n_ratio.value = v end },
+          vb:valuebox{ id = "box_n_ratio", min = 0.0, max = 1.0, value = n_ratio, steps = { 0.01, 0.1 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_ratio = v; vb.views.slide_n_ratio.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "fft subsection", width = 105 },
+          vb:text{ text = "S:" },
+          vb:valuebox{ id = "box_fft_start", min = 1, max = 100, value = fft_start, steps = { 1, 5 }, width = 55, notifier = function(v) fft_start = v end },
+          vb:text{ text = "E:" },
+          vb:valuebox{ id = "box_fft_end", min = 1, max = 100, value = fft_end, steps = { 1, 5 }, width = 55, notifier = function(v) fft_end = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "novelty", width = 105 },
+          vb:minislider{ id = "slide_novelty", min = 0.0, max = 1.0, value = usage_importance, width = 100, notifier = function(v) usage_importance = v; vb.views.box_novelty.value = v end },
+          vb:valuebox{ id = "box_novelty", min = 0.0, max = 1.0, value = usage_importance, steps = { 0.01, 0.05 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_importance = v; vb.views.slide_novelty.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "boredom", width = 105 },
+          vb:minislider{ id = "slide_boredom", min = 0.0, max = 1.0, value = usage_falloff, width = 100, notifier = function(v) usage_falloff = v; vb.views.box_boredom.value = v end },
+          vb:valuebox{ id = "box_boredom", min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_falloff = v; vb.views.slide_boredom.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "stickyness", width = 105 },
+          vb:minislider{ id = "slide_stickiness", min = 0.0, max = 1.0, value = stickiness, width = 100, notifier = function(v) stickiness = v; vb.views.box_stickiness.value = v end },
+          vb:valuebox{ id = "box_stickiness", min = 0.0, max = 1.0, value = stickiness, steps = { 0.01, 0.05 }, width = 55, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) stickiness = v; vb.views.slide_stickiness.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "search stretch", width = 105 },
+          vb:minislider{ id = "slide_stretch", min = 1, max = 50, value = stretch, width = 100, notifier = function(v) stretch = v; vb.views.box_stretch.value = v end },
+          vb:valuebox{ id = "box_stretch", min = 1, max = 50, value = stretch, steps = { 1, 5 }, width = 55, notifier = function(v) stretch = v; vb.views.slide_stretch.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "algorithm", width = 105 },
+          vb:popup{ items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 158, notifier = function(v) algo = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "num synapses", width = 105 },
+          vb:minislider{ id = "slide_synapses", min = 1, max = 1000, value = num_synapses, width = 100, notifier = function(v) num_synapses = v; vb.views.box_synapses.value = v end },
+          vb:valuebox{ id = "box_synapses", min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, width = 55, notifier = function(v) num_synapses = v; vb.views.slide_synapses.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "slide error", width = 105 },
+          vb:minislider{ id = "slide_error", min = 0, max = 10000, value = slide_error, width = 100, notifier = function(v) slide_error = v; vb.views.box_error.value = v end },
+          vb:valuebox{ id = "box_error", min = 0, max = 10000, value = slide_error, steps = { 10, 100 }, width = 55, tostring = function(v) return string.format("%d", math.floor(v)) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) slide_error = v; vb.views.slide_error.value = v end }
+        }
+      },
+
+      -- Center Column: Target Sound & Mix
+      vb:column{
+        width = 260, style = "panel", margin = 6, spacing = 4,
+        vb:row{ vb:text{ text = "target sound", font = "bold" } },
+        
+        vb:row{
           vb:button{
-            text = "Add Current Sample", width = 130,
+            text = "load target", width = 245,
+            notifier = function()
+              if JobRunner.is_running() then return end
+              local smp = renoise.song().selected_sample
+              if smp and smp.sample_buffer and smp.sample_buffer.has_sample_data then
+                JobRunner.start(
+                  function(job)
+                    local pcm, rate = SampleReader.read_channel(smp, target_settings.channel_mode, target_settings.use_selection)
+                    if not pcm then error("Failed to read sample") end
+                    
+                    local song = renoise.song()
+                    local inst_idx = song.selected_instrument_index
+                    local smp_idx = song.selected_sample_index
+                    local s_start, s_end = 1, smp.sample_buffer.number_of_frames
+                    if target_settings.use_selection and smp.sample_buffer.selection_start > 0 and smp.sample_buffer.selection_end > 0 then
+                      s_start = smp.sample_buffer.selection_start
+                      s_end = smp.sample_buffer.selection_end
+                    end
+
+                    local pcm_l, pcm_r = SampleReader.read_stereo_exact(smp, s_start, s_end)
+                    local temp_target_source = SourceRef.create(9999, smp.name, pcm, rate, inst_idx, smp_idx, s_start, s_end, pcm_l, pcm_r, smp.sample_buffer.number_of_channels)
+                    local temp_target_blocks = BlockGenerator.generate(temp_target_source, target_settings.block_size, target_settings.overlap, target_settings.window_type, 1, job)
+                    return { temp_source = temp_target_source, temp_blocks = temp_target_blocks, smp_name = smp.name, block_count = #temp_target_blocks }
+                  end,
+                  function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
+                  function(res)
+                    target_source = res.temp_source
+                    target_blocks = res.temp_blocks
+                    target_blocks_signature = string.format("%d_%f_%d_%d_%s", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode, tostring(target_settings.use_selection))
+                    vb.views.target_status.text = string.format("Target: %s (%d blocks)", res.smp_name ~= "" and res.smp_name or "Untitled", res.block_count)
+                    vb.views.job_status.text = ""
+                    update_job_ui(false)
+                  end,
+                  function(err)
+                    vb.views.job_status.text = "Target analysis failed."
+                    update_job_ui(false)
+                    renoise.app():show_error("Target analysis failed: " .. tostring(err))
+                  end
+                )
+                update_job_ui(true)
+              else
+                renoise.app():show_warning("Selected sample has no audio data.")
+              end
+            end
+          }
+        },
+        vb:row{ vb:text{ id = "target_status", text = "Target: None selected", style = "disabled" } },
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "block size", width = 100 },
+          vb:popup{ items = { "256", "500", "512", "768", "1000", "1024", "1500", "2048", "3000", "4096" }, value = 6, width = 140, notifier = function(v) target_settings.block_size = ({256,500,512,768,1000,1024,1500,2048,3000,4096})[v] end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "block overlap", width = 100 },
+          vb:popup{ items = { "25%", "50%", "75%" }, value = 2, width = 140, notifier = function(v) target_settings.overlap = ({0.25,0.5,0.75})[v] end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "window shape", width = 100 },
+          vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, width = 140, notifier = function(v) target_settings.window_type = v end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "channel mode", width = 100 },
+          vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, width = 140, notifier = function(v) target_settings.channel_mode = v end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:checkbox{ value = target_settings.use_selection, notifier = function(v) target_settings.use_selection = v end },
+          vb:text{ text = "use selection only" }
+        },
+
+        vb:space{ height = 10 },
+        vb:row{ vb:text{ text = "mix", font = "bold" } },
+
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "autotune", width = 90 },
+          vb:minislider{ id = "slide_autotune", min = 0.0, max = 1.0, value = autotune, width = 100, notifier = function(v) autotune = v; vb.views.box_autotune.value = v end },
+          vb:valuebox{ id = "box_autotune", min = 0.0, max = 1.0, value = autotune, steps = { 0.01, 0.1 }, width = 50, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) autotune = v; vb.views.slide_autotune.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "normalised", width = 90 },
+          vb:minislider{ id = "slide_nmix", min = 0.0, max = 1.0, value = n_mix, width = 100, notifier = function(v) n_mix = v; vb.views.box_nmix.value = v end },
+          vb:valuebox{ id = "box_nmix", min = 0.0, max = 1.0, value = n_mix, steps = { 0.01, 0.1 }, width = 50, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_mix = v; vb.views.slide_nmix.value = v end }
+        },
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "brain / target", width = 90 },
+          vb:minislider{ id = "slide_tmix", min = 0.0, max = 1.0, value = target_mix, width = 100, notifier = function(v) target_mix = v; vb.views.box_tmix.value = v end },
+          vb:valuebox{ id = "box_tmix", min = 0.0, max = 1.0, value = target_mix, steps = { 0.01, 0.1 }, width = 50, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) target_mix = v; vb.views.slide_tmix.value = v end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:checkbox{ value = independent_stereo, notifier = function(v) independent_stereo = v end },
+          vb:text{ text = "independent stereo search" }
+        },
+        vb:row{
+          spacing = 4,
+          vb:checkbox{ value = normalize_output, notifier = function(v) normalize_output = v end },
+          vb:text{ text = "output normalize (0.98)" }
+        }
+      },
+
+      -- Right Column: Brain Contents & Brain Settings
+      vb:column{
+        width = 270, style = "panel", margin = 6, spacing = 4,
+        vb:row{
+          vb:text{ text = "brain contents", font = "bold" },
+          vb:space{ width = 60 },
+          vb:button{
+            text = "all", width = 35,
+            notifier = function()
+              for _, ref in ipairs(brain_sources) do ref.enabled = true end
+              refresh_source_list()
+            end
+          },
+          vb:button{
+            text = "none", width = 35,
+            notifier = function()
+              for _, ref in ipairs(brain_sources) do ref.enabled = false end
+              refresh_source_list()
+            end
+          }
+        },
+
+        vb:row{
+          vb:multiline_text{
+            id = "brain_source_list",
+            text = "No sources added.",
+            width = 254,
+            height = 75,
+            font = "mono"
+          }
+        },
+
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "source:" },
+          vb:popup{
+            id = "source_selector_popup",
+            items = { "None" },
+            value = 1,
+            width = 110
+          },
+          vb:button{
+            text = "toggle", width = 45,
+            notifier = function()
+              local sel_idx = vb.views.source_selector_popup.value
+              if brain_sources[sel_idx] then
+                brain_sources[sel_idx].enabled = not brain_sources[sel_idx].enabled
+                refresh_source_list()
+              end
+            end
+          },
+          vb:button{
+            text = "remove", width = 45,
+            notifier = function()
+              local sel_idx = vb.views.source_selector_popup.value
+              if brain_sources[sel_idx] then
+                table.remove(brain_sources, sel_idx)
+                brain_settings_signature = ""
+                synapses_built = false
+                vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (STALE)", #brain_sources, #brain_blocks)
+                refresh_source_list()
+              end
+            end
+          }
+        },
+
+        vb:row{
+          spacing = 2,
+          vb:button{
+            text = "add sample", width = 82,
             notifier = function()
               local song = renoise.song()
               local inst = song.selected_instrument
@@ -295,12 +396,8 @@ function MainDialog.show()
                 local inst_idx = song.selected_instrument_index
                 local smp_idx = song.selected_sample_index
                 local pcm, rate = SampleReader.read_channel(smp, brain_settings.channel_mode, brain_settings.use_selection)
-                if not pcm then 
-                  renoise.app():show_warning("Failed to read sample") 
-                  return
-                end
+                if not pcm then renoise.app():show_warning("Failed to read sample") return end
                 
-                -- Capture exact start/end based on selection mode
                 local s_start, s_end = 1, smp.sample_buffer.number_of_frames
                 if brain_settings.use_selection and smp.sample_buffer.selection_start > 0 and smp.sample_buffer.selection_end > 0 then
                   s_start = smp.sample_buffer.selection_start
@@ -321,7 +418,7 @@ function MainDialog.show()
             end
           },
           vb:button{
-            text = "Add Instrument Samples", width = 140,
+            text = "add inst", width = 82,
             notifier = function()
               local song = renoise.song()
               local inst = song.selected_instrument
@@ -351,7 +448,7 @@ function MainDialog.show()
             end
           },
           vb:button{
-            text = "Add All Song Samples", width = 140,
+            text = "add all", width = 82,
             notifier = function()
               local song = renoise.song()
               local count = 0
@@ -380,10 +477,36 @@ function MainDialog.show()
             end
           }
         },
+
         vb:row{
-          spacing = 6,
+          spacing = 4,
+          vb:text{ text = "block size", width = 100 },
+          vb:popup{ items = { "256", "500", "512", "768", "1000", "1024", "1500", "2048", "3000", "4096" }, value = 6, width = 148, notifier = function(v) brain_settings.block_size = ({256,500,512,768,1000,1024,1500,2048,3000,4096})[v] end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "block overlap", width = 100 },
+          vb:popup{ items = { "25%", "50%", "75%" }, value = 2, width = 148, notifier = function(v) brain_settings.overlap = ({0.25,0.5,0.75})[v] end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "window shape", width = 100 },
+          vb:popup{ items = { "Rectangle", "Hann", "Hamming", "Blackman", "Bartlett", "Gaussian", "Flat Top", "Dodgy" }, value = 2, width = 148, notifier = function(v) brain_settings.window_type = v end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:text{ text = "channel mode", width = 100 },
+          vb:popup{ items = { "Mix", "Left", "Right" }, value = 1, width = 148, notifier = function(v) brain_settings.channel_mode = v end }
+        },
+        vb:row{
+          spacing = 4,
+          vb:checkbox{ value = brain_settings.use_selection, notifier = function(v) brain_settings.use_selection = v end },
+          vb:text{ text = "use selection only" }
+        },
+
+        vb:row{
           vb:button{
-            text = "Generate / Rebuild Brain", width = 160,
+            text = "(re)generate brain", width = 254,
             notifier = function()
               if JobRunner.is_running() then return end
               if #brain_sources == 0 then
@@ -433,63 +556,21 @@ function MainDialog.show()
               )
               update_job_ui(true)
             end
-          },
-          vb:button{
-            text = "Remove Last Source", width = 130,
-            notifier = function()
-              if JobRunner.is_running() then return end
-              if #brain_sources > 0 then
-                table.remove(brain_sources, #brain_sources)
-                brain_settings_signature = ""
-                synapses_built = false
-                vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (STALE)", #brain_sources, #brain_blocks)
-                refresh_source_list()
-              end
-            end
-          },
-          vb:button{
-            text = "Clear Brain", width = 90,
-            notifier = function()
-              if JobRunner.is_running() then return end
-              brain_sources = {}
-              brain_blocks = {}
-              synapses_built = false
-              brain_settings_signature = ""
-              vb.views.brain_status.text = "Brain: Empty"
-              refresh_source_list()
-            end
           }
         },
+
         vb:row{
           spacing = 6,
           vb:button{
-            text = "Enable All", width = 90,
-            notifier = function()
-              for _, ref in ipairs(brain_sources) do
-                ref.enabled = true
-              end
-              refresh_source_list()
-            end
-          },
-          vb:button{
-            text = "Disable All", width = 90,
-            notifier = function()
-              for _, ref in ipairs(brain_sources) do
-                ref.enabled = false
-              end
-              refresh_source_list()
-            end
-          },
-          vb:button{
-            text = "Grow Synapses", width = 110,
+            text = "grow synapses", width = 124,
             notifier = function()
               if JobRunner.is_running() then return end
               if #brain_sources == 0 then
-                renoise.app():show_warning("No brain sources added. Please add brain sources and click 'Generate / Rebuild Brain' first.")
+                renoise.app():show_warning("No brain sources added. Please add brain sources and click '(re)generate brain' first.")
                 return
               end
               if #brain_blocks == 0 then
-                renoise.app():show_warning("Brain has not been built yet. Please click 'Generate / Rebuild Brain' before growing synapses.")
+                renoise.app():show_warning("Brain has not been built yet. Please click '(re)generate brain' before growing synapses.")
                 return
               end
               
@@ -514,87 +595,34 @@ function MainDialog.show()
               )
               update_job_ui(true)
             end
+          },
+          vb:button{
+            text = "clear brain", width = 124,
+            notifier = function()
+              if JobRunner.is_running() then return end
+              brain_sources = {}
+              brain_blocks = {}
+              synapses_built = false
+              brain_settings_signature = ""
+              vb.views.brain_status.text = "Brain: Empty"
+              refresh_source_list()
+            end
           }
         },
         vb:row{ vb:text{ id = "brain_status", text = "Brain: Empty", style = "disabled" } }
+      }
     },
 
-    -- Match & Output Params
-    vb:column{
-      width = 600, style = "panel", margin = 6, spacing = 6,
-      vb:text{ text = "Match & Render Settings", font = "bold" },
-        vb:row{
-          spacing = 4,
-          vb:text{ text = "Algo:", width = 110 },
-          vb:popup{ items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 120, notifier = function(v) algo = v end },
-          vb:space{ width = 15 },
-          vb:text{ text = "FFT Start Bin:", width = 95 },
-          vb:valuebox{ min = 1, max = 100, value = fft_start, steps = { 1, 5 }, width = 60, notifier = function(v) fft_start = v end },
-          vb:space{ width = 15 },
-          vb:text{ text = "FFT End Bin:", width = 85 },
-          vb:valuebox{ min = 1, max = 100, value = fft_end, steps = { 1, 5 }, width = 60, notifier = function(v) fft_end = v end }
-        },
-        vb:row{
-          spacing = 4,
-          vb:text{ text = "FFT/MFCC Ratio:", width = 110 },
-          vb:valuebox{ min = 0.0, max = 1.0, value = ratio, steps = { 0.01, 0.1 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) ratio = v end },
-          vb:space{ width = 75 },
-          vb:text{ text = "Raw/Norm Ratio:", width = 95 },
-          vb:valuebox{ min = 0.0, max = 1.0, value = n_ratio, steps = { 0.01, 0.1 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_ratio = v end },
-          vb:space{ width = 15 },
-          vb:text{ text = "Stickiness:", width = 85 },
-          vb:valuebox{ min = 0.0, max = 1.0, value = stickiness, steps = { 0.01, 0.05 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) stickiness = v end }
-        },
-        vb:row{
-          spacing = 4,
-          vb:text{ text = "Novelty:", width = 110 },
-          vb:valuebox{ min = 0.0, max = 1.0, value = usage_importance, steps = { 0.01, 0.05 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_importance = v end },
-          vb:space{ width = 75 },
-          vb:text{ text = "Boredom:", width = 95 },
-          vb:valuebox{ min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_falloff = v end },
-          vb:space{ width = 15 },
-          vb:text{ text = "Stretch:", width = 85 },
-          vb:valuebox{ min = 1, max = 50, value = stretch, steps = { 1, 5 }, width = 60, notifier = function(v) stretch = v end }
-        },
-        vb:row{
-          spacing = 4,
-          vb:text{ text = "Autotune:", width = 110 },
-          vb:valuebox{ min = 0.0, max = 1.0, value = autotune, steps = { 0.01, 0.1 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) autotune = v end },
-          vb:space{ width = 75 },
-          vb:text{ text = "Norm Mix:", width = 95 },
-          vb:valuebox{ min = 0.0, max = 1.0, value = n_mix, steps = { 0.01, 0.1 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_mix = v end },
-          vb:space{ width = 15 },
-          vb:text{ text = "Target Mix:", width = 85 },
-          vb:valuebox{ min = 0.0, max = 1.0, value = target_mix, steps = { 0.01, 0.1 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) target_mix = v end }
-        },
-        vb:row{
-          spacing = 4,
-          vb:text{ text = "Slide Err:", width = 110 },
-          vb:valuebox{ min = 0, max = 10000, value = slide_error, steps = { 10, 100 }, width = 60, tostring = function(v) return string.format("%d", math.floor(v)) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) slide_error = v end },
-          vb:space{ width = 75 },
-          vb:text{ text = "Num Synapses:", width = 95 },
-          vb:valuebox{ min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, width = 60, notifier = function(v) num_synapses = v end }
-        },
-        vb:row{
-          spacing = 6,
-          vb:checkbox{ value = normalize_output, notifier = function(v) normalize_output = v end },
-          vb:text{ text = "Output Normalize (0.98 ceiling)" },
-          vb:space{ width = 20 },
-          vb:checkbox{ value = independent_stereo, notifier = function(v) independent_stereo = v end },
-          vb:text{ text = "Independent Stereo Search" }
-        }
-    },
-
-    -- Render Action & Persistence
+    -- Bottom Action Bar & Session Controls
     vb:row{
       spacing = 10,
       vb:button{
         text = "Render SampleBrain Output",
-        width = 200, height = 30,
+        width = 240, height = 28,
         notifier = function()
           if JobRunner.is_running() then return end
           if #target_blocks == 0 or #brain_blocks == 0 then
-            renoise.app():show_warning("Need both Target and Brain samples.")
+            renoise.app():show_warning("Need both Target and Brain samples. Please set Target and Rebuild Brain first.")
             return
           end
 
@@ -606,7 +634,7 @@ function MainDialog.show()
 
           local current_brain_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
           if brain_settings_signature ~= current_brain_signature then
-            renoise.app():show_warning("Brain settings or sources have changed. Please click 'Generate / Rebuild Brain' before rendering.")
+            renoise.app():show_warning("Brain settings or sources have changed. Please click '(re)generate brain' before rendering.")
             return
           end
 
@@ -625,13 +653,15 @@ function MainDialog.show()
                 block_size = target_settings.block_size,
                 overlap = target_settings.overlap,
                 window_type = target_settings.window_type,
-                ratio = ratio, n_ratio = n_ratio,
-                fft_start = fft_start, fft_end = fft_end,
+                algo = algo,
+                ratio = ratio,
+                n_ratio = n_ratio,
+                fft_start = fft_start,
+                fft_end = fft_end,
                 usage_importance = usage_importance,
                 usage_falloff = usage_falloff,
                 stickiness = stickiness,
                 slide_error = slide_error,
-                algo = algo,
                 stretch = stretch,
                 autotune = autotune,
                 n_mix = n_mix,
@@ -659,7 +689,7 @@ function MainDialog.show()
               end
             end,
             function(err)
-              vb.views.job_status.text = "Rendering failed."
+              vb.views.job_status.text = "Render failed."
               update_job_ui(false)
               renoise.app():show_error("Render failed: " .. tostring(err))
             end
@@ -669,30 +699,26 @@ function MainDialog.show()
       },
       vb:button{
         text = "Save Session...",
-        width = 110, height = 30,
+        width = 140, height = 28,
         notifier = function()
           local path = renoise.app():prompt_for_filename_to_write("sb_session", "Save SampleBrain Session")
-          if path ~= "" then
+          if path and path ~= "" then
             local state = {
               version = 1,
               brain_settings = brain_settings,
               target_settings = target_settings,
               params = {
-                ratio = ratio, n_ratio = n_ratio,
-                fft_start = fft_start, fft_end = fft_end,
-                usage_importance = usage_importance,
-                usage_falloff = usage_falloff,
-                stickiness = stickiness,
-                slide_error = slide_error,
-                algo = algo, stretch = stretch,
-                autotune = autotune, n_mix = n_mix,
-                target_mix = target_mix,
-                normalize_output = normalize_output
+                ratio = ratio, n_ratio = n_ratio, fft_start = fft_start, fft_end = fft_end,
+                usage_importance = usage_importance, usage_falloff = usage_falloff,
+                stickiness = stickiness, algo = algo, stretch = stretch,
+                slide_error = slide_error, num_synapses = num_synapses,
+                autotune = autotune, n_mix = n_mix, target_mix = target_mix,
+                normalize = normalize_output, independent_stereo = independent_stereo
               }
             }
             local ok, err = Session.save(path, state)
             if ok then
-              renoise.app():show_status("SampleBrain session saved successfully.")
+              renoise.app():show_status("Session saved successfully.")
             else
               renoise.app():show_error("Failed to save session: " .. tostring(err))
             end
@@ -701,10 +727,10 @@ function MainDialog.show()
       },
       vb:button{
         text = "Load Session...",
-        width = 110, height = 30,
+        width = 140, height = 28,
         notifier = function()
-          local path = renoise.app():prompt_for_filename_to_read({ "*.sb_session", "*.txt" }, "Load SampleBrain Session")
-          if path ~= "" then
+          local path = renoise.app():prompt_for_filename_to_read({ "sb_session", "txt" }, "Load SampleBrain Session")
+          if path and path ~= "" then
             local state, err = Session.load(path)
             if state and state.params then
               ratio = state.params.ratio or ratio
@@ -714,24 +740,40 @@ function MainDialog.show()
               usage_importance = state.params.usage_importance or usage_importance
               usage_falloff = state.params.usage_falloff or usage_falloff
               stickiness = state.params.stickiness or stickiness
-              slide_error = state.params.slide_error or slide_error
               algo = state.params.algo or algo
               stretch = state.params.stretch or stretch
+              slide_error = state.params.slide_error or slide_error
+              num_synapses = state.params.num_synapses or num_synapses
               autotune = state.params.autotune or autotune
               n_mix = state.params.n_mix or n_mix
               target_mix = state.params.target_mix or target_mix
-              normalize_output = state.params.normalize_output or false
+              normalize_output = state.params.normalize or normalize_output
+              independent_stereo = state.params.independent_stereo or independent_stereo
               
               if state.brain_settings then brain_settings = state.brain_settings end
               if state.target_settings then target_settings = state.target_settings end
-              
-              renoise.app():show_status("SampleBrain session loaded successfully.")
+
+              renoise.app():show_status("Session loaded successfully.")
             else
               renoise.app():show_error("Failed to load session: " .. tostring(err))
             end
           end
         end
-      }
+      },
+      vb:button{
+        id = "btn_cancel",
+        text = "Cancel Job",
+        width = 110, height = 28,
+        visible = false,
+        notifier = function()
+          if JobRunner.is_running() then
+            JobRunner.cancel()
+            vb.views.job_status.text = "Job cancelled."
+            update_job_ui(false)
+          end
+        end
+      },
+      vb:text{ id = "job_status", text = "", style = "disabled" }
     }
   }
 
