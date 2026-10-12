@@ -387,7 +387,7 @@ function MainDialog.show()
             notifier = function()
               if JobRunner.is_running() then return end
               if #brain_sources == 0 then
-                renoise.app():show_warning("No brain sources added.")
+                renoise.app():show_warning("No brain sources added. Please add samples first.")
                 return
               end
               
@@ -407,16 +407,22 @@ function MainDialog.show()
                     end
                     start_id = next_id
                   end
+
+                  -- Auto-grow synapses so brain is fully prepared for matching
+                  build_required_graphs(job)
+
                   return temp_blocks
                 end,
                 function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
                 function(temp_blocks)
                   brain_blocks = temp_blocks
-                  synapses_built = false
+                  synapses_built = true
+                  synapses_signature = make_synapse_signature()
                   brain_settings_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
-                  vb.views.brain_status.text = string.format("Brain: %d samples, %d total blocks", #brain_sources, #brain_blocks)
+                  vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (Ready)", #brain_sources, #brain_blocks)
                   vb.views.job_status.text = ""
                   update_job_ui(false)
+                  renoise.app():show_status(string.format("SampleBrain: Brain built successfully (%d sources, %d blocks)!", #brain_sources, #brain_blocks))
                 end,
                 function(err)
                   brain_settings_signature = ""
