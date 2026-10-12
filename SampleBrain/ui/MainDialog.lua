@@ -11,6 +11,7 @@ local JobRunner = require("SampleBrain.jobs.JobRunner")
 local Session = require("SampleBrain.persistence.Session")
 local Constants = require("SampleBrain.Constants")
 
+local Logger = require("SampleBrain.Logger")
 local MainDialog = {}
 
 local dialog = nil
@@ -59,7 +60,7 @@ local function update_job_ui(is_running)
   end
 end
 
-local function refresh_source_list()
+local function refresh_source_list(active_src_idx, active_msg)
   if not vb or not vb.views.brain_source_list then return end
   if #brain_sources == 0 then
     vb.views.brain_source_list.text = "No sources added."
@@ -72,9 +73,24 @@ local function refresh_source_list()
   local lines = {}
   local popup_items = {}
   for i, ref in ipairs(brain_sources) do
-    local state = ref.enabled and "[ON]" or "[OFF]"
-    lines[#lines + 1] = string.format("%02d: %s %s (frames %d..%d)", i, ref.enabled and "[x]" or "[ ]", ref.name, ref.captured_range_start, ref.captured_range_end)
-    popup_items[#popup_items + 1] = string.format("%d: %s %s", i, ref.name, state)
+    local state = ref.enabled and "[x]" or "[ ]"
+    local frames_str = string.format("%.1fk", (ref.captured_range_end - ref.captured_range_start + 1) / 1000)
+    
+    local source_status = ""
+    if active_src_idx then
+      if i < active_src_idx then
+        source_status = "[DONE]"
+      elseif i == active_src_idx then
+        source_status = string.format(">>> [ANALYZING: %s] <<<", active_msg or "Processing...")
+      else
+        source_status = "[WAIT]"
+      end
+    else
+      source_status = ref.enabled and string.format("(%s frames)", frames_str) or "(OFF)"
+    end
+
+    lines[#lines + 1] = string.format("%02d: %s %s %s", i, state, ref.name, source_status)
+    popup_items[#popup_items + 1] = string.format("%d: %s %s", i, ref.name, ref.enabled and "[ON]" or "[OFF]")
   end
   vb.views.brain_source_list.text = table.concat(lines, "\n")
   if vb.views.source_selector_popup then
@@ -226,6 +242,7 @@ local function run_batch_render(count)
 end
 
 function MainDialog.show()
+  Logger.write("Dialog opened; diagnostics=" .. Logger.path())
   if dialog and dialog.visible then
     dialog:show()
     return
@@ -426,19 +443,19 @@ function MainDialog.show()
 
       -- Right Column: Brain Contents & Brain Settings
       vb:column{
-        width = 270, style = "panel", margin = 6, spacing = 4,
+        width = 370, style = "panel", margin = 6, spacing = 4,
         vb:row{
           vb:text{ text = "brain contents", font = "bold" },
-          vb:space{ width = 60 },
+          vb:space{ width = 180 },
           vb:button{
-            text = "all", width = 35,
+            text = "all", width = 38,
             notifier = function()
               for _, ref in ipairs(brain_sources) do ref.enabled = true end
               refresh_source_list()
             end
           },
           vb:button{
-            text = "none", width = 35,
+            text = "none", width = 38,
             notifier = function()
               for _, ref in ipairs(brain_sources) do ref.enabled = false end
               refresh_source_list()
@@ -450,23 +467,23 @@ function MainDialog.show()
           vb:multiline_text{
             id = "brain_source_list",
             text = "No sources added.",
-            width = 254,
-            height = 75,
+            width = 354,
+            height = 100,
             font = "mono"
           }
         },
 
         vb:row{
           spacing = 4,
-          vb:text{ text = "source:" },
+          vb:text{ text = "source:", width = 50 },
           vb:popup{
             id = "source_selector_popup",
             items = { "None" },
             value = 1,
-            width = 110
+            width = 180
           },
           vb:button{
-            text = "toggle", width = 45,
+            text = "toggle", width = 58,
             notifier = function()
               local sel_idx = vb.views.source_selector_popup.value
               if brain_sources[sel_idx] then
@@ -476,7 +493,7 @@ function MainDialog.show()
             end
           },
           vb:button{
-            text = "remove", width = 45,
+            text = "remove", width = 58,
             notifier = function()
               local sel_idx = vb.views.source_selector_popup.value
               if brain_sources[sel_idx] then
@@ -491,9 +508,9 @@ function MainDialog.show()
         },
 
         vb:row{
-          spacing = 2,
+          spacing = 4,
           vb:button{
-            text = "add sample", width = 82,
+            text = "add sample", width = 114,
             notifier = function()
               local song = renoise.song()
               local inst = song.selected_instrument
@@ -612,7 +629,7 @@ function MainDialog.show()
 
         vb:row{
           vb:button{
-            text = "(re)generate brain", width = 254,
+            text = "(re)generate brain", width = 354,
             notifier = function()
               if JobRunner.is_running() then return end
               if #brain_sources == 0 then
@@ -626,15 +643,19 @@ function MainDialog.show()
                   local start_id = 1
                   for i = 1, #brain_sources do
                     local ref = brain_sources[i]
-                    local ok, reload_err = ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
-                    if not ok then
-                      error(string.format("Brain source %d '%s' could not be reloaded: %s", i, ref.name, reload_err or "Sample missing"))
+                    if ref.enabled then
+                      local ok, reload_err = ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
+                      if not ok then
+                        error(string.format("Brain source %d '%s' could not be reloaded: %s", i, ref.name, reload_err or "Sample missing"))
+                      end
+                      
+                      job.status = string.format("Brain [%d/%d] %s: Starting...", i, #brain_sources, ref.name)
+                      local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
+                      for _, b in ipairs(blocks) do
+                        temp_blocks[#temp_blocks + 1] = b
+                      end
+                      start_id = next_id
                     end
-                    local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
-                    for _, b in ipairs(blocks) do
-                      temp_blocks[#temp_blocks + 1] = b
-                    end
-                    start_id = next_id
                   end
 
                   -- Auto-grow synapses so brain is fully prepared for matching
@@ -642,7 +663,15 @@ function MainDialog.show()
 
                   return temp_blocks
                 end,
-                function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
+                function(pct, msg)
+                  vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100)
+                  if job.status then
+                    local src_idx, src_msg = job.status:match("Brain %[(%d+)/%d+%] .+: (.+)")
+                    if src_idx then
+                      refresh_source_list(tonumber(src_idx), src_msg)
+                    end
+                  end
+                end,
                 function(temp_blocks)
                   brain_blocks = temp_blocks
                   synapses_built = true
@@ -650,12 +679,14 @@ function MainDialog.show()
                   brain_settings_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
                   vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (Ready)", #brain_sources, #brain_blocks)
                   vb.views.job_status.text = ""
+                  refresh_source_list()
                   update_job_ui(false)
                   renoise.app():show_status(string.format("SampleBrain: Brain built successfully (%d sources, %d blocks)!", #brain_sources, #brain_blocks))
                 end,
                 function(err)
                   brain_settings_signature = ""
                   vb.views.job_status.text = "Brain analysis failed."
+                  refresh_source_list()
                   update_job_ui(false)
                   renoise.app():show_error("Brain analysis failed: " .. tostring(err))
                 end

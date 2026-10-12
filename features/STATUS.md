@@ -61,6 +61,7 @@
 | sample-playback-quality | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | sample-slice-menu-grouping | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | sample-slice-selection | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| samplebrain-diagnostics | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested |
 | section-loop-immediate-switch | 5 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | section-loop-midi-capture | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | selection-reversed-instrument | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
@@ -73,8 +74,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 59
-- Build-verified: 49
+- Cards: 60
+- Build-verified: 50
 - Runtime-verified: 3 full + 4 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 
