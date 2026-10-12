@@ -29,6 +29,14 @@ Constants.ALGO_REVERSED = 2
 Constants.ALGO_SYNAPTIC = 3
 Constants.ALGO_SYNAPTIC_SLIDE = 4
 
+-- Stickiness Modes
+Constants.STICKINESS_SAME_SOURCE = 1
+Constants.STICKINESS_UPSTREAM = 2
+
+-- Synaptic Fallback Modes
+Constants.FALLBACK_HOLD_CURRENT = 1
+Constants.FALLBACK_BASIC = 2
+
 -- Channel Modes
 Constants.CHANNEL_MIX = 1
 Constants.CHANNEL_LEFT = 2

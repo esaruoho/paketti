@@ -40,12 +40,21 @@ end
 
 function Matcher:stickify(target_block, closest_index, dist, options)
   local stickiness = options.stickiness or Constants.DEFAULT_STICKINESS
+  local mode = options.stickiness_mode or Constants.STICKINESS_UPSTREAM
   local next_index = self.current_block_index + 1
 
   if stickiness > 0 and next_index <= #self.brain_blocks then
     local next_blk = self.brain_blocks[next_index]
-    -- Cross-source boundary check: only stick if both are from same source (optional, but safer)
-    if next_blk.source_ref.enabled and next_blk.source_ref.id == self.brain_blocks[self.current_block_index].source_ref.id then
+    
+    local allow_stick = false
+    if mode == Constants.STICKINESS_SAME_SOURCE then
+      allow_stick = next_blk.source_ref.enabled and next_blk.source_ref.id == self.brain_blocks[self.current_block_index].source_ref.id
+    else
+      -- Upstream: just advance without checking source boundary, as long as it's enabled
+      allow_stick = next_blk.source_ref.enabled
+    end
+
+    if allow_stick then
       local dist_to_next = Distance.compare_blocks(
         target_block, next_blk,
         options.ratio, options.n_ratio, options.usage_importance,
@@ -156,8 +165,14 @@ function Matcher:search_synaptic(target_block, options)
   end
 
   if not closest_index then
-    -- If all synapses are disabled or none valid, fallback
-    return self:search_basic(target_block, options)
+    local fallback_mode = options.fallback_mode or Constants.FALLBACK_HOLD_CURRENT
+    if fallback_mode == Constants.FALLBACK_HOLD_CURRENT then
+      -- If all synapses are disabled or none valid, just hold on current block (Upstream default)
+      closest_index = self.current_block_index
+    else
+      -- Fallback to global basic search across all active blocks
+      return self:search_basic(target_block, options)
+    end
   end
 
   self:deplete_usage(options.usage_falloff)

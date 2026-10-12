@@ -390,7 +390,10 @@ function MainDialog.show()
         vb:row{
           spacing = 6,
           vb:checkbox{ value = normalize_output, notifier = function(v) normalize_output = v end },
-          vb:text{ text = "Output Normalize (0.98 ceiling)" }
+          vb:text{ text = "Output Normalize (0.98 ceiling)" },
+          vb:space{ width = 20 },
+          vb:text{ text = "Num Synapses:" },
+          vb:valuebox{ min = 1, max = 1000, value = num_synapses, step = 1, notifier = function(v) num_synapses = v end }
         }
       }
     },
