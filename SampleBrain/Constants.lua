@@ -18,8 +18,8 @@ Constants.DEFAULT_RATIO = 0.5            -- 0.0 = FFT only, 1.0 = MFCC only, 0.5
 Constants.DEFAULT_N_RATIO = 0.5          -- 0.0 = raw only, 1.0 = normalized only
 Constants.DEFAULT_USAGE_IMPORTANCE = 0.0 -- 0.0 = ignore usage, >0.0 = novelty/boredom penalty
 Constants.DEFAULT_STICKINESS = 0.0       -- 0.0 = no stickiness, 1.0 = max stickiness
-Constants.DEFAULT_SLIDE_ERROR = 1.0      -- Threshold error for Synaptic Slide
-Constants.DEFAULT_NUM_SYNAPSES = 100     -- Number of synapses per block in similarity graph
+Constants.DEFAULT_SLIDE_ERROR = 1000.0     -- Threshold error for Synaptic Slide (matches C++ default 1000)
+Constants.DEFAULT_NUM_SYNAPSES = 20        -- Number of synapses searched in similarity graph (matches C++ default 20)
 Constants.USAGE_FACTOR = 1000.0          -- Usage increment upon selection
 Constants.USAGE_FALLOFF = 0.9            -- Usage decay per search step
 

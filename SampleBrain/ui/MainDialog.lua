@@ -33,7 +33,7 @@ local brain_settings_signature = ""
 
 -- Matching Settings
 local ratio = Constants.DEFAULT_RATIO
-local n_ratio = Constants.DEFAULT_N_RATIO
+local n_ratio = 0.0 -- 0.00 = raw only (matches C++ default 0.00)
 local fft_start = 1
 local fft_end = Constants.FFT_BINS_CROPPED
 local usage_importance = Constants.DEFAULT_USAGE_IMPORTANCE
@@ -554,7 +554,7 @@ function MainDialog.show()
           vb:valuebox{ min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, width = 60, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_falloff = v end },
           vb:space{ width = 15 },
           vb:text{ text = "Stretch:", width = 85 },
-          vb:valuebox{ min = 1, max = 8, value = stretch, steps = { 1, 2 }, width = 60, notifier = function(v) stretch = v end }
+          vb:valuebox{ min = 1, max = 50, value = stretch, steps = { 1, 5 }, width = 60, notifier = function(v) stretch = v end }
         },
         vb:row{
           spacing = 4,
@@ -570,7 +570,7 @@ function MainDialog.show()
         vb:row{
           spacing = 4,
           vb:text{ text = "Slide Err:", width = 110 },
-          vb:valuebox{ min = 0.1, max = 500.0, value = slide_error, steps = { 0.1, 1.0 }, width = 60, tostring = function(v) return string.format("%.1f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) slide_error = v end },
+          vb:valuebox{ min = 0, max = 10000, value = slide_error, steps = { 10, 100 }, width = 60, tostring = function(v) return string.format("%d", math.floor(v)) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) slide_error = v end },
           vb:space{ width = 75 },
           vb:text{ text = "Num Synapses:", width = 95 },
           vb:valuebox{ min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, width = 60, notifier = function(v) num_synapses = v end }
