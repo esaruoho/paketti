@@ -120,6 +120,111 @@ function MainDialog.reset_state()
   end
 end
 
+local function run_batch_render(count)
+  if JobRunner.is_running() then return end
+  if #target_blocks == 0 or #brain_blocks == 0 then
+    renoise.app():show_warning("Need both Target and Brain samples. Please set Target and Rebuild Brain first.")
+    return
+  end
+
+  local current_target_signature = string.format("%d_%f_%d_%d_%s", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode, tostring(target_settings.use_selection))
+  if target_blocks_signature ~= current_target_signature then
+    renoise.app():show_warning("Target settings have changed. Please re-analyze the target sample before rendering.")
+    return
+  end
+
+  local current_brain_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
+  if brain_settings_signature ~= current_brain_signature then
+    renoise.app():show_warning("Brain settings or sources have changed. Please click '(re)generate brain' before rendering.")
+    return
+  end
+
+  JobRunner.start(
+    function(job)
+      if (algo == Constants.ALGO_SYNAPTIC or algo == Constants.ALGO_SYNAPTIC_SLIDE) then
+        local current_synapse_signature = make_synapse_signature()
+        if not synapses_built or synapses_signature ~= current_synapse_signature then
+          build_required_graphs(job)
+          synapses_built = true
+          synapses_signature = current_synapse_signature
+        end
+      end
+
+      local results = {}
+      local algos = { Constants.ALGO_BASIC, Constants.ALGO_REVERSED, Constants.ALGO_SYNAPTIC, Constants.ALGO_SYNAPTIC_SLIDE }
+      local algo_names = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }
+
+      for i = 1, count do
+        if job.cancelled then break end
+
+        -- Systematic parameter variation per pass
+        local pass_algo = algos[((i - 1) % #algos) + 1]
+        local pass_ratio = math.max(0.0, math.min(1.0, ratio + ((i - 1) - count / 2) * 0.06))
+        local pass_stickiness = math.max(0.0, math.min(1.0, stickiness + ((i % 5) * 0.12)))
+        local pass_autotune = math.max(0.0, math.min(1.0, autotune + ((i % 4) * 0.10)))
+        local pass_stretch = math.max(1, math.min(50, stretch + (i % 3)))
+        local pass_slide_error = math.max(10, math.min(10000, slide_error + (i * 120)))
+
+        local options = {
+          block_size = target_settings.block_size,
+          overlap = target_settings.overlap,
+          window_type = target_settings.window_type,
+          algo = pass_algo,
+          ratio = pass_ratio,
+          n_ratio = n_ratio,
+          fft_start = fft_start,
+          fft_end = fft_end,
+          usage_importance = usage_importance,
+          usage_falloff = usage_falloff,
+          stickiness = pass_stickiness,
+          slide_error = pass_slide_error,
+          stretch = pass_stretch,
+          autotune = pass_autotune,
+          n_mix = n_mix,
+          target_mix = target_mix,
+          normalize = normalize_output,
+          num_synapses = num_synapses,
+          brain_gain = brain_gain,
+          independent_stereo = independent_stereo,
+          job = job
+        }
+
+        local out_l, out_r = Renderer.render(brain_blocks, target_blocks, options)
+        if not out_l then error(out_r or "Render failed") end
+
+        results[#results + 1] = {
+          left = out_l,
+          right = out_r,
+          name = string.format("Paketti SB [%02d/%02d] %s (ratio=%.2f, tune=%.2f)", i, count, algo_names[pass_algo], pass_ratio, pass_autotune)
+        }
+      end
+
+      return results
+    end,
+    function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
+    function(results)
+      local out_rate = target_source and target_source.sample_rate or Constants.DEFAULT_SAMPLE_RATE
+      local song = renoise.song()
+      local start_insert_idx = song.selected_instrument_index
+
+      for i, res in ipairs(results) do
+        local target_slot = math.min(#song.instruments + 1, start_insert_idx + i)
+        SampleWriter.write_new_instrument(res.left, res.right, out_rate, res.name, target_slot)
+      end
+
+      vb.views.job_status.text = string.format("Batch created %d instruments!", #results)
+      update_job_ui(false)
+      renoise.app():show_status(string.format("Paketti SampleBrain: Successfully created %d instruments starting at slot +1!", #results))
+    end,
+    function(err)
+      vb.views.job_status.text = "Batch render failed."
+      update_job_ui(false)
+      renoise.app():show_error("Batch render failed: " .. tostring(err))
+    end
+  )
+  update_job_ui(true)
+end
+
 function MainDialog.show()
   if dialog and dialog.visible then
     dialog:show()
@@ -615,10 +720,10 @@ function MainDialog.show()
 
     -- Bottom Action Bar & Session Controls
     vb:row{
-      spacing = 10,
+      spacing = 6,
       vb:button{
-        text = "Render SampleBrain Output",
-        width = 240, height = 28,
+        text = "Render Output",
+        width = 130, height = 28,
         notifier = function()
           if JobRunner.is_running() then return end
           if #target_blocks == 0 or #brain_blocks == 0 then
@@ -680,7 +785,7 @@ function MainDialog.show()
             function(pct, msg) vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100) end,
             function(res)
               local out_rate = target_source and target_source.sample_rate or Constants.DEFAULT_SAMPLE_RATE
-              SampleWriter.write_new_instrument(res.left, res.right, out_rate, "SampleBrain")
+              SampleWriter.write_new_instrument(res.left, res.right, out_rate, "Paketti SampleBrain")
               vb.views.job_status.text = string.format("Rendered %d frames.", #res.left)
               update_job_ui(false)
               renoise.app():show_status("SampleBrain render complete!")
@@ -695,6 +800,20 @@ function MainDialog.show()
             end
           )
           update_job_ui(true)
+        end
+      },
+      vb:button{
+        text = "Make 10",
+        width = 75, height = 28,
+        notifier = function()
+          run_batch_render(10)
+        end
+      },
+      vb:button{
+        text = "Make 20",
+        width = 75, height = 28,
+        notifier = function()
+          run_batch_render(20)
         end
       },
       vb:button{

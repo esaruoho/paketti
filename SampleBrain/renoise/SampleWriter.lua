@@ -8,15 +8,20 @@ local SampleWriter = {}
 -- @param pcm_right table (Optional) 1-indexed array of float samples for right channel
 -- @param sample_rate number Sample rate (default 44100)
 -- @param name_prefix string Instrument name prefix
+-- @param insert_idx number (Optional) Target instrument index (defaults to selected_instrument_index + 1)
 -- @return renoise.Instrument Created instrument
 -- @return renoise.Sample Created sample
-function SampleWriter.write_new_instrument(pcm_left, pcm_right, sample_rate, name_prefix)
+function SampleWriter.write_new_instrument(pcm_left, pcm_right, sample_rate, name_prefix, insert_idx)
   sample_rate = sample_rate or 44100
-  name_prefix = name_prefix or "SampleBrain"
+  name_prefix = name_prefix or "Paketti SampleBrain"
 
   local song = renoise.song()
-  local inst = song:insert_instrument_at(#song.instruments + 1)
-  inst.name = name_prefix .. " Output"
+  if not insert_idx then
+    insert_idx = math.min(#song.instruments + 1, song.selected_instrument_index + 1)
+  end
+
+  local inst = song:insert_instrument_at(insert_idx)
+  inst.name = name_prefix
 
   local smp = inst:insert_sample_at(1)
   smp.name = name_prefix .. " Render"
@@ -31,7 +36,7 @@ function SampleWriter.write_new_instrument(pcm_left, pcm_right, sample_rate, nam
   local buffer = smp.sample_buffer
   local ok = buffer:create_sample_data(sample_rate, 32, num_channels, num_frames)
   if not ok then
-    song:delete_instrument_at(#song.instruments)
+    song:delete_instrument_at(insert_idx)
     error("SampleBrain: Failed to allocate sample buffer memory in Renoise.")
   end
 
@@ -49,7 +54,7 @@ function SampleWriter.write_new_instrument(pcm_left, pcm_right, sample_rate, nam
   buffer:finalize_sample_data_changes()
 
   -- Select newly created instrument
-  song.selected_instrument_index = #song.instruments
+  song.selected_instrument_index = insert_idx
 
   return inst, smp
 end
