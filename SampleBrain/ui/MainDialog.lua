@@ -637,6 +637,7 @@ function MainDialog.show()
                 return
               end
               
+              local current_src_idx = 1
               JobRunner.start(
                 function(job)
                   local temp_blocks = {}
@@ -644,12 +645,12 @@ function MainDialog.show()
                   for i = 1, #brain_sources do
                     local ref = brain_sources[i]
                     if ref.enabled then
+                      current_src_idx = i
                       local ok, reload_err = ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
                       if not ok then
                         error(string.format("Brain source %d '%s' could not be reloaded: %s", i, ref.name, reload_err or "Sample missing"))
                       end
                       
-                      job.status = string.format("Brain [%d/%d] %s: Starting...", i, #brain_sources, ref.name)
                       local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
                       for _, b in ipairs(blocks) do
                         temp_blocks[#temp_blocks + 1] = b
@@ -664,12 +665,9 @@ function MainDialog.show()
                   return temp_blocks
                 end,
                 function(pct, msg)
-                  vb.views.job_status.text = string.format("%s (%.1f%%)", msg, pct * 100)
-                  if job.status then
-                    local src_idx, src_msg = job.status:match("Brain %[(%d+)/%d+%] .+: (.+)")
-                    if src_idx then
-                      refresh_source_list(tonumber(src_idx), src_msg)
-                    end
+                  vb.views.job_status.text = string.format("%s (%.1f%%)", msg or "", pct * 100)
+                  if current_src_idx and msg then
+                    refresh_source_list(current_src_idx, msg)
                   end
                 end,
                 function(temp_blocks)
