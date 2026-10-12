@@ -84,7 +84,7 @@ function Renderer.render(brain_blocks, target_blocks, options)
   -- Phase 1: Search & Decision Stream Generation
   while target_idx <= #target_blocks do
     local target_blk = target_blocks[target_idx]
-    local search_opts = {
+    local search_opts_l = {
       algo = algo,
       ratio = ratio,
       n_ratio = n_ratio,
@@ -93,10 +93,11 @@ function Renderer.render(brain_blocks, target_blocks, options)
       stickiness = stickiness,
       fft_start = fft_start,
       fft_end = fft_end,
-      num_synapses = options.num_synapses
+      num_synapses = options.num_synapses,
+      channel = "left"
     }
 
-    local matched_blk_l, dist_l, err_l = matcher_l:search(target_blk, search_opts)
+    local matched_blk_l, dist_l, err_l = matcher_l:search(target_blk, search_opts_l)
     if not matched_blk_l then
       return nil, err_l or "Left matcher returned no block"
     end
@@ -104,7 +105,19 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local matched_blk_r = matched_blk_l
     local dist_r = dist_l
     if independent_stereo then
-      local m_r, d_r, e_r = matcher_r:search(target_blk, search_opts)
+      local search_opts_r = {
+        algo = algo,
+        ratio = ratio,
+        n_ratio = n_ratio,
+        usage_importance = usage_importance,
+        usage_falloff = usage_falloff,
+        stickiness = stickiness,
+        fft_start = fft_start,
+        fft_end = fft_end,
+        num_synapses = options.num_synapses,
+        channel = "right"
+      }
+      local m_r, d_r, e_r = matcher_r:search(target_blk, search_opts_r)
       if not m_r then
         return nil, e_r or "Right matcher returned no block"
       end
@@ -180,15 +193,21 @@ function Renderer.render(brain_blocks, target_blocks, options)
     local pitch_scale_l = 1.0
     local pitch_scale_r = 1.0
 
-    if autotune > 0 and target_blk.dominant_freq then
-      if matched_l.dominant_freq and matched_l.dominant_freq > 0 then
-        pitch_scale_l = target_blk.dominant_freq / matched_l.dominant_freq
+    if autotune > 0 then
+      local dom_target_l = target_blk.dominant_freq_l or target_blk.dominant_freq
+      local dom_target_r = target_blk.dominant_freq_r or target_blk.dominant_freq
+      local dom_match_l = matched_l.dominant_freq_l or matched_l.dominant_freq
+      local dom_match_r = matched_r.dominant_freq_r or matched_r.dominant_freq
+
+      if dom_target_l and dom_match_l and dom_match_l > 0 then
+        pitch_scale_l = dom_target_l / dom_match_l
         local max_scale = 1.0 + (autotune * autotune) * 100.0
         if pitch_scale_l > max_scale then pitch_scale_l = max_scale end
         if pitch_scale_l < 1.0 / max_scale then pitch_scale_l = 1.0 / max_scale end
       end
-      if matched_r.dominant_freq and matched_r.dominant_freq > 0 then
-        pitch_scale_r = target_blk.dominant_freq / matched_r.dominant_freq
+
+      if dom_target_r and dom_match_r and dom_match_r > 0 then
+        pitch_scale_r = dom_target_r / dom_match_r
         local max_scale = 1.0 + (autotune * autotune) * 100.0
         if pitch_scale_r > max_scale then pitch_scale_r = max_scale end
         if pitch_scale_r < 1.0 / max_scale then pitch_scale_r = 1.0 / max_scale end

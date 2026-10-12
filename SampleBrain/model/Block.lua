@@ -15,7 +15,7 @@ local CANONICAL_ANALYSIS_RATE = 44100
 local function windowed_sinc_lpf(pcm, cutoff, filter_size)
   local n = #pcm
   if n == 0 or cutoff >= 0.5 then return pcm end
-  filter_size = filter_size or 15
+  filter_size = filter_size or 31
   if filter_size % 2 == 0 then filter_size = filter_size + 1 end
   local half_m = math.floor(filter_size / 2)
 
@@ -29,7 +29,8 @@ local function windowed_sinc_lpf(pcm, cutoff, filter_size)
     else
       val = math.sin(2.0 * math.pi * cutoff * k) / (math.pi * k)
     end
-    local w = 0.5 * (1.0 + math.cos(math.pi * k / half_m))
+    -- Blackman windowing for >50 dB stop-band attenuation
+    local w = 0.42 - 0.5 * math.cos(2.0 * math.pi * (k + half_m) / (filter_size - 1)) + 0.08 * math.cos(4.0 * math.pi * (k + half_m) / (filter_size - 1))
     val = val * w
     h[idx] = val
     sum_h = sum_h + val
@@ -62,8 +63,8 @@ local function resample_to_length(in_pcm, target_length)
   -- Anti-aliasing windowed-sinc FIR pre-filter for downsampling
   local filtered_pcm = in_pcm
   if in_len > target_length then
-    local cutoff = (target_length / in_len) * 0.45
-    filtered_pcm = windowed_sinc_lpf(in_pcm, cutoff, 15)
+    local cutoff = (target_length / in_len) * 0.40
+    filtered_pcm = windowed_sinc_lpf(in_pcm, cutoff, 31)
   end
 
   local out_pcm = {}
@@ -98,39 +99,42 @@ function Block.create(id, source_ref, source_block_index, start_frame, native_le
   canonical_length = canonical_length or native_length
   window_type = window_type or Constants.WINDOW_HANN
   
-  -- Extract temporary native PCM slice for analysis
-  local pcm = source_ref:get_pcm_slice(start_frame, native_length)
+  -- Extract temporary native PCM slices for mono, left, and right channels
+  local pcm_m = source_ref:get_pcm_slice(start_frame, native_length)
+  local pcm_l, pcm_r = source_ref:get_stereo_slice(start_frame, native_length)
   local sample_rate = source_ref.sample_rate
 
-  -- Resample native PCM slice directly to canonical_length points
-  local raw_analysis_pcm = resample_to_length(pcm, canonical_length)
+  -- Helper closure to compute descriptor set for a channel PCM array
+  local function analyze_channel(ch_pcm)
+    local raw_analysis = resample_to_length(ch_pcm, canonical_length)
+    local window_coeffs = Window.coefficients(canonical_length, window_type)
+    local raw_windowed = {}
+    for i = 1, canonical_length do
+      raw_windowed[i] = raw_analysis[i] * window_coeffs[i]
+    end
+    local r_real, r_imag = FFT.forward(raw_windowed)
+    local r_n = #r_real
+    local fft_v = FFT.samplebrain_spectrum_from_fft(r_real, r_n, Constants.FFT_BINS_CROPPED)
+    local mfcc_v = MFCC.compute_from_fft(r_real, r_imag, r_n, CANONICAL_ANALYSIS_RATE, Constants.MFCC_FILTERS)
+    local dom_v = FFT.calculate_dominant_freq_from_fft(r_real, r_n, CANONICAL_ANALYSIS_RATE)
 
-  local window_coeffs = Window.coefficients(canonical_length, window_type)
+    local n_analysis = Distance.normalise(raw_analysis)
+    local n_windowed = {}
+    for i = 1, canonical_length do
+      n_windowed[i] = n_analysis[i] * window_coeffs[i]
+    end
+    local n_real, n_imag = FFT.forward(n_windowed)
+    local nn_n = #n_real
+    local n_fft_v = FFT.samplebrain_spectrum_from_fft(n_real, nn_n, Constants.FFT_BINS_CROPPED)
+    local n_mfcc_v = MFCC.compute_from_fft(n_real, n_imag, nn_n, CANONICAL_ANALYSIS_RATE, Constants.MFCC_FILTERS)
+    local n_dom_v = FFT.calculate_dominant_freq_from_fft(n_real, nn_n, CANONICAL_ANALYSIS_RATE)
 
-  -- Raw windowed copy
-  local raw_windowed = {}
-  for i = 1, canonical_length do
-    raw_windowed[i] = raw_analysis_pcm[i] * window_coeffs[i]
+    return fft_v, mfcc_v, dom_v, n_fft_v, n_mfcc_v, n_dom_v
   end
 
-  local r_real, r_imag = FFT.forward(raw_windowed)
-  local r_n = #r_real
-  local fft = FFT.samplebrain_spectrum_from_fft(r_real, r_n, Constants.FFT_BINS_CROPPED)
-  local mfcc = MFCC.compute_from_fft(r_real, r_imag, r_n, CANONICAL_ANALYSIS_RATE, Constants.MFCC_FILTERS)
-  local dom_freq = FFT.calculate_dominant_freq_from_fft(r_real, r_n, CANONICAL_ANALYSIS_RATE)
-
-  -- Peak-normalize AFTER canonical resampling (Section 5 fix)
-  local n_analysis_pcm = Distance.normalise(raw_analysis_pcm)
-  local n_windowed = {}
-  for i = 1, canonical_length do
-    n_windowed[i] = n_analysis_pcm[i] * window_coeffs[i]
-  end
-
-  local n_real, n_imag = FFT.forward(n_windowed)
-  local nn_n = #n_real
-  local n_fft = FFT.samplebrain_spectrum_from_fft(n_real, nn_n, Constants.FFT_BINS_CROPPED)
-  local n_mfcc = MFCC.compute_from_fft(n_real, n_imag, nn_n, CANONICAL_ANALYSIS_RATE, Constants.MFCC_FILTERS)
-  local n_dom_freq = FFT.calculate_dominant_freq_from_fft(n_real, nn_n, CANONICAL_ANALYSIS_RATE)
+  local fft_m, mfcc_m, dom_m, n_fft_m, n_mfcc_m, n_dom_m = analyze_channel(pcm_m)
+  local fft_l, mfcc_l, dom_l, n_fft_l, n_mfcc_l, n_dom_l = analyze_channel(pcm_l)
+  local fft_r, mfcc_r, dom_r, n_fft_r, n_mfcc_r, n_dom_r = analyze_channel(pcm_r)
 
   local self_obj = setmetatable({
     id = id,
@@ -142,13 +146,29 @@ function Block.create(id, source_ref, source_block_index, start_frame, native_le
     sample_rate = sample_rate,
     window_type = window_type,
 
-    fft = fft,
-    mfcc = mfcc,
-    dominant_freq = dom_freq,
+    -- Mono descriptors
+    fft = fft_m,
+    mfcc = mfcc_m,
+    dominant_freq = dom_m,
+    n_fft = n_fft_m,
+    n_mfcc = n_mfcc_m,
+    n_dominant_freq = n_dom_m,
 
-    n_fft = n_fft,
-    n_mfcc = n_mfcc,
-    n_dominant_freq = n_dom_freq,
+    -- Left channel descriptors
+    fft_l = fft_l,
+    mfcc_l = mfcc_l,
+    dominant_freq_l = dom_l,
+    n_fft_l = n_fft_l,
+    n_mfcc_l = n_mfcc_l,
+    n_dominant_freq_l = n_dom_l,
+
+    -- Right channel descriptors
+    fft_r = fft_r,
+    mfcc_r = mfcc_r,
+    dominant_freq_r = dom_r,
+    n_fft_r = n_fft_r,
+    n_mfcc_r = n_mfcc_r,
+    n_dominant_freq_r = n_dom_r,
 
     usage = 0.0,
     synapses = {}

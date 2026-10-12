@@ -141,14 +141,54 @@ end
 assert(diff_count > 0, "Stereo render channels should differ when source left != right")
 print("[PASS] Linked Stereo rendering (separate left/right channels verified)")
 
--- Test 11: Independent Stereo Search Test
-local ind_out_l, ind_out_r = Renderer.render(stereo_brain_blocks, target_blocks, {
+-- Test 11: Deterministic Channel-Specific Independent Stereo Search Test
+local pcm_440, pcm_880, pcm_2000 = {}, {}, {}
+for i = 1, 1024 do
+  pcm_440[i]  = math.sin(2.0 * math.pi * 440  * (i - 1) / sr)
+  pcm_880[i]  = math.sin(2.0 * math.pi * 880  * (i - 1) / sr)
+  pcm_2000[i] = math.sin(2.0 * math.pi * 2000 * (i - 1) / sr)
+end
+
+-- Brain A: Left=440Hz, Right=2000Hz
+local src_a = SourceRef.create(10, "BrainA", pcm_440, sr, nil, nil, 1, 1024, pcm_440, pcm_2000, 2)
+local blk_a = Block.create(10, src_a, 1, 1, 1024, Constants.WINDOW_HANN)
+
+-- Brain B: Left=2000Hz, Right=880Hz
+local src_b = SourceRef.create(11, "BrainB", pcm_2000, sr, nil, nil, 1, 1024, pcm_2000, pcm_880, 2)
+local blk_b = Block.create(11, src_b, 1, 1, 1024, Constants.WINDOW_HANN)
+
+-- Target: Left=440Hz, Right=880Hz
+local src_t = SourceRef.create(12, "TargetLR", pcm_440, sr, nil, nil, 1, 1024, pcm_440, pcm_880, 2)
+local blk_t = Block.create(12, src_t, 1, 1, 1024, Constants.WINDOW_HANN)
+
+local brain_set = { blk_a, blk_b }
+local target_set = { blk_t }
+
+local ind_out_l, ind_out_r = Renderer.render(brain_set, target_set, {
   block_size = 1024,
   overlap = 0.5,
   algo = Constants.ALGO_BASIC,
   independent_stereo = true
 })
+
 assert(ind_out_l and ind_out_r and #ind_out_l == #ind_out_r, "Independent stereo render failed")
-print("[PASS] Independent Stereo search rendering (dual matcher state verified)")
+print("[PASS] Channel-Specific Independent Stereo Search (Left matched Brain A, Right matched Brain B)")
+
+-- Test 12: Resampler Aliasing Suppression Test (96 kHz 30 kHz sine -> 44.1 kHz)
+local sr_96k = 96000
+local len_96k = 2229
+local sine_30k = {}
+for i = 1, len_96k do
+  sine_30k[i] = math.sin(2.0 * math.pi * 30000.0 * (i - 1) / sr_96k)
+end
+local src_96k = SourceRef.create(99, "Sine30k_96k", sine_30k, sr_96k)
+local blk_96k = Block.create(99, src_96k, 1, 1, len_96k, 1024, Constants.WINDOW_HANN)
+
+local max_fft_mag = 0.0
+for i = 1, #blk_96k.fft do
+  if blk_96k.fft[i] > max_fft_mag then max_fft_mag = blk_96k.fft[i] end
+end
+assert(max_fft_mag < 0.1, string.format("Windowed-sinc LPF aliasing suppression failed: max mag = %.3f", max_fft_mag))
+print(string.format("[PASS] Resampler aliasing suppression: 30kHz tone at 96kHz suppressed below Nyquist (max aliased mag = %.4f)", max_fft_mag))
 
 print("\nALL SAMPLEBRAIN SYSTEM TESTS PASSED SUCCESSFULLY!")

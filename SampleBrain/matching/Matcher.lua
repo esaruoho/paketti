@@ -58,7 +58,7 @@ function Matcher:stickify(target_block, closest_index, dist, options)
       local dist_to_next = Distance.compare_blocks(
         target_block, next_blk,
         options.ratio, options.n_ratio, options.usage_importance,
-        options.fft_start, options.fft_end
+        options.fft_start, options.fft_end, options.channel
       )
 
       if dist_to_next * (1.0 - stickiness) < dist * stickiness then
@@ -83,7 +83,7 @@ function Matcher:search_basic(target_block, options)
       local dist = Distance.compare_blocks(
         target_block, b,
         options.ratio, options.n_ratio, options.usage_importance,
-        options.fft_start, options.fft_end
+        options.fft_start, options.fft_end, options.channel
       )
       if dist < min_dist then
         min_dist = dist
@@ -115,7 +115,7 @@ function Matcher:search_reversed(target_block, options)
       local dist = Distance.compare_blocks(
         target_block, b,
         options.ratio, options.n_ratio, options.usage_importance,
-        options.fft_start, options.fft_end
+        options.fft_start, options.fft_end, options.channel
       )
       if dist > max_dist then
         max_dist = dist
@@ -155,7 +155,7 @@ function Matcher:search_synaptic(target_block, options)
       local dist = Distance.compare_blocks(
         target_block, other_blk,
         options.ratio, options.n_ratio, options.usage_importance,
-        options.fft_start, options.fft_end
+        options.fft_start, options.fft_end, options.channel
       )
       if dist < min_dist then
         min_dist = dist

@@ -105,21 +105,57 @@ end
 -- @param usage_importance number Weight of usage/novelty penalty
 -- @param fft_start integer Optional FFT start bin for comparison
 -- @param fft_end integer Optional FFT end bin for comparison
+-- @param channel string Optional channel selection ("left", "right", "mono")
 -- @return number Total distance score (lower is closer match)
-function Distance.compare_blocks(block_a, block_b, ratio, n_ratio, usage_importance, fft_start, fft_end)
+function Distance.compare_blocks(block_a, block_b, ratio, n_ratio, usage_importance, fft_start, fft_end, channel)
   ratio = ratio or Constants.DEFAULT_RATIO
   n_ratio = n_ratio or Constants.DEFAULT_N_RATIO
   usage_importance = usage_importance or Constants.DEFAULT_USAGE_IMPORTANCE
 
+  local fft_a, mfcc_a, n_fft_a, n_mfcc_a
+  local fft_b, mfcc_b, n_fft_b, n_mfcc_b
+
+  if channel == "left" then
+    fft_a = block_a.fft_l or block_a.fft
+    mfcc_a = block_a.mfcc_l or block_a.mfcc
+    n_fft_a = block_a.n_fft_l or block_a.n_fft
+    n_mfcc_a = block_a.n_mfcc_l or block_a.n_mfcc
+
+    fft_b = block_b.fft_l or block_b.fft
+    mfcc_b = block_b.mfcc_l or block_b.mfcc
+    n_fft_b = block_b.n_fft_l or block_b.n_fft
+    n_mfcc_b = block_b.n_mfcc_l or block_b.n_mfcc
+  elseif channel == "right" then
+    fft_a = block_a.fft_r or block_a.fft
+    mfcc_a = block_a.mfcc_r or block_a.mfcc
+    n_fft_a = block_a.n_fft_r or block_a.n_fft
+    n_mfcc_a = block_a.n_mfcc_r or block_a.n_mfcc
+
+    fft_b = block_b.fft_r or block_b.fft
+    mfcc_b = block_b.mfcc_r or block_b.mfcc
+    n_fft_b = block_b.n_fft_r or block_b.n_fft
+    n_mfcc_b = block_b.n_mfcc_r or block_b.n_mfcc
+  else
+    fft_a = block_a.fft
+    mfcc_a = block_a.mfcc
+    n_fft_a = block_a.n_fft
+    n_mfcc_a = block_a.n_mfcc
+
+    fft_b = block_b.fft
+    mfcc_b = block_b.mfcc
+    n_fft_b = block_b.n_fft
+    n_mfcc_b = block_b.n_mfcc
+  end
+
   local raw_dist = Distance.compare_descriptors(
-    block_a.fft, block_a.mfcc,
-    block_b.fft, block_b.mfcc,
+    fft_a, mfcc_a,
+    fft_b, mfcc_b,
     ratio, fft_start, fft_end
   )
 
   local norm_dist = Distance.compare_descriptors(
-    block_a.n_fft, block_a.n_mfcc,
-    block_b.n_fft, block_b.n_mfcc,
+    n_fft_a, n_mfcc_a,
+    n_fft_b, n_mfcc_b,
     ratio, fft_start, fft_end
   )
 
