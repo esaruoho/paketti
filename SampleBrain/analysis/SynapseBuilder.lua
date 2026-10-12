@@ -20,6 +20,7 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
   max_synapses = math.min(max_synapses or 1000, 1000)
   ratio = ratio or Constants.DEFAULT_RATIO
   n_ratio = n_ratio or Constants.DEFAULT_N_RATIO
+  fft_start = fft_start or 1
 
   local total_blocks = #brain_blocks
   if total_blocks == 0 then return 0 end
@@ -27,22 +28,95 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
   local num_to_store_limit = math.min(max_synapses, total_blocks - 1)
   local total_synapses_created = 0
 
-  local temp_graph = {}
+  -- 1. Extract feature arrays to avoid heavy table/property lookups in inner loops
+  local features = {}
+  for i = 1, total_blocks do
+    local b = brain_blocks[i]
+    if channel == "left" then
+      features[i] = { fft = b.fft_l or b.fft, mfcc = b.mfcc_l or b.mfcc, n_fft = b.n_fft_l or b.n_fft, n_mfcc = b.n_mfcc_l or b.n_mfcc }
+    elseif channel == "right" then
+      features[i] = { fft = b.fft_r or b.fft, mfcc = b.mfcc_r or b.mfcc, n_fft = b.n_fft_r or b.n_fft, n_mfcc = b.n_mfcc_r or b.n_mfcc }
+    else
+      features[i] = { fft = b.fft, mfcc = b.mfcc, n_fft = b.n_fft, n_mfcc = b.n_mfcc }
+    end
+  end
+
+  -- 2. Build symmetric distance matrix (cuts math by exactly half)
+  local distances = {}
+  for i = 1, total_blocks do distances[i] = {} end
 
   for i = 1, total_blocks do
-    local block_a = brain_blocks[i]
-    local candidates = {}
+    if job and job.cancelled then return 0 end
+    local f_a = features[i]
+    for j = i + 1, total_blocks do
+      local f_b = features[j]
+      
+      -- Inline Distance.compare_descriptors math to avoid function call overhead
+      local fft_len = math.max(0, math.min(fft_end or #f_a.fft, #f_a.fft, #f_b.fft) - (fft_start or 1) + 1)
+      local mfcc_len = math.min(#f_a.mfcc, #f_b.mfcc)
+      
+      local raw_dist = 0.0
+      if ratio < 1.0 and fft_len > 0 then
+        local acc = 0.0
+        for k = fft_start, fft_start + fft_len - 1 do
+          local diff = f_a.fft[k] - f_b.fft[k]
+          acc = acc + (diff * diff)
+        end
+        raw_dist = (acc / #f_a.fft) * Constants.FFT_BIAS
+      end
+      if ratio > 0.0 and mfcc_len > 0 then
+        local acc = 0.0
+        for k = 1, mfcc_len do
+          local diff = f_a.mfcc[k] - f_b.mfcc[k]
+          acc = acc + (diff * diff)
+        end
+        local m_dist = (acc / mfcc_len)
+        if ratio == 1.0 then raw_dist = m_dist else raw_dist = raw_dist * (1.0 - ratio) + m_dist * ratio end
+      end
 
+      local n_dist = 0.0
+      if n_ratio > 0.0 then
+        local n_fft_len = math.max(0, math.min(fft_end or #f_a.n_fft, #f_a.n_fft, #f_b.n_fft) - (fft_start or 1) + 1)
+        local n_mfcc_len = math.min(#f_a.n_mfcc, #f_b.n_mfcc)
+        if ratio < 1.0 and n_fft_len > 0 then
+          local acc = 0.0
+          for k = fft_start, fft_start + n_fft_len - 1 do
+            local diff = f_a.n_fft[k] - f_b.n_fft[k]
+            acc = acc + (diff * diff)
+          end
+          n_dist = (acc / #f_a.n_fft) * Constants.FFT_BIAS
+        end
+        if ratio > 0.0 and n_mfcc_len > 0 then
+          local acc = 0.0
+          for k = 1, n_mfcc_len do
+            local diff = f_a.n_mfcc[k] - f_b.n_mfcc[k]
+            acc = acc + (diff * diff)
+          end
+          local m_dist = (acc / n_mfcc_len)
+          if ratio == 1.0 then n_dist = m_dist else n_dist = n_dist * (1.0 - ratio) + m_dist * ratio end
+        end
+      end
+
+      local dist = (n_ratio == 0.0) and raw_dist or (raw_dist * (1.0 - n_ratio) + n_dist * n_ratio)
+
+      distances[i][j] = dist
+      distances[j][i] = dist
+    end
+
+    if job and (i % 20 == 0) then
+      JobRunner.yield(job, (i / total_blocks) * 0.5, "Building distance matrix...", false)
+    end
+  end
+
+  -- 3. Extract Nearest Neighbors from symmetric matrix
+  local temp_graph = {}
+  for i = 1, total_blocks do
+    if job and job.cancelled then return 0 end
+    local candidates = {}
+    local row = distances[i]
     for j = 1, total_blocks do
       if i ~= j then
-        local block_b = brain_blocks[j]
-        local dist = Distance.compare_blocks(block_a, block_b, ratio, n_ratio, 0.0, fft_start, fft_end, channel)
-        candidates[#candidates + 1] = { index = j, distance = dist }
-      end
-      if job and (j % 20 == 0) then
-        local total_comps = total_blocks * total_blocks
-        local current_comp = (i - 1) * total_blocks + j
-        JobRunner.yield(job, current_comp / total_comps, string.format("Building synapses %d%%", math.floor(current_comp / total_comps * 100)), false)
+        candidates[#candidates + 1] = { index = j, distance = row[j] }
       end
     end
 
@@ -54,11 +128,10 @@ function SynapseBuilder.build_fixed(brain_blocks, max_synapses, ratio, n_ratio, 
       block_synapses[n] = candidates[n].index
     end
     temp_graph[i] = block_synapses
-
     total_synapses_created = total_synapses_created + #block_synapses
 
-    if job then
-      JobRunner.yield(job, i / total_blocks, string.format("Building synapses %d%%", math.floor(i / total_blocks * 100)), false)
+    if job and (i % 50 == 0) then
+      JobRunner.yield(job, 0.5 + (i / total_blocks) * 0.5, "Sorting graph...", false)
     end
   end
 

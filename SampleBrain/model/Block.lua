@@ -101,7 +101,6 @@ function Block.create(id, source_ref, source_block_index, start_frame, native_le
   
   -- Extract temporary native PCM slices for mono, left, and right channels
   local pcm_m = source_ref:get_pcm_slice(start_frame, native_length)
-  local pcm_l, pcm_r = source_ref:get_stereo_slice(start_frame, native_length)
   local sample_rate = source_ref.sample_rate
 
   -- Helper closure to compute descriptor set for a channel PCM array
@@ -133,8 +132,19 @@ function Block.create(id, source_ref, source_block_index, start_frame, native_le
   end
 
   local fft_m, mfcc_m, dom_m, n_fft_m, n_mfcc_m, n_dom_m = analyze_channel(pcm_m)
-  local fft_l, mfcc_l, dom_l, n_fft_l, n_mfcc_l, n_dom_l = analyze_channel(pcm_l)
-  local fft_r, mfcc_r, dom_r, n_fft_r, n_mfcc_r, n_dom_r = analyze_channel(pcm_r)
+  
+  local fft_l, mfcc_l, dom_l, n_fft_l, n_mfcc_l, n_dom_l
+  local fft_r, mfcc_r, dom_r, n_fft_r, n_mfcc_r, n_dom_r
+
+  if source_ref.num_channels == 1 then
+    -- Massive speedup: Reuse mono descriptors for left and right if source is Mono
+    fft_l, mfcc_l, dom_l, n_fft_l, n_mfcc_l, n_dom_l = fft_m, mfcc_m, dom_m, n_fft_m, n_mfcc_m, n_dom_m
+    fft_r, mfcc_r, dom_r, n_fft_r, n_mfcc_r, n_dom_r = fft_m, mfcc_m, dom_m, n_fft_m, n_mfcc_m, n_dom_m
+  else
+    local pcm_l, pcm_r = source_ref:get_stereo_slice(start_frame, native_length)
+    fft_l, mfcc_l, dom_l, n_fft_l, n_mfcc_l, n_dom_l = analyze_channel(pcm_l)
+    fft_r, mfcc_r, dom_r, n_fft_r, n_mfcc_r, n_dom_r = analyze_channel(pcm_r)
+  end
 
   local self_obj = setmetatable({
     id = id,
