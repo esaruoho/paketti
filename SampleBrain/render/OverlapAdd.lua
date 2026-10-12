@@ -8,6 +8,7 @@ local OverlapAdd = {}
 OverlapAdd.__index = OverlapAdd
 
 function OverlapAdd.create(total_frames)
+  total_frames = math.max(1, math.ceil(total_frames or 1))
   local buffer = {}
   for i = 1, total_frames do
     buffer[i] = 0.0
@@ -20,6 +21,7 @@ function OverlapAdd.create(total_frames)
 end
 
 function OverlapAdd:resize(new_length)
+  new_length = math.max(1, math.ceil(new_length or 1))
   if new_length > self.length then
     for i = self.length + 1, new_length do
       self.buffer[i] = 0.0

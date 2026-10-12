@@ -115,4 +115,30 @@ assert(loaded_state ~= nil and loaded_state.params.ratio == 0.7 and loaded_state
 os.remove(tmp_path)
 print("[PASS] Safe Session serialization (save & safe load)")
 
+-- Test 10: Linked Stereo Rendering Test
+local stereo_l = {}
+local stereo_r = {}
+for i = 1, 4096 do
+  stereo_l[i] = math.sin(2.0 * math.pi * 440 * (i - 1) / sr)
+  stereo_r[i] = math.sin(2.0 * math.pi * 880 * (i - 1) / sr)
+end
+local stereo_brain_src = SourceRef.create(3, "StereoBrain", stereo_l, sr, nil, nil, 1, 4096, stereo_l, stereo_r, 2)
+local stereo_brain_blocks = BlockGenerator.generate(stereo_brain_src, 1024, 0.5, Constants.WINDOW_HANN, 1)
+
+local out_l, out_r = Renderer.render(stereo_brain_blocks, target_blocks, {
+  block_size = 1024,
+  overlap = 0.5,
+  algo = Constants.ALGO_BASIC
+})
+
+assert(out_l and out_r and #out_l == #out_r, "Stereo render output buffers missing")
+local diff_count = 0
+for i = 1, #out_l do
+  if math.abs(out_l[i] - out_r[i]) > 1e-4 then
+    diff_count = diff_count + 1
+  end
+end
+assert(diff_count > 0, "Stereo render channels should differ when source left != right")
+print("[PASS] Linked Stereo rendering (separate left/right channels verified)")
+
 print("\nALL SAMPLEBRAIN SYSTEM TESTS PASSED SUCCESSFULLY!")

@@ -13,11 +13,14 @@ SourceRef.__index = SourceRef
 -- @param sample_index integer (Optional) Renoise sample index
 -- @param range_start number Fixed selection start captured at add time
 -- @param range_end number Fixed selection end captured at add time
-function SourceRef.create(id, name, pcm, sample_rate, instrument_index, sample_index, range_start, range_end)
+function SourceRef.create(id, name, pcm, sample_rate, instrument_index, sample_index, range_start, range_end, pcm_left, pcm_right, num_channels)
   local self_obj = setmetatable({
     id = id,
     name = name,
     pcm = pcm,
+    pcm_left = pcm_left or pcm,
+    pcm_right = pcm_right or pcm,
+    num_channels = num_channels or ((pcm_left and pcm_right and pcm_left ~= pcm_right) and 2 or 1),
     sample_rate = sample_rate,
     instrument_index = instrument_index,
     sample_index = sample_index,
