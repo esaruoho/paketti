@@ -136,6 +136,93 @@ function MainDialog.reset_state()
   end
 end
 
+local PRESETS = {
+  { name = "-- Select Preset --" },
+  { name = "Classic SampleBrain", ratio = 0.50, n_ratio = 0.00, novelty = 0.00, boredom = 0.00, stickiness = 0.00, stretch = 1, algo = Constants.ALGO_SYNAPTIC, num_synapses = 20, slide_error = 1000, autotune = 0.00, n_mix = 0.00, target_mix = 0.00, stereo = false },
+  { name = "Jungle Timestretch", ratio = 0.20, n_ratio = 0.00, novelty = 0.00, boredom = 0.00, stickiness = 0.75, stretch = 4, algo = Constants.ALGO_BASIC, num_synapses = 20, slide_error = 1000, autotune = 0.00, n_mix = 0.00, target_mix = 0.00, stereo = false },
+  { name = "Glitch & Scatter", ratio = 0.85, n_ratio = 0.50, novelty = 0.80, boredom = 0.20, stickiness = 0.00, stretch = 1, algo = Constants.ALGO_REVERSED, num_synapses = 100, slide_error = 1500, autotune = 0.00, n_mix = 0.50, target_mix = 0.00, stereo = true },
+  { name = "Harmonic Resonator", ratio = 0.10, n_ratio = 0.00, novelty = 0.10, boredom = 0.50, stickiness = 0.40, stretch = 2, algo = Constants.ALGO_SYNAPTIC_SLIDE, num_synapses = 50, slide_error = 800, autotune = 1.00, n_mix = 0.00, target_mix = 0.20, stereo = true },
+  { name = "Extreme Synaptic Slide", ratio = 0.50, n_ratio = 0.00, novelty = 0.30, boredom = 0.70, stickiness = 0.20, stretch = 1, algo = Constants.ALGO_SYNAPTIC_SLIDE, num_synapses = 100, slide_error = 500, autotune = 0.50, n_mix = 0.00, target_mix = 0.00, stereo = true }
+}
+
+local function apply_preset(idx)
+  local p = PRESETS[idx]
+  if not p or not p.ratio then return end
+
+  ratio = p.ratio
+  n_ratio = p.n_ratio
+  usage_importance = p.novelty
+  usage_falloff = p.boredom
+  stickiness = p.stickiness
+  stretch = p.stretch
+  algo = p.algo
+  num_synapses = p.num_synapses
+  slide_error = p.slide_error
+  autotune = p.autotune
+  n_mix = p.n_mix
+  target_mix = p.target_mix
+  independent_stereo = p.stereo
+
+  if vb then
+    if vb.views.slide_ratio then vb.views.slide_ratio.value = ratio end
+    if vb.views.box_ratio then vb.views.box_ratio.value = ratio end
+    if vb.views.slide_n_ratio then vb.views.slide_n_ratio.value = n_ratio end
+    if vb.views.box_n_ratio then vb.views.box_n_ratio.value = n_ratio end
+    if vb.views.slide_novelty then vb.views.slide_novelty.value = usage_importance end
+    if vb.views.box_novelty then vb.views.box_novelty.value = usage_importance end
+    if vb.views.slide_boredom then vb.views.slide_boredom.value = usage_falloff end
+    if vb.views.box_boredom then vb.views.box_boredom.value = usage_falloff end
+    if vb.views.slide_stickiness then vb.views.slide_stickiness.value = stickiness end
+    if vb.views.box_stickiness then vb.views.box_stickiness.value = stickiness end
+    if vb.views.slide_stretch then vb.views.slide_stretch.value = stretch end
+    if vb.views.box_stretch then vb.views.box_stretch.value = stretch end
+    if vb.views.popup_algo then vb.views.popup_algo.value = algo end
+    if vb.views.slide_synapses then vb.views.slide_synapses.value = num_synapses end
+    if vb.views.box_synapses then vb.views.box_synapses.value = num_synapses end
+    if vb.views.slide_error then vb.views.slide_error.value = slide_error end
+    if vb.views.box_error then vb.views.box_error.value = slide_error end
+    if vb.views.slide_autotune then vb.views.slide_autotune.value = autotune end
+    if vb.views.box_autotune then vb.views.box_autotune.value = autotune end
+    if vb.views.slide_nmix then vb.views.slide_nmix.value = n_mix end
+    if vb.views.box_nmix then vb.views.box_nmix.value = n_mix end
+    if vb.views.slide_tmix then vb.views.slide_tmix.value = target_mix end
+    if vb.views.box_tmix then vb.views.box_tmix.value = target_mix end
+    if vb.views.chk_stereo then vb.views.chk_stereo.value = independent_stereo end
+  end
+
+  renoise.app():show_status(string.format("SampleBrain: Applied preset '%s'", p.name))
+end
+
+local function show_brain_inspector()
+  local lines = {}
+  lines[#lines + 1] = "=== SampleBrain Diagnostics & Inspector ==="
+  lines[#lines + 1] = string.format("Brain Sources: %d total (%d active)", #brain_sources, #brain_blocks > 0 and #brain_sources or 0)
+  lines[#lines + 1] = string.format("Brain Audio Blocks: %d total", #brain_blocks)
+  
+  if #brain_blocks > 0 then
+    local total_frames = 0
+    for _, s in ipairs(brain_sources) do
+      if s.enabled then total_frames = total_frames + (s.captured_range_end - s.captured_range_start + 1) end
+    end
+    lines[#lines + 1] = string.format("Total Brain Audio Duration: %.2f seconds", total_frames / Constants.DEFAULT_SAMPLE_RATE)
+    lines[#lines + 1] = string.format("Synapses Graph: %d connections built", synapses_built and (#brain_blocks * (num_synapses or 20)) or 0)
+    lines[#lines + 1] = string.format("Estimated RAM Footprint: %.2f MB", (#brain_blocks * 100 * 4 * 4) / (1024 * 1024))
+  end
+
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "=== Target Audio Metrics ==="
+  if target_source then
+    local t_frames = target_source.captured_range_end - target_source.captured_range_start + 1
+    lines[#lines + 1] = string.format("Target Name: %s", target_source.name ~= "" and target_source.name or "Untitled")
+    lines[#lines + 1] = string.format("Target Duration: %.2f seconds (%d frames)", t_frames / target_source.sample_rate, t_frames)
+    lines[#lines + 1] = string.format("Target Blocks: %d (block_size=%d, overlap=%.0f%%)", #target_blocks, target_settings.block_size, target_settings.overlap * 100)
+  else
+    lines[#lines + 1] = "Target: None selected"
+  end
+
+  renoise.app():show_message(table.concat(lines, "\n"))
+end
+
 local function randomize_all_settings()
   ratio = math.floor(math.random() * 100) / 100
   n_ratio = math.floor(math.random() * 100) / 100
@@ -373,11 +460,36 @@ function MainDialog.show()
         width = 280, style = "panel", margin = 6, spacing = 4,
         vb:row{
           vb:text{ text = "brain tweaks", font = "bold" },
-          vb:space{ width = 60 },
+          vb:space{ width = 20 },
           vb:button{
-            text = "Randomize", width = 85, tooltip = "Randomize all DSP search, timbre, and mix parameters across the interface",
+            text = "Info", width = 35, tooltip = "View detailed brain diagnostics, audio durations, block counts, and RAM footprint",
+            notifier = function()
+              show_brain_inspector()
+            end
+          },
+          vb:button{
+            text = "Randomize", width = 75, tooltip = "Randomize all DSP search, timbre, and mix parameters across the interface",
             notifier = function()
               randomize_all_settings()
+            end
+          }
+        },
+
+        vb:row{
+          spacing = 2,
+          vb:text{ text = "preset", width = 100, tooltip = "Select a classic SampleBrain sound design preset" },
+          vb:popup{
+            id = "preset_popup",
+            items = (function()
+              local names = {}
+              for i, p in ipairs(PRESETS) do names[i] = p.name end
+              return names
+            end)(),
+            value = 1,
+            width = 162,
+            tooltip = "Select a classic SampleBrain sound design preset",
+            notifier = function(v)
+              apply_preset(v)
             end
           }
         },

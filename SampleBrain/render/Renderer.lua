@@ -340,7 +340,27 @@ function Renderer.render(brain_blocks, target_blocks, options)
   end
 
   Logger.write(string.format("Render complete frames=%d cpu=%.3fs", total_output_frames, os.clock() - render_started))
-  return ola_l.buffer, ola_r.buffer
+
+  -- Compute Post-Render Match Statistics for Diagnostics & User Information
+  local source_usage = {}
+  local total_dist_sum = 0.0
+  for _, dec in ipairs(decisions) do
+    if dec.matched_l and dec.matched_l.source_ref then
+      local sname = dec.matched_l.source_ref.name
+      source_usage[sname] = (source_usage[sname] or 0) + 1
+    end
+    total_dist_sum = total_dist_sum + (dec.dist_l or 0.0)
+  end
+
+  local stats = {
+    total_frames = total_output_frames,
+    duration_sec = total_output_frames / target_rate,
+    avg_distance = #decisions > 0 and (total_dist_sum / #decisions) or 0.0,
+    source_usage = source_usage,
+    total_decisions = #decisions
+  }
+
+  return ola_l.buffer, ola_r.buffer, stats
 end
 
 return Renderer
