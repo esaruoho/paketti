@@ -54,3 +54,6 @@ docs/architecture-*.png
 # autocomplete_cache.txt whenever either changes; never ships, never diffed)
 shortcut_hints_cache.txt
 .agenttrail/
+
+# Local SampleBrain diagnostics
+SampleBrain/samplebrain.log
