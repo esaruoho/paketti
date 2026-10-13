@@ -375,7 +375,7 @@ function MainDialog.show()
           vb:text{ text = "brain tweaks", font = "bold" },
           vb:space{ width = 60 },
           vb:button{
-            text = "Randomize", width = 85,
+            text = "Randomize", width = 85, tooltip = "Randomize all DSP search, timbre, and mix parameters across the interface",
             notifier = function()
               randomize_all_settings()
             end
@@ -384,65 +384,65 @@ function MainDialog.show()
         
         vb:row{
           spacing = 2,
-          vb:text{ text = "fft / mfcc", width = 100 },
-          vb:minislider{ id = "slide_ratio", min = 0.0, max = 1.0, value = ratio, width = 90, notifier = function(v) ratio = v; vb.views.box_ratio.value = v end },
-          vb:valuebox{ id = "box_ratio", min = 0.0, max = 1.0, value = ratio, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) ratio = v; vb.views.slide_ratio.value = v end }
+          vb:text{ text = "fft / mfcc", width = 100, tooltip = "Plain FFT frequency spectrum match vs MFCC timbral match (0.00 = pure FFT frequency, 1.00 = pure MFCC timbre)" },
+          vb:minislider{ id = "slide_ratio", min = 0.0, max = 1.0, value = ratio, width = 90, tooltip = "Plain FFT frequency spectrum match vs MFCC timbral match (0.00 = pure FFT frequency, 1.00 = pure MFCC timbre)", notifier = function(v) ratio = v; vb.views.box_ratio.value = v end },
+          vb:valuebox{ id = "box_ratio", min = 0.0, max = 1.0, value = ratio, steps = { 0.01, 0.1 }, width = 68, tooltip = "Plain FFT frequency spectrum match vs MFCC timbral match (0.00 = pure FFT frequency, 1.00 = pure MFCC timbre)", tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) ratio = v; vb.views.slide_ratio.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "raw / norm", width = 100 },
-          vb:minislider{ id = "slide_n_ratio", min = 0.0, max = 1.0, value = n_ratio, width = 90, notifier = function(v) n_ratio = v; vb.views.box_n_ratio.value = v end },
-          vb:valuebox{ id = "box_n_ratio", min = 0.0, max = 1.0, value = n_ratio, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_ratio = v; vb.views.slide_n_ratio.value = v end }
+          vb:text{ text = "raw / norm", width = 100, tooltip = "Match original raw audio blocks vs peak-normalized blocks (0.00 = raw, 1.00 = normalized)" },
+          vb:minislider{ id = "slide_n_ratio", min = 0.0, max = 1.0, value = n_ratio, width = 90, tooltip = "Match original raw audio blocks vs peak-normalized blocks (0.00 = raw, 1.00 = normalized)", notifier = function(v) n_ratio = v; vb.views.box_n_ratio.value = v end },
+          vb:valuebox{ id = "box_n_ratio", min = 0.0, max = 1.0, value = n_ratio, steps = { 0.01, 0.1 }, width = 68, tooltip = "Match original raw audio blocks vs peak-normalized blocks (0.00 = raw, 1.00 = normalized)", tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_ratio = v; vb.views.slide_n_ratio.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "fft subsection", width = 100 },
+          vb:text{ text = "fft subsection", width = 100, tooltip = "Crop frequency range for FFT matching (1..100 bins)" },
           vb:text{ text = "S:", width = 13 },
-          vb:valuebox{ id = "box_fft_start", min = 1, max = 100, value = fft_start, steps = { 1, 5 }, width = 45, notifier = function(v) fft_start = v end },
+          vb:valuebox{ id = "box_fft_start", min = 1, max = 100, value = fft_start, steps = { 1, 5 }, width = 45, tooltip = "Start frequency bin for FFT comparison (1..100)", notifier = function(v) fft_start = v end },
           vb:space{ width = 12 },
           vb:text{ text = "E:", width = 13 },
-          vb:valuebox{ id = "box_fft_end", min = 1, max = 100, value = fft_end, steps = { 1, 5 }, width = 68, notifier = function(v) fft_end = v end }
+          vb:valuebox{ id = "box_fft_end", min = 1, max = 100, value = fft_end, steps = { 1, 5 }, width = 68, tooltip = "End frequency bin for FFT comparison (1..100)", notifier = function(v) fft_end = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "novelty", width = 100 },
-          vb:minislider{ id = "slide_novelty", min = 0.0, max = 1.0, value = usage_importance, width = 90, notifier = function(v) usage_importance = v; vb.views.box_novelty.value = v end },
-          vb:valuebox{ id = "box_novelty", min = 0.0, max = 1.0, value = usage_importance, steps = { 0.01, 0.05 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_importance = v; vb.views.slide_novelty.value = v end }
+          vb:text{ text = "novelty", width = 100, tooltip = "Penalize recently played blocks to force selection of new, unexplored brain blocks" },
+          vb:minislider{ id = "slide_novelty", min = 0.0, max = 1.0, value = usage_importance, width = 90, tooltip = "Penalize recently played blocks to force selection of new, unexplored brain blocks", notifier = function(v) usage_importance = v; vb.views.box_novelty.value = v end },
+          vb:valuebox{ id = "box_novelty", min = 0.0, max = 1.0, value = usage_importance, steps = { 0.01, 0.05 }, width = 68, tooltip = "Penalize recently played blocks to force selection of new, unexplored brain blocks", tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_importance = v; vb.views.slide_novelty.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "boredom", width = 100 },
-          vb:minislider{ id = "slide_boredom", min = 0.0, max = 1.0, value = usage_falloff, width = 90, notifier = function(v) usage_falloff = v; vb.views.box_boredom.value = v end },
-          vb:valuebox{ id = "box_boredom", min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_falloff = v; vb.views.slide_boredom.value = v end }
+          vb:text{ text = "boredom", width = 100, tooltip = "Usage decay factor per step determining how quickly block novelty penalties fade away" },
+          vb:minislider{ id = "slide_boredom", min = 0.0, max = 1.0, value = usage_falloff, width = 90, tooltip = "Usage decay factor per step determining how quickly block novelty penalties fade away", notifier = function(v) usage_falloff = v; vb.views.box_boredom.value = v end },
+          vb:valuebox{ id = "box_boredom", min = 0.0, max = 1.0, value = usage_falloff, steps = { 0.01, 0.05 }, width = 68, tooltip = "Usage decay factor per step determining how quickly block novelty penalties fade away", tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) usage_falloff = v; vb.views.slide_boredom.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "stickyness", width = 100 },
-          vb:minislider{ id = "slide_stickiness", min = 0.0, max = 1.0, value = stickiness, width = 90, notifier = function(v) stickiness = v; vb.views.box_stickiness.value = v end },
-          vb:valuebox{ id = "box_stickiness", min = 0.0, max = 1.0, value = stickiness, steps = { 0.01, 0.05 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) stickiness = v; vb.views.slide_stickiness.value = v end }
+          vb:text{ text = "stickyness", width = 100, tooltip = "Likelihood of playing the sequential next block from the same source rather than jumping to a new match" },
+          vb:minislider{ id = "slide_stickiness", min = 0.0, max = 1.0, value = stickiness, width = 90, tooltip = "Likelihood of playing the sequential next block from the same source rather than jumping to a new match", notifier = function(v) stickiness = v; vb.views.box_stickiness.value = v end },
+          vb:valuebox{ id = "box_stickiness", min = 0.0, max = 1.0, value = stickiness, steps = { 0.01, 0.05 }, width = 68, tooltip = "Likelihood of playing the sequential next block from the same source rather than jumping to a new match", tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) stickiness = v; vb.views.slide_stickiness.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "search stretch", width = 100 },
-          vb:minislider{ id = "slide_stretch", min = 1, max = 50, value = stretch, width = 90, notifier = function(v) stretch = v; vb.views.box_stretch.value = v end },
-          vb:valuebox{ id = "box_stretch", min = 1, max = 50, value = stretch, steps = { 1, 5 }, width = 68, notifier = function(v) stretch = v; vb.views.slide_stretch.value = v end }
+          vb:text{ text = "search stretch", width = 100, tooltip = "Repeat search count per target block (set novelty to 0 for classic jungle timestretch effects)" },
+          vb:minislider{ id = "slide_stretch", min = 1, max = 50, value = stretch, width = 90, tooltip = "Repeat search count per target block (set novelty to 0 for classic jungle timestretch effects)", notifier = function(v) stretch = v; vb.views.box_stretch.value = v end },
+          vb:valuebox{ id = "box_stretch", min = 1, max = 50, value = stretch, steps = { 1, 5 }, width = 68, tooltip = "Repeat search count per target block (set novelty to 0 for classic jungle timestretch effects)", notifier = function(v) stretch = v; vb.views.slide_stretch.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "algorithm", width = 100 },
-          vb:popup{ id = "popup_algo", items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 162, notifier = function(v) algo = v end }
+          vb:text{ text = "algorithm", width = 100, tooltip = "Search engine mode: Basic (nearest match), Reversed (furthest match), Synaptic (3D nearest graph), Synaptic Slide" },
+          vb:popup{ id = "popup_algo", items = { "Basic", "Reversed", "Synaptic", "Synaptic Slide" }, value = algo, width = 162, tooltip = "Search engine mode: Basic (nearest match), Reversed (furthest match), Synaptic (3D nearest graph), Synaptic Slide", notifier = function(v) algo = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "num synapses", width = 100 },
-          vb:minislider{ id = "slide_synapses", min = 1, max = 1000, value = num_synapses, width = 90, notifier = function(v) num_synapses = v; vb.views.box_synapses.value = v end },
-          vb:valuebox{ id = "box_synapses", min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, width = 68, notifier = function(v) num_synapses = v; vb.views.slide_synapses.value = v end }
+          vb:text{ text = "num synapses", width = 100, tooltip = "Number of nearest-neighbor synaptic graph connections searched per block" },
+          vb:minislider{ id = "slide_synapses", min = 1, max = 1000, value = num_synapses, width = 90, tooltip = "Number of nearest-neighbor synaptic graph connections searched per block", notifier = function(v) num_synapses = v; vb.views.box_synapses.value = v end },
+          vb:valuebox{ id = "box_synapses", min = 1, max = 1000, value = num_synapses, steps = { 1, 10 }, width = 68, tooltip = "Number of nearest-neighbor synaptic graph connections searched per block", notifier = function(v) num_synapses = v; vb.views.slide_synapses.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "slide error", width = 100 },
-          vb:minislider{ id = "slide_error", min = 0, max = 10000, value = slide_error, width = 90, notifier = function(v) slide_error = v; vb.views.box_error.value = v end },
-          vb:valuebox{ id = "box_error", min = 0, max = 10000, value = slide_error, steps = { 10, 100 }, width = 68, tostring = function(v) return string.format("%d", math.floor(v)) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) slide_error = v; vb.views.slide_error.value = v end }
+          vb:text{ text = "slide error", width = 100, tooltip = "Synaptic slide error threshold: block differences higher than this trigger a new search, skipping target frames" },
+          vb:minislider{ id = "slide_error", min = 0, max = 10000, value = slide_error, width = 90, tooltip = "Synaptic slide error threshold: block differences higher than this trigger a new search, skipping target frames", notifier = function(v) slide_error = v; vb.views.box_error.value = v end },
+          vb:valuebox{ id = "box_error", min = 0.0, max = 10000, value = slide_error, steps = { 10, 100 }, width = 68, tooltip = "Synaptic slide error threshold: block differences higher than this trigger a new search, skipping target frames", tostring = function(v) return string.format("%d", math.floor(v)) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) slide_error = v; vb.views.slide_error.value = v end }
         }
       },
 
@@ -531,31 +531,31 @@ function MainDialog.show()
 
         vb:row{
           spacing = 2,
-          vb:text{ text = "autotune", width = 85 },
-          vb:minislider{ id = "slide_autotune", min = 0.0, max = 1.0, value = autotune, width = 88, notifier = function(v) autotune = v; vb.views.box_autotune.value = v end },
-          vb:valuebox{ id = "box_autotune", min = 0.0, max = 1.0, value = autotune, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) autotune = v; vb.views.slide_autotune.value = v end }
+          vb:text{ text = "autotune", width = 85, tooltip = "Fractional pitch-scaling factor tuning brain blocks to match target fundamental pitch" },
+          vb:minislider{ id = "slide_autotune", min = 0.0, max = 1.0, value = autotune, width = 88, tooltip = "Fractional pitch-scaling factor tuning brain blocks to match target fundamental pitch", notifier = function(v) autotune = v; vb.views.box_autotune.value = v end },
+          vb:valuebox{ id = "box_autotune", min = 0.0, max = 1.0, value = autotune, steps = { 0.01, 0.1 }, width = 68, tooltip = "Fractional pitch-scaling factor tuning brain blocks to match target fundamental pitch", tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) autotune = v; vb.views.slide_autotune.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "normalised", width = 85 },
-          vb:minislider{ id = "slide_nmix", min = 0.0, max = 1.0, value = n_mix, width = 88, notifier = function(v) n_mix = v; vb.views.box_nmix.value = v end },
-          vb:valuebox{ id = "box_nmix", min = 0.0, max = 1.0, value = n_mix, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_mix = v; vb.views.slide_nmix.value = v end }
+          vb:text{ text = "normalised", width = 85, tooltip = "Mix ratio for peak-normalized brain block audio in the rendered output" },
+          vb:minislider{ id = "slide_nmix", min = 0.0, max = 1.0, value = n_mix, width = 88, tooltip = "Mix ratio for peak-normalized brain block audio in the rendered output", notifier = function(v) n_mix = v; vb.views.box_nmix.value = v end },
+          vb:valuebox{ id = "box_nmix", min = 0.0, max = 1.0, value = n_mix, steps = { 0.01, 0.1 }, width = 68, tooltip = "Mix ratio for peak-normalized brain block audio in the rendered output", tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) n_mix = v; vb.views.slide_nmix.value = v end }
         },
         vb:row{
           spacing = 2,
-          vb:text{ text = "brain / target", width = 85 },
-          vb:minislider{ id = "slide_tmix", min = 0.0, max = 1.0, value = target_mix, width = 88, notifier = function(v) target_mix = v; vb.views.box_tmix.value = v end },
-          vb:valuebox{ id = "box_tmix", min = 0.0, max = 1.0, value = target_mix, steps = { 0.01, 0.1 }, width = 68, tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) target_mix = v; vb.views.slide_tmix.value = v end }
+          vb:text{ text = "brain / target", width = 85, tooltip = "Mix ratio blending original target audio into the rendered brain output" },
+          vb:minislider{ id = "slide_tmix", min = 0.0, max = 1.0, value = target_mix, width = 88, tooltip = "Mix ratio blending original target audio into the rendered brain output", notifier = function(v) target_mix = v; vb.views.box_tmix.value = v end },
+          vb:valuebox{ id = "box_tmix", min = 0.0, max = 1.0, value = target_mix, steps = { 0.01, 0.1 }, width = 68, tooltip = "Mix ratio blending original target audio into the rendered brain output", tostring = function(v) return string.format("%.2f", v) end, tonumber = function(s) return tonumber(s) end, notifier = function(v) target_mix = v; vb.views.slide_tmix.value = v end }
         },
         vb:row{
           spacing = 4,
-          vb:checkbox{ id = "chk_stereo", value = independent_stereo, notifier = function(v) independent_stereo = v end },
-          vb:text{ text = "independent stereo search" }
+          vb:checkbox{ id = "chk_stereo", value = independent_stereo, tooltip = "Search left and right channels independently with dual synapse graphs for wide stereo imaging", notifier = function(v) independent_stereo = v end },
+          vb:text{ text = "independent stereo search", tooltip = "Search left and right channels independently with dual synapse graphs for wide stereo imaging" }
         },
         vb:row{
           spacing = 4,
-          vb:checkbox{ value = normalize_output, notifier = function(v) normalize_output = v end },
-          vb:text{ text = "output normalize (0.98)" }
+          vb:checkbox{ value = normalize_output, tooltip = "Peak-normalize the rendered output audio buffer to a safe -0.2 dB FS ceiling", notifier = function(v) normalize_output = v end },
+          vb:text{ text = "output normalize (0.98)", tooltip = "Peak-normalize the rendered output audio buffer to a safe -0.2 dB FS ceiling" }
         }
       },
 
@@ -871,36 +871,21 @@ function MainDialog.show()
       spacing = 6,
       vb:button{
         text = "Render Output",
-        width = 130, height = 28,
+        width = 130, height = 28, tooltip = "Render concatenative synthesis output with current settings into a new Renoise instrument",
         notifier = function()
           if JobRunner.is_running() then return end
-          if #target_blocks == 0 or #brain_blocks == 0 then
-            renoise.app():show_warning("Need both Target and Brain samples. Please set Target and Rebuild Brain first.")
+          if #target_blocks == 0 and not target_source then
+            renoise.app():show_warning("Need a Target sample. Please click 'load target' first.")
             return
           end
-
-          local current_target_signature = string.format("%d_%f_%d_%d_%s", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode, tostring(target_settings.use_selection))
-          if target_blocks_signature ~= current_target_signature then
-            renoise.app():show_warning("Target settings have changed. Please re-analyze the target sample before rendering.")
-            return
-          end
-
-          local current_brain_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
-          if brain_settings_signature ~= current_brain_signature then
-            renoise.app():show_warning("Brain settings or sources have changed. Please click '(re)generate brain' before rendering.")
+          if #brain_sources == 0 then
+            renoise.app():show_warning("Need at least one Brain sample. Please add samples to the brain first.")
             return
           end
 
           JobRunner.start(
             function(job)
-              if (algo == Constants.ALGO_SYNAPTIC or algo == Constants.ALGO_SYNAPTIC_SLIDE) then
-                local current_synapse_signature = make_synapse_signature()
-                if not synapses_built or synapses_signature ~= current_synapse_signature then
-                  build_required_graphs(job)
-                  synapses_built = true
-                  synapses_signature = current_synapse_signature
-                end
-              end
+              ensure_brain_analyzed(job)
 
               local options = {
                 block_size = target_settings.block_size,
@@ -952,21 +937,21 @@ function MainDialog.show()
       },
       vb:button{
         text = "Make 10",
-        width = 75, height = 28,
+        width = 75, height = 28, tooltip = "Batch render 10 distinct randomized parameter variations sequentially into new instrument slots",
         notifier = function()
           run_batch_render(10)
         end
       },
       vb:button{
         text = "Make 20",
-        width = 75, height = 28,
+        width = 75, height = 28, tooltip = "Batch render 20 distinct randomized parameter variations sequentially into new instrument slots",
         notifier = function()
           run_batch_render(20)
         end
       },
       vb:button{
         text = "Save Session...",
-        width = 140, height = 28,
+        width = 140, height = 28, tooltip = "Save entire SampleBrain session state (brain sources, block settings, DSP parameters) to a .sb_session file",
         notifier = function()
           local path = renoise.app():prompt_for_filename_to_write("sb_session", "Save SampleBrain Session")
           if path and path ~= "" then
@@ -994,7 +979,7 @@ function MainDialog.show()
       },
       vb:button{
         text = "Load Session...",
-        width = 140, height = 28,
+        width = 140, height = 28, tooltip = "Load a previously saved .sb_session file restoring all DSP parameters and brain settings",
         notifier = function()
           local path = renoise.app():prompt_for_filename_to_read({ "sb_session", "txt" }, "Load SampleBrain Session")
           if path and path ~= "" then
@@ -1030,7 +1015,7 @@ function MainDialog.show()
       vb:button{
         id = "btn_cancel",
         text = "Cancel Job",
-        width = 110, height = 28,
+        width = 110, height = 28, tooltip = "Safely cancel any active background analysis or rendering job",
         visible = false,
         notifier = function()
           if JobRunner.is_running() then
