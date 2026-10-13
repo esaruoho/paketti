@@ -114,4 +114,4 @@
 - Resume: `claude --resume bbed6248-4a79-49bb-adbd-f03348ba07b6`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/bbed6248-4a79-49bb-adbd-f03348ba07b6.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): TEMPLATE.feature, samplebrain-diagnostics.feature, song-lifecycle-safety.feature
+- Cards touched (5): TEMPLATE.feature, duplicate-instrument-devices.feature, menu-registration-duplicates.feature, samplebrain-diagnostics.feature, song-lifecycle-safety.feature

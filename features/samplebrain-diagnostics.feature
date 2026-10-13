@@ -6,6 +6,7 @@
 # RESULT: Worktree changes; no commit, push or PR. Files: above, .gitignore, PLAN.md, card/session/bundle, INDEX.md and generated views.
 # WATCH: Logger JobRunner checkpoint Renderer
 # RESULT-LOG >>
+#   2026-10-13  direct-commit  touched: JobRunner
 #   2026-10-13  direct-commit  touched: Logger JobRunner checkpoint
 Feature: Diagnose SampleBrain jobs from a persistent local log
   @code-verified @runtime-untested

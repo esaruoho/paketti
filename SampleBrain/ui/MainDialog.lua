@@ -185,35 +185,91 @@ local function randomize_all_settings()
   renoise.app():show_status("SampleBrain: Parameters randomized!")
 end
 
+local function ensure_brain_analyzed(job)
+  local current_brain_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
+  
+  if #brain_blocks == 0 or brain_settings_signature ~= current_brain_signature then
+    local temp_blocks = {}
+    local start_id = 1
+    for i = 1, #brain_sources do
+      local ref = brain_sources[i]
+      if ref.enabled then
+        local ok, reload_err = ref:reload(brain_settings.channel_mode, brain_settings.use_selection)
+        if not ok then
+          error(string.format("Brain source %d '%s' could not be reloaded: %s", i, ref.name, reload_err or "Sample missing"))
+        end
+        local blocks, next_id = BlockGenerator.generate(ref, brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, start_id, job)
+        for _, b in ipairs(blocks) do
+          temp_blocks[#temp_blocks + 1] = b
+        end
+        start_id = next_id
+      end
+    end
+    brain_blocks = temp_blocks
+    brain_settings_signature = current_brain_signature
+  end
+
+  local current_synapse_signature = make_synapse_signature()
+  if not synapses_built or synapses_signature ~= current_synapse_signature then
+    build_required_graphs(job)
+    synapses_built = true
+    synapses_signature = current_synapse_signature
+  end
+end
+
+local function trigger_auto_brain_analysis()
+  if JobRunner.is_running() then return end
+  if #brain_sources == 0 then return end
+
+  local current_src_idx = 1
+  JobRunner.start(
+    function(job)
+      ensure_brain_analyzed(job)
+      return #brain_blocks
+    end,
+    function(pct, msg)
+      if vb and vb.views.job_status then
+        vb.views.job_status.text = string.format("%s (%.1f%%)", msg or "", pct * 100)
+      end
+      if current_src_idx and msg then
+        refresh_source_list(current_src_idx, msg)
+      end
+    end,
+    function(count)
+      if vb and vb.views.brain_status then
+        vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (Ready)", #brain_sources, #brain_blocks)
+      end
+      if vb and vb.views.job_status then
+        vb.views.job_status.text = ""
+      end
+      refresh_source_list()
+      update_job_ui(false)
+    end,
+    function(err)
+      if vb and vb.views.job_status then
+        vb.views.job_status.text = "Auto-analysis completed."
+      end
+      refresh_source_list()
+      update_job_ui(false)
+    end
+  )
+  update_job_ui(true)
+end
+
 local function run_batch_render(count)
   if JobRunner.is_running() then return end
-  if #target_blocks == 0 or #brain_blocks == 0 then
-    renoise.app():show_warning("Need both Target and Brain samples. Please set Target and Rebuild Brain first.")
+  if #target_blocks == 0 and not target_source then
+    renoise.app():show_warning("Need a Target sample. Please click 'load target' first.")
     return
   end
-
-  local current_target_signature = string.format("%d_%f_%d_%d_%s", target_settings.block_size, target_settings.overlap, target_settings.window_type, target_settings.channel_mode, tostring(target_settings.use_selection))
-  if target_blocks_signature ~= current_target_signature then
-    renoise.app():show_warning("Target settings have changed. Please re-analyze the target sample before rendering.")
-    return
-  end
-
-  local current_brain_signature = string.format("%d_%f_%d_%d_%d_%s", brain_settings.block_size, brain_settings.overlap, brain_settings.window_type, brain_settings.channel_mode, #brain_sources, tostring(brain_settings.use_selection))
-  if brain_settings_signature ~= current_brain_signature then
-    renoise.app():show_warning("Brain settings or sources have changed. Please click '(re)generate brain' before rendering.")
+  if #brain_sources == 0 then
+    renoise.app():show_warning("Need at least one Brain sample. Please add samples to the brain first.")
     return
   end
 
   JobRunner.start(
     function(job)
-      if (algo == Constants.ALGO_SYNAPTIC or algo == Constants.ALGO_SYNAPTIC_SLIDE) then
-        local current_synapse_signature = make_synapse_signature()
-        if not synapses_built or synapses_signature ~= current_synapse_signature then
-          build_required_graphs(job)
-          synapses_built = true
-          synapses_signature = current_synapse_signature
-        end
-      end
+      ensure_brain_analyzed(job)
 
       local results = {}
       local algos = { Constants.ALGO_BASIC, Constants.ALGO_REVERSED, Constants.ALGO_SYNAPTIC, Constants.ALGO_SYNAPTIC_SLIDE }
@@ -595,15 +651,15 @@ function MainDialog.show()
                 brain_sources[src_id] = ref
                 
                 brain_settings_signature = ""
-                vb.views.brain_status.text = string.format("Brain: %d sources, %d blocks (STALE)", #brain_sources, #brain_blocks)
                 refresh_source_list()
+                trigger_auto_brain_analysis()
               else
                 renoise.app():show_warning("Selected sample has no audio data.")
               end
             end
           },
           vb:button{
-            text = "add inst", width = 82,
+            text = "add inst", width = 114,
             notifier = function()
               local song = renoise.song()
               local inst = song.selected_instrument
@@ -628,12 +684,12 @@ function MainDialog.show()
                 end
               end
               brain_settings_signature = ""
-              vb.views.brain_status.text = string.format("Brain: %d sources (+%d), %d blocks (STALE)", #brain_sources, count, #brain_blocks)
               refresh_source_list()
+              trigger_auto_brain_analysis()
             end
           },
           vb:button{
-            text = "add all", width = 82,
+            text = "add all", width = 114,
             notifier = function()
               local song = renoise.song()
               local count = 0
@@ -657,8 +713,8 @@ function MainDialog.show()
                 end
               end
               brain_settings_signature = ""
-              vb.views.brain_status.text = string.format("Brain: %d sources (+%d), %d blocks (STALE)", #brain_sources, count, #brain_blocks)
               refresh_source_list()
+              trigger_auto_brain_analysis()
             end
           }
         },
