@@ -55,6 +55,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Show and change sample playback quality](#sample-playback-quality) — `sample-playback-quality.feature`
 - [Sample Editor slice menus live under Slices](#sample-slice-menu-grouping) — `sample-slice-menu-grouping.feature`
 - [Sample slice selection range](#sample-slice-selection) — `sample-slice-selection.feature`
+- [Diagnose SampleBrain jobs from a persistent local log](#samplebrain-diagnostics) — `samplebrain-diagnostics.feature`
 - [Section loop switches trigger immediately](#section-loop-immediate-switch) — `section-loop-immediate-switch.feature`
 - [Section loop and MIDI capture](#section-loop-midi-capture) — `section-loop-midi-capture.feature`
 - [Reverse-duplicate instrument for pattern selections](#selection-reversed-instrument) — `selection-reversed-instrument.feature`
@@ -1016,6 +1017,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiSelectCurrentSliceRange`, `pakettiSampleEditorSelectionClear`, `PakettiMidiSampleBufferPointSelection` · **Source files:** `PakettiSlice.lua`, `PakettiMenuConfig.lua`, `PakettiMidi.lua`, `PakettiMIDIMappings.lua`, `PakettiSamples.lua`
 
 **Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
+
+
+<a id="samplebrain-diagnostics"></a>
+## Diagnose SampleBrain jobs from a persistent local log
+
+`features/samplebrain-diagnostics.feature` · [session](samplebrain-diagnostics.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Preserve the last checkpoint and job outcome — `@code-verified @runtime-untested`
+- Expose work inside a target block — `@built @runtime-untested`
+- Preserve matching and rendering results — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `Logger`, `JobRunner`, `checkpoint`, `Renderer` · **Source files:** `SampleBrain/Logger.lua`, `SampleBrain/jobs/JobRunner.lua`, `SampleBrain/tests/test_logging.lua`, `SampleBrain/matching/Matcher.lua`, `SampleBrain/render/Renderer.lua`, `SampleBrain/tests/test_oracle.lua`
+
+**Grade:** @built ×1 · @code-verified ×2 · @runtime-untested ×3
 
 
 <a id="section-loop-immediate-switch"></a>

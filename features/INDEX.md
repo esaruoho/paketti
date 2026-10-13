@@ -89,3 +89,5 @@ Derived views — GENERATED, never hand-edit:
 - [8120-step-relative-input](8120-step-relative-input.feature) — worktree; [session](8120-step-relative-input.session.md).
 
 - [Preserve duplicated instrument devices](duplicate-instrument-devices.feature) — worktree; shared preset/name copier and macro retargeting; [session](duplicate-instrument-devices.session.md).
+
+| `samplebrain-diagnostics.feature` | Persistent SampleBrain job, candidate-search and render diagnostics | `samplebrain-diagnostics.session.md` | worktree |

@@ -8,6 +8,7 @@
 # Files: PakettiSamples.lua, PakettiRequests.lua, tests/duplicate-instrument-devices.lua, PLAN.md and this card/session bundle
 # WATCH: PakettiCopyDuplicatedInstrumentDevice duplicateTrackAndInstrumentCore duplicateTrackDuplicateInstrument
 # RESULT-LOG >>
+#   2026-10-13  direct-commit  touched: PakettiCopyDuplicatedInstrumentDevice duplicateTrackAndInstrumentCore duplicateTrackDuplicateInstrument
 #   2026-10-07  direct-commit  touched: PakettiCopyDuplicatedInstrumentDevice
 Feature: Preserve devices when duplicating a track and instrument
   @code-verified @runtime-untested

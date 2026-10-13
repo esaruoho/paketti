@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**17 card conversations** plugged in:
+**18 card conversations** plugged in:
 
 ### `1fde8e58-3ac3-4c6a-a5ca-c30e73fbd51e`  (2026-09-16)
 - Resume: `claude --resume 1fde8e58-3ac3-4c6a-a5ca-c30e73fbd51e`
@@ -109,3 +109,9 @@
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/3ea59e53-695a-4ddc-b408-71ae9976d38b.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (6): TEMPLATE.feature, groovebox-8120-default-instrument-slots.feature, groovebox-8120-record-pakettified-instrument.feature, menu-registration-duplicates.feature, netdrive-zero-byte-guard.feature, song-lifecycle-safety.feature
+
+### `bbed6248-4a79-49bb-adbd-f03348ba07b6`  (2026-10-13)
+- Resume: `claude --resume bbed6248-4a79-49bb-adbd-f03348ba07b6`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/bbed6248-4a79-49bb-adbd-f03348ba07b6.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (3): TEMPLATE.feature, samplebrain-diagnostics.feature, song-lifecycle-safety.feature

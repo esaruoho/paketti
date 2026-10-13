@@ -1,7 +1,10 @@
 -- SampleBrain/jobs/JobRunner.lua
 -- Cooperative multitasking for heavy DSP operations in Renoise
 
+-- REPORT-CARD >> features/samplebrain-diagnostics.feature
+local Logger = require("SampleBrain.Logger")
 local JobRunner = {}
+local job_sequence = 0
 
 local current_job = nil
 
@@ -15,6 +18,7 @@ local function idle_handler()
 
   if current_job.cancelled then
     local finished_job = current_job
+    Logger.write("job=" .. finished_job.id .. " cancelled; last=" .. tostring(finished_job.last_message))
     current_job = nil
     if renoise and renoise.tool and renoise.tool().app_idle_observable:has_notifier(idle_handler) then
       renoise.tool().app_idle_observable:remove_notifier(idle_handler)
@@ -37,6 +41,13 @@ local function idle_handler()
       renoise.tool().app_idle_observable:remove_notifier(idle_handler)
     end
 
+    Logger.write(string.format("job=%d %s wall=%ds cpu=%.3fs last=%s", finished_job.id,
+      status and "complete" or "ERROR", os.time() - finished_job.started_wall,
+      os.clock() - finished_job.started_cpu, tostring(finished_job.last_message)))
+    if not status then
+      err = debug.traceback(finished_job.co, tostring(err))
+      Logger.write(err)
+    end
     if status then
       if finished_job.on_complete then
         finished_job.on_complete(err)
@@ -67,7 +78,13 @@ function JobRunner.start(func, on_progress, on_complete, on_error, on_cancel)
     return false, "A job is already running."
   end
 
+  job_sequence = job_sequence + 1
+  Logger.write("job=" .. job_sequence .. " started")
   current_job = {
+    id = job_sequence,
+    started_wall = os.time(),
+    started_cpu = os.clock(),
+    last_log_wall = 0,
     co = coroutine.create(func),
     on_progress = on_progress,
     on_complete = on_complete,
@@ -94,6 +111,7 @@ end
 --- Cancel the currently running job
 function JobRunner.cancel()
   if current_job then
+    Logger.write("job=" .. current_job.id .. " cancel requested")
     current_job.cancelled = true
     -- We do NOT set current_job = nil here. 
     -- The next idle_handler execution will notice current_job.cancelled == true, 
@@ -113,6 +131,13 @@ end
 -- @param message string Optional status message
 -- @param force boolean If true, yield regardless of elapsed time
 function JobRunner.yield(job, percent, message, force)
+  job.last_message = message or job.last_message
+  local now = os.time()
+  if now ~= job.last_log_wall then
+    Logger.write(string.format("job=%s progress=%.4f wall=%ds %s", tostring(job.id), percent or 0,
+      now - (job.started_wall or now), tostring(job.last_message)))
+    job.last_log_wall = now
+  end
   if job.cancelled then
     coroutine.yield()
   end
