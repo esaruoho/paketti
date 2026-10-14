@@ -942,6 +942,9 @@ function pakettiMIDIMappingsDialog()
   local selected_mappings = {}  -- Track selected mappings for batch operations
   local search_textfield = nil
 
+  -- Forward declaration so closures inside show_category_management_dialog can see it
+  local rebuild_mappings_display
+
   -- Function to create the category management dialog
   local function show_category_management_dialog()
     local cat_vb = renoise.ViewBuilder()
@@ -1144,7 +1147,7 @@ function pakettiMIDIMappingsDialog()
   end
 
   -- Simple rebuild approach - close and reopen with proper cleanup
-  local function rebuild_mappings_display()
+  rebuild_mappings_display = function()
     print("DEBUG: Rebuilding display...")
     
     -- Save current dialog state first
