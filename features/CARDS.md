@@ -888,14 +888,17 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 `features/rx2-24bit-import.feature` · [session](rx2-24bit-import.session.md)
 
-**Behaviour (2 scenarios):**
+**Behaviour (5 scenarios):**
 
 - Preserve real 24-bit stereo audio — `@code-verified @runtime-untested`
 - Preserve signed PCM and align mono chunks — `@code-verified @runtime-untested`
+- Import supported sample depths through Lua on Windows too — `@code-verified @runtime-untested`
+- Preserve existing instruments when decode rejects the file — `@code-verified @runtime-untested`
+- Show Windows import diagnostics only when requested — `@code-verified @runtime-untested`
 
-**How it does it:** **Key procs:** `pcm_to_wav`, `PakettiRX2ImportNative` · **Source files:** `PakettiRX2Decode.lua`, `tests/rx2_wav_regression.lua`
+**How it does it:** **Key procs:** `PakettiRX2WindowsImportDiagnostic`, `pakettiRX2DebugDialog`, `pcm_to_wav`, `PakettiRX2ImportNative`, `clamp_sample`, `PakettiRX2DecodeFile`, `PakettiRX2ImportNativeSliced`, `pakettiRX2NativeDecoder` · **Source files:** `PakettiRX2Decode.lua`, `tests/rx2_wav_regression.lua`, `Paketti0G01_Loader.lua`, `PakettiRX2Loader.lua`
 
-**Grade:** @code-verified ×2 · @runtime-untested ×2
+**Grade:** @code-verified ×5 · @runtime-untested ×5
 
 
 <a id="sample-browser-deferred-close"></a>

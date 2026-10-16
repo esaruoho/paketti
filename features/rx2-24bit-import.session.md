@@ -17,3 +17,15 @@ Resume: `codex --resume 01a1464f-b791-7141-9253-ed7f4e572f5c`
 Verified transcript timestamps: 2026-10-16T20:03:49.019Z through 2026-10-16T20:05:12.295Z.
 
 Bundled snapshot: [rx2-24bit-import.transcript.jsonl](rx2-24bit-import.transcript.jsonl), [rx2-24bit-import.transcript.md](rx2-24bit-import.transcript.md).
+
+## Follow-up: 8-, 16-, and 24-bit Lua import on Windows
+
+User: “yeah please make lua handle 8bit 16bit 24bit thanks for windows too”.
+
+Added signed 8-bit decoder limits and unsigned 8-bit WAV packing. Enabled Lua in the default preference and the saved preference, preserving other saved settings. Reject unsupported depths before decoding. The sliced fallback now compares instrument count before cleanup, so a rejection before insertion cannot delete the user's selected existing instrument.
+
+Verification exercises the real codec roundtrip at all three depths in mono/stereo, 8-bit clamping, exact WAV samples/headers/padding, unsupported 32-bit metadata rejection, and the real loader dispatch preamble with Windows selected including force_exe bypass. Actual Windows Renoise playback remains untested. The supplied real 24-bit file remains sample-exact. No commit or push performed.
+
+## Follow-up: optional Windows debug dialog
+
+User requested a Paketti preference named “RX2 Debug Dialog”, On/Off, default Off. Added a persistent checkbox beside RX2 decode in Lua in Import Hooks preferences and an early strict-boolean preference gate in PakettiRX2WindowsImportDiagnostic. Default and saved settings are Off. All callers share the gate, including Lua and external imports. Verification checked the actual gate for missing/false/true settings on Windows and true on non-Windows. Renoise checkbox interaction remains runtime untested.

@@ -223,7 +223,8 @@ end
 
 local function clamp_sample(v, bit_depth)
   local hi, lo = 32767, -32768
-  if bit_depth == 24 then hi, lo = 8388607, -8388608 end
+  if bit_depth == 8 then hi, lo = 127, -128
+  elseif bit_depth == 24 then hi, lo = 8388607, -8388608 end
   if v > hi then return hi end
   if v < lo then return lo end
   return v
@@ -273,6 +274,9 @@ end
 function PakettiRX2DecodeFile(path, yield_fn)
   local info, err = PakettiRX2ReadInfo(path)
   if not info then return nil, err end
+  if info.bit_depth ~= 8 and info.bit_depth ~= 16 and info.bit_depth ~= 24 then
+    return nil, string.format("Lua RX2 decoding does not support %d-bit audio", info.bit_depth)
+  end
   if not info.audio_offset then
     return nil, "no SDAT/DWOP chunk in this file"
   end
@@ -326,7 +330,10 @@ local function pcm_to_wav(pcm, channels, rate, bit_depth)
   for i = 1, #pcm do
     local v = pcm[i]
     v = v % sample_modulus
-    if bit_depth == 24 then
+    if bit_depth == 8 then
+      -- RX2 PCM is signed; PCM WAV stores 8-bit samples unsigned (128 = silence).
+      chunk[#chunk + 1] = string.char((v + 128) % 256)
+    elseif bit_depth == 24 then
       chunk[#chunk + 1] = string.char(v % 256, floor(v / 256) % 256,
         floor(v / 65536) % 256)
     else
@@ -424,6 +431,7 @@ function PakettiRX2ImportNativeSliced(path)
       AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
     end
 
+    local instruments_before = #renoise.song().instruments
     local ran, ok, msg = pcall(function()
       return PakettiRX2ImportNative(path,
         function() coroutine.yield() end,
@@ -479,7 +487,7 @@ function PakettiRX2ImportNativeSliced(path)
       renoise.app():show_status("Lua RX2 decode failed; retrying with the external decoder...")
       pcall(function()
         local song = renoise.song()
-        if #song.instruments > 1 then
+        if #song.instruments > instruments_before then
           local idx = song.selected_instrument_index
           song:delete_instrument_at(idx)
           song.selected_instrument_index = math.max(1, idx - 1)

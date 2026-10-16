@@ -320,8 +320,11 @@ local function rx2_analyze_sample(sample)
            silent = (peak == 0) }
 end
 
+-- REPORT-CARD >> features/rx2-24bit-import.feature
 function PakettiRX2WindowsImportDiagnostic(params)
   if os.platform() ~= "WINDOWS" then return end
+  if not (preferences and preferences.pakettiRX2DebugDialog
+      and preferences.pakettiRX2DebugDialog.value == true) then return end
   params = params or {}
 
   local lines = {}

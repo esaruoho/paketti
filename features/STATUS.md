@@ -54,7 +54,7 @@
 | pedal-record | 11 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | quick-edit-navigation | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
-| rx2-24bit-import | 2 | ✓ | ✗ | — | @code-verified @runtime-untested |
+| rx2-24bit-import | 5 | ✓ | ✗ | — | @code-verified @runtime-untested |
 | sample-browser-deferred-close | 5 | ✗ | ✗ | — | @runtime-untested @sim-verified @stock |
 | sample-browser-editing | 15 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | sample-browser-loop-load | 3 | ✗ | ✗ | — | @runtime-untested @sim-verified |
