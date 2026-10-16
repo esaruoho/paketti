@@ -260,6 +260,160 @@ function PakettiRX2SetupDecoderPaths()
 end
 
 --------------------------------------------------------------------------------
+-- Windows import diagnostic
+--
+-- On Windows the pure-Lua decoder has imported .rx2 files as silence, so every
+-- Windows .rx2 import ends with a dialog that gathers everything we need to
+-- debug a bad import: the container metadata read straight from the file (in
+-- Lua, independent of whichever decoder ran), which decoder actually ran and
+-- its exit code, and an analysis of the audio that landed in Renoise -- frame
+-- count, peak amplitude and whether it is silent. The user screenshots it and
+-- emails it to esaruoho@gmail.com; a button pre-fills that email too.
+--------------------------------------------------------------------------------
+local RX2_DIAG_EMAIL = "esaruoho@gmail.com"
+
+local function rx2_url_encode(s)
+  return (tostring(s):gsub("[^%w%-_%.~]", function(c)
+    return string.format("%%%02X", string.byte(c))
+  end))
+end
+
+--- Scan a loaded sample for its peak amplitude so we can report SILENT vs audio.
+--- Steps through the buffer (not every frame) so a long sample stays instant.
+local function rx2_analyze_sample(sample)
+  if not sample or not sample.sample_buffer
+     or not sample.sample_buffer.has_sample_data then
+    return { has_data = false }
+  end
+  local buf = sample.sample_buffer
+  local frames = buf.number_of_frames
+  local chans = buf.number_of_channels
+  local peak = 0
+  local step = math.max(1, math.floor(frames / 20000))
+  local f = 1
+  while f <= frames do
+    for c = 1, chans do
+      local ok, v = pcall(function() return buf:sample_data(c, f) end)
+      if ok and v then
+        if v < 0 then v = -v end
+        if v > peak then peak = v end
+      end
+    end
+    f = f + step
+  end
+  local peak_db = (peak > 0) and (20 * math.log(peak) / math.log(10)) or nil
+  return { has_data = true, frames = frames, channels = chans,
+           bit_depth = buf.bit_depth, peak = peak, peak_db = peak_db,
+           silent = (peak == 0) }
+end
+
+function PakettiRX2WindowsImportDiagnostic(params)
+  if os.platform() ~= "WINDOWS" then return end
+  params = params or {}
+
+  local lines = {}
+  local function add(s) lines[#lines + 1] = s end
+
+  add("PAKETTI RX2 IMPORT DIAGNOSTIC  (Windows)")
+  add("")
+  add("File:    " .. tostring(params.filename or "?"))
+  add("Decoder: " .. tostring(params.decoder or "?"))
+  if params.decoder_path then add("Binary:  " .. tostring(params.decoder_path)) end
+  if params.decoder_exit_code ~= nil then
+    add("Decoder exit code: " .. tostring(params.decoder_exit_code))
+  end
+  if params.success then
+    add("Import result: SUCCESS (sample was created)")
+  else
+    add("Import result: FAILED -- " .. tostring(params.error_message or "unknown"))
+  end
+  add("")
+
+  -- Container metadata straight from the file, independent of the decoder
+  add("-- REX2 container (read in Lua, independent of the decoder) --")
+  local info, err
+  if type(rawget(_G, "PakettiRX2ReadInfo")) == "function" and params.filename then
+    info, err = PakettiRX2ReadInfo(params.filename)
+  end
+  if info then
+    add(string.format("Tempo:        %.3f BPM (detected %.3f)",
+      info.tempo or 0, info.original_tempo or 0))
+    add(string.format("Time sig:     %d/%d", info.time_sig_num or 0, info.time_sig_den or 0))
+    add(string.format("Sample rate:  %d Hz", info.sample_rate or 0))
+    add(string.format("Bit depth:    %d-bit", info.bit_depth or 0))
+    add(string.format("Channels:     %d (%s)", info.channels or 0,
+      (info.channels == 2) and "stereo" or "mono"))
+    add(string.format("Total frames: %d  (%.3f s)",
+      info.total_frames or 0, info.duration_seconds or 0))
+    add(string.format("Loop:         %d .. %d", info.loop_start or 0, info.loop_end or 0))
+    add(string.format("Slices:       %d visible, %d in table, header says %d",
+      #(info.slices or {}), info.all_slices and #info.all_slices or 0, info.slice_count or 0))
+    add(string.format("Compressed:   %d bytes%s", info.audio_bytes or 0,
+      info.audio_offset and (" at offset " .. info.audio_offset) or ""))
+    if info.creator and info.creator.name and info.creator.name ~= "" then
+      add("Creator:      " .. info.creator.name)
+    end
+  else
+    add("Could not read container: " .. tostring(err or "reader unavailable"))
+  end
+  add("")
+
+  -- What actually landed in Renoise
+  add("-- Imported audio (what Renoise now holds) --")
+  local a = rx2_analyze_sample(params.sample)
+  if a.has_data then
+    add(string.format("Loaded frames: %d", a.frames))
+    add(string.format("Channels:      %d, %d-bit", a.channels, a.bit_depth))
+    if a.silent then
+      add("Peak:          0.0   >>> SAMPLE IS SILENT (all samples zero) <<<")
+    else
+      add(string.format("Peak:          %.5f  (%.2f dB)", a.peak, a.peak_db or -99))
+    end
+    local smp = params.sample
+    add(string.format("Slice markers: %d placed",
+      (smp.slice_markers and #smp.slice_markers) or 0))
+  else
+    add("No sample data was loaded into Renoise.")
+  end
+  add("")
+
+  add("-- Environment --")
+  add("Renoise " .. tostring(renoise.RENOISE_VERSION)
+    .. "  (API " .. tostring(renoise.API_VERSION) .. "),  OS: Windows")
+  add("")
+  add("Please SCREENSHOT this window and email it to " .. RX2_DIAG_EMAIL)
+  add("so this RX2 can be fixed on Windows.")
+
+  local text = table.concat(lines, "\n")
+  print("================ RX2 WINDOWS DIAGNOSTIC ================")
+  print(text)
+  print("=======================================================")
+
+  local mailto = string.format("mailto:%s?subject=%s&body=%s",
+    RX2_DIAG_EMAIL,
+    rx2_url_encode("Paketti RX2 Windows import problem"),
+    rx2_url_encode(text .. "\n\n(Please also attach a screenshot of the dialog.)"))
+
+  local vb = renoise.ViewBuilder()
+  local dialog
+  local content = vb:column{
+    margin = 10, spacing = 8,
+    vb:text{ text = "RX2 Import Diagnostic (Windows)", style = "strong" },
+    vb:text{ text = "Screenshot this and email it to " .. RX2_DIAG_EMAIL },
+    vb:multiline_text{ text = text, width = 580, height = 430, font = "mono" },
+    vb:row{ spacing = 8,
+      vb:button{ text = "Open email to " .. RX2_DIAG_EMAIL, width = 240,
+        notifier = function()
+          pcall(function() os.execute('cmd /c start "" "' .. mailto .. '"') end)
+        end },
+      vb:button{ text = "Close", width = 100,
+        notifier = function() if dialog and dialog.visible then dialog:close() end end },
+    },
+  }
+  dialog = renoise.app():show_custom_dialog("Paketti RX2 Windows Diagnostic", content)
+end
+
+--------------------------------------------------------------------------------
 -- Main RX2 import function using the external decoder
 --------------------------------------------------------------------------------
 function rx2_loadsample(filename)
@@ -449,6 +603,12 @@ if (result ~= 0) then
     else
       renoise.app():show_status("External decoder failed with error code " .. tostring(result))
     end
+    PakettiRX2WindowsImportDiagnostic{
+      filename = filename,
+      decoder = "Windows native decoder (rex2decoder_win.exe)",
+      decoder_path = rex_decoder_path, decoder_exit_code = result,
+      success = false, error_message = why or ("decoder exit code " .. tostring(result)),
+    }
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
@@ -484,6 +644,12 @@ end
   if not smp.sample_buffer.has_sample_data then
     print("Loaded WAV file has no sample data")
     renoise.app():show_status("RX2 Import Error: No audio data in decoded sample.")
+    PakettiRX2WindowsImportDiagnostic{
+      filename = filename,
+      decoder = "Windows native decoder (rex2decoder_win.exe)",
+      decoder_path = rex_decoder_path, decoder_exit_code = result,
+      success = false, error_message = "no audio data in decoded WAV", sample = smp,
+    }
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
     return false
@@ -577,6 +743,16 @@ end
   if PakettiAmigoHandleRX2Import then
     PakettiAmigoHandleRX2Import(renoise.song().selected_instrument_index)
   end
+
+  -- Windows: show the end-of-import diagnostic (self-gates to Windows only).
+  -- This is the case that matters for the silence report -- the sample loads
+  -- fine here but may be all zeros, which the diagnostic measures and reports.
+  PakettiRX2WindowsImportDiagnostic{
+    filename = filename,
+    decoder = "Windows native decoder (rex2decoder_win.exe)",
+    decoder_path = rex_decoder_path, decoder_exit_code = result,
+    success = true, sample = renoise.song().selected_sample,
+  }
 
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)

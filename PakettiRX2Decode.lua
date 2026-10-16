@@ -423,6 +423,17 @@ function PakettiRX2ImportNativeSliced(path)
     else
       renoise.app():show_error("RX2 import failed.\n\n" .. tostring(msg))
     end
+    -- On Windows, end with the shared diagnostic so a bad Lua-decoder import
+    -- carries the same debuggable report as the native-decoder path.
+    if type(rawget(_G, "PakettiRX2WindowsImportDiagnostic")) == "function" then
+      PakettiRX2WindowsImportDiagnostic{
+        filename = path,
+        decoder = "Pure-Lua decoder (PakettiRX2Decode, no binary)",
+        success = (ran and ok) and true or false,
+        error_message = (not ran and tostring(ok)) or (not ok and tostring(msg)) or nil,
+        sample = renoise.song().selected_sample,
+      }
+    end
   end)
 
   dialog, vb = slicer:create_dialog("Decoding REX2 audio...")
