@@ -316,14 +316,22 @@ local function le32(v)
     math.floor(v / 65536) % 256, math.floor(v / 16777216) % 256)
 end
 
---- Turn decoded samples into a 16-bit RIFF WAV.
-local function pcm_to_wav(pcm, channels, rate)
+-- REPORT-CARD >> features/rx2-24bit-import.feature
+--- Preserve the decoded stream's sample depth in a PCM RIFF WAV.
+local function pcm_to_wav(pcm, channels, rate, bit_depth)
+  local bytes_per_sample = bit_depth / 8
+  local sample_modulus = 2 ^ bit_depth
   local parts = {}
   local chunk = {}
   for i = 1, #pcm do
     local v = pcm[i]
-    if v < 0 then v = v + 65536 end
-    chunk[#chunk + 1] = string.char(v % 256, math.floor(v / 256) % 256)
+    v = v % sample_modulus
+    if bit_depth == 24 then
+      chunk[#chunk + 1] = string.char(v % 256, floor(v / 256) % 256,
+        floor(v / 65536) % 256)
+    else
+      chunk[#chunk + 1] = string.char(v % 256, floor(v / 256) % 256)
+    end
     if #chunk >= 4096 then
       parts[#parts + 1] = table.concat(chunk)
       chunk = {}
@@ -332,10 +340,12 @@ local function pcm_to_wav(pcm, channels, rate)
   if #chunk > 0 then parts[#parts + 1] = table.concat(chunk) end
   local audio = table.concat(parts)
 
-  local block_align = channels * 2
+  local block_align = channels * bytes_per_sample
   local fmt = le16(1) .. le16(channels) .. le32(rate)
-    .. le32(rate * block_align) .. le16(block_align) .. le16(16)
-  local body = "WAVE" .. "fmt " .. le32(#fmt) .. fmt .. "data" .. le32(#audio) .. audio
+    .. le32(rate * block_align) .. le16(block_align) .. le16(bit_depth)
+  -- RIFF chunks are word-aligned; padding is excluded from the data size.
+  local padding = (#audio % 2 == 1) and string.char(0) or ""
+  local body = "WAVE" .. "fmt " .. le32(#fmt) .. fmt .. "data" .. le32(#audio) .. audio .. padding
   return "RIFF" .. le32(#body) .. body
 end
 
@@ -352,7 +362,7 @@ function PakettiRX2ImportNative(path, yield_fn, status_fn)
 
   status_fn("Building the sample...")
   if yield_fn then yield_fn() end
-  local wav = pcm_to_wav(pcm, info.channels, info.sample_rate)
+  local wav = pcm_to_wav(pcm, info.channels, info.sample_rate, info.bit_depth)
 
   -- os.tmpname() returns an unwritable drive-root path on Windows; use Paketti's
   -- own temp-path helper (main.lua) which resolves %TEMP% correctly there.

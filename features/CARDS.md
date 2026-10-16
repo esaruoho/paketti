@@ -48,6 +48,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Pedal Record](#pedal-record) — `pedal-record.feature`
 - [Quick edit navigation commands](#quick-edit-navigation) — `quick-edit-navigation.feature`
 - [Repeater control from keys and MIDI](#repeater-control) — `repeater-control.feature`
+- [Preserve RX2 sample depth during pure-Lua import](#rx2-24bit-import) — `rx2-24bit-import.feature`
 - [Load samples and close the browser after keyboard dispatch returns](#sample-browser-deferred-close) — `sample-browser-deferred-close.feature`
 - [Edit preview audio and confirm source deletion](#sample-browser-editing) — `sample-browser-editing.feature`
 - [Preserve preview loops and reject single-cue slicing](#sample-browser-loop-load) — `sample-browser-loop-load.feature`
@@ -880,6 +881,21 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiFindOrInsertRepeater`, `PakettiRepeaterSetActive`, `PakettiRepeaterToggleActive`, `PakettiRepeaterSetMode`, `PakettiRepeaterSetDivision`, `PakettiRepeaterAddActionKeybindings`, `PakettiRepeaterAddActionMidiMappings`, `PakettiRepeaterAddPresetMidiMappings` · **Source files:** `PakettiMidi.lua`
 
 **Grade:** @code-verified ×4 · @runtime-untested ×4 · @shipped ×4 · @stock ×1
+
+
+<a id="rx2-24bit-import"></a>
+## Preserve RX2 sample depth during pure-Lua import
+
+`features/rx2-24bit-import.feature` · [session](rx2-24bit-import.session.md)
+
+**Behaviour (2 scenarios):**
+
+- Preserve real 24-bit stereo audio — `@code-verified @runtime-untested`
+- Preserve signed PCM and align mono chunks — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `pcm_to_wav`, `PakettiRX2ImportNative` · **Source files:** `PakettiRX2Decode.lua`, `tests/rx2_wav_regression.lua`
+
+**Grade:** @code-verified ×2 · @runtime-untested ×2
 
 
 <a id="sample-browser-deferred-close"></a>

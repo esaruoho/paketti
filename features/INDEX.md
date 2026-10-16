@@ -91,3 +91,5 @@ Derived views — GENERATED, never hand-edit:
 - [Preserve duplicated instrument devices](duplicate-instrument-devices.feature) — worktree; shared preset/name copier and macro retargeting; [session](duplicate-instrument-devices.session.md).
 
 | `samplebrain-diagnostics.feature` | Persistent SampleBrain job, candidate-search and render diagnostics | `samplebrain-diagnostics.session.md` | worktree |
+
+| `rx2-24bit-import.feature` | Preserve 24-bit RX2 PCM during Lua import | `rx2-24bit-import.session.md` | worktree |

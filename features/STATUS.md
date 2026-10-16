@@ -54,6 +54,7 @@
 | pedal-record | 11 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | quick-edit-navigation | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | repeater-control | 5 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| rx2-24bit-import | 2 | ✓ | ✗ | — | @code-verified @runtime-untested |
 | sample-browser-deferred-close | 5 | ✗ | ✗ | — | @runtime-untested @sim-verified @stock |
 | sample-browser-editing | 15 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | sample-browser-loop-load | 3 | ✗ | ✗ | — | @runtime-untested @sim-verified |
@@ -74,8 +75,8 @@
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
 
 ## Tally (computed)
-- Cards: 60
-- Build-verified: 50
+- Cards: 61
+- Build-verified: 51
 - Runtime-verified: 3 full + 4 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 
