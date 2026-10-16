@@ -164,55 +164,146 @@ renoise.tool():add_keybinding{name="Global:Paketti:Dump All Settings to Text Fil
   invoke=function() PakettiDumpAllSettings() end}
 
 --------------------------------------------------------------------------------
--- Experimental .wav import hook probe
+-- Experimental .wav import hook
+--
+-- Renoise owns .wav loading, so this is a live test of whether Paketti can
+-- intercept a dragged .wav at all. When the "Paketti WAV Import Hook"
+-- preference is on, Paketti registers a .wav sample import hook. If Renoise
+-- honours it, each dragged .wav is imported by Paketti -- one new pakettified
+-- instrument per file (which is exactly "N dropped wavs = N instruments"). If
+-- Renoise refuses the registration, we learn that and nothing changes.
+--
+-- Import hooks cannot be removed at runtime, so the hook stays registered for
+-- the session once added; it re-reads the preference on every call, so turning
+-- the preference off makes it fall back to a plain add instead of breaking .wav.
 --------------------------------------------------------------------------------
+local paketti_wav_hook_registered = false
 
-function PakettiWavHookProbeRegister()
-  if renoise.tool():has_file_import_hook("sample", {"wav"}) then
-    renoise.app():show_message(
-      "A .wav sample import hook is already registered this session.\n\n"
-      .. "Drag a .wav in to see whether the hook fires. To start over, restart "
-      .. "Renoise (import hooks cannot be removed at runtime).")
-    return
+local function paketti_wav_basename(file_name)
+  local n = tostring(file_name):match("[^/\\]+$") or "Sample"
+  return (n:gsub("%.[^.]+$", ""))
+end
+
+--- The actual import. Returns true if Renoise should consider the file handled.
+function PakettiWavImportHookInvoke(file_name)
+  local on = preferences and preferences.pakettiWavImportHook
+    and preferences.pakettiWavImportHook.value
+
+  if not on then
+    -- Preference off: load the file as a plain sample in the current
+    -- instrument, so .wav loading is never left broken when the hook is still
+    -- registered from earlier in the session.
+    local ok = pcall(function()
+      local song = renoise.song()
+      local inst = song.selected_instrument
+      local idx = #inst.samples + 1
+      inst:insert_sample_at(idx)
+      song.selected_sample_index = idx
+      inst.samples[idx].sample_buffer:load_from(file_name)
+      inst.samples[idx].name = paketti_wav_basename(file_name)
+    end)
+    return ok
   end
 
+  -- Preference on: one new pakettified instrument per dragged .wav.
+  local mon
+  if type(rawget(_G, "PakettiTemporarilyDisableNewSampleMonitoring")) == "function" then
+    mon = PakettiTemporarilyDisableNewSampleMonitoring()
+  end
+  local ok, err = pcall(function()
+    local song = renoise.song()
+    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then
+      error("could not insert instrument")
+    end
+    song.selected_instrument_index = song.selected_instrument_index + 1
+    if type(rawget(_G, "pakettiPreferencesDefaultInstrumentLoader")) == "function" then
+      pakettiPreferencesDefaultInstrumentLoader()  -- pakettify
+    end
+    local inst = song.selected_instrument
+    if #inst.samples == 0 then inst:insert_sample_at(1) end
+    song.selected_sample_index = 1
+    local smp = inst.samples[1]
+    smp.sample_buffer:load_from(file_name)
+    local name = paketti_wav_basename(file_name)
+    inst.name = name
+    smp.name = name
+    renoise.app():show_status("Paketti WAV hook: imported '" .. name .. "' as a new instrument")
+    print("-- PakettiWavImportHook: imported '" .. name .. "' from " .. tostring(file_name))
+  end)
+  if type(rawget(_G, "PakettiRestoreNewSampleMonitoring")) == "function" then
+    PakettiRestoreNewSampleMonitoring(mon)
+  end
+  if not ok then
+    renoise.app():show_status("Paketti WAV hook failed: " .. tostring(err))
+    print("-- PakettiWavImportHook: FAILED on " .. tostring(file_name) .. ": " .. tostring(err))
+    return false
+  end
+  return true
+end
+
+--- Register the hook if it isn't already. Returns ok, message.
+function PakettiWavImportHookRegister()
+  if paketti_wav_hook_registered then return true, "already registered" end
+  if renoise.tool():has_file_import_hook("sample", { "wav" }) then
+    paketti_wav_hook_registered = true
+    return true, "already present"
+  end
   local ok, err = pcall(function()
     renoise.tool():add_file_import_hook{
       category = "sample",
       extensions = { "wav" },
-      invoke = function(file_name)
-        renoise.app():show_message(
-          "WOW PAKETTI LOADED THIS .WAV WOO\n\n"
-          .. tostring(file_name)
-          .. "\n\n(This is the Paketti wav-hook probe. The hook fired, which "
-          .. "means Paketti CAN control .wav drops. It now deliberately does "
-          .. "NOT load the file, to prove the interception. Restart Renoise to "
-          .. "restore normal .wav loading.)")
-        return false  -- deliberately fail, so we can see the hook intercepted it
-      end,
+      invoke = function(file_name) return PakettiWavImportHookInvoke(file_name) end,
     }
   end)
+  if ok then paketti_wav_hook_registered = true end
+  return ok, err
+end
 
-  if ok then
-    renoise.app():show_message(
-      "Paketti registered an experimental .wav import hook.\n\n"
-      .. "Now drag a .wav into Renoise. If a 'WOW PAKETTI...' dialog appears, "
-      .. "the hook controls .wav loading and we can build 'N dropped wavs = N "
-      .. "instruments'.\n\nWARNING: while this hook is active, dragging a .wav "
-      .. "shows the dialog and then FAILS to load (that is the test). Restart "
-      .. "Renoise to restore normal .wav loading.")
-    print("-- PakettiWavHookProbe: wav import hook registered successfully")
+--- Menu/keybinding toggle: flips the preference and registers on first enable.
+function PakettiToggleWavImportHook()
+  local p = preferences.pakettiWavImportHook
+  p.value = not p.value
+  preferences:save_as("preferences.xml")
+  if p.value then
+    local ok, err = PakettiWavImportHookRegister()
+    if ok then
+      renoise.app():show_message(
+        "Paketti WAV Import Hook ENABLED.\n\n"
+        .. "Drag a .wav into Renoise. If Paketti handles it, each dragged .wav "
+        .. "becomes its own pakettified instrument.\n\n"
+        .. "If dragging a .wav still behaves the way Renoise normally does, then "
+        .. "Renoise does not allow .wav to be intercepted.")
+    else
+      p.value = false
+      preferences:save_as("preferences.xml")
+      renoise.app():show_message(
+        "Renoise refused the .wav import hook:\n\n" .. tostring(err)
+        .. "\n\nPaketti cannot intercept .wav drops on this Renoise, so 'N "
+        .. "dropped wavs = N instruments' has to be done after the fact with "
+        .. "'Isolate Slices or Samples to New Instruments'.")
+    end
   else
     renoise.app():show_message(
-      "Renoise REFUSED the .wav import hook:\n\n" .. tostring(err)
-      .. "\n\nThat means Paketti cannot intercept .wav drops, and 'N dropped "
-      .. "wavs = N instruments' has to be done after the fact with "
-      .. "'Isolate Slices or Samples to New Instruments'.")
-    print("-- PakettiWavHookProbe: registration FAILED: " .. tostring(err))
+      "Paketti WAV Import Hook set to OFF.\n\n"
+      .. "New .wav drags load the normal way again. (The hook itself only fully "
+      .. "clears when you restart Renoise, but it honours this OFF setting.)")
   end
 end
 
-PakettiAddMenuEntry{name="Main Menu:Tools:Paketti:Experimental:[TEST] Register .wav Import Hook Probe...",
-  invoke=function() PakettiWavHookProbeRegister() end}
-renoise.tool():add_keybinding{name="Global:Paketti:[TEST] Register wav Import Hook Probe",
-  invoke=function() PakettiWavHookProbeRegister() end}
+-- Register at load if the preference is already on.
+if preferences and preferences.pakettiWavImportHook
+   and preferences.pakettiWavImportHook.value then
+  local ok, err = PakettiWavImportHookRegister()
+  if ok then
+    print("-- Paketti WAV import hook: registered at load")
+  else
+    print("-- Paketti WAV import hook: registration refused -> " .. tostring(err))
+  end
+end
+
+PakettiAddMenuToggleEntry{
+  name = "Main Menu:Tools:Paketti:Experimental:Paketti WAV Import Hook (one instrument per .wav)",
+  invoke = PakettiToggleWavImportHook,
+  get = function() return preferences.pakettiWavImportHook.value end }
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle WAV Import Hook",
+  invoke=function() PakettiToggleWavImportHook() end}

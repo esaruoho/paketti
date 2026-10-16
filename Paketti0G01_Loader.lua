@@ -445,6 +445,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiImportREX = true,           -- REX (.rex) import
   pakettiImportRX2 = true,           -- RX2 (.rx2) import
   pakettiRX2NativeDecoder = false,   -- decode .rx2 in Lua instead of running the external decoder binary
+  pakettiWavImportHook = false,      -- experimental: intercept .wav drops so each becomes its own pakettified instrument
   pakettiImportIFF = true,           -- IFF (.iff, .8svx, .16sv) import
   pakettiImportSF2 = true,           -- SF2 (.sf2) import
   pakettiImportITI = true,           -- ITI (.iti) import
