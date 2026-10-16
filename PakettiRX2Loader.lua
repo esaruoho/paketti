@@ -417,7 +417,7 @@ function PakettiRX2WindowsImportDiagnostic(params)
     add("AutoSamplify monitoring: " .. prefstr(preferences.pakettiAutoSamplifyMonitoring))
     add("AutoSamplify pakettify:  " .. prefstr(preferences.pakettiAutoSamplifyPakettify))
     add("RX2 decode in Lua:       " .. prefstr(preferences.pakettiRX2NativeDecoder)
-      .. "  (ignored on Windows)")
+      .. "  (on = Lua first; exe also falls back to Lua on failure)")
     add("Loader autofade:         " .. prefstr(preferences.pakettiLoaderAutofade))
     add("Loader autoseek:         " .. prefstr(preferences.pakettiLoaderAutoseek))
     add("Loader loop mode:        " .. prefstr(preferences.pakettiLoaderLoopMode))
@@ -477,14 +477,15 @@ function rx2_loadsample(filename)
   --
   -- .rex is not affected: that is a different container entirely and has its own
   -- reader (PakettiRXLegacyImport).
-  -- Windows is kept on the native rex2decoder_win.exe: the pure-Lua decoder has
-  -- been reported to import every .rx2 as silence there, and Windows already
-  -- ships a working native binary, so there is nothing to gain by risking it.
-  -- macOS and Linux still honour the preference (Linux is the one that benefits
-  -- most, since the Lua path needs no Wine). .rex/.rcy are unaffected: they have
+  -- The "RX2 decode in Lua" preference picks the pure-Lua decoder over the
+  -- external binary, on every platform including Windows. Windows used to be
+  -- pinned to rex2decoder_win.exe, but that binary has turned out to fail
+  -- outright on some machines (exit code 1, no WAV written, on a valid file),
+  -- so Windows now honours the preference too -- and, separately, the exe path
+  -- falls back to this same Lua decoder automatically when the binary fails
+  -- (see the decoder-error branch below). .rex/.rcy are unaffected: they have
   -- their own always-Lua reader (PakettiRXLegacyImport) and no binary exists.
   if filename and filename:lower():match("%.rx2$")
-     and os.platform() ~= "WINDOWS"
      and preferences and preferences.pakettiRX2NativeDecoder
      and preferences.pakettiRX2NativeDecoder.value
      and type(rawget(_G, "PakettiRX2ImportNativeSliced")) == "function" then
@@ -647,6 +648,26 @@ if (result ~= 0) then
     renoise.app():show_status("Decoder returned exit code " .. tostring(result) .. "; using generated files.")
   else
     print("Decoder returned error code", result)
+    -- The native binary failed and wrote no WAV. On Windows this is the known
+    -- rex2decoder_win.exe exit-code-1 failure, so rather than give up, fall back
+    -- to the pure-Lua decoder, which reads this same container fine. It creates
+    -- its own instrument and runs its own end-of-import diagnostic, so drop the
+    -- empty instrument this path just made first (unless it was the reused empty
+    -- instrument 00) to avoid leaving a stray behind.
+    if type(rawget(_G, "PakettiRX2ImportNativeSliced")) == "function" then
+      print("RX2: native decoder failed -- falling back to the pure-Lua decoder")
+      renoise.app():show_status("RX2 decoder failed; retrying with Paketti's own decoder...")
+      if not use_existing_instrument then
+        local idx = renoise.song().selected_instrument_index
+        if is_instrument_empty(renoise.song().selected_instrument) then
+          pcall(function() renoise.song():delete_instrument_at(idx) end)
+          renoise.song().selected_instrument_index = math.max(1, idx - 1)
+        end
+      end
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+      PakettiRX2ImportNativeSliced(filename)
+      return true
+    end
     local why = PakettiRX2ExplainDecoderFailure(os_name, result)
     if why then
       print("RX2 decoder: " .. why)
