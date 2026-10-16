@@ -405,6 +405,15 @@ function PakettiRX2ImportNativeSliced(path)
   local dialog, vb
 
   local slicer = ProcessSlicer(function()
+    -- Disable AutoSamplify monitoring for the duration of the import, exactly as
+    -- the external-decoder path does. Without this, if the user has AutoSamplify
+    -- monitoring on, it can fire on the freshly decoded sample and re-process it
+    -- mid-import -- a plausible cause of a bad/silent result. (Restored below.)
+    local AutoSamplifyMonitoringState
+    if type(rawget(_G, "PakettiTemporarilyDisableNewSampleMonitoring")) == "function" then
+      AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
+    end
+
     local ran, ok, msg = pcall(function()
       return PakettiRX2ImportNative(path,
         function() coroutine.yield() end,
@@ -414,6 +423,11 @@ function PakettiRX2ImportNativeSliced(path)
           end
         end)
     end)
+
+    if type(rawget(_G, "PakettiRestoreNewSampleMonitoring")) == "function" then
+      PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
+    end
+
     if dialog and dialog.visible then dialog:close() end
     if not ran then
       renoise.app():show_error("RX2 import failed.\n\n" .. tostring(ok))

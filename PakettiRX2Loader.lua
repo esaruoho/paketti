@@ -377,9 +377,31 @@ function PakettiRX2WindowsImportDiagnostic(params)
   end
   add("")
 
+  -- Preferences that can affect how an import turns out. AutoSamplify
+  -- monitoring is the prime suspect: if it is on, it can re-process a freshly
+  -- loaded sample. The import paths disable it during the import, so this should
+  -- read "on (disabled during import)" -- if it ever shows plain "on", that is
+  -- worth reporting.
+  add("-- Relevant preferences --")
+  if preferences then
+    local function prefstr(p) if p == nil then return "(missing)" end return tostring(p.value) end
+    add("AutoSamplify monitoring: " .. prefstr(preferences.pakettiAutoSamplifyMonitoring))
+    add("AutoSamplify pakettify:  " .. prefstr(preferences.pakettiAutoSamplifyPakettify))
+    add("RX2 decode in Lua:       " .. prefstr(preferences.pakettiRX2NativeDecoder)
+      .. "  (ignored on Windows)")
+    add("Loader autofade:         " .. prefstr(preferences.pakettiLoaderAutofade))
+    add("Loader autoseek:         " .. prefstr(preferences.pakettiLoaderAutoseek))
+    add("Loader loop mode:        " .. prefstr(preferences.pakettiLoaderLoopMode))
+  else
+    add("(preferences table unavailable)")
+  end
+  add("")
+
   add("-- Environment --")
   add("Renoise " .. tostring(renoise.RENOISE_VERSION)
     .. "  (API " .. tostring(renoise.API_VERSION) .. "),  OS: Windows")
+  add("")
+  add("For a full settings report use Tools > Paketti > Dump All Paketti Settings.")
   add("")
   add("Please SCREENSHOT this window and email it to " .. RX2_DIAG_EMAIL)
   add("so this RX2 can be fixed on Windows.")

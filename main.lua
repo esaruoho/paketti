@@ -1299,6 +1299,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Toggle Select Track Selects Instru
 -- ----------------------------------------------------------------------------
 -- API 4+ modules (safe for Renoise 2.8+) — load unconditionally
 -- ----------------------------------------------------------------------------
+timed_require("PakettiDebug")
 timed_require("PakettieSpeak")
 timed_require("PakettiLaunchApp")
 timed_require("PakettiDeviceChains")
