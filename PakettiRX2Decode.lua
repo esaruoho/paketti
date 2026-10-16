@@ -354,7 +354,9 @@ function PakettiRX2ImportNative(path, yield_fn, status_fn)
   if yield_fn then yield_fn() end
   local wav = pcm_to_wav(pcm, info.channels, info.sample_rate)
 
-  local tmp = os.tmpname() .. ".wav"
+  -- os.tmpname() returns an unwritable drive-root path on Windows; use Paketti's
+  -- own temp-path helper (main.lua) which resolves %TEMP% correctly there.
+  local tmp = pakettiGetTempFilePath(".wav")
   local wf = io.open(tmp, "wb")
   if not wf then return false, "could not write a temporary WAV" end
   wf:write(wav)

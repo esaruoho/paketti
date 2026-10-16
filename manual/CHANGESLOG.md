@@ -1,3 +1,9 @@
+### 2026-10-16 - Fix: Windows RX2 import no longer renders as silence
+On Windows, importing an .rx2 now always uses the bundled native decoder (rex2decoder_win.exe) again. The optional pure-Lua RX2 decoder ("..RX2: decode in Lua" in Paketti Preferences) was reported to import every .rx2 as silence on Windows, so the preference is now ignored on Windows and honoured only on macOS and Linux (where Linux benefits most — the Lua path needs no Wine). Separately, both Lua readers — the RX2 decoder and the always-Lua REX 1 / ReCycle (.rex/.rcy) importer — now write their temporary WAV through Paketti's own temp-path helper instead of os.tmpname(), which returns an unwritable drive-root path on Windows; this is what .rex/.rcy import needs on Windows since there is no external binary for that format.
+- Menu: `Main Menu:File:Paketti Import:RX2 with Paketti's Own Decoder (no Wine)...` (macOS/Linux)
+- Menu: `Main Menu:File:Paketti Import:REX 1 / ReCycle Document (.rex/.rcy)...`
+- Preference: Paketti Preferences → "..RX2: decode in Lua" (no effect on Windows)
+
 ### Improvement: Real 480 ms AHDSR release for preference-enabled sample loading
 When the loader AHDSR preference is on, newly loaded instruments receive an activated Volume AHDSR with Release set using Renoise's "480 ms" parser. Timestretch also offers an explicit 480 ms button that changes Release and turns tempo sync off without enabling or resetting the envelope. Paketti reload never applies these edits. Other envelope stages remain unchanged.
 

@@ -272,7 +272,14 @@ function rx2_loadsample(filename)
   --
   -- .rex is not affected: that is a different container entirely and has its own
   -- reader (PakettiRXLegacyImport).
+  -- Windows is kept on the native rex2decoder_win.exe: the pure-Lua decoder has
+  -- been reported to import every .rx2 as silence there, and Windows already
+  -- ships a working native binary, so there is nothing to gain by risking it.
+  -- macOS and Linux still honour the preference (Linux is the one that benefits
+  -- most, since the Lua path needs no Wine). .rex/.rcy are unaffected: they have
+  -- their own always-Lua reader (PakettiRXLegacyImport) and no binary exists.
   if filename and filename:lower():match("%.rx2$")
+     and os.platform() ~= "WINDOWS"
      and preferences and preferences.pakettiRX2NativeDecoder
      and preferences.pakettiRX2NativeDecoder.value
      and type(rawget(_G, "PakettiRX2ImportNativeSliced")) == "function" then

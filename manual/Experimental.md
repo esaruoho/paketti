@@ -8805,6 +8805,8 @@ Imports ReCycle 2.x format loops using external decoder (rex2decoder).
 - **Windows:** `rex2decoder_win.exe`
 - **Linux:** `rex2decoder_win.exe` via Wine (requires Wine installed)
 
+**Pure-Lua decoder option (no external binary):** Paketti Preferences has a "..RX2: decode in Lua" checkbox that decodes the REX2 audio codec directly in Lua, with no decoder binary and no Wine. It is off by default. It is honoured on macOS and Linux (Linux benefits most — it removes the Wine requirement entirely), but **ignored on Windows**, where the native `rex2decoder_win.exe` is always used — the Lua decoder was reported to import every .rx2 as silence on Windows. There is also an explicit menu entry `Main Menu:File:Paketti Import:RX2 with Paketti's Own Decoder (no Wine)...` for the Lua path. Note that the Lua decoder keeps the file's own raw timeline, so its slice markers line up with the file's frame numbers, whereas the external decoder renders the loop time-stretched to a target tempo.
+
 **Error Handling:**
 - Validates decoder exit code
 - Checks output file existence (even on non-zero exit)

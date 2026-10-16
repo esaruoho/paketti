@@ -551,7 +551,9 @@ function PakettiRXLegacyImport(path)
     return false, string.format("%d-bit audio is not supported", info.bit_depth)
   end
 
-  local tmp = os.tmpname() .. ".wav"
+  -- os.tmpname() returns an unwritable drive-root path on Windows; use Paketti's
+  -- own temp-path helper (main.lua) which resolves %TEMP% correctly there.
+  local tmp = pakettiGetTempFilePath(".wav")
   local wf = io.open(tmp, "wb")
   if not wf then return false, "could not write a temporary WAV" end
   wf:write(wav)
