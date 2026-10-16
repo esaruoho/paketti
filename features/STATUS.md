@@ -73,10 +73,11 @@
 | transient-navigation-detection | 6 | ✓ | — | — | @code-verified @shipped @sim-verified @stock |
 | treemenu | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | tx16w-cyclone-images | 15 | ✓ | ~ partial | — | @built @code-verified @runtime-untested @runtime-verified @shipped @stock |
+| wav-import-destination | 6 | ✓ | ✗ | — | @code-verified @runtime-untested |
 
 ## Tally (computed)
-- Cards: 61
-- Build-verified: 51
+- Cards: 62
+- Build-verified: 52
 - Runtime-verified: 3 full + 4 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 1
 

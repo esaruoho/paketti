@@ -120,8 +120,14 @@ function PakettiRX2ReadInfo(path)
       info.analysis_sensitivity = body:byte(10)
       info.gate_sensitivity = be_u16(body, 11)
       local tempo = be_u32(body, 17)
-      -- stored as milli-BPM, and REX clamps to a sane musical range
-      if tempo and tempo >= 20000 and tempo <= 450000 then
+      -- Stored as milli-BPM. REX itself analyses loops in whatever metre fits, so
+      -- a riff a musician calls 115 BPM is often stored double- or quad-time
+      -- (230 or 460 BPM) with a matching bar count -- that is the file's own
+      -- value, not a read error, and it agrees with the frame-derived tempo
+      -- below. The sanity window only rejects a garbage field; the old 450 BPM
+      -- ceiling was too low and turned a real quad-time tempo into a bogus flat
+      -- "450.000", so allow up to 1000 BPM.
+      if tempo and tempo >= 20000 and tempo <= 1000000 then
         info.tempo = tempo / 1000
       end
 

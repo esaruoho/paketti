@@ -98,4 +98,4 @@
 - Resume: `claude --resume e6609b84-5960-4c92-997e-aed20a0b90fd`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/e6609b84-5960-4c92-997e-aed20a0b90fd.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): TEMPLATE.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
+- Cards touched (5): TEMPLATE.feature, menu-registration-duplicates.feature, rx2-24bit-import.feature, song-lifecycle-safety.feature, wav-import-destination.feature
