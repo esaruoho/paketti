@@ -340,6 +340,7 @@ function PakettiRX2WindowsImportDiagnostic(params)
   else
     add("Import result: FAILED -- " .. tostring(params.error_message or "unknown"))
   end
+  if params.note then add("Note:    " .. tostring(params.note)) end
   add("")
 
   -- Container metadata straight from the file, independent of the decoder
@@ -480,7 +481,8 @@ end
 --------------------------------------------------------------------------------
 -- Main RX2 import function using the external decoder
 --------------------------------------------------------------------------------
-function rx2_loadsample(filename)
+function rx2_loadsample(filename, opts)
+  opts = opts or {}
   -- Paketti has two ways to read a .rx2: this one, which runs the external
   -- decoder (native on macOS and Windows, the Windows build under Wine on Linux),
   -- and PakettiRX2Decode.lua, which decodes the codec in Lua with nothing
@@ -498,7 +500,11 @@ function rx2_loadsample(filename)
   -- falls back to this same Lua decoder automatically when the binary fails
   -- (see the decoder-error branch below). .rex/.rcy are unaffected: they have
   -- their own always-Lua reader (PakettiRXLegacyImport) and no binary exists.
-  if filename and filename:lower():match("%.rx2$")
+  -- opts.force_exe skips this Lua dispatch: it is how the Lua path itself hands
+  -- a file back to the external decoder when the Lua decode fails or is silent,
+  -- without bouncing straight back here into an endless loop.
+  if not opts.force_exe
+     and filename and filename:lower():match("%.rx2$")
      and preferences and preferences.pakettiRX2NativeDecoder
      and preferences.pakettiRX2NativeDecoder.value
      and type(rawget(_G, "PakettiRX2ImportNativeSliced")) == "function" then
@@ -693,6 +699,7 @@ if (result ~= 0) then
       decoder = "Windows native decoder (rex2decoder_win.exe)",
       decoder_path = rex_decoder_path, decoder_exit_code = result,
       success = false, error_message = why or ("decoder exit code " .. tostring(result)),
+      note = opts.diag_note,
     }
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -734,6 +741,7 @@ end
       decoder = "Windows native decoder (rex2decoder_win.exe)",
       decoder_path = rex_decoder_path, decoder_exit_code = result,
       success = false, error_message = "no audio data in decoded WAV", sample = smp,
+      note = opts.diag_note,
     }
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -837,6 +845,7 @@ end
     decoder = "Windows native decoder (rex2decoder_win.exe)",
     decoder_path = rex_decoder_path, decoder_exit_code = result,
     success = true, sample = renoise.song().selected_sample,
+    note = opts.diag_note,
   }
 
   -- Restore AutoSamplify monitoring state

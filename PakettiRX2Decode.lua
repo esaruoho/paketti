@@ -429,22 +429,67 @@ function PakettiRX2ImportNativeSliced(path)
     end
 
     if dialog and dialog.visible then dialog:close() end
-    if not ran then
-      renoise.app():show_error("RX2 import failed.\n\n" .. tostring(ok))
-    elseif ok then
-      renoise.app():show_status(msg)
-      print("-- PakettiRX2ImportNative: " .. tostring(msg))
-    else
-      renoise.app():show_error("RX2 import failed.\n\n" .. tostring(msg))
+
+    -- Did the Lua decode actually produce audio? It "fails" three ways: a crash
+    -- (not ran), a clean false return (not ok), or a sample that loaded but is
+    -- silent/empty (the classic "RX2 imports as silence" symptom). Any of those
+    -- means we should hand the file to the external decoder instead.
+    local function sample_is_silent()
+      local s = renoise.song().selected_sample
+      if not (s and s.sample_buffer and s.sample_buffer.has_sample_data) then
+        return true
+      end
+      local buf = s.sample_buffer
+      local frames = buf.number_of_frames
+      local chans = buf.number_of_channels
+      local step = math.max(1, math.floor(frames / 20000))
+      local f = 1
+      while f <= frames do
+        for c = 1, chans do
+          local okp, v = pcall(function() return buf:sample_data(c, f) end)
+          if okp and v and v ~= 0 then return false end
+        end
+        f = f + step
+      end
+      return true
     end
-    -- On Windows, end with the shared diagnostic so a bad Lua-decoder import
-    -- carries the same debuggable report as the native-decoder path.
+
+    local lua_failed = (not ran) or (not ok) or sample_is_silent()
+
+    if lua_failed and type(rawget(_G, "rx2_loadsample")) == "function" then
+      -- Fall back to the external decoder. Drop the instrument the Lua attempt
+      -- left (empty or silent) so the exe path's fresh instrument is the only
+      -- one, then force the exe branch (force_exe skips the Lua dispatch) and let
+      -- IT raise the end-of-import diagnostic, tagged so jed28's screenshot shows
+      -- the Lua decoder was tried first and why the exe took over.
+      local reason = (not ran) and ("Lua decoder crashed: " .. tostring(ok))
+        or (not ok) and ("Lua decoder failed: " .. tostring(msg))
+        or "Lua decoder produced silence"
+      print("-- RX2 Lua decode failed (" .. reason .. ") -- falling back to the external decoder")
+      renoise.app():show_status("Lua RX2 decode failed; retrying with the external decoder...")
+      pcall(function()
+        local song = renoise.song()
+        if #song.instruments > 1 then
+          local idx = song.selected_instrument_index
+          song:delete_instrument_at(idx)
+          song.selected_instrument_index = math.max(1, idx - 1)
+        end
+      end)
+      rx2_loadsample(path, {
+        force_exe = true,
+        diag_note = reason .. " -- fell back to the external decoder (rex2decoder_win.exe).",
+      })
+      return
+    end
+
+    -- Lua produced audio: report success and show its own diagnostic (Windows).
+    renoise.app():show_status(msg)
+    print("-- PakettiRX2ImportNative: " .. tostring(msg))
     if type(rawget(_G, "PakettiRX2WindowsImportDiagnostic")) == "function" then
       PakettiRX2WindowsImportDiagnostic{
         filename = path,
         decoder = "Pure-Lua decoder (PakettiRX2Decode, no binary)",
-        success = (ran and ok) and true or false,
-        error_message = (not ran and tostring(ok)) or (not ok and tostring(msg)) or nil,
+        success = true,
         sample = renoise.song().selected_sample,
       }
     end
