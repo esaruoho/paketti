@@ -98,6 +98,19 @@ end
 -- Quoting a path for /bin/sh lives in PakettiFSPath so every shell-out in
 -- Paketti uses the same one.
 local function rx2_shell_quote(str)
+  -- os.execute() runs through cmd.exe on Windows, which treats single quotes as
+  -- LITERAL characters, not quoting -- only double quotes quote. pakettiFSPath's
+  -- POSIX shell_quote wraps in single quotes, so on Windows the decoder command
+  -- became  'C:\...\rex2decoder_win.exe' 'input' ...  and cmd.exe tried to launch
+  -- a program literally named with a leading quote, exited 1, and wrote no WAV --
+  -- which looked like "the exe is broken" but was really the quoting. The original
+  -- command used Lua's %q (double quotes) and worked for years; this restores that
+  -- on Windows while keeping POSIX single-quoting on macOS and Linux (the Linux
+  -- Wine command still goes through /bin/sh). Paths don't contain double quotes,
+  -- so stripping any is safe and avoids cmd.exe's awful quote-escaping rules.
+  if os.platform() == "WINDOWS" then
+    return '"' .. tostring(str):gsub('"', '') .. '"'
+  end
   return pakettiFSPath.shell_quote(str)
 end
 
