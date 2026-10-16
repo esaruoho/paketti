@@ -217,7 +217,7 @@ function PakettiWavImportHookInvoke(file_name)
     end
     song.selected_instrument_index = song.selected_instrument_index + 1
     if type(rawget(_G, "pakettiPreferencesDefaultInstrumentLoader")) == "function" then
-      pakettiPreferencesDefaultInstrumentLoader()  -- pakettify
+      pakettiPreferencesDefaultInstrumentLoader()  -- pakettify (loads the 12st template)
     end
     local inst = song.selected_instrument
     if #inst.samples == 0 then inst:insert_sample_at(1) end
@@ -227,6 +227,24 @@ function PakettiWavImportHookInvoke(file_name)
     local name = paketti_wav_basename(file_name)
     inst.name = name
     smp.name = name
+
+    -- A multi-file drag from Finder (unlike the Renoise disk browser) makes
+    -- Renoise pre-allocate a sample slot per file, which can leave an empty
+    -- "Sample 01" placeholder behind and, on the last file, collapse the key
+    -- mapping to a single note. Clean up both deterministically:
+    --   1) remove every OTHER sample slot that has no audio data
+    for i = #inst.samples, 1, -1 do
+      if i ~= 1 and not inst.samples[i].sample_buffer.has_sample_data then
+        inst:delete_sample_at(i)
+      end
+    end
+    --   2) force the loaded sample to the full chromatic range (C-0..B-9)
+    pcall(function()
+      smp.sample_mapping.base_note = 48          -- C-4
+      smp.sample_mapping.note_range = { 0, 119 } -- C-0 .. B-9
+      smp.sample_mapping.velocity_range = { 0, 127 }
+    end)
+
     renoise.app():show_status("Paketti WAV hook: imported '" .. name .. "' as a new instrument")
     print("-- PakettiWavImportHook: imported '" .. name .. "' from " .. tostring(file_name))
   end)

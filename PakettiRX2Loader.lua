@@ -377,6 +377,35 @@ function PakettiRX2WindowsImportDiagnostic(params)
   end
   add("")
 
+  -- Independent test of the pure-Lua decoder, so one screenshot shows whether
+  -- the Lua path would have produced audio or silence for this same file --
+  -- without importing anything. Capped to the first chunk of frames so the
+  -- blocking decode stays quick.
+  add("-- Lua decoder test (decode only, not imported) --")
+  if info and info.audio_offset
+     and type(rawget(_G, "PakettiRX2DecodeDWOP")) == "function" then
+    local ok, res = pcall(function()
+      local fh = io.open(params.filename, "rb")
+      if not fh then return "could not open file" end
+      local data = fh:read("*a"); fh:close()
+      local payload = data:sub(info.audio_offset, info.audio_offset + info.audio_bytes - 1)
+      local cap = math.min(info.total_frames or 0, 50000)
+      local pcm, got = PakettiRX2DecodeDWOP(payload, cap, info.channels, info.bit_depth, nil)
+      if not pcm then
+        return string.format("decode FAILED after %d of %d frames", got or 0, cap)
+      end
+      local peak = 0
+      for i = 1, #pcm do local v = pcm[i] if v < 0 then v = -v end if v > peak then peak = v end end
+      local maxamp = (info.bit_depth == 24) and 8388607 or 32767
+      return string.format("decoded first %d frames OK, peak %d / %d%s",
+        cap, peak, maxamp, (peak == 0) and "   >>> LUA ALSO SILENT <<<" or "   (Lua produced audio)")
+    end)
+    add(tostring(res))
+  else
+    add("(Lua decoder unavailable or no audio chunk)")
+  end
+  add("")
+
   -- Preferences that can affect how an import turns out. AutoSamplify
   -- monitoring is the prime suspect: if it is on, it can re-process a freshly
   -- loaded sample. The import paths disable it during the import, so this should
