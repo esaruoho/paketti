@@ -447,7 +447,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   -- REPORT-CARD >> features/rx2-24bit-import.feature
   pakettiRX2DebugDialog = false,     -- opt in to the Windows RX2 import diagnostic dialog
   pakettiRX2NativeDecoder = true,   -- decode .rx2 in Lua instead of running the external decoder binary
-  pakettiWavImportHook = false,      -- experimental: intercept .wav drops so each becomes its own pakettified instrument
+  pakettiWavImportHook = false,      -- additive WAV/AIFF/AIF/FLAC/MP3 drops, one pakettified instrument per file
   pakettiImportIFF = true,           -- IFF (.iff, .8svx, .16sv) import
   pakettiImportSF2 = true,           -- SF2 (.sf2) import
   pakettiImportITI = true,           -- ITI (.iti) import

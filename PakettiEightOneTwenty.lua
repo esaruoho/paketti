@@ -6263,6 +6263,7 @@ local function paketti_midimix_on_midi(message)
 end
 
 function PakettiEightOneTwentyMidiMixOpen()
+  if PakettiTrackMute then PakettiTrackMute.release_family("mix") end
   if paketti_midimix_in then return true end  -- already open
   local in_name, out_name = paketti_midimix_find_device()
   if not in_name and not out_name then
@@ -7115,6 +7116,7 @@ function PakettiEightOneTwentyAPCSeqStop()
 end
 
 function PakettiEightOneTwentyAPCSeqStart()
+  if PakettiTrackMute then PakettiTrackMute.release_family("apc") end
   -- Already armed and the device is open? Don't churn (close+reopen the MIDI
   -- device) — this is called on every 8120 dialog open and 16/32 toggle. Just
   -- repaint and bail.
@@ -7636,6 +7638,7 @@ function PakettiEightOneTwentyLPD8SeqStop()
 end
 
 function PakettiEightOneTwentyLPD8SeqStart()
+  if PakettiTrackMute then PakettiTrackMute.release_family("lpd8") end
   if paketti_lpd8_anim_fn then PakettiEightOneTwentyLPD8AnimStop() end  -- stop any LED animation
   -- NOTE: the LPD8 no longer forces 8-step mode. It pages its 8 pads over whatever
   -- the groovebox step count is (8/16/32), so you can stay in 16- or 32-step mode

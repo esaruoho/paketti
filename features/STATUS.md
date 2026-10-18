@@ -69,6 +69,7 @@
 | song-lifecycle-safety | 3 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
 | stretch-envelope-preservation | 4 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | subcolumn-only-invert | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
+| track-mute-controller | 6 | ✓ | ✗ | ✗ | @built @code-verified @hw-untested @runtime-untested @sim-verified |
 | transient-integration | 4 | ✗ | ✗ | — | @runtime-untested @sim-verified |
 | transient-navigation-detection | 6 | ✓ | — | — | @code-verified @shipped @sim-verified @stock |
 | treemenu | 7 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
@@ -76,8 +77,8 @@
 | wav-import-destination | 6 | ✓ | ✗ | — | @code-verified @runtime-untested |
 
 ## Tally (computed)
-- Cards: 62
-- Build-verified: 52
+- Cards: 63
+- Build-verified: 53
 - Runtime-verified: 3 full + 4 partial
-- **Hardware-verified: 6**  ·  hardware-untested: 1
+- **Hardware-verified: 6**  ·  hardware-untested: 2
 

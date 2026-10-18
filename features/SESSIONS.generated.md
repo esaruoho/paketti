@@ -8,13 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**15 card conversations** plugged in:
-
-### `8379aae6-4712-41fd-b9e4-5adb17cb0a1a`  (2026-09-16)
-- Resume: `claude --resume 8379aae6-4712-41fd-b9e4-5adb17cb0a1a`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/8379aae6-4712-41fd-b9e4-5adb17cb0a1a.jsonl
-- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, song-lifecycle-safety.feature
+**14 card conversations** plugged in:
 
 ### `4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`  (2026-09-17 → 2026-09-18)
 - Resume: `claude --resume 4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`

@@ -12,7 +12,7 @@ Two tools live here:
     .wav loading, so Paketti cannot normally intercept a dragged .wav. This
     registers a .wav sample import hook at runtime and, on the next .wav, shows
     a dialog proving the hook fired. If it fires, Paketti CAN control .wav drops
-    (and "N dropped wavs = N instruments" becomes buildable). The hook stays
+    (and "N dropped files = N instruments" becomes buildable). The hook stays
     active until Renoise is restarted.
 ============================================================================]]--
 
@@ -164,13 +164,13 @@ renoise.tool():add_keybinding{name="Global:Paketti:Dump All Settings to Text Fil
   invoke=function() PakettiDumpAllSettings() end}
 
 --------------------------------------------------------------------------------
--- Experimental .wav import hook
+-- Additive WAV/AIFF/AIF/FLAC/MP3 import hook
 --
 -- Renoise owns .wav loading, so this is a live test of whether Paketti can
 -- intercept a dragged .wav at all. When the "Paketti WAV Import Hook"
--- preference is on, Paketti registers a .wav sample import hook. If Renoise
+-- preference is on, Paketti registers sample import hooks for these formats. If Renoise
 -- honours it, each dragged .wav is imported by Paketti -- one new pakettified
--- instrument per file (which is exactly "N dropped wavs = N instruments"). If
+-- instrument per file (which is exactly "N dropped files = N instruments"). If
 -- Renoise refuses the registration, we learn that and nothing changes.
 --
 -- Import hooks cannot be removed at runtime, so the hook stays registered for
@@ -178,6 +178,87 @@ renoise.tool():add_keybinding{name="Global:Paketti:Dump All Settings to Text Fil
 -- the preference off makes it fall back to a plain add instead of breaking .wav.
 --------------------------------------------------------------------------------
 local paketti_wav_hook_registered = false
+
+-- REPORT-CARD >> features/wav-import-destination.feature
+-- Remember pre-existing slots between drops, including intentionally empty ones.
+-- Only a new, blank destination created by Renoise during this drop is reusable.
+local paketti_wav_existing = {}
+local paketti_wav_pending = {}
+
+local function paketti_wav_finish_sample(inst, smp, cues)
+  -- The host may have inserted placeholders after invoke returned. Locate the
+  -- exact loaded sample rather than assuming it is still at sample index 1.
+  local present = false
+  for _, sample in ipairs(inst.samples) do
+    if sample == smp then present = true; break end
+  end
+  if not present or not smp.sample_buffer.has_sample_data then return end
+  for i = #inst.samples, 1, -1 do
+    if inst.samples[i] ~= smp and not inst.samples[i].is_slice_alias
+        and not inst.samples[i].sample_buffer.has_sample_data then
+      inst:delete_sample_at(i)
+    end
+  end
+  smp.sample_mapping.base_note = 48
+  smp.sample_mapping.note_range = {0, 119}
+  smp.sample_mapping.velocity_range = {0, 127}
+  if cues and #cues > 1 then
+    -- RIFF cue offsets are zero-based sample frames; Renoise slices are one-based.
+    local positions, seen = {1}, {[1] = true}
+    local frames = smp.sample_buffer.number_of_frames
+    for _, cue in ipairs(cues) do
+      local pos = cue.offset + 1
+      if pos >= 1 and pos <= frames and pos == math.floor(pos) and not seen[pos] then
+        positions[#positions + 1] = pos
+        seen[pos] = true
+      end
+    end
+    table.sort(positions)
+    -- Replace any native cue interpretation to avoid duplicate/off-by-one slices.
+    local old = {}
+    for _, pos in ipairs(smp.slice_markers) do old[#old + 1] = pos end
+    for _, pos in ipairs(old) do smp:delete_slice_marker(pos) end
+    for i = 1, math.min(255, #positions) do smp:insert_slice_marker(positions[i]) end
+  end
+end
+
+local function paketti_wav_remember_instruments()
+  local ok, song = pcall(renoise.song)
+  if not ok or not song then return end
+  local pending = paketti_wav_pending
+  paketti_wav_pending = {}
+  for _, item in ipairs(pending) do
+    -- A document switch or instrument deletion invalidates the queued target.
+    if item.song == song then
+      for _, inst in ipairs(song.instruments) do
+        if inst == item.instrument then
+          local ok_finish, err = pcall(paketti_wav_finish_sample, inst, item.sample, item.cues)
+          if not ok_finish then
+            print("-- Paketti WAV post-drop cleanup failed: " .. tostring(err))
+            renoise.app():show_status("Paketti WAV cleanup failed: " .. tostring(err))
+          end
+          break
+        end
+      end
+    end
+  end
+  paketti_wav_existing = {}
+  for _, inst in ipairs(song.instruments) do paketti_wav_existing[inst] = true end
+end
+paketti_wav_remember_instruments()
+renoise.tool().app_idle_observable:add_notifier(paketti_wav_remember_instruments)
+
+local function paketti_wav_blank_destination(inst)
+  if not inst or paketti_wav_existing[inst] or inst.name ~= "" then return false end
+  if #inst.phrases > 0 or #inst.sample_device_chains > 0 then return false end
+  if inst.plugin_properties.plugin_loaded then return false end
+  if inst.midi_output_properties.device_name ~= "" then return false end
+  for _, sample in ipairs(inst.samples) do
+    if sample.sample_buffer.has_sample_data then return false end
+  end
+  return true
+end
+
 
 local function paketti_wav_basename(file_name)
   local n = tostring(file_name):match("[^/\\]+$") or "Sample"
@@ -212,10 +293,14 @@ function PakettiWavImportHookInvoke(file_name)
   end
   local ok, err = pcall(function()
     local song = renoise.song()
-    if not safeInsertInstrumentAt(song, song.selected_instrument_index + 1) then
-      error("could not insert instrument")
+    if not paketti_wav_blank_destination(song.selected_instrument) then
+      local index = song.selected_instrument_index + 1
+      if not safeInsertInstrumentAt(song, index) then
+        error("could not insert instrument")
+      end
+      song.selected_instrument_index = index
     end
-    song.selected_instrument_index = song.selected_instrument_index + 1
+    paketti_wav_existing[song.selected_instrument] = true
     if type(rawget(_G, "pakettiPreferencesDefaultInstrumentLoader")) == "function" then
       pakettiPreferencesDefaultInstrumentLoader()  -- pakettify (loads the 12st template)
     end
@@ -223,27 +308,25 @@ function PakettiWavImportHookInvoke(file_name)
     if #inst.samples == 0 then inst:insert_sample_at(1) end
     song.selected_sample_index = 1
     local smp = inst.samples[1]
-    smp.sample_buffer:load_from(file_name)
+    local cues
+    if tostring(file_name):lower():match("%.wav$")
+        and type(rawget(_G, "PakettiWavCueParseWavCues")) == "function" then
+      local parsed, info = pcall(PakettiWavCueParseWavCues, file_name)
+      if parsed and info and info.cues and #info.cues > 1 then cues = info.cues end
+    end
+    if not smp.sample_buffer:load_from(file_name) then
+      error("could not load WAV sample: " .. tostring(file_name))
+    end
     local name = paketti_wav_basename(file_name)
     inst.name = name
     smp.name = name
 
-    -- A multi-file drag from Finder (unlike the Renoise disk browser) makes
-    -- Renoise pre-allocate a sample slot per file, which can leave an empty
-    -- "Sample 01" placeholder behind and, on the last file, collapse the key
-    -- mapping to a single note. Clean up both deterministically:
-    --   1) remove every OTHER sample slot that has no audio data
-    for i = #inst.samples, 1, -1 do
-      if i ~= 1 and not inst.samples[i].sample_buffer.has_sample_data then
-        inst:delete_sample_at(i)
-      end
-    end
-    --   2) force the loaded sample to the full chromatic range (C-0..B-9)
-    pcall(function()
-      smp.sample_mapping.base_note = 48          -- C-4
-      smp.sample_mapping.note_range = { 0, 119 } -- C-0 .. B-9
-      smp.sample_mapping.velocity_range = { 0, 127 }
-    end)
+    paketti_wav_finish_sample(inst, smp)
+    -- Renoise completes its sample-slot allocation and key mapping AFTER this
+    -- callback. Finalize every imported destination again on the next idle.
+    paketti_wav_pending[#paketti_wav_pending + 1] = {
+      song = song, instrument = inst, sample = smp, cues = cues
+    }
 
     renoise.app():show_status("Paketti WAV hook: imported '" .. name .. "' as a new instrument")
     print("-- PakettiWavImportHook: imported '" .. name .. "' from " .. tostring(file_name))
@@ -262,16 +345,16 @@ end
 --- Register the hook if it isn't already. Returns ok, message.
 function PakettiWavImportHookRegister()
   if paketti_wav_hook_registered then return true, "already registered" end
-  if renoise.tool():has_file_import_hook("sample", { "wav" }) then
-    paketti_wav_hook_registered = true
-    return true, "already present"
-  end
   local ok, err = pcall(function()
-    renoise.tool():add_file_import_hook{
-      category = "sample",
-      extensions = { "wav" },
-      invoke = function(file_name) return PakettiWavImportHookInvoke(file_name) end,
-    }
+    for _, ext in ipairs({"wav", "aiff", "aif", "flac", "mp3"}) do
+      if not renoise.tool():has_file_import_hook("sample", {ext}) then
+        renoise.tool():add_file_import_hook{
+          category = "sample",
+          extensions = {ext},
+          invoke = function(file_name) return PakettiWavImportHookInvoke(file_name) end,
+        }
+      end
+    end
   end)
   if ok then paketti_wav_hook_registered = true end
   return ok, err
@@ -286,24 +369,24 @@ function PakettiToggleWavImportHook()
     local ok, err = PakettiWavImportHookRegister()
     if ok then
       renoise.app():show_message(
-        "Paketti WAV Import Hook ENABLED.\n\n"
-        .. "Drag a .wav into Renoise. If Paketti handles it, each dragged .wav "
+        "Paketti Audio Import Hook ENABLED.\n\n"
+        .. "Drag WAV, AIFF, AIF, FLAC or MP3 into Renoise. Each file "
         .. "becomes its own pakettified instrument.\n\n"
-        .. "If dragging a .wav still behaves the way Renoise normally does, then "
-        .. "Renoise does not allow .wav to be intercepted.")
+        .. "If dragging audio still behaves the way Renoise normally does, then "
+        .. "Renoise did not intercept that audio format.")
     else
       p.value = false
       preferences:save_as("preferences.xml")
       renoise.app():show_message(
-        "Renoise refused the .wav import hook:\n\n" .. tostring(err)
-        .. "\n\nPaketti cannot intercept .wav drops on this Renoise, so 'N "
-        .. "dropped wavs = N instruments' has to be done after the fact with "
+        "Renoise refused an audio import hook:\n\n" .. tostring(err)
+        .. "\n\nPaketti cannot intercept those audio drops on this Renoise, so 'N "
+        .. "dropped files = N instruments' has to be done after the fact with "
         .. "'Isolate Slices or Samples to New Instruments'.")
     end
   else
     renoise.app():show_message(
-      "Paketti WAV Import Hook set to OFF.\n\n"
-      .. "New .wav drags load the normal way again. (The hook itself only fully "
+      "Paketti Audio Import Hook set to OFF.\n\n"
+      .. "New audio drags load the normal way again. (The hook itself only fully "
       .. "clears when you restart Renoise, but it honours this OFF setting.)")
   end
 end
@@ -320,7 +403,7 @@ if preferences and preferences.pakettiWavImportHook
 end
 
 PakettiAddMenuToggleEntry{
-  name = "Main Menu:Tools:Paketti:Experimental:Paketti WAV Import Hook (one instrument per .wav)",
+  name = "Main Menu:Tools:Paketti:Experimental:Paketti Audio Import Hook (WAV/AIFF/AIF/FLAC/MP3)",
   invoke = PakettiToggleWavImportHook,
   get = function() return preferences.pakettiWavImportHook.value end }
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle WAV Import Hook",
