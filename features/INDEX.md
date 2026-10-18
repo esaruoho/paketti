@@ -11,6 +11,7 @@ Derived views — GENERATED, never hand-edit:
 
 | Card | What it covers | Session | Shipped in |
 |------|----------------|---------|------------|
+| `track-mute-controller.feature` | Track Mute Controller setup and Track Mute Modes performance dialogs with MIDI feedback | `track-mute-controller.session.md` | worktree |
 | `2026-06-11-groovebox-controller-follow-and-menu.feature` | AKAI controller debug/demo entries moved out of the Groovebox menu | `2026-06-11-groovebox-controller-follow-and-menu.session.md` | `37f054b1` `aae34805` `5483d3e3` |
 | `2026-06-11-ui-fixes-and-menu-config.feature` | Groovebox 8120 Kit loader status column alignment | `2026-06-11-ui-fixes-and-menu-config.session.md` | `47e81a77` `bc06819a` `2a1bce7a` |
 | `clipboard-pattern-to-phrase.feature` | Clipboard paste from Pattern Editor into Phrase Editor clears pattern instrument values instead of treating them as phrase sample selectors | `clipboard-pattern-to-phrase.session.md` | worktree |
@@ -93,3 +94,5 @@ Derived views — GENERATED, never hand-edit:
 | `samplebrain-diagnostics.feature` | Persistent SampleBrain job, candidate-search and render diagnostics | `samplebrain-diagnostics.session.md` | worktree |
 
 | `rx2-24bit-import.feature` | Preserve 24-bit RX2 PCM during Lua import | `rx2-24bit-import.session.md` | worktree |
+
+| `wav-import-destination.feature` | Additive WAV drops without duplicate empty slots | `wav-import-destination.session.md` | worktree |

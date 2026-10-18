@@ -63,10 +63,12 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Song-lifecycle safety for canvas dialogs and song observers](#song-lifecycle-safety) — `song-lifecycle-safety.feature`
 - [Preserve crafted envelopes in Timestretch](#stretch-envelope-preservation) — `stretch-envelope-preservation.feature`
 - [Subcolumn-only pattern inversion](#subcolumn-only-invert) — `subcolumn-only-invert.feature`
+- [Control track mutes with pads and synchronized feedback](#track-mute-controller) — `track-mute-controller.feature`
 - [Combine Paketti and Phaos transient navigation](#transient-integration) — `transient-integration.feature`
 - [Transient navigation detection](#transient-navigation-detection) — `transient-navigation-detection.feature`
 - [Tree menu map generator](#treemenu) — `treemenu.feature`
 - [TX16W IMG exports use Cyclone-compatible item identity](#tx16w-cyclone-images) — `tx16w-cyclone-images.feature`
+- [Add dropped WAVs without duplicate empty instruments](#wav-import-destination) — `wav-import-destination.feature`
 
 
 <a id="8120-collapse-scope"></a>
@@ -1162,6 +1164,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **Grade:** @code-verified ×2 · @runtime-untested ×2 · @shipped ×2 · @stock ×1
 
 
+<a id="track-mute-controller"></a>
+## Control track mutes with pads and synchronized feedback
+
+`features/track-mute-controller.feature` · [session](track-mute-controller.session.md)
+
+**Behaviour (6 scenarios):**
+
+- Configure the controller and open the highlighted performance dialog — `@built @runtime-untested @hw-untested`
+- Every hardware-toggle tap toggles a mute — `@sim-verified @runtime-untested @hw-untested`
+- Momentary releases do not toggle tracks — `@sim-verified @runtime-untested @hw-untested`
+- External mute changes repaint host-controlled LEDs — `@sim-verified @runtime-untested @hw-untested`
+- Held mutes restore on release or stop — `@sim-verified @runtime-untested`
+- A step bridge and a mute bridge relinquish the same controller — `@built @runtime-untested @hw-untested`
+
+**How it does it:** **Key procs:** `PakettiTrackMuteControllerDialog`, `PakettiTrackMuteModesDialog`, `PakettiTrackMute` · **Source files:** `PakettiTrackMuteController.lua`, `tests/track_mute_controller.lua`, `PakettiEightOneTwenty.lua`
+
+**Grade:** @built ×2 · @hw-untested ×5 · @runtime-untested ×6 · @sim-verified ×4
+
+
 <a id="transient-integration"></a>
 ## Combine Paketti and Phaos transient navigation
 
@@ -1250,6 +1271,25 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiTyphoonBuildDiskImage`, `PakettiTyphoonNewStamp`, `PakettiTyphoonNewWaveId`, `typhoon_export_wave_notes` · **Source files:** `PakettiTyphoon.lua`, `PakettiRX2Decode.lua`, `PakettiDWVW.lua`
 
 **Grade:** @built ×13 · @code-verified ×12 · @runtime-untested ×1 · @runtime-verified ×13 · @shipped ×13 · @stock ×1
+
+
+<a id="wav-import-destination"></a>
+## Add dropped WAVs without duplicate empty instruments
+
+`features/wav-import-destination.feature` · [session](wav-import-destination.session.md)
+
+**Behaviour (6 scenarios):**
+
+- Fill newly allocated drop destinations — `@code-verified @runtime-untested`
+- Preserve existing slots and keep imports additive — `@code-verified @runtime-untested`
+- Retain preference-off behavior — `@code-verified @runtime-untested`
+- Finalize every imported WAV after the host finishes the drop — `@code-verified @runtime-untested`
+- Import WAV AIFF AIF FLAC and MP3 through the same additive hook — `@code-verified @runtime-untested`
+- Apply embedded WAV cue sets after drop cleanup — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `PakettiWavImportHookRegister`, `paketti_wav_finish_sample`, `PakettiWavImportHookInvoke`, `paketti_wav_blank_destination`, `paketti_wav_remember_instruments` · **Source files:** `PakettiDebug.lua`, `tests/wav_import_hook_regression.lua`, `PakettiWavCueExtract.lua`
+
+**Grade:** @code-verified ×6 · @runtime-untested ×6
 
 
 ---
