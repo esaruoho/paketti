@@ -402,9 +402,18 @@ if preferences and preferences.pakettiWavImportHook
   end
 end
 
-PakettiAddMenuToggleEntry{
-  name = "Main Menu:Tools:Paketti:Experimental:Paketti Audio Import Hook (WAV/AIFF/AIF/FLAC/MP3)",
+-- Primary user-facing switch: Main Menu:Options:Paketti Advanced WAV Loading.
+-- ON = Paketti intercepts WAV/AIFF/AIF/FLAC/MP3 drags + Disk Browser loads (one
+-- pakettified instrument per file, .wav cue headers become slices). OFF = plain
+-- Renoise loading. The custom invoke registers the hook on first enable and shows
+-- the explanatory message; pref= derives the strict-boolean checkmark (house rule 2).
+PakettiAddMenuOptionsEntry{
+  name = "Paketti Advanced WAV Loading",
   invoke = PakettiToggleWavImportHook,
-  get = function() return preferences.pakettiWavImportHook.value end }
+  pref = preferences.pakettiWavImportHook }
+PakettiAddMenuToggleEntry{
+  name = "Main Menu:Tools:Paketti:Experimental:Paketti Advanced WAV Loading (WAV/AIFF/AIF/FLAC/MP3)",
+  invoke = PakettiToggleWavImportHook,
+  pref = preferences.pakettiWavImportHook }
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle WAV Import Hook",
   invoke=function() PakettiToggleWavImportHook() end}

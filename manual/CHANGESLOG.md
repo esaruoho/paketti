@@ -1,3 +1,10 @@
+### 2026-10-20 - Improvement: Paketti Advanced WAV Loading is now a proper Options checkbox + Preferences toggle
+The experimental WAV/AIFF/AIF/FLAC/MP3 import hook now has a first-class on/off switch where you expect it. Turning it ON means dragging audio into Renoise — or loading it from the Renoise disk browser — gives you one pakettified instrument per file (your default instrument config + 8 macro knobs + sample FX chain applied), and any .wav cue headers are imported as slices. Turning it OFF restores plain Renoise loading (all dropped files into one instrument, no cue slicing). The setting is saved to preferences and survives restarts; enabling it from the Paketti Preferences dialog registers the hook live (and reverts with a status message if this Renoise refuses the hook). The old Tools:Experimental entry remains, renamed to match.
+- Menu: `Main Menu:Options:Paketti Advanced WAV Loading` (checkbox)
+- Menu: `Main Menu:Tools:Paketti:Experimental:Paketti Advanced WAV Loading (WAV/AIFF/AIF/FLAC/MP3)` (checkbox)
+- Preference: Paketti Preferences dialog → "Paketti Advanced WAV Loading" checkbox
+- Keybinding: `Global:Paketti:Toggle WAV Import Hook`
+
 ### 2026-10-17 - Fix: RX2 tempo no longer flattens to a bogus 450.000 on high-tempo loops
 The REX2 container stores tempo as milli-BPM, but the reader clamped it to a 450 BPM ceiling. A loop that ReCycle analysed double- or quad-time (for example a 115 BPM riff stored as 230 or 460 BPM, with a matching bar count) was either rejected or shown as a flat, wrong "450.000". The sanity window now allows up to 1000 BPM, so the reported tempo matches the file's own value and the frame-derived detection. Note: when a file's stored tempo is a multiple of the "intended" BPM in its filename, that multiple is what the file actually contains — ReCycle's own analysis — not a Paketti read error.
 

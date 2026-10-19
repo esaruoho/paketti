@@ -6,7 +6,9 @@
 # RESULT: Worktree only; no commit, push or PR.
 # WATCH: PakettiWavImportHookRegister paketti_wav_finish_sample PakettiWavImportHookInvoke paketti_wav_blank_destination paketti_wav_remember_instruments
 # RESULT-LOG >>
+#   2026-10-20  direct-commit  touched: PakettiWavImportHookRegister
 #   2026-10-18  direct-commit  touched: PakettiWavImportHookRegister PakettiWavImportHookInvoke
+#   2026-10-20  direct-commit  touched: Main Menu:Options checkbox + Paketti Preferences toggle (PakettiDebug.lua, Paketti0G01_Loader.lua)
 Feature: Add dropped WAVs without duplicate empty instruments
   @code-verified @runtime-untested
   Scenario: Fill newly allocated drop destinations
@@ -51,6 +53,16 @@ Feature: Add dropped WAVs without duplicate empty instruments
     Then WAV AIFF AIF FLAC and MP3 each use the same additive importer
     And an existing WAV registration does not prevent registering the other formats
     And the existing toggle preference and keybinding stay compatible
+
+  @code-verified @runtime-untested
+  Scenario: Expose the switch at Options, Preferences and Experimental
+    # cite: PakettiDebug.lua PakettiToggleWavImportHook PakettiWavImportHookRegister
+    # cite: Paketti0G01_Loader.lua pakettiPreferences pakettiWavImportHook
+    Given the pakettiWavImportHook preference drives the hook
+    When the user ticks "Paketti Advanced WAV Loading" in Main Menu:Options, in the Paketti Preferences dialog, or in Tools:Paketti:Experimental
+    Then the preference flips, is saved to preferences.xml, and the hook registers live on enable
+    And the checkmark reflects the preference as a strict boolean on every OS
+    And a refused registration reverts the preference and shows a status message
 
   @code-verified @runtime-untested
   Scenario: Apply embedded WAV cue sets after drop cleanup

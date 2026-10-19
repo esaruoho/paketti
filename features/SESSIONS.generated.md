@@ -10,12 +10,6 @@
 
 **14 card conversations** plugged in:
 
-### `4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`  (2026-09-17 → 2026-09-18)
-- Resume: `claude --resume 4e43b9eb-84a0-4c2c-b97f-a6e24189f16d`
-- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/4e43b9eb-84a0-4c2c-b97f-a6e24189f16d.jsonl
-- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, song-lifecycle-safety.feature
-
 ### `ef275634-1c66-4f6d-b15c-50d016222d15`  (2026-09-18 → 2026-09-20)
 - Resume: `claude --resume ef275634-1c66-4f6d-b15c-50d016222d15`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/ef275634-1c66-4f6d-b15c-50d016222d15.jsonl
@@ -93,3 +87,9 @@
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/e6609b84-5960-4c92-997e-aed20a0b90fd.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (5): TEMPLATE.feature, menu-registration-duplicates.feature, rx2-24bit-import.feature, song-lifecycle-safety.feature, wav-import-destination.feature
+
+### `c1a3bcb8-a07d-4226-a8fa-3e6b7353ea80`  (2026-10-19)
+- Resume: `claude --resume c1a3bcb8-a07d-4226-a8fa-3e6b7353ea80`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/c1a3bcb8-a07d-4226-a8fa-3e6b7353ea80.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (3): TEMPLATE.feature, song-lifecycle-safety.feature, wav-import-destination.feature

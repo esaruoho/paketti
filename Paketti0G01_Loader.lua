@@ -1773,6 +1773,25 @@ function pakettiPreferences()
               vb:text{text="Slice StepSeq Velocity",width=150,font="bold",style="strong",tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default"},
               vb:checkbox{value=preferences.pakettiSliceStepSeqShowVelocity.value,tooltip="Opens the Slice Step Sequencer dialog with Velocity add-on dialog opened by default",
                 notifier=function(value) preferences.pakettiSliceStepSeqShowVelocity.value=value end}},
+              vb:row{
+              vb:text{text="Paketti Advanced WAV Loading",width=150,font="bold",style="strong",tooltip="Intercept WAV/AIFF/AIF/FLAC/MP3 drags and Disk Browser loads: one pakettified instrument per file, with .wav cue headers imported as slices. Off = normal Renoise loading."},
+              vb:checkbox{value=preferences.pakettiWavImportHook.value,tooltip="Intercept WAV/AIFF/AIF/FLAC/MP3 drags and Disk Browser loads: one pakettified instrument per file, with .wav cue headers imported as slices. Off = normal Renoise loading.",
+                notifier=function(value)
+                  preferences.pakettiWavImportHook.value=value
+                  preferences:save_as("preferences.xml")
+                  if value and type(rawget(_G,"PakettiWavImportHookRegister"))=="function" then
+                    local ok,err=PakettiWavImportHookRegister()
+                    if not ok then
+                      preferences.pakettiWavImportHook.value=false
+                      preferences:save_as("preferences.xml")
+                      renoise.app():show_status("Paketti Advanced WAV Loading: Renoise refused the import hook ("..tostring(err)..")")
+                    else
+                      renoise.app():show_status("Paketti Advanced WAV Loading: ON")
+                    end
+                  else
+                    renoise.app():show_status("Paketti Advanced WAV Loading: OFF")
+                  end
+                end}},
                 vb:row{vb:text{text="Create New Instrument & Loop from Selection", font="bold",style = "strong"}},
               vb:row{
                     vb:text{text="Select Newly Created",width=150},

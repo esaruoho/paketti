@@ -13690,6 +13690,14 @@ Import samples from classic Amiga ProTracker .MOD files (4-channel tracker modul
 
 ## Audio Sample Formats
 
+### Paketti Advanced WAV Loading (WAV / AIFF / AIF / FLAC / MP3)
+**Extensions:** `.wav` `.aiff` `.aif` `.flac` `.mp3`
+**Category:** Sample
+**Toggle:** `Main Menu:Options:Paketti Advanced WAV Loading` (also in the Paketti Preferences dialog, and `Main Menu:Tools:Paketti:Experimental:Paketti Advanced WAV Loading (WAV/AIFF/AIF/FLAC/MP3)`)
+**Keybinding:** `Global:Paketti:Toggle WAV Import Hook`
+
+When **ON**, Paketti intercepts audio you drag into Renoise *and* audio you load from the Renoise disk browser: each file becomes **its own pakettified instrument** (your default instrument config — 8 macro knobs + sample FX chain — applied), so dragging 30 WAVs gives 30 instruments instead of one. Any `.wav` **cue headers** are imported as **slices**. When **OFF**, audio loads the normal Renoise way (all dropped files into one instrument, no cue slicing). The setting is saved to preferences and survives restarts. Enabling it from the Preferences dialog registers the hook live; if this Renoise refuses to let Paketti intercept those formats, the toggle reports that and reverts.
+
 ### .REX (ReCycle V1)
 **Extensions:** `.rex`
 **Category:** Sample
