@@ -88,8 +88,8 @@
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (5): TEMPLATE.feature, menu-registration-duplicates.feature, rx2-24bit-import.feature, song-lifecycle-safety.feature, wav-import-destination.feature
 
-### `c1a3bcb8-a07d-4226-a8fa-3e6b7353ea80`  (2026-10-19)
+### `c1a3bcb8-a07d-4226-a8fa-3e6b7353ea80`  (2026-10-19 → 2026-10-20)
 - Resume: `claude --resume c1a3bcb8-a07d-4226-a8fa-3e6b7353ea80`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/c1a3bcb8-a07d-4226-a8fa-3e6b7353ea80.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): TEMPLATE.feature, song-lifecycle-safety.feature, wav-import-destination.feature
+- Cards touched (4): TEMPLATE.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature, wav-import-destination.feature

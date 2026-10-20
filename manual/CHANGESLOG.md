@@ -1,3 +1,9 @@
+### 2026-10-20 - Improvement: Settings Dump email button now carries the report in the email body
+The "Email this report to esaruoho@gmail.com" button on the Dump All Paketti Settings dialog now puts the actual report (environment + resolved RX2 paths + every flattened preference) straight into the email body, so there is nothing to attach — the recipient just hits Send. The saved file's path is the first line of the body, so if an operating system truncates the message (Windows caps the launched command line near 8 KB), attaching `PakettiSettingsDump.txt` from the Desktop still works as before. The redundant raw-XML block is omitted from the email but still written to the saved text file.
+- Menu: `Main Menu:Tools:Paketti:Dump All Paketti Settings to Text File...`
+- Menu: `Main Menu:Tools:Paketti:!Preferences:Dump All Settings to Text File...`
+- Keybinding: `Global:Paketti:Dump All Settings to Text File`
+
 ### 2026-10-20 - Improvement: Paketti Advanced WAV Loading is now a proper Options checkbox + Preferences toggle
 The experimental WAV/AIFF/AIF/FLAC/MP3 import hook now has a first-class on/off switch where you expect it. Turning it ON means dragging audio into Renoise — or loading it from the Renoise disk browser — gives you one pakettified instrument per file (your default instrument config + 8 macro knobs + sample FX chain applied), and any .wav cue headers are imported as slices. Turning it OFF restores plain Renoise loading (all dropped files into one instrument, no cue slicing). The setting is saved to preferences and survives restarts; enabling it from the Paketti Preferences dialog registers the hook live (and reverts with a status message if this Renoise refuses the hook). The old Tools:Experimental entry remains, renamed to match.
 - Menu: `Main Menu:Options:Paketti Advanced WAV Loading` (checkbox)

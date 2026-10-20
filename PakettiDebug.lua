@@ -102,6 +102,12 @@ function PakettiDumpAllSettings()
     add("(could not read preferences XML)")
   end
   add("")
+
+  -- Everything above (environment + RX2 paths + flattened preferences) is the
+  -- human-readable report that goes into the email body. The raw XML is appended
+  -- only to the saved file -- it is redundant for a reader and doubles the size.
+  local body_report = table.concat(L, "\n")
+
   add("-- All Paketti preferences (raw XML) --")
   add(xml ~= "" and xml or "(none)")
 
@@ -132,14 +138,23 @@ function PakettiDumpAllSettings()
     vb:text{ text = out_path, font = "mono" },
     vb:multiline_text{ text = report, width = 600, height = 420, font = "mono" },
     vb:row{ spacing = 8,
-      vb:button{ text = "Email the file to esaruoho@gmail.com", width = 300,
+      vb:button{ text = "Email this report to esaruoho@gmail.com", width = 300,
         notifier = function()
+          -- RFC 3986 percent-encode: keep only unreserved chars literal.
+          local function urlencode(s)
+            return (tostring(s):gsub("[^%w%-_%.~]", function(c)
+              return string.format("%%%02X", string.byte(c)) end))
+          end
+          -- The readable report rides in the body, so there is nothing to attach:
+          -- the recipient just hits Send. The saved-file path leads the body so
+          -- that if an OS truncates the mailto (Windows caps the command line
+          -- near 8 KB), attaching PakettiSettingsDump.txt still works.
+          local body = "Paketti settings report below. (If this looks cut off, "
+            .. "the full file is saved at:\n" .. out_path .. "\nplease attach it.)"
+            .. "\n\n" .. body_report
           local url = "mailto:esaruoho@gmail.com?subject="
-            .. "Paketti%20settings%20dump&body="
-            .. "Paketti%20settings%20dump%20is%20attached.%20File%20is%20at%3A%20"
-            .. (out_path:gsub("[^%w%-_%.~]", function(c)
-                 return string.format("%%%02X", string.byte(c)) end))
-            .. "%20%28please%20attach%20it%29."
+            .. urlencode("Paketti settings dump")
+            .. "&body=" .. urlencode(body)
           if os.platform() == "WINDOWS" then
             pcall(function() os.execute('cmd /c start "" "' .. url .. '"') end)
           elseif os.platform() == "MACINTOSH" then
