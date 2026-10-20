@@ -145,19 +145,28 @@ function PakettiDumpAllSettings()
             return (tostring(s):gsub("[^%w%-_%.~]", function(c)
               return string.format("%%%02X", string.byte(c)) end))
           end
-          -- The readable report rides in the body, so there is nothing to attach:
-          -- the recipient just hits Send. The saved-file path leads the body so
-          -- that if an OS truncates the mailto (Windows caps the command line
-          -- near 8 KB), attaching PakettiSettingsDump.txt still works.
-          local body = "Paketti settings report below. (If this looks cut off, "
-            .. "the full file is saved at:\n" .. out_path .. "\nplease attach it.)"
-            .. "\n\n" .. body_report
+          -- Per-platform body, no ambiguity for the sender:
+          --  * Windows launches the mailto via `cmd /c start`, whose command line
+          --    is capped near 8 KB, so the ~69 KB report cannot ride in the body.
+          --    The body is a plain instruction to attach the saved file instead.
+          --  * macOS/Linux pass the URL straight to the mail client, so the whole
+          --    readable report goes in the body and the sender just hits Send.
+          local plat = os.platform()
+          local body
+          if plat == "WINDOWS" then
+            body = "Windows limits how much text an email link can carry, so the "
+              .. "Paketti settings report could not be placed in this email.\n\n"
+              .. "Please attach this file before sending:\n" .. out_path .. "\n\n"
+              .. "(It is on your Desktop, named PakettiSettingsDump.txt.)"
+          else
+            body = body_report
+          end
           local url = "mailto:esaruoho@gmail.com?subject="
             .. urlencode("Paketti settings dump")
             .. "&body=" .. urlencode(body)
-          if os.platform() == "WINDOWS" then
+          if plat == "WINDOWS" then
             pcall(function() os.execute('cmd /c start "" "' .. url .. '"') end)
-          elseif os.platform() == "MACINTOSH" then
+          elseif plat == "MACINTOSH" then
             pcall(function() os.execute('open "' .. url .. '"') end)
           else
             pcall(function() os.execute('xdg-open "' .. url .. '" >/dev/null 2>&1 &') end)
