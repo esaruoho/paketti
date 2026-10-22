@@ -28,7 +28,7 @@
 | dynamic-toolbar-actions | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | eq10-keyboard-controls | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
-| golden-chord-corrections | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested |
+| golden-chord-corrections | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested |
 | groovebox-8120-default-instrument-slots | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
 | groovebox-8120-grid-controllers | 12 | ✓ | — | ✓ | @built @code-verified @hw-verified |
 | groovebox-8120-lpd8 | 6 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |

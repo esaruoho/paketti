@@ -92,4 +92,4 @@
 - Resume: `claude --resume df4f99fa-eb5f-483c-830d-3c7a232b8b16`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/df4f99fa-eb5f-483c-830d-3c7a232b8b16.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (3): TEMPLATE.feature, golden-chord-corrections.feature, song-lifecycle-safety.feature
+- Cards touched (5): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, golden-chord-corrections.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature

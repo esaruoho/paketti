@@ -1,12 +1,14 @@
 # WHAT THIS CARD SPAWNS:
-# codespace: PakettiMicrotonalTunings.lua golden chords/scales/cadences/circle/passing + tests/golden-chords.lua
+# codespace: PakettiMicrotonalTunings.lua golden chords/scales/cadences/circle/passing + tests/golden-chords.lua; PakettiArpeggiator.lua golden modes
 # thinkspace: golden-chord-corrections.session.md and bundled transcript; Research/golden-harmony-chapter-by-chapter.md
-# areaspace: golden chord/scale/progression tools; other tuning and waveform tools unchanged
+# areaspace: golden chord/scale/progression tools + Arpeggiator golden modes; other tuning and waveform tools unchanged
 # SESSION: golden-chord-corrections.session.md
-# RESULT: see RESULT-LOG. Files: PakettiMicrotonalTunings.lua, tests/golden-chords.lua, manual/CHANGESLOG.md, manual/Experimental.md, this card.
-# WATCH: get_golden_chords golden_chain_steps generate_silver13 golden_cadences PakettiInsertGoldenCircle PakettiInsertGoldenPassing
+# RESULT: see RESULT-LOG. Files: PakettiMicrotonalTunings.lua, PakettiArpeggiator.lua, tests/golden-chords.lua, manual/CHANGESLOG.md, manual/Experimental.md, this card.
+# WATCH: get_golden_chords golden_chain_steps generate_silver13 golden_cadences PakettiInsertGoldenCircle PakettiInsertGoldenPassing PakettiArp_GenerateScale PakettiArp_ResolveNoteValue PakettiApply36EDOToInstrument
 # RESULT-LOG >>
+#   2026-10-22  direct-commit  touched: PakettiArp_ResolveNoteValue PakettiApply36EDOToInstrument
 #   2026-10-22  direct-commit  touched: get_golden_chords golden_chain_steps generate_silver13 golden_cadences PakettiInsertGoldenCircle PakettiInsertGoldenPassing
+#   2026-10-22  direct-commit  touched: PakettiArp_GenerateScale PakettiArp_ResolveNoteValue PakettiApply36EDOToInstrument (golden modes in Arpeggiator)
 Feature: Golden harmony per David Chester (Music Theory of Golden Harmony, 36-EDO)
   # Source analysis: Research/golden-harmony-chapter-by-chapter.md (full-book read).
 
@@ -38,3 +40,16 @@ Feature: Golden harmony per David Chester (Music Theory of Golden Harmony, 36-ED
     And the golden circle steps the triad root by a golden third (11 steps), keeping two common tones
     And the passing chords between X and Y are the voice-wise averages (2X+Y)/3 and (X+2Y)/3
     # Runtime in Renoise not driven this session (PakettiMCP offline); logic unit-shape verified only.
+
+  @code-verified @runtime-untested
+  Scenario: Golden harmony scales in the Arpeggiator (ch. 23/25/36)
+    # cite: PakettiArpeggiator.lua PakettiArp_GenerateScale PakettiArp_ResolveNoteValue PakettiArp_IsGoldenMode PakettiArp_EnsureGoldenTuning; PakettiMicrotonalTunings.lua PakettiApply36EDOToInstrument
+    Given the Arpeggiator Mode dropdowns list Golden, Golden-10, Golden Chromatic and Silver alongside the 12-TET modes
+    When a golden mode builds its scale
+    Then each degree is in 36-EDO steps and is harmonised with the golden triad {0,11,22} (silver mode uses {0,10,20})
+    And PakettiArp_ResolveNoteValue anchors a golden note at octave_base*12 + degree + rel_octave*36, clamped to 0..119
+    And the tonic golden triad at octave base 4 resolves to note_values 48, 59, 70 and the silver tonic to 48, 58, 68
+    And the plain 12-TET modes are unchanged (C Ionian tonic stays 48, 52, 55) and key-detection skips golden modes
+    And auditioning or writing a golden arp auto-applies 36-EDO to the selected instrument (idempotent)
+    And luajit over the real PakettiArpeggiator.lua source verifies the note_values, octave wrap and 12-TET regression
+    # Live Renoise audition/write not driven this session (PakettiMCP offline); note_value math is code-verified.

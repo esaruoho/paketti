@@ -40,7 +40,8 @@ PakettiArp_modes = {
   "ionian", "dorian", "phrygian", "lydian",
   "mixolydian", "aeolian", "locrian",
   "major", "minor", "melodic", "harmonic",
-  "double harmonic", "hungarian minor", "phrygian dominant", "harmonic major"
+  "double harmonic", "hungarian minor", "phrygian dominant", "harmonic major",
+  "golden", "golden-10", "golden chromatic", "silver"
 }
 
 PakettiArp_scale_data = {
@@ -70,6 +71,22 @@ PakettiArp_triad_intervals = {
   sus2b5 = {0,2,6}   -- augmented-second artifact stack (major 2nd + tritone); non-tertian but valid
 }
 
+-- Golden harmony scales (David Chester, "Music Theory of Golden Harmony"), expressed in
+-- 36-EDO degrees (one octave = 36 steps of 33.33 cents). These are NOT 12-TET: selecting
+-- one auto-tunes the target instrument to 36-EDO (see PakettiArp_EnsureGoldenTuning) so the
+-- intervals sound as the golden sixth/third stack intends, not as compressed semitones.
+-- `golden=true` marks the branch; `triad_steps` is the fixed chord stacked on every degree
+-- (golden triad {0,11,22} = root + golden third + golden fifth; silver triad {0,10,20}).
+PakettiArp_golden_scale_data = {
+  golden     = { name = "Golden Diatonic (7)",  steps = {0,3,11,14,22,25,33},                        triad_steps = {0,11,22}, golden = true },
+  golden10   = { name = "Golden-10",            steps = {0,3,8,11,14,17,22,25,28,33},                triad_steps = {0,11,22}, golden = true },
+  goldenchr  = { name = "Golden Chromatic (13)", steps = {0,3,6,8,11,14,17,19,22,25,28,30,33},        triad_steps = {0,11,22}, golden = true },
+  silver     = { name = "Silver (13, layer mirror)", steps = {0,3,6,10,13,16,17,19,20,23,26,30,33},  triad_steps = {0,10,20}, golden = true }
+}
+-- Merge golden scales into the main scale dictionary so .name / ModeToKey / GenerateScale
+-- all resolve them uniformly.
+for k, v in pairs(PakettiArp_golden_scale_data) do PakettiArp_scale_data[k] = v end
+
 -- Roman numerals for degrees
 PakettiArp_roman_numerals = {"I", "II", "III", "IV", "V", "VI", "VII"}
 
@@ -82,9 +99,17 @@ function PakettiArp_ModeToKey(mode)
     melodic = "mel", harmonic = "har",
     ["double harmonic"] = "dblharm", byzantine = "dblharm",
     ["hungarian minor"] = "hungmin", ["phrygian dominant"] = "phrydom",
-    ["harmonic major"] = "harmmaj"
+    ["harmonic major"] = "harmmaj",
+    ["golden"] = "golden", ["golden-10"] = "golden10",
+    ["golden chromatic"] = "goldenchr", ["silver"] = "silver"
   }
   return map[mode] or "ion"
+end
+
+-- True when the given arp mode name is one of the golden-harmony (36-EDO) scales.
+function PakettiArp_IsGoldenMode(mode)
+  local info = PakettiArp_scale_data[PakettiArp_ModeToKey(mode)]
+  return info ~= nil and info.golden == true
 end
 
 -- Generate musical scale with triads
@@ -94,7 +119,7 @@ function PakettiArp_GenerateScale(key, mode)
   local scale_info = PakettiArp_scale_data[mode_key]
   
   if not scale_info then return scale end
-  
+
   -- Find key offset
   local key_offset = 0
   for i = 1, #PakettiArp_keys do
@@ -103,7 +128,36 @@ function PakettiArp_GenerateScale(key, mode)
       break
     end
   end
-  
+
+  -- Golden-harmony branch: steps and triads are in 36-EDO degrees (octave = 36), not 12-TET.
+  -- Each triad note carries an absolute degree `nv` (0..35 within an octave) plus rel_octave;
+  -- PakettiArp_ResolveNoteValue reads nv and anchors it against a 36-EDO instrument tuning.
+  -- key_offset acts as a fine transposition in 36-EDO steps (0..11).
+  if scale_info.golden then
+    local triad_label = (scale_info.triad_steps[2] == 10) and "silver" or "golden"
+    for s = 1, #scale_info.steps do
+      local step = scale_info.steps[s]
+      local rel_octave = math.floor((key_offset + step) / 36)
+      local triad_notes = {}
+      for t = 1, #scale_info.triad_steps do
+        local v = key_offset + step + scale_info.triad_steps[t]
+        table.insert(triad_notes, {
+          note = "C",                 -- placeholder so any name-reader stays safe; nv is authoritative
+          nv = v % 36,
+          rel_octave = math.floor(v / 36)
+        })
+      end
+      table.insert(scale, {
+        step = s,
+        note = "d" .. ((key_offset + step) % 36),  -- display label: 36-EDO degree (not a 12-TET name)
+        nv = (key_offset + step) % 36,
+        rel_octave = rel_octave,
+        triad = { type = triad_label, notes = triad_notes }
+      })
+    end
+    return scale
+  end
+
   -- Generate notes
   for s = 1, #scale_info.steps do
     local step = scale_info.steps[s]
@@ -231,6 +285,36 @@ function PakettiArp_NoteToMidi(note_name, octave)
   local base = note_values[note_name]
   if not base then return 60 end
   return (octave * 12) + base
+end
+
+-- Resolve a note object to a Renoise note_value (0..119). Golden note objects carry `nv`
+-- (a 36-EDO degree) + rel_octave: they are anchored at octave_base*12 and ride in 36-EDO
+-- steps, so a golden instrument tuning plays the intended golden intervals. Plain 12-TET
+-- note objects (with a note NAME and no nv) fall through to the semitone path.
+function PakettiArp_ResolveNoteValue(n, octave_base)
+  local v
+  if n.nv ~= nil then
+    v = octave_base * 12 + n.nv + (n.rel_octave or 0) * 36
+  else
+    v = PakettiArp_NoteToMidi(n.note, (n.rel_octave or 0) + octave_base)
+  end
+  if v < 0 then v = 0 elseif v > 119 then v = 119 end
+  return v
+end
+
+-- If the current mode (or any per-chord mode) is a golden scale, make sure the selected
+-- instrument is on 36-EDO so the arp SOUNDS golden. Idempotent and safe to call often.
+function PakettiArp_EnsureGoldenTuning()
+  local golden = PakettiArp_IsGoldenMode(PakettiArp_mode)
+  if not golden then
+    for c = 1, #PakettiArp_modes_per_chord do
+      if PakettiArp_IsGoldenMode(PakettiArp_modes_per_chord[c]) then golden = true break end
+    end
+  end
+  if not golden then return end
+  if type(rawget(_G, "PakettiApply36EDOToInstrument")) == "function" then
+    PakettiApply36EDOToInstrument(renoise.song().selected_instrument_index)
+  end
 end
 
 -- Update scale
@@ -395,7 +479,15 @@ function PakettiArp_GetChordNotes(chord_position)
   end
   
   -- Bass note (root, one octave lower)
-  local bass_note = PakettiArp_NoteToMidi(chord.triad.notes[1].note, chord.triad.notes[1].rel_octave + PakettiArp_octave_base - 1)
+  local root = chord.triad.notes[1]
+  local bass_note
+  if root.nv ~= nil then
+    -- Golden: drop a full 36-EDO octave below the root.
+    bass_note = PakettiArp_ResolveNoteValue(root, PakettiArp_octave_base) - 36
+    if bass_note < 0 then bass_note = bass_note + 36 end
+  else
+    bass_note = PakettiArp_NoteToMidi(root.note, root.rel_octave + PakettiArp_octave_base - 1)
+  end
   
   return notes, bass_note
 end
@@ -433,7 +525,7 @@ function PakettiArp_PlayArpNote()
   
   if arp_idx <= #notes then
     local note = notes[arp_idx]
-    local midi_note = PakettiArp_NoteToMidi(note.note, note.rel_octave + PakettiArp_octave_base)
+    local midi_note = PakettiArp_ResolveNoteValue(note, PakettiArp_octave_base)
     
     -- Stop previous arp note safely
     if #PakettiArp_audition_notes > 0 then
@@ -500,6 +592,7 @@ function PakettiArp_Play()
   end
   
   PakettiArp_StopAudition()
+  PakettiArp_EnsureGoldenTuning()
   PakettiArp_continuous_playing = true
   PakettiArp_audition_playing = true
   PakettiArp_audition_chord_idx = 1
@@ -604,7 +697,7 @@ function PakettiArp_NextChord()
       local arp_idx = PakettiArp_current_arpeggio[a] + 1
       if arp_idx <= #notes then
         local note = notes[arp_idx]
-        local midi_note = PakettiArp_NoteToMidi(note.note, note.rel_octave + PakettiArp_octave_base)
+        local midi_note = PakettiArp_ResolveNoteValue(note, PakettiArp_octave_base)
         table.insert(temp_notes, midi_note)
       end
     end
@@ -771,8 +864,10 @@ function PakettiArp_ReadFromPattern()
     
     for mode_idx = 1, #PakettiArp_modes do
       local mode_name = PakettiArp_modes[mode_idx]
+      -- Golden modes are 36-EDO, not 12-TET pitch classes: never key-detect against them.
+      if not PakettiArp_IsGoldenMode(mode_name) then
       local scale_data = PakettiArp_GenerateScale(key_name, mode_name)
-      
+
       -- Build a set of pitch classes that belong to this scale
       local scale_classes = {}
       for _, scale_note in ipairs(scale_data) do
@@ -793,9 +888,10 @@ function PakettiArp_ReadFromPattern()
         best_key_idx = key_idx
         best_mode_name = mode_name  -- e.g. "aeolian", "ionian", "dorian", ...
       end
+      end -- not golden mode
     end
   end
-  
+
   -- Store detected key & mode (mode is now one of PakettiArp_modes, lowercase)
   PakettiArp_key = PakettiArp_keys[best_key_idx]
   PakettiArp_mode = best_mode_name
@@ -963,7 +1059,9 @@ function PakettiArp_WriteToPattern()
     renoise.app():show_status("PakettiArp: Select a sequencer track")
     return
   end
-  
+
+  PakettiArp_EnsureGoldenTuning()
+
   local patt = song:pattern(song.selected_pattern_index)
   local ptrack = patt:track(song.selected_track_index)
   local start_line = song.selected_line_index
@@ -1040,7 +1138,7 @@ function PakettiArp_WriteToPattern()
           local arp_idx = PakettiArp_current_arpeggio[a] + 1
           if arp_idx <= #notes then
             local note = notes[arp_idx]
-            local midi_note = PakettiArp_NoteToMidi(note.note, note.rel_octave + PakettiArp_octave_base)
+            local midi_note = PakettiArp_ResolveNoteValue(note, PakettiArp_octave_base)
             
             local ncol = line:note_column(a)
             ncol.note_value = midi_note
@@ -1497,7 +1595,7 @@ function PakettiArp_ShowDialog()
               local arp_idx = PakettiArp_current_arpeggio[a] + 1
               if arp_idx <= #notes then
                 local note = notes[arp_idx]
-                local midi_note = PakettiArp_NoteToMidi(note.note, note.rel_octave + PakettiArp_octave_base)
+                local midi_note = PakettiArp_ResolveNoteValue(note, PakettiArp_octave_base)
                 table.insert(temp_notes, midi_note)
               end
             end

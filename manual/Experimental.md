@@ -6472,6 +6472,10 @@ Advanced musical arpeggiator with chord progression composer, real-time playback
 - **Church Modes:** Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian
 - **Standard:** Major, Minor
 - **Advanced:** Melodic Minor, Harmonic Minor
+- **Golden Harmony (36-EDO):** Golden (7-note golden diatonic), Golden-10, Golden Chromatic (13), Silver (13-note layer mirror)
+
+**Golden Harmony Modes:**
+These four modes come from David Chester's *Music Theory of Golden Harmony* and are **not** 12-TET. Their scale degrees and triads are measured in 36-EDO steps (one octave = 36 steps of 33.33 cents), and each scale degree is harmonised with David's golden triad `{0,11,22}` — root + golden third + golden fifth — (or the silver triad `{0,10,20}` for the Silver mode). Select one in the global **Mode** dropdown or in any per-chord mode dropdown. When a golden mode is active and you audition (Space / Shift+Space) or Write to Pattern, Paketti automatically tunes the selected instrument to **36-EDO** so the arpeggio sounds as the golden intervals intend, not as compressed semitones. The ordinary 12-TET modes are unaffected, and Read from Pattern (key detection) ignores the golden modes.
 
 **Automatic Triad Generation:**
 - Major (maj), Minor (min), Diminished (dim), Augmented (aug)

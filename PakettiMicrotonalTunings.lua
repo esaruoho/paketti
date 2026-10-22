@@ -865,6 +865,24 @@ local function apply_tuning_to_instrument(preset_index, instrument_index)
   renoise.app():show_status("Applied " .. name .. " (" .. #ratios .. " notes/octave) to " .. instr.name)
 end
 
+-- GLOBAL: tune one instrument to 36-EDO (the home tuning for golden harmony: each
+-- note_value step = one 36-EDO degree = 33.33 cents). Idempotent - does nothing if the
+-- instrument is already on 36-EDO. Used by the Arpeggiator's golden modes so a golden
+-- arp actually SOUNDS golden. Returns true if it applied (or was already applied).
+function PakettiApply36EDOToInstrument(instrument_index)
+  local song = renoise.song()
+  if not song then return false end
+  local instr = instrument_index and song.instruments[instrument_index] or song.selected_instrument
+  if not instr then return false end
+  if instr.trigger_options.tuning_name == "36-EDO" then return true end
+  local ratios, name = generate_n_edo(36)
+  song:describe_undo("Apply 36-EDO tuning: " .. instr.name)
+  instr.trigger_options.tuning = ratios
+  instr.trigger_options.tuning_name = name
+  renoise.app():show_status("Tuned " .. instr.name .. " to 36-EDO for golden harmony")
+  return true
+end
+
 local function apply_tuning_to_all_instruments(preset_index)
   local song = renoise.song()
   if not song then return end
