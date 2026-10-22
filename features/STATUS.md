@@ -28,6 +28,7 @@
 | dynamic-toolbar-actions | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | eq10-keyboard-controls | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
+| golden-chord-corrections | 3 | ✓ | ✗ | — | @code-verified @runtime-untested |
 | groovebox-8120-default-instrument-slots | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @untested-in-renoise |
 | groovebox-8120-grid-controllers | 12 | ✓ | — | ✓ | @built @code-verified @hw-verified |
 | groovebox-8120-lpd8 | 6 | ✓ | ✗ | ✓ | @built @code-verified @hw-verified @runtime-untested @untested-in-renoise |
@@ -77,8 +78,8 @@
 | wav-import-destination | 7 | ✓ | ✗ | — | @code-verified @runtime-untested |
 
 ## Tally (computed)
-- Cards: 63
-- Build-verified: 53
+- Cards: 64
+- Build-verified: 54
 - Runtime-verified: 3 full + 4 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 2
 

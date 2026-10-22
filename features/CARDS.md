@@ -21,6 +21,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Dynamic Macro Toolbar action safety](#dynamic-toolbar-actions) — `dynamic-toolbar-actions.feature`
 - [EQ10 keyboard controls](#eq10-keyboard-controls) — `eq10-keyboard-controls.feature`
 - [Execute configurable shell commands](#execute-command-slots) — `execute-command-slots.feature`
+- [Insert corrected golden chords in 36-EDO](#golden-chord-corrections) — `golden-chord-corrections.feature`
 - [Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open](#groovebox-8120-default-instrument-slots) — `groovebox-8120-default-instrument-slots.feature`
 - [Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8)](#groovebox-8120-grid-controllers) — `groovebox-8120-grid-controllers.feature`
 - [Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select)](#groovebox-8120-lpd8) — `groovebox-8120-lpd8.feature`
@@ -337,6 +338,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiCreateExecutePreferences`, `PakettiExecuteRunCommand`, `PakettiExecuteRunSlot`, `PakettiExecuteShowDialog`, `export_selected_range`, `command_with_selected_sample` · **Source files:** `Paketti0G01_Loader.lua`, `PakettiExecute.lua`, `PakettiMenuConfig.lua`, `manual/Experimental.md`
 
 **Grade:** @built ×6 · @code-verified ×6 · @runtime-untested ×6 · @shipped ×6 · @stock ×1
+
+
+<a id="golden-chord-corrections"></a>
+## Insert corrected golden chords in 36-EDO
+
+`features/golden-chord-corrections.feature` · [session](golden-chord-corrections.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Match David's averaged major chord — `@code-verified @runtime-untested`
+- Define reflected minor and distinct sixth pitches — `@code-verified @runtime-untested`
+- Preserve microtonal offsets in both insertion commands — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `get_golden_chords`, `insert_golden_chord`, `show_golden_chord_dialog` · **Source files:** `PakettiMicrotonalTunings.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3
 
 
 <a id="groovebox-8120-default-instrument-slots"></a>
@@ -1278,18 +1295,19 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 `features/wav-import-destination.feature` · [session](wav-import-destination.session.md)
 
-**Behaviour (6 scenarios):**
+**Behaviour (7 scenarios):**
 
 - Fill newly allocated drop destinations — `@code-verified @runtime-untested`
 - Preserve existing slots and keep imports additive — `@code-verified @runtime-untested`
 - Retain preference-off behavior — `@code-verified @runtime-untested`
 - Finalize every imported WAV after the host finishes the drop — `@code-verified @runtime-untested`
 - Import WAV AIFF AIF FLAC and MP3 through the same additive hook — `@code-verified @runtime-untested`
+- Expose the switch at Options, Preferences and Experimental — `@code-verified @runtime-untested`
 - Apply embedded WAV cue sets after drop cleanup — `@code-verified @runtime-untested`
 
-**How it does it:** **Key procs:** `PakettiWavImportHookRegister`, `paketti_wav_finish_sample`, `PakettiWavImportHookInvoke`, `paketti_wav_blank_destination`, `paketti_wav_remember_instruments` · **Source files:** `PakettiDebug.lua`, `tests/wav_import_hook_regression.lua`, `PakettiWavCueExtract.lua`
+**How it does it:** **Key procs:** `PakettiWavImportHookRegister`, `paketti_wav_finish_sample`, `PakettiWavImportHookInvoke`, `paketti_wav_blank_destination`, `paketti_wav_remember_instruments` · **Source files:** `PakettiDebug.lua`, `tests/wav_import_hook_regression.lua`, `Paketti0G01_Loader.lua`, `PakettiWavCueExtract.lua`
 
-**Grade:** @code-verified ×6 · @runtime-untested ×6
+**Grade:** @code-verified ×7 · @runtime-untested ×7
 
 
 ---

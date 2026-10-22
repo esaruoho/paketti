@@ -1972,17 +1972,23 @@ end
 -- GOLDEN CHORD LIBRARY (Phase 5)
 -- ========================================
 
+-- REPORT-CARD >> features/golden-chord-corrections.feature
 local function get_golden_chords()
   local golden_third = 2 / PHI  -- ≈ 1.236 (≈ 366.91 cents)
   local golden_fifth_raw = PHI
   local golden_fifth = golden_fifth_raw
   while golden_fifth >= 2.0 do golden_fifth = golden_fifth / 2.0 end
 
+  local third_cents = ratio_to_cents(golden_third)
+  local stacked_cents = 2 * third_cents
+
   return {
-    {name = "Golden Major",      notes = {0, ratio_to_cents(golden_third), ratio_to_cents(golden_fifth)}},
-    {name = "Golden Minor",      notes = {0, ratio_to_cents(2.0 - golden_third), ratio_to_cents(golden_fifth)}},
+    -- David's pitchwise mean of major, minor and augmented: 36-EDO steps 0, 11, 22.
+    {name = "Golden Major (David, 36-EDO)", notes = {0, 11 * 1200 / 36, 22 * 1200 / 36}},
+    -- Reflect the exact stacked-thirds triad within the octave; do not subtract ratios.
+    {name = "Golden Minor (Reflected)", notes = {0, 1200 - stacked_cents, 1200 - third_cents}},
     {name = "Golden Power",      notes = {0, ratio_to_cents(golden_fifth)}},
-    {name = "Golden Sixth",      notes = {0, ratio_to_cents(golden_third), ratio_to_cents(golden_fifth), ratio_to_cents(PHI)}},
+    {name = "Golden Sixth",      notes = {0, third_cents, stacked_cents, ratio_to_cents(PHI)}},
     {name = "Golden Sus",        notes = {0, ratio_to_cents(golden_fifth / golden_third), ratio_to_cents(golden_fifth)}},
     {name = "Golden Stacked 3rds", notes = {0, ratio_to_cents(golden_third), ratio_to_cents(golden_third * golden_third)}},
   }
@@ -1999,6 +2005,9 @@ local function insert_golden_chord(chord_index, root_note)
   if root_note == 121 then root_note = 48 end -- default to C-4 if empty
 
   song:describe_undo("Insert Golden Chord: " .. chord.name)
+  -- Note offsets are scale degrees: preserve microtonal intervals with 36-EDO.
+  song.selected_instrument.trigger_options.tuning = generate_n_edo(36)
+  song.selected_instrument.trigger_options.tuning_name = "36-EDO"
 
   local line = song.selected_line
   local track = song.selected_track
@@ -2012,8 +2021,8 @@ local function insert_golden_chord(chord_index, root_note)
 
   for i, cents in ipairs(chord.notes) do
     if i <= #line.note_columns then
-      local semitones = cents / 100
-      local note = root_note + math.floor(semitones + 0.5)
+      local steps = cents * 36 / 1200
+      local note = root_note + math.floor(steps + 0.5)
       note = math.max(0, math.min(119, note))
       line.note_columns[i].note_value = note
       line.note_columns[i].instrument_value = instr_idx
@@ -2035,7 +2044,7 @@ function show_golden_chord_dialog()
     margin = 10,
     spacing = 5,
     vb:text{text = "Golden Chord Library", style = "strong", font = "bold"},
-    vb:text{text = "Insert golden-ratio chords at cursor position"},
+    vb:text{text = "Insert golden chords in 36-EDO (tunes selected instrument)"},
     vb:row{
       vb:text{text = "Chord:", width = 50},
       vb:popup{id = "chord_select", items = chord_names, value = 1, width = 200},
@@ -2060,6 +2069,8 @@ function show_golden_chord_dialog()
           local song = renoise.song()
           if not song then return end
           song:describe_undo("Insert All Golden Chords")
+          song.selected_instrument.trigger_options.tuning = generate_n_edo(36)
+          song.selected_instrument.trigger_options.tuning_name = "36-EDO"
           local start_line = song.selected_line_index
           local pattern = song.selected_pattern
           for i = 1, #chords do
@@ -2075,8 +2086,8 @@ function show_golden_chord_dialog()
               end
               for j, cents in ipairs(chord.notes) do
                 if j <= #line.note_columns then
-                  local semitones = cents / 100
-                  local note = root + math.floor(semitones + 0.5)
+                  local steps = cents * 36 / 1200
+                  local note = root + math.floor(steps + 0.5)
                   note = math.max(0, math.min(119, note))
                   line.note_columns[j].note_value = note
                   line.note_columns[j].instrument_value = song.selected_instrument_index - 1

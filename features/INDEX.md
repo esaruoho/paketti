@@ -96,3 +96,5 @@ Derived views — GENERATED, never hand-edit:
 | `rx2-24bit-import.feature` | Preserve 24-bit RX2 PCM during Lua import | `rx2-24bit-import.session.md` | worktree |
 
 | `wav-import-destination.feature` | Additive WAV drops without duplicate empty slots | `wav-import-destination.session.md` | worktree |
+
+- [golden-chord-corrections.feature](golden-chord-corrections.feature) — corrected golden chords and 36-EDO insertion; worktree, no commit.
