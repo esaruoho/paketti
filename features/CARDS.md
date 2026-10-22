@@ -21,7 +21,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Dynamic Macro Toolbar action safety](#dynamic-toolbar-actions) — `dynamic-toolbar-actions.feature`
 - [EQ10 keyboard controls](#eq10-keyboard-controls) — `eq10-keyboard-controls.feature`
 - [Execute configurable shell commands](#execute-command-slots) — `execute-command-slots.feature`
-- [Insert corrected golden chords in 36-EDO](#golden-chord-corrections) — `golden-chord-corrections.feature`
+- [Golden harmony per David Chester (Music Theory of Golden Harmony, 36-EDO)](#golden-chord-corrections) — `golden-chord-corrections.feature`
 - [Groovebox 8120 fills 8 instrument slots with the Paketti Default Instrument on empty-song open](#groovebox-8120-default-instrument-slots) — `groovebox-8120-default-instrument-slots.feature`
 - [Groovebox 8120 grid controllers (Akai MidiMix + APC Key 25 + LPD8)](#groovebox-8120-grid-controllers) — `groovebox-8120-grid-controllers.feature`
 - [Groovebox 8120 — AKAI LPD8 controller (8 pads + pages + follow + row select)](#groovebox-8120-lpd8) — `groovebox-8120-lpd8.feature`
@@ -341,19 +341,19 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 
 <a id="golden-chord-corrections"></a>
-## Insert corrected golden chords in 36-EDO
+## Golden harmony per David Chester (Music Theory of Golden Harmony, 36-EDO)
 
 `features/golden-chord-corrections.feature` · [session](golden-chord-corrections.session.md)
 
 **Behaviour (3 scenarios):**
 
-- Match David's averaged major chord — `@code-verified @runtime-untested`
-- Define reflected minor and distinct sixth pitches — `@code-verified @runtime-untested`
-- Preserve microtonal offsets in both insertion commands — `@code-verified @runtime-untested`
+- Canonical golden chords (ch. 25) — `@code-verified`
+- Well-formed golden scales (ch. 23/36) — `@code-verified`
+- Golden cadences, golden circle and golden passing chords (ch. 27/29/31) — `@built @runtime-untested`
 
-**How it does it:** **Key procs:** `get_golden_chords`, `insert_golden_chord`, `show_golden_chord_dialog` · **Source files:** `PakettiMicrotonalTunings.lua`
+**How it does it:** **Key procs:** `get_golden_chords`, `golden_chain_steps`, `generate_silver13`, `golden_cadences`, `PakettiInsertGoldenCircle`, `PakettiInsertGoldenPassing` · **Source files:** `PakettiMicrotonalTunings.lua`
 
-**Grade:** @code-verified ×3 · @runtime-untested ×3
+**Grade:** @built ×1 · @code-verified ×2 · @runtime-untested ×1
 
 
 <a id="groovebox-8120-default-instrument-slots"></a>
