@@ -1,33 +1,40 @@
 # WHAT THIS CARD SPAWNS:
-# codespace: PakettiMicrotonalTunings.lua golden chord library and tests/golden-chords.lua
-# thinkspace: golden-chord-corrections.session.md and bundled transcript
-# areaspace: golden chord definitions and insertion; other tuning and waveform tools unchanged
+# codespace: PakettiMicrotonalTunings.lua golden chords/scales/cadences/circle/passing + tests/golden-chords.lua
+# thinkspace: golden-chord-corrections.session.md and bundled transcript; Research/golden-harmony-chapter-by-chapter.md
+# areaspace: golden chord/scale/progression tools; other tuning and waveform tools unchanged
 # SESSION: golden-chord-corrections.session.md
-# RESULT: Worktree changes only; no commit, push or PR. Files: PakettiMicrotonalTunings.lua, tests/golden-chords.lua, PLAN.md, this card/session/bundle, INDEX.md and generated views.
-# WATCH: get_golden_chords insert_golden_chord show_golden_chord_dialog
+# RESULT: see RESULT-LOG. Files: PakettiMicrotonalTunings.lua, tests/golden-chords.lua, manual/CHANGESLOG.md, manual/Experimental.md, this card.
+# WATCH: get_golden_chords golden_chain_steps generate_silver13 golden_cadences PakettiInsertGoldenCircle PakettiInsertGoldenPassing
 # RESULT-LOG >>
-Feature: Insert corrected golden chords in 36-EDO
-  @code-verified @runtime-untested
-  Scenario: Match David's averaged major chord
+#   2026-10-22  direct-commit  touched: get_golden_chords golden_chain_steps generate_silver13 golden_cadences PakettiInsertGoldenCircle PakettiInsertGoldenPassing
+Feature: Golden harmony per David Chester (Music Theory of Golden Harmony, 36-EDO)
+  # Source analysis: Research/golden-harmony-chapter-by-chapter.md (full-book read).
+
+  @code-verified
+  Scenario: Canonical golden chords (ch. 25)
     # cite: PakettiMicrotonalTunings.lua get_golden_chords insert_golden_chord
-    Given a common-root pitchwise mean of major, minor and augmented triads
-    When Golden Major is inserted
-    Then its offsets are 0, 11 and 22 degrees of 36-EDO
-    And the selected instrument is tuned to 36-EDO
+    Given David's four canonical chords in 36-EDO
+    When the chord library is built
+    Then it contains Golden Triad {0,11,22}, Golden Seventh {0,11,22,33}, Silver Triad {0,10,20} and Bronze Triad {0,13,26}
+    And the Silver triad (major+minor+diminished)/3 replaces the earlier non-canonical "Golden Minor (Reflected)"
+    And insertion tunes the selected instrument to 36-EDO and rounds each cents value to a 36-EDO degree
+    And lua tests/golden-chords.lua verifies both insertion callbacks with a mocked host
 
-  @code-verified @runtime-untested
-  Scenario: Define reflected minor and distinct sixth pitches
-    # cite: PakettiMicrotonalTunings.lua get_golden_chords
-    Given the exact stacked golden thirds at t and 2t cents
-    When the chord definitions are built
-    Then Golden Minor (Reflected) contains 0, 1200-2t and 1200-t cents
-    And Golden Sixth contains 0, t, 2t and 1200 log2(phi) cents
-    And all pitches remain distinct after 36-EDO quantization
+  @code-verified
+  Scenario: Well-formed golden scales (ch. 23/36)
+    # cite: PakettiMicrotonalTunings.lua golden_chain_steps generate_golden_mos_scale generate_silver13
+    Given the golden sixth (25 sixth-steps) stacked into consecutive chain windows containing the tonic golden triad
+    When the scale presets are generated
+    Then Golden-7 is {0,3,11,14,22,25,33}, Golden-10 {0,3,8,11,14,17,22,25,28,33}, Golden-13 {0,3,6,8,11,14,17,19,22,25,28,30,33}
+    And Golden-4 is {0,11,22,25} and Silver-13 is the layer mirror {0,3,6,10,13,16,17,19,20,23,26,30,33}
+    And each matches David's printed note sets exactly (verified by computation)
 
-  @code-verified @runtime-untested
-  Scenario: Preserve microtonal offsets in both insertion commands
-    # cite: PakettiMicrotonalTunings.lua insert_golden_chord show_golden_chord_dialog
-    Given either single or successive-line insertion
-    When each cents interval is written
-    Then it is rounded to a 36-EDO degree rather than a semitone
-    And lua tests/golden-chords.lua verifies both callbacks with a mocked host
+  @built @runtime-untested
+  Scenario: Golden cadences, golden circle and golden passing chords (ch. 27/29/31)
+    # cite: PakettiMicrotonalTunings.lua golden_cadences PakettiInsertGoldenCircle golden_passing_pair PakettiInsertGoldenPassing
+    Given the selected line as the first chord position
+    When a golden cadence, a golden-circle walk, or a golden passing pair is inserted
+    Then successive lines receive the 36-EDO chords and the instrument is tuned to 36-EDO
+    And the golden circle steps the triad root by a golden third (11 steps), keeping two common tones
+    And the passing chords between X and Y are the voice-wise averages (2X+Y)/3 and (X+2Y)/3
+    # Runtime in Renoise not driven this session (PakettiMCP offline); logic unit-shape verified only.

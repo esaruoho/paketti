@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**13 card conversations** plugged in:
+**14 card conversations** plugged in:
 
 ### `d5d5197a-3a54-4560-9e7f-b6f0deb14d1a`  (2026-09-28 → 2026-09-29)
 - Resume: `claude --resume d5d5197a-3a54-4560-9e7f-b6f0deb14d1a`
@@ -87,3 +87,9 @@
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/c1a3bcb8-a07d-4226-a8fa-3e6b7353ea80.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (4): TEMPLATE.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature, wav-import-destination.feature
+
+### `df4f99fa-eb5f-483c-830d-3c7a232b8b16`  (2026-10-22)
+- Resume: `claude --resume df4f99fa-eb5f-483c-830d-3c7a232b8b16`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/df4f99fa-eb5f-483c-830d-3c7a232b8b16.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (3): TEMPLATE.feature, golden-chord-corrections.feature, song-lifecycle-safety.feature

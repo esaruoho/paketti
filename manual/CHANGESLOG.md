@@ -1,3 +1,20 @@
+### 2026-10-22 - Feature: Golden harmony expanded to match David Chester's "Music Theory of Golden Harmony" (36-EDO)
+Following a full-book read of David Chester's *Music Theory of Golden Harmony* (analysis saved in `Research/golden-harmony-chapter-by-chapter.md`), the golden tuning tools were corrected and extended to match his system. Corrections: the Golden Chord Library now ships David's four canonical chords in 36-EDO — Golden Triad `{0,11,22}` (the average of major, minor and augmented), Golden Seventh `{0,11,22,33}`, Silver Triad `{0,10,20}` (the true dark twin = average of major, minor and diminished; this replaces the earlier non-canonical "Golden Minor (Reflected)"), and Bronze Triad `{0,13,26}`, plus the exact-φ stacked-thirds reference. The Golden Shimmer Wavetable now builds its partials on David's golden spectrum (products of powers of 2 and φ, `2^m·φ^n`) instead of a plain `φ^p` stack, so octaves fuse and the chords sit in the timbre they were designed for. New well-formed golden scales (the golden counterparts of pentatonic/diatonic/chromatic, built by stacking the golden sixth): Golden-4, Golden-7 (the "golden diatonic", `C C♯ vE vF ^G ^A♭ B`), Golden-10 (decatonic), Golden-23, Golden-36 (= 36-EDO) and Silver-13 (the layer mirror of the 13-note golden chromatic). New golden-harmony builders: a Golden Cadences dialog (golden authentic/six-four, plagal glow, deceptive, modal mixture, Picardy), a Golden Circle dialog (walks the 36 golden triads, root stepping by a golden third and keeping two common tones — the golden analogue of the circle of fifths), and a Golden Passing Chords dialog (inserts a chord X, the two strict golden passing chords between it and Y as voice-wise averages, then Y). All chord/scale/progression inserts tune the selected instrument to 36-EDO.
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Golden-4 (David MOS)` (also under `Instrument Box:Paketti:Microtonal Tunings`)
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Golden-7 (Golden Diatonic)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Golden-10 (Golden Decatonic)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Golden-23 (David MOS)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Golden-36 (= 36-EDO)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Silver-13 (Layer Mirror)`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Golden Cadences...`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Golden Circle...`
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Golden Passing Chords...`
+- Keybinding: `Global:Paketti:Apply Golden-7 Golden Diatonic Tuning`
+- Keybinding: `Global:Paketti:Apply Silver-13 Layer Mirror Tuning`
+- Keybinding: `Global:Paketti:Golden Cadences Dialog`
+- Keybinding: `Global:Paketti:Golden Circle Dialog`
+- Keybinding: `Global:Paketti:Golden Passing Chords Dialog`
+
 ### 2026-10-20 - Improvement: Settings Dump email button now carries the report in the email body
 The "Email this report to esaruoho@gmail.com" button on the Dump All Paketti Settings dialog now behaves per platform. On macOS and Linux it puts the actual report (environment + resolved RX2 paths + every flattened preference) straight into the email body, so there is nothing to attach — just hit Send. On Windows, where the launched command line is capped near 8 KB and the ~69 KB report cannot fit, the body is instead a plain instruction telling you exactly where the file is (`PakettiSettingsDump.txt` on the Desktop) and to attach it before sending — no guessing whether the text got cut off. The redundant raw-XML block is omitted from the email either way but still written to the saved text file.
 - Menu: `Main Menu:Tools:Paketti:Dump All Paketti Settings to Text File...`

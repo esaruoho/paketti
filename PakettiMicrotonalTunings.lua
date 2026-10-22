@@ -54,6 +54,54 @@ local function generate_golden_pythagorean()
   return result, "Golden Pythagorean (13-note)"
 end
 
+-- The well-formed golden scales (David Chester, ch. 23 / 36). Built exactly as the
+-- diatonic/pentatonic are built from the fifth: take n CONSECUTIVE golden-sixth chain
+-- links, centred on the tonic, and fold into the octave. In 36-EDO a golden sixth is 25
+-- steps, so chain note j sits at (25*j) mod 36. The well-formed sizes are 4, 7, 10, 13,
+-- 23, 36 — golden7 is the "golden diatonic", golden13 the "golden chromatic".
+-- Returns ratios for the scale degrees ABOVE the root, octave (2.0) last, like generate_n_edo.
+local function golden_chain_steps(n)
+  -- Centre the window, but keep the tonic golden triad (chain j = 0, -1, -2 → steps 0, 11, 22)
+  -- inside the scale, which is how David roots every golden scale (golden4 = C vE ^G ^A♭, etc.).
+  local jlo = -math.floor((n - 1) / 2)
+  if jlo > -2 then jlo = -2 end
+  local steps = {}
+  for k = 0, n - 1 do
+    local j = jlo + k
+    steps[#steps + 1] = ((25 * j) % 36 + 36) % 36
+  end
+  table.sort(steps)
+  return steps
+end
+
+local function steps_to_ratios(steps, label)
+  local ratios = {}
+  for i = 1, #steps do
+    if steps[i] ~= 0 then ratios[#ratios + 1] = 2 ^ (steps[i] / 36) end
+  end
+  ratios[#ratios + 1] = 2.0
+  return ratios, label
+end
+
+local function generate_golden_mos_scale(n, label)
+  return steps_to_ratios(golden_chain_steps(n), label)
+end
+
+-- silver13: the layer mirror of golden13 (David, ch. 23). For each golden13 step s = 3q+e
+-- (e in {-1,0,1}), flip e. It is NOT a chain; its home chord is the silver triad.
+local function generate_silver13()
+  local golden = golden_chain_steps(13)
+  local steps = {}
+  for _, s in ipairs(golden) do
+    local r = s % 3
+    local m = s
+    if r == 1 then m = (s - 2) % 36 elseif r == 2 then m = (s + 2) % 36 end
+    steps[#steps + 1] = m
+  end
+  table.sort(steps)
+  return steps_to_ratios(steps, "Silver-13 (Layer Mirror)")
+end
+
 local function generate_n_edo(n)
   local ratios = {}
   for step = 1, n do
@@ -619,6 +667,12 @@ local scala_file_presets = discover_scala_presets()
 local tuning_presets = {
   {name = "12-TET (Standard)", generator = function() return {}, "12-TET (Standard)" end, is_reset = true},
   {name = "Golden Pythagorean (13-note)", generator = generate_golden_pythagorean},
+  {name = "Golden-4 (David MOS)", generator = function() return generate_golden_mos_scale(4, "Golden-4 (David MOS)") end},
+  {name = "Golden-7 (Golden Diatonic)", generator = function() return generate_golden_mos_scale(7, "Golden-7 (Golden Diatonic)") end},
+  {name = "Golden-10 (Golden Decatonic)", generator = function() return generate_golden_mos_scale(10, "Golden-10 (Golden Decatonic)") end},
+  {name = "Golden-23 (David MOS)", generator = function() return generate_golden_mos_scale(23, "Golden-23 (David MOS)") end},
+  {name = "Golden-36 (= 36-EDO)", generator = function() return generate_golden_mos_scale(36, "Golden-36 (= 36-EDO)") end},
+  {name = "Silver-13 (Layer Mirror)", generator = generate_silver13},
   {name = "36-EDO", generator = function() return generate_n_edo(36) end},
   {name = "Solfeggio", generator = generate_solfeggio},
   {name = "Colundi", generator = generate_colundi},
@@ -756,6 +810,29 @@ local function write_additive_buffer(buffer, wave_size, sample_rate, partial_rat
     buffer:set_sample_data(1, i, math.max(-1, math.min(1, value)))
   end
   buffer:finalize_sample_data_changes()
+end
+
+-- The golden spectrum (David Chester, ch. 2 / 26): partials at 2^m * phi^n (m,n >= 0),
+-- sorted ascending — 1, 1.618, 2, 2.618, 3.236, 4, 4.236, ... The set is self-matching
+-- under BOTH the octave (x2) and the golden sixth (x phi), which is what makes golden
+-- chords fuse on this timbre (the "timbre flip"). A pure phi^p stack is NOT this set:
+-- it is self-matching under phi but not under the octave, so octaves would not fuse.
+local function golden_spectrum_partials(count)
+  local set = {}
+  for m = 0, 8 do
+    for n = 0, 8 do
+      set[#set + 1] = (2 ^ m) * (PHI ^ n)
+    end
+  end
+  table.sort(set)
+  local out = {}
+  for _, v in ipairs(set) do
+    if #out == 0 or math.abs(v - out[#out]) > 1e-6 then
+      out[#out + 1] = v
+      if #out >= count then break end
+    end
+  end
+  return out
 end
 
 -- ========================================
@@ -1974,23 +2051,22 @@ end
 
 -- REPORT-CARD >> features/golden-chord-corrections.feature
 local function get_golden_chords()
-  local golden_third = 2 / PHI  -- ≈ 1.236 (≈ 366.91 cents)
-  local golden_fifth_raw = PHI
-  local golden_fifth = golden_fifth_raw
-  while golden_fifth >= 2.0 do golden_fifth = golden_fifth / 2.0 end
-
-  local third_cents = ratio_to_cents(golden_third)
-  local stacked_cents = 2 * third_cents
-
+  -- David Chester's canonical golden chords (Music Theory of Golden Harmony, ch. 25),
+  -- as 36-EDO step offsets converted to cents (step k = k*1200/36, i.e. a third of a semitone).
+  --   Golden triad  Cg  = (major + minor + augmented)/3 = steps 0, 11, 22.
+  --   Golden seventh Cg7 = three stacked golden thirds      = steps 0, 11, 22, 33.
+  --   Silver triad  Cs  = (major + minor + diminished)/3 = steps 0, 10, 20  (the true dark twin of golden,
+  --                       NOT a "golden minor" — the earlier reflected-minor chord was non-canonical).
+  --   Bronze triad  T13 = steps 0, 13, 26 (golden reflected through augmented).
+  -- insert_golden_chord applies 36-EDO tuning, so each note_value step = one 36-EDO step.
+  local function st(k) return k * 1200 / 36 end
+  local golden_third = 2 / PHI  -- ≈ 1.236 (≈ 366.91 cents), exact-ratio reference
   return {
-    -- David's pitchwise mean of major, minor and augmented: 36-EDO steps 0, 11, 22.
-    {name = "Golden Major (David, 36-EDO)", notes = {0, 11 * 1200 / 36, 22 * 1200 / 36}},
-    -- Reflect the exact stacked-thirds triad within the octave; do not subtract ratios.
-    {name = "Golden Minor (Reflected)", notes = {0, 1200 - stacked_cents, 1200 - third_cents}},
-    {name = "Golden Power",      notes = {0, ratio_to_cents(golden_fifth)}},
-    {name = "Golden Sixth",      notes = {0, third_cents, stacked_cents, ratio_to_cents(PHI)}},
-    {name = "Golden Sus",        notes = {0, ratio_to_cents(golden_fifth / golden_third), ratio_to_cents(golden_fifth)}},
-    {name = "Golden Stacked 3rds", notes = {0, ratio_to_cents(golden_third), ratio_to_cents(golden_third * golden_third)}},
+    {name = "Golden Triad (David, 36-EDO)",    notes = {st(0), st(11), st(22)}},
+    {name = "Golden Seventh (David, 36-EDO)",  notes = {st(0), st(11), st(22), st(33)}},
+    {name = "Silver Triad (David, 36-EDO)",    notes = {st(0), st(10), st(20)}},
+    {name = "Bronze Triad (David, 36-EDO)",    notes = {st(0), st(13), st(26)}},
+    {name = "Golden Stacked 3rds (exact phi)", notes = {0, ratio_to_cents(golden_third), ratio_to_cents(golden_third * golden_third)}},
   }
 end
 
@@ -2102,6 +2178,188 @@ function show_golden_chord_dialog()
   }
 
   golden_chord_dialog = renoise.app():show_custom_dialog("Paketti Golden Chord Library", content, microtonal_key_handler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- ========================================
+-- GOLDEN CADENCES, GOLDEN CIRCLE, GOLDEN PASSING CHORDS
+-- (David Chester, Music Theory of Golden Harmony, ch. 27 / 29 / 31)
+-- All chords are built as 36-EDO step-sets (a step = a third of a semitone). Insertion
+-- applies 36-EDO tuning to the selected instrument, so each note_value step is a sixth-step.
+-- ========================================
+local golden_cadence_dialog = nil
+local golden_circle_dialog = nil
+local golden_passing_dialog = nil
+
+-- Western / golden triads on a root given in 36-EDO steps (M3 = 12, m3 = 9, P5 = 21, A5 = 24, d5 = 18).
+local function gc_major(r)  return {r, r + 12, r + 21} end
+local function gc_minor(r)  return {r, r + 9,  r + 21} end
+local function gc_aug(r)    return {r, r + 12, r + 24} end
+local function gc_dim(r)    return {r, r + 9,  r + 18} end
+local function gc_golden(r) return {r, r + 11, r + 22} end
+local function gc_silver(r) return {r, r + 10, r + 20} end
+local function gc_bronze(r) return {r, r + 13, r + 26} end
+
+-- Write a sequence of chords (each a list of 36-EDO step offsets from root_note) onto
+-- successive lines of the selected track, starting at the selected line.
+local function insert_golden_sequence(undo_name, root_note, sequence)
+  local song = renoise.song()
+  if not song then return end
+  if root_note == nil then root_note = song.selected_line.note_columns[1].note_value end
+  if root_note == 121 or root_note == nil then root_note = 48 end -- default C-4
+  song:describe_undo(undo_name)
+  song.selected_instrument.trigger_options.tuning = generate_n_edo(36)
+  song.selected_instrument.trigger_options.tuning_name = "36-EDO"
+  local pattern = song.selected_pattern
+  local track_idx = song.selected_track_index
+  local track = song.selected_track
+  local start_line = song.selected_line_index
+  local instr_idx = song.selected_instrument_index - 1
+  local maxnotes = 1
+  for _, chord in ipairs(sequence) do if #chord > maxnotes then maxnotes = #chord end end
+  if track.visible_note_columns < maxnotes then track.visible_note_columns = maxnotes end
+  local written = 0
+  for s, chord in ipairs(sequence) do
+    local line_idx = start_line + (s - 1)
+    if line_idx <= pattern.number_of_lines then
+      local line = pattern:track(track_idx):line(line_idx)
+      local notes = {}
+      for _, off in ipairs(chord) do notes[#notes + 1] = off end
+      table.sort(notes)
+      for j, off in ipairs(notes) do
+        if j <= #line.note_columns then
+          local nv = math.max(0, math.min(119, root_note + off))
+          line.note_columns[j].note_value = nv
+          line.note_columns[j].instrument_value = instr_idx
+        end
+      end
+      written = written + 1
+    end
+  end
+  renoise.app():show_status(undo_name .. ": wrote " .. written .. " chords (36-EDO)")
+end
+
+-- The five named golden cadences (ch. 29). Roots are 36-EDO step offsets from the tonic:
+-- G(21) F(15) A(27) E♭(9) A♭(24); v lowers a note one step, ^ raises it.
+local function golden_cadences()
+  return {
+    {name = "Golden Authentic (six-four): V - vEb bronze/G - vCg/G - I",
+     seq = {gc_major(21), gc_bronze(8), gc_golden(-1), gc_major(0)}},
+    {name = "Golden Plagal (glow): IV - vFg - I",
+     seq = {gc_major(15), gc_golden(14), gc_major(0)}},
+    {name = "Golden Deceptive: V - vAbg - Abg - vi",
+     seq = {gc_major(21), gc_golden(23), gc_golden(24), gc_minor(27)}},
+    {name = "Golden Modal Mixture: I - Ig - i",
+     seq = {gc_major(0), gc_golden(0), gc_minor(0)}},
+    {name = "Golden Picardy: i - i(^3) - Ig - I",
+     seq = {gc_minor(0), {0, 10, 21}, gc_golden(0), gc_major(0)}},
+  }
+end
+
+function PakettiInsertGoldenCadence(cadence_index, root_note)
+  local cadences = golden_cadences()
+  local c = cadences[cadence_index]
+  if not c then return end
+  insert_golden_sequence("Insert " .. c.name, root_note, c.seq)
+end
+
+function show_golden_cadence_dialog()
+  if golden_cadence_dialog and golden_cadence_dialog.visible then golden_cadence_dialog:close() golden_cadence_dialog = nil return end
+  local vb = renoise.ViewBuilder()
+  local cadences = golden_cadences()
+  local names = {}
+  for _, c in ipairs(cadences) do names[#names + 1] = c.name end
+  local content = vb:column{margin = 10, spacing = 5,
+    vb:text{text = "Golden Cadences (David Chester, ch. 29)", style = "strong", font = "bold"},
+    vb:text{text = "Inserts a golden cadence on successive lines (tunes instrument to 36-EDO)."},
+    vb:row{vb:text{text = "Cadence:", width = 60}, vb:popup{id = "cad_select", items = names, value = 1, width = 440}},
+    vb:row{vb:text{text = "Root:", width = 60}, vb:valuebox{id = "cad_root", min = 0, max = 119, value = 48, width = 60}},
+    vb:row{vb:button{text = "Insert at Cursor", width = 140,
+      notifier = function() PakettiInsertGoldenCadence(vb.views.cad_select.value, vb.views.cad_root.value) end}},
+  }
+  golden_cadence_dialog = renoise.app():show_custom_dialog("Paketti Golden Cadences", content, microtonal_key_handler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- The golden circle (ch. 31): 36 golden triads, root stepping by a golden third (11 steps),
+-- each sharing two notes with the next. The golden counterpart of the circle of fifths.
+function PakettiInsertGoldenCircle(root_note, length)
+  length = length or 8
+  local seq = {}
+  local r = 0
+  for _ = 1, length do
+    seq[#seq + 1] = gc_golden(r)
+    r = r + 11
+  end
+  insert_golden_sequence("Insert Golden Circle (" .. length .. " triads)", root_note, seq)
+end
+
+function show_golden_circle_dialog()
+  if golden_circle_dialog and golden_circle_dialog.visible then golden_circle_dialog:close() golden_circle_dialog = nil return end
+  local vb = renoise.ViewBuilder()
+  local content = vb:column{margin = 10, spacing = 5,
+    vb:text{text = "Golden Circle (David Chester, ch. 31)", style = "strong", font = "bold"},
+    vb:text{text = "Walks the 36 golden triads; root steps by a golden third (11 sixth-steps),\nkeeping two common tones, like falling fifths. Tunes instrument to 36-EDO."},
+    vb:row{vb:text{text = "Root:", width = 60}, vb:valuebox{id = "circ_root", min = 0, max = 119, value = 48, width = 60}},
+    vb:row{vb:text{text = "Triads:", width = 60}, vb:valuebox{id = "circ_len", min = 2, max = 36, value = 8, width = 60}},
+    vb:row{vb:button{text = "Insert at Cursor", width = 140,
+      notifier = function() PakettiInsertGoldenCircle(vb.views.circ_root.value, vb.views.circ_len.value) end}},
+  }
+  golden_circle_dialog = renoise.app():show_custom_dialog("Paketti Golden Circle", content, microtonal_key_handler)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Golden passing chords (ch. 27, the averaging principle): between two voice-matched triads
+-- X and Y, the two strict passing chords are P1 = (2X+Y)/3 and P2 = (X+2Y)/3, voice by voice.
+-- A strict golden passing chord exists when X and Y are the same quality a third or fifth apart
+-- (two neo-Riemannian moves); then P1/P2 are one golden and one bronze (or silver) triad.
+local function golden_passing_pair(X, Y)
+  local a, b = {}, {}
+  for _, v in ipairs(X) do a[#a + 1] = v end
+  for _, v in ipairs(Y) do b[#b + 1] = v end
+  table.sort(a) table.sort(b)
+  local n = math.min(#a, #b)
+  local P1, P2 = {}, {}
+  for i = 1, n do
+    P1[i] = math.floor((2 * a[i] + b[i]) / 3 + 0.5)
+    P2[i] = math.floor((a[i] + 2 * b[i]) / 3 + 0.5)
+  end
+  return P1, P2
+end
+
+local function gc_build(quality, root)
+  if quality == 2 then return gc_minor(root)
+  elseif quality == 3 then return gc_aug(root)
+  elseif quality == 4 then return gc_dim(root)
+  else return gc_major(root) end
+end
+
+function PakettiInsertGoldenPassing(rootA, qualA, rootB, qualB, base_note)
+  local X = gc_build(qualA, rootA)
+  local Y = gc_build(qualB, rootB)
+  local P1, P2 = golden_passing_pair(X, Y)
+  insert_golden_sequence("Insert Golden Passing Chords", base_note, {X, P1, P2, Y})
+end
+
+function show_golden_passing_dialog()
+  if golden_passing_dialog and golden_passing_dialog.visible then golden_passing_dialog:close() golden_passing_dialog = nil return end
+  local vb = renoise.ViewBuilder()
+  local quals = {"major", "minor", "augmented", "diminished"}
+  local content = vb:column{margin = 10, spacing = 5,
+    vb:text{text = "Golden Passing Chords (David Chester, ch. 27)", style = "strong", font = "bold"},
+    vb:text{text = "Inserts X, then the two strict golden passing chords (averages), then Y.\nUse same-quality triads a third or fifth apart for true golden passing. 36-EDO."},
+    vb:row{vb:text{text = "Chord X root (steps):", width = 150}, vb:valuebox{id = "pa_rootA", min = 0, max = 35, value = 0, width = 60},
+           vb:popup{id = "pa_qualA", items = quals, value = 1, width = 110}},
+    vb:row{vb:text{text = "Chord Y root (steps):", width = 150}, vb:valuebox{id = "pa_rootB", min = 0, max = 35, value = 24, width = 60},
+           vb:popup{id = "pa_qualB", items = quals, value = 1, width = 110}},
+    vb:row{vb:text{text = "Base note:", width = 150}, vb:valuebox{id = "pa_base", min = 0, max = 119, value = 48, width = 60}},
+    vb:row{vb:button{text = "Insert at Cursor", width = 140,
+      notifier = function()
+        PakettiInsertGoldenPassing(vb.views.pa_rootA.value, vb.views.pa_qualA.value,
+          vb.views.pa_rootB.value, vb.views.pa_qualB.value, vb.views.pa_base.value)
+      end}},
+  }
+  golden_passing_dialog = renoise.app():show_custom_dialog("Paketti Golden Passing Chords", content, microtonal_key_handler)
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
@@ -2594,6 +2852,12 @@ local menus = {"Main Menu:Tools:Paketti:Microtonal Tunings", "Instrument Box:Pak
 for _, base in ipairs(menus) do
   PakettiAddMenuEntry{name = base..":Microtonal Tunings Dialog...", invoke = show_microtonal_tuning_dialog}
   PakettiAddMenuEntry{name = base..":Apply Golden Pythagorean (13-note)", invoke = apply_golden_pythagorean}
+  PakettiAddMenuEntry{name = base..":Apply Golden-4 (David MOS)", invoke = function() apply_preset_by_name("Golden-4 (David MOS)") end}
+  PakettiAddMenuEntry{name = base..":Apply Golden-7 (Golden Diatonic)", invoke = function() apply_preset_by_name("Golden-7 (Golden Diatonic)") end}
+  PakettiAddMenuEntry{name = base..":Apply Golden-10 (Golden Decatonic)", invoke = function() apply_preset_by_name("Golden-10 (Golden Decatonic)") end}
+  PakettiAddMenuEntry{name = base..":Apply Golden-23 (David MOS)", invoke = function() apply_preset_by_name("Golden-23 (David MOS)") end}
+  PakettiAddMenuEntry{name = base..":Apply Golden-36 (= 36-EDO)", invoke = function() apply_preset_by_name("Golden-36 (= 36-EDO)") end}
+  PakettiAddMenuEntry{name = base..":Apply Silver-13 (Layer Mirror)", invoke = function() apply_preset_by_name("Silver-13 (Layer Mirror)") end}
   PakettiAddMenuEntry{name = base..":Apply 36-EDO", invoke = apply_36_edo}
   PakettiAddMenuEntry{name = base..":Apply Solfeggio", invoke = apply_solfeggio}
   PakettiAddMenuEntry{name = base..":Apply Colundi", invoke = apply_colundi}
@@ -2626,6 +2890,9 @@ for _, base in ipairs(menus) do
   PakettiAddMenuEntry{name = base..":Generate Golden Binaural Beats", invoke = generate_binaural_instrument}
   PakettiAddMenuEntry{name = base..":Generate Full Colundi (128 freq)", invoke = generate_colundi_full_instrument}
   PakettiAddMenuEntry{name = base..":Golden Chord Library...", invoke = show_golden_chord_dialog}
+  PakettiAddMenuEntry{name = base..":Golden Cadences...", invoke = show_golden_cadence_dialog}
+  PakettiAddMenuEntry{name = base..":Golden Circle...", invoke = show_golden_circle_dialog}
+  PakettiAddMenuEntry{name = base..":Golden Passing Chords...", invoke = show_golden_passing_dialog}
   PakettiAddMenuEntry{name = base..":Golden Ratio Tempo/Rhythm...", invoke = apply_golden_tempo_relationship}
   PakettiAddMenuEntry{name = base..":Generate Golden Arpeggio Phrases", invoke = generate_golden_arpeggio_phrases}
   PakettiAddMenuEntry{name = base..":Tuning Comparison A/B...", invoke = tuning_comparison_ab}
@@ -2640,11 +2907,16 @@ end
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Microtonal Tunings Dialog", invoke = show_microtonal_tuning_dialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Apply Golden Pythagorean Tuning", invoke = apply_golden_pythagorean}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply Golden-7 Golden Diatonic Tuning", invoke = function() apply_preset_by_name("Golden-7 (Golden Diatonic)") end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Apply Silver-13 Layer Mirror Tuning", invoke = function() apply_preset_by_name("Silver-13 (Layer Mirror)") end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Apply 36-EDO Tuning", invoke = apply_36_edo}
 renoise.tool():add_keybinding{name = "Global:Paketti:Apply Solfeggio Tuning", invoke = apply_solfeggio}
 renoise.tool():add_keybinding{name = "Global:Paketti:Apply Colundi Tuning", invoke = apply_colundi}
 renoise.tool():add_keybinding{name = "Global:Paketti:Reset Instrument to 12-TET", invoke = reset_to_12tet}
 renoise.tool():add_keybinding{name = "Global:Paketti:Golden Chord Library Dialog", invoke = show_golden_chord_dialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Golden Cadences Dialog", invoke = show_golden_cadence_dialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Golden Circle Dialog", invoke = show_golden_circle_dialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Golden Passing Chords Dialog", invoke = show_golden_passing_dialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Golden Ratio Tempo Dialog", invoke = apply_golden_tempo_relationship}
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate Golden Arpeggio Phrases", invoke = generate_golden_arpeggio_phrases}
 renoise.tool():add_keybinding{name = "Global:Paketti:Tuning Comparison AB", invoke = tuning_comparison_ab}

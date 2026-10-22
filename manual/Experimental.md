@@ -22775,11 +22775,29 @@ Clean window-cropped screenshots of all **157 Paketti dialogs**, each with a sho
 ![Paketti Fill Dialog](dialog-screenshots/146_Paketti_Fill_Dialog.png)
 
 ### 147 · Paketti Golden Chord Library
-- Insert chords built on the golden ratio (phi) intervals.
-- Golden Major, Minor, Power, Sixth, Sus and stacked thirds.
-- Microtonal voicings for otherworldly harmonic colour.
+- Insert David Chester's canonical golden chords (Music Theory of Golden Harmony), in 36-EDO.
+- Golden Triad `{0,11,22}` (the average of major, minor and augmented), Golden Seventh `{0,11,22,33}`, Silver Triad `{0,10,20}` (the dark twin = average of major, minor and diminished), Bronze Triad `{0,13,26}`, and the exact-φ stacked-thirds reference.
+- Insertion tunes the selected instrument to 36-EDO so the sixth-step voicings sound as intended.
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Golden Chord Library...`
 
 ![Paketti Golden Chord Library](dialog-screenshots/147_Paketti_Golden_Chord_Library.png)
+
+### 147a · Golden Scales (well-formed golden MOS)
+- The golden counterparts of pentatonic/diatonic/chromatic, built by stacking the golden sixth: **Golden-4**, **Golden-7** (the golden diatonic, `C C♯ vE vF ^G ^A♭ B`), **Golden-10** (decatonic), **Golden-23**, **Golden-36** (= 36-EDO) and **Silver-13** (the layer mirror of the 13-note golden chromatic). The existing "Golden Pythagorean (13-note)" is the golden chromatic (golden13).
+- Apply from `Main Menu:Tools:Paketti:Microtonal Tunings:Apply Golden-7 (Golden Diatonic)` (and the sibling Golden-4/10/23/36 and Silver-13 entries), or from the Microtonal Tunings dialog popup / A-B comparison.
+- Keybindings: `Global:Paketti:Apply Golden-7 Golden Diatonic Tuning`, `Global:Paketti:Apply Silver-13 Layer Mirror Tuning`.
+
+### 147b · Golden Cadences
+- Inserts a golden cadence on successive lines (36-EDO): golden authentic (six-four), plagal glow, deceptive, modal mixture, and golden Picardy.
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Golden Cadences...` · Keybinding: `Global:Paketti:Golden Cadences Dialog`.
+
+### 147c · Golden Circle
+- Walks the 36 golden triads: the root steps by a golden third (11 sixth-steps), keeping two common tones each move — the golden analogue of the circle of fifths. Choose root and length.
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Golden Circle...` · Keybinding: `Global:Paketti:Golden Circle Dialog`.
+
+### 147d · Golden Passing Chords
+- Inserts a chord X, the two strict golden passing chords between X and Y (the voice-wise averages `(2X+Y)/3` and `(X+2Y)/3`), then Y. Use same-quality triads a third or fifth apart for true golden passing (one passing chord is golden, the other bronze or silver).
+- Menu: `Main Menu:Tools:Paketti:Microtonal Tunings:Golden Passing Chords...` · Keybinding: `Global:Paketti:Golden Passing Chords Dialog`.
 
 ### 148 · Paketti Golden Ratio Tempo Rhythm
 - Derive new tempos from your BPM via the golden ratio (phi).
