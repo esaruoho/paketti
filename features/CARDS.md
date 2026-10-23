@@ -16,6 +16,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Command Wheel adjustments use one router](#command-wheel-adjustments) — `command-wheel-adjustments.feature`
 - [Device hotswap — missing plugins → actually-installed equivalents](#device-hotswap-missing-to-actual) — `device-hotswap-missing-to-actual.feature`
 - [Device Control actions record bypass automation](#device-toggle-automation) — `device-toggle-automation.feature`
+- [Switch automatic Disk Browser control off from its checked menu](#disk-browser-auto-toggle) — `disk-browser-auto-toggle.feature`
 - [Disk Browser refresh nudge](#disk-browser-refresh) — `disk-browser-refresh.feature`
 - [Preserve devices when duplicating a track and instrument](#duplicate-instrument-devices) — `duplicate-instrument-devices.feature`
 - [Dynamic Macro Toolbar action safety](#dynamic-toolbar-actions) — `dynamic-toolbar-actions.feature`
@@ -40,6 +41,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Skip empty NetDrive recordings](#netdrive-zero-byte-guard) — `netdrive-zero-byte-guard.feature`
 - [Normalize selected sample selection](#normalize-selected-channel) — `normalize-selected-channel.feature`
 - [Delete note-offs while preserving neighboring data](#note-off-cleanup) — `note-off-cleanup.feature`
+- [Toggle startup Oblique Strategies from Options](#oblique-startup-options) — `oblique-startup-options.feature`
 - [Close the unfocused parameter editor](#parameter-editor-close) — `parameter-editor-close.feature`
 - [Parameter Editor exposes on the Mixer the parameter you're modifying](#parameter-editor-mixer-and-config) — `parameter-editor-mixer-and-config.feature`
 - [Pattern Editor note manipulation](#pattern-editor-example) — `pattern-editor-example.feature`
@@ -244,6 +246,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiDeviceBypass`, `PakettiRecordDeviceBypassAutomation`, `PakettiWriteDeviceBypassPatternCommand`, `PakettiWriteDeviceBypassGraphicalAutomation` · **Source files:** `PakettiRequests.lua`
 
 **Grade:** @built ×3 · @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+
+
+<a id="disk-browser-auto-toggle"></a>
+## Switch automatic Disk Browser control off from its checked menu
+
+`features/disk-browser-auto-toggle.feature` · [session](disk-browser-auto-toggle.session.md)
+
+**Behaviour (3 scenarios):**
+
+- A checked entry disables and saves automation — `@code-verified @runtime-untested`
+- Disabled automation leaves browser visibility alone — `@code-verified @runtime-untested`
+- Read observable values for explicit modes — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `pakettiAutoHideDiskBrowserToggle`, `pakettiAutoHideDiskBrowserIsEnabled`, `pakettiAutoDiskBrowserNewDocumentHandler` · **Source files:** `PakettiForeignSnippets.lua`, `tests/disk-browser-auto-toggle.lua`
+
+**Grade:** @code-verified ×3 · @runtime-untested ×3
 
 
 <a id="disk-browser-refresh"></a>
@@ -735,6 +753,22 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `PakettiDeleteNoteOffs`, `PakettiClearPatternTrackNoteOffs` · **Source files:** `PakettiPatternEditor.lua`, `PakettiMainMenuEntries.lua`
 
 **Grade:** @built ×1 · @runtime-untested ×3 · @sim-verified ×2
+
+
+<a id="oblique-startup-options"></a>
+## Toggle startup Oblique Strategies from Options
+
+`features/oblique-startup-options.feature` · [session](oblique-startup-options.session.md)
+
+**Behaviour (3 scenarios):**
+
+- Persist startup toggle and reflect it with a checkmark — `@built @runtime-untested`
+- Replace the preferences checkbox — `@built @runtime-untested`
+- Preserve startup and manual strategies — `@stock`
+
+**How it does it:** **Key procs:** `pakettiObliqueStrategiesOnStartup` · **Source files:** `PakettiRequests.lua`, `Paketti0G01_Loader.lua`, `main.lua`
+
+**Grade:** @built ×2 · @runtime-untested ×2 · @stock ×1
 
 
 <a id="parameter-editor-close"></a>

@@ -5498,6 +5498,9 @@ function shuffle_oblique_strategies()
   renoise.app():show_status("Oblique Strategies: " .. message)
 end
 
+-- REPORT-CARD >> features/oblique-startup-options.feature
+PakettiAddMenuOptionsEntry{name="Oblique Strategies on Startup", pref=preferences.pakettiObliqueStrategiesOnStartup}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Open Oblique Strategies Dialog...",invoke=function() pakettiObliqueStrategiesDialog()  end}
 renoise.tool():add_keybinding{name="Global:Paketti:Shuffle Oblique Strategies Cards",invoke=shuffle_oblique_strategies}
 -------

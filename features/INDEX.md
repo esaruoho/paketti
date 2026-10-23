@@ -98,3 +98,7 @@ Derived views — GENERATED, never hand-edit:
 | `wav-import-destination.feature` | Additive WAV drops without duplicate empty slots | `wav-import-destination.session.md` | worktree |
 
 - [golden-chord-corrections.feature](golden-chord-corrections.feature) — corrected golden chords and 36-EDO insertion; worktree, no commit.
+
+- [oblique-startup-options.feature](oblique-startup-options.feature) — worktree; [session](oblique-startup-options.session.md).
+
+- [disk-browser-auto-toggle.feature](disk-browser-auto-toggle.feature) — worktree; [session](disk-browser-auto-toggle.session.md).

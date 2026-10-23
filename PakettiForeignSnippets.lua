@@ -3,59 +3,36 @@
 -- Automatically hides the disk browser when a new song is loaded
 ----------------------------------------------------
 
--- Function to cycle through disk browser auto control settings
+-- REPORT-CARD >> features/disk-browser-auto-toggle.feature
+-- A checked menu entry switches automation off; the preferences popup selects
+-- the explicit Hide/Show mode. Enabling from the menu defaults to Hide.
 function pakettiAutoHideDiskBrowserToggle()
-  -- Initialize preference if it doesn't exist
-  if not preferences.paketti_auto_disk_browser_mode then
-    preferences.paketti_auto_disk_browser_mode = 0  -- Default: Do Nothing
-  end
-  
-  -- Cycle through three modes: 0=Do Nothing, 1=Hide, 2=Show
-  preferences.paketti_auto_disk_browser_mode = (preferences.paketti_auto_disk_browser_mode + 1) % 3
-  
-  local mode_names = {"Do Nothing", "Hide on Song Load", "Show on Song Load"}
-  local status = mode_names[preferences.paketti_auto_disk_browser_mode + 1]
-  
+  local pref = preferences.paketti_auto_disk_browser_mode
+  pref.value = pref.value == 0 and 1 or 0
+  preferences:save_as("preferences.xml")
+  local status = pakettiAutoHideDiskBrowserGetModeName()
   renoise.app():show_status("Auto Disk Browser Control: " .. status)
   print("-- Paketti Auto Disk Browser Control: " .. status)
 end
 
--- Function to get current disk browser mode name (for menu display)
 function pakettiAutoHideDiskBrowserGetModeName()
-  -- Initialize preference if it doesn't exist
-  if not preferences.paketti_auto_disk_browser_mode then
-    preferences.paketti_auto_disk_browser_mode = 0  -- Default: Do Nothing
-  end
-  
   local mode_names = {"Do Nothing", "Hide on Song Load", "Show on Song Load"}
-  return mode_names[preferences.paketti_auto_disk_browser_mode + 1]
+  return mode_names[preferences.paketti_auto_disk_browser_mode.value + 1]
 end
 
--- Function to check if auto-hide is enabled (for menu checkmark) - kept for compatibility
 function pakettiAutoHideDiskBrowserIsEnabled()
-  if not preferences.paketti_auto_disk_browser_mode then
-    preferences.paketti_auto_disk_browser_mode = 0  -- Default: Do Nothing
-  end
-  return preferences.paketti_auto_disk_browser_mode ~= 0  -- Show checkmark if not "Do Nothing"
+  return preferences.paketti_auto_disk_browser_mode.value ~= 0
 end
 
--- Notification handler for when new song is loaded
 local function pakettiAutoDiskBrowserNewDocumentHandler()
-  -- Initialize preference if it doesn't exist
-  if not preferences.paketti_auto_disk_browser_mode then
-    preferences.paketti_auto_disk_browser_mode = 0  -- Default: Do Nothing
-  end
-  
-  if preferences.paketti_auto_disk_browser_mode == 1 then
-    -- Hide the disk browser when a new song is loaded
+  local mode = preferences.paketti_auto_disk_browser_mode.value
+  if mode == 1 then
     renoise.app().window.disk_browser_is_visible = false
     print("-- Paketti Auto Disk Browser: Hidden disk browser on song load")
-  elseif preferences.paketti_auto_disk_browser_mode == 2 then
-    -- Show the disk browser when a new song is loaded
+  elseif mode == 2 then
     renoise.app().window.disk_browser_is_visible = true
     print("-- Paketti Auto Disk Browser: Shown disk browser on song load")
   end
-  -- Mode 0 (Do Nothing) - no action taken
 end
 
 -- Add notification for new document/song loads

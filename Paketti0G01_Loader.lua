@@ -1760,13 +1760,6 @@ function pakettiPreferences()
                 value=preferences.pakettiSwitcharooAutoGrab.value,
                 tooltip="Automatically grab chords from pattern when opening Paketti Switcharoo dialog",
                 notifier=function(value) preferences.pakettiSwitcharooAutoGrab.value=value end
-              },
-              vb:space{width=checkbox_spacing},
-              vb:text{text="Oblique Strategies",width=125,tooltip="Show Oblique Strategies message on startup"},
-              vb:checkbox{
-                value=preferences.pakettiObliqueStrategiesOnStartup.value,
-                tooltip="Show Oblique Strategies message on startup",
-                notifier=function(value) preferences.pakettiObliqueStrategiesOnStartup.value=value end
               }
             },
               vb:row{

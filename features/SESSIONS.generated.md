@@ -98,4 +98,4 @@
 - Resume: `claude --resume c6badbf0-6a95-4030-b7d2-59e229c973ad`
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/c6badbf0-6a95-4030-b7d2-59e229c973ad.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
-- Cards touched (4): TEMPLATE.feature, disk-browser-auto-toggle.feature, oblique-startup-options.feature, song-lifecycle-safety.feature
+- Cards touched (5): TEMPLATE.feature, disk-browser-auto-toggle.feature, menu-registration-duplicates.feature, oblique-startup-options.feature, song-lifecycle-safety.feature
