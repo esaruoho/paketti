@@ -1464,35 +1464,13 @@ function paketti_canvas_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
   print("KEYHANDLER DEBUG: name:'" .. tostring(key.name) .. "' modifiers:'" .. tostring(key.modifiers) .. "' closer:'" .. tostring(closer) .. "'")
   
-  -- Check for CMD-H to close dialog
+  -- REPORT-CARD >> features/parameter-editor-close.feature
+  -- Use the same song-wide hide action as the global shortcut, including cleanup.
   if key.modifiers == "command" and key.name == "h" then
-    print("KEYHANDLER: CMD-H pressed - closing dialog")
-    print("KEYHANDLER: canvas_experiments_dialog exists: " .. tostring(canvas_experiments_dialog ~= nil))
-    
-    -- Store reference to dialog before cleanup (cleanup sets it to nil)
-    local dialog_to_close = canvas_experiments_dialog
-    
-    if dialog_to_close then
-      print("KEYHANDLER: canvas_experiments_dialog.visible: " .. tostring(dialog_to_close.visible))
-    end
-    
-    PakettiCanvasExperimentsCleanup()
-    
-    if dialog_to_close then
-      print("KEYHANDLER: Attempting to close dialog...")
-      local success, error_msg = pcall(function()
-        dialog_to_close:close()
-      end)
-      print("KEYHANDLER: Close success: " .. tostring(success))
-      if not success then
-        print("KEYHANDLER: Close error: " .. tostring(error_msg))
-      end
-    else
-      print("KEYHANDLER: No dialog to close!")
-    end
-    return nil -- Don't pass this key to Renoise
+    hide_all_external_editors()
+    return nil -- Consume Cmd-H after hiding all editors.
   end
-  
+
   -- Check for SPACE to open external editor
   if key.name == "space" then
     print("KEYHANDLER: SPACE pressed - toggling external editor")

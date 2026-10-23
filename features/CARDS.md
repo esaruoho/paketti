@@ -742,14 +742,15 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 `features/parameter-editor-close.feature` · [session](parameter-editor-close.session.md)
 
-**Behaviour (2 scenarios):**
+**Behaviour (3 scenarios):**
 
 - Hide editors from Pattern Editor or Global closes the custom dialog — `@sim-verified @runtime-verified`
 - Repeated hide calls and an unavailable parameter editor remain safe — `@sim-verified @runtime-untested`
+- Cmd-H inside the parameter editor hides all editors together — `@sim-verified @runtime-untested`
 
-**How it does it:** **Key procs:** `hide_all_external_editors`, `PakettiCanvasExperimentsCloseDialog` · **Source files:** `PakettiLoaders.lua`, `PakettiCanvasExperiments.lua`, `tests/parameter-editor-close.lua`
+**How it does it:** **Key procs:** `hide_all_external_editors`, `PakettiCanvasExperimentsCloseDialog`, `paketti_canvas_keyhandler_func` · **Source files:** `PakettiLoaders.lua`, `PakettiCanvasExperiments.lua`, `tests/parameter-editor-close.lua`
 
-**Grade:** @runtime-untested ×1 · @runtime-verified ×1 · @sim-verified ×2
+**Grade:** @runtime-untested ×2 · @runtime-verified ×1 · @sim-verified ×3
 
 
 <a id="parameter-editor-mixer-and-config"></a>

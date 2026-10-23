@@ -26,3 +26,26 @@ host.hide_all_external_editors(); assert(closed==1 and cleanup==1)
 host.PakettiCanvasExperimentsCloseDialog=nil; external.external_editor_visible=true
 host.hide_all_external_editors(); assert(not external.external_editor_visible)
 print('PASS: unfocused parameter editor closes with cleanup; external editors still close; repeated/missing-module calls safe')
+
+-- Exercise the actual focused Cmd-H branch with the real shared hide action.
+local key_source=section("PakettiCanvasExperiments.lua", "function paketti_canvas_keyhandler_func(dialog, key)", "  -- Check for SPACE to open external editor") .. "  return key\nend\n"
+host.preferences={pakettiDialogClose={value="esc"}}
+assert(load(key_source,'focused hide shortcut','t',host))()
+host.PakettiCanvasExperimentsCloseDialog=env.PakettiCanvasExperimentsCloseDialog
+local sample_fx={external_editor_available=true,external_editor_visible=true}
+local plugin={external_editor_available=true,external_editor_visible=true}
+local hidden={external_editor_available=true,external_editor_visible=false}
+local chain={devices={{},sample_fx,hidden},device=track.device}
+local instrument={sample_device_chains={chain},plugin_properties={plugin_device=plugin}}
+song.instruments={instrument}; song.instrument=function(self,i) return self.instruments[i] end
+external.external_editor_visible=true; dialog.visible=true
+local ordinary={name="h",modifiers=""}
+assert(host.paketti_canvas_keyhandler_func(dialog,ordinary)==ordinary)
+assert(dialog.visible and external.external_editor_visible and plugin.external_editor_visible)
+assert(host.paketti_canvas_keyhandler_func(dialog,{name="h",modifiers="command"})==nil)
+assert(not dialog.visible and not external.external_editor_visible)
+assert(not sample_fx.external_editor_visible and not plugin.external_editor_visible and not hidden.external_editor_visible)
+assert(closed==2 and cleanup==2)
+host.paketti_canvas_keyhandler_func(dialog,{name="h",modifiers="command"})
+assert(closed==2 and cleanup==2)
+print('PASS: focused Cmd-H consumes key, cleans dialog, hides track/plugin/sample FX editors; plain H and repeated hide are safe')

@@ -47,7 +47,7 @@
 | netdrive-zero-byte-guard | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | normalize-selected-channel | 6 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | note-off-cleanup | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
-| parameter-editor-close | 2 | ✗ | ~ partial | — | @runtime-untested @runtime-verified @sim-verified |
+| parameter-editor-close | 3 | ✗ | ~ partial | — | @runtime-untested @runtime-verified @sim-verified |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
 | pattern-matrix-duplicate-x | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested |
 | pattern-song-jumps | 4 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |

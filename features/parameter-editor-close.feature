@@ -6,8 +6,9 @@
 # SESSION: parameter-editor-close.session.md
 # RESULT: Local working-tree change; no commit, push or PR.
 # Files: source modules, test, PLAN.md, manual/CHANGESLOG.md, card/session bundle and generated views.
-# WATCH: hide_all_external_editors PakettiCanvasExperimentsCloseDialog
+# WATCH: hide_all_external_editors PakettiCanvasExperimentsCloseDialog paketti_canvas_keyhandler_func
 # RESULT-LOG >>
+#   2026-10-23  direct-commit  touched: hide_all_external_editors PakettiCanvasExperimentsCloseDialog paketti_canvas_keyhandler_func
 #   2026-10-06  direct-commit  touched: PakettiCanvasExperimentsCloseDialog
 #   2026-10-06  direct-commit  touched: hide_all_external_editors PakettiCanvasExperimentsCloseDialog
 Feature: Close the unfocused parameter editor
@@ -26,3 +27,13 @@ Feature: Close the unfocused parameter editor
     Given the parameter editor is already closed or its module is unavailable
     When hide external editors is invoked
     Then external device editors still close without a missing-function error
+
+  @sim-verified @runtime-untested
+  Scenario: Cmd-H inside the parameter editor hides all editors together
+    # cite: PakettiCanvasExperiments.lua paketti_canvas_keyhandler_func; PakettiLoaders.lua hide_all_external_editors; tests/parameter-editor-close.lua
+    Given the parameter editor and track, instrument plugin and sample FX external editors are open
+    When Command-H is pressed inside the parameter editor
+    Then the shared hide action cleans up and closes the parameter dialog
+    And all open external editors are hidden
+    And the key is consumed while plain H passes through
+    And repeated hiding is safe
