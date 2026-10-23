@@ -8,7 +8,7 @@
 > Metadata only -- no conversation content is copied into the repo. The list
 > reflects the machine it was generated on (transcripts are local).
 
-**14 card conversations** plugged in:
+**15 card conversations** plugged in:
 
 ### `d5d5197a-3a54-4560-9e7f-b6f0deb14d1a`  (2026-09-28 → 2026-09-29)
 - Resume: `claude --resume d5d5197a-3a54-4560-9e7f-b6f0deb14d1a`
@@ -93,3 +93,9 @@
 - Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/df4f99fa-eb5f-483c-830d-3c7a232b8b16.jsonl
 - Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
 - Cards touched (5): 2026-06-11-groovebox-controller-follow-and-menu.feature, TEMPLATE.feature, golden-chord-corrections.feature, menu-registration-duplicates.feature, song-lifecycle-safety.feature
+
+### `c6badbf0-6a95-4030-b7d2-59e229c973ad`  (2026-10-23)
+- Resume: `claude --resume c6badbf0-6a95-4030-b7d2-59e229c973ad`
+- Transcript: file:///Users/esaruoho/.claude/projects/-Users-esaruoho-Library-Mobile-Documents-com-apple-CloudDocs-Renoise-Tools-org-lackluster-Paketti-xrnx/c6badbf0-6a95-4030-b7d2-59e229c973ad.jsonl
+- Tooling touched: INDEX.md, STATUS.md, cards.conf, gen-sessions.py, gen-status.py, print-card.py
+- Cards touched (4): TEMPLATE.feature, disk-browser-auto-toggle.feature, oblique-startup-options.feature, song-lifecycle-safety.feature

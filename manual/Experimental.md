@@ -5030,6 +5030,22 @@ Normalizes every sample in the current instrument:
 - Progress dialog shows which sample is being processed
 - Skips already-normalized samples
 
+### Normalize All Instruments
+**Shortcut:** `Global:Paketti:Normalize All Instruments` ⌨️ 📋
+
+**MIDI:** `Paketti:Normalize All Instruments` 🎹
+
+**Menu:** `Sample Editor:Paketti:Process:Normalize All Instruments` 📋
+**Menu:** `Sample Navigator:Paketti:Process:Normalize All Instruments` 📋
+**Menu:** `Sample Mappings:Paketti:Process:Normalize All Instruments` 📋
+
+Peak-normalizes every sample in every instrument in the song to 0 dBFS in a single pass:
+- **Sliced instruments:** Only normalizes the first sample (preserves slices)
+- **Regular instruments:** Normalizes each sample independently
+- Progress dialog shows the instrument/sample being processed; cancellable
+- Skips already-normalized and empty samples
+- The 0 dB counterpart to "Normalize All Instruments -12dB"
+
 ---
 
 ## Normalize to -12dB

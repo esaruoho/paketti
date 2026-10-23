@@ -1,3 +1,11 @@
+### 2026-10-23 - Feature: Normalize All Instruments
+Peak-normalizes every sample in every instrument in the song to 0 dBFS using the standard Paketti Normalize, in one pass with a progress dialog you can cancel. It is slice-aware (an instrument that has slice markers only normalizes its first sample, so slices stay intact) and skips any sample that is already at full peak or empty. This is the 0 dB counterpart to the existing "Normalize All Instruments -12dB".
+- Keybinding: `Global:Paketti:Normalize All Instruments`
+- MIDI Mapping: `Paketti:Normalize All Instruments`
+- Menu: `Sample Editor:Paketti:Process:Normalize All Instruments`
+- Menu: `Sample Navigator:Paketti:Process:Normalize All Instruments`
+- Menu: `Sample Mappings:Paketti:Process:Normalize All Instruments`
+
 ### 2026-10-22 - Feature: Golden harmony scales in the Paketti Arpeggiator
 The Paketti Arpeggiator's Mode dropdowns (the global mode and the per-chord modes) now include four golden-harmony scales from David Chester's system, alongside the existing 12-TET modes: Golden (the 7-note golden diatonic), Golden-10, Golden Chromatic (13-note) and Silver (the 13-note layer mirror). These are not 12-TET: their scale degrees and triads are measured in 36-EDO steps (one octave = 36 steps of 33.33 cents), and each degree is harmonised with David's golden triad `{0,11,22}` (or the silver triad `{0,10,20}` for the Silver scale). Picking a golden mode and then auditioning or writing the arpeggio automatically tunes the selected instrument to 36-EDO, so the arpeggio sounds as the golden sixth/third stack intends rather than as compressed semitones. The ordinary 12-TET modes are unchanged, and key-detection (Read from Pattern) ignores the golden modes. No new menu entries or keybindings — it is built into the existing Arpeggiator dialog (`Main Menu:Tools:Paketti:Arpeggiator...`).
 

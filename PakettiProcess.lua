@@ -643,9 +643,147 @@ function normalize_all_samples_in_instrument()
   slicer:start()
 end
 
+-- Paketti Normalize across every sample in every instrument in the song.
+-- Same behavior as normalize_all_samples_in_instrument (pure 0 dBFS peak
+-- normalize, skip samples already at peak, slice-marker aware: a sliced
+-- instrument only normalizes its first sample), run over all instruments
+-- through a single ProcessSlicer with a progress dialog.
+function normalize_all_instruments()
+  -- Build a flat work list across all instruments, applying the same
+  -- slice-marker rule per instrument as the single-instrument normalizer.
+  local samples_to_process = {}
+  for instrument_index, instrument in ipairs(renoise.song().instruments) do
+    if #instrument.samples > 0 then
+      local instrument_name = instrument.name ~= "" and instrument.name or string.format("Instrument %02d", instrument_index)
+      local has_slice_markers = #instrument.samples[1].slice_markers > 0
+      if has_slice_markers then
+        if instrument.samples[1].sample_buffer.has_sample_data then
+          table.insert(samples_to_process, {instrument_index = instrument_index, sample_index = 1, sample = instrument.samples[1], instrument_name = instrument_name})
+        end
+      else
+        for sample_index = 1, #instrument.samples do
+          local sample = instrument.samples[sample_index]
+          if sample.sample_buffer.has_sample_data then
+            table.insert(samples_to_process, {instrument_index = instrument_index, sample_index = sample_index, sample = sample, instrument_name = instrument_name})
+          end
+        end
+      end
+    end
+  end
+
+  if #samples_to_process == 0 then
+    renoise.app():show_warning("No samples with data found in any instrument")
+    return
+  end
+
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+
+  local function process_func()
+    local processed_samples = 0
+    local skipped_samples = 0
+    local total_samples = #samples_to_process
+
+    for position, sample_info in ipairs(samples_to_process) do
+      local sample = sample_info.sample
+      local sample_name = sample.name ~= "" and sample.name or string.format("Sample %02d", sample_info.sample_index)
+
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("%s / %s (%d of %d)", sample_info.instrument_name, sample_name, position, total_samples)
+      end
+
+      if not sample or not sample.sample_buffer.has_sample_data then
+        skipped_samples = skipped_samples + 1
+      else
+        local buffer = sample.sample_buffer
+        local num_channels = buffer.number_of_channels
+        local num_frames = buffer.number_of_frames
+        local buffer_prepared = false
+
+        local success, error_msg = pcall(function()
+          buffer:prepare_sample_data_changes()
+          buffer_prepared = true
+        end)
+
+        if not success then
+          print("Error preparing sample buffer for " .. sample_name .. ": " .. tostring(error_msg))
+          skipped_samples = skipped_samples + 1
+        else
+          -- Follow along so the user sees what is being processed
+          renoise.song().selected_instrument_index = sample_info.instrument_index
+          renoise.song().selected_sample_index = sample_info.sample_index
+
+          local max_peak = 0
+
+          if slicer:was_cancelled() then
+            if buffer_prepared then buffer:finalize_sample_data_changes() end
+            return
+          end
+
+          for frame = 1, num_frames, CHUNK_SIZE do
+            local chunk_end = math.min(frame + CHUNK_SIZE - 1, num_frames)
+            for channel = 1, num_channels do
+              for f = frame, chunk_end do
+                max_peak = math.max(max_peak, math.abs(buffer:sample_data(channel, f)))
+              end
+            end
+            if slicer:was_cancelled() then
+              if buffer_prepared then buffer:finalize_sample_data_changes() end
+              return
+            end
+            coroutine.yield()
+          end
+
+          if math.abs(max_peak - 1.0) < 0.0001 or max_peak == 0 then
+            if buffer_prepared then
+              buffer:finalize_sample_data_changes()
+              buffer_prepared = false
+            end
+            skipped_samples = skipped_samples + 1
+          else
+            local scale = 1.0 / max_peak
+            for frame = 1, num_frames, CHUNK_SIZE do
+              local chunk_end = math.min(frame + CHUNK_SIZE - 1, num_frames)
+              for channel = 1, num_channels do
+                for f = frame, chunk_end do
+                  buffer:set_sample_data(channel, f, buffer:sample_data(channel, f) * scale)
+                end
+              end
+              if slicer:was_cancelled() then
+                if buffer_prepared then buffer:finalize_sample_data_changes() end
+                return
+              end
+              coroutine.yield()
+            end
+
+            if buffer_prepared then
+              buffer:finalize_sample_data_changes()
+              buffer_prepared = false
+            end
+            processed_samples = processed_samples + 1
+          end
+        end
+      end
+    end
+
+    if dialog and dialog.visible then dialog:close() end
+
+    local status_msg = string.format("Normalized %d samples across all instruments. Skipped %d (already normalized/empty).", processed_samples, skipped_samples)
+    renoise.app():show_status(status_msg)
+    print("-- " .. status_msg)
+  end
+
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Normalizing All Instruments")
+  slicer:start()
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample",invoke=function() normalize_selected_sample_ultra_fast() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_midi_mapping{name="Paketti:Normalize All Samples in Instrument",invoke=function(message) if message:is_trigger() then normalize_all_samples_in_instrument() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Instruments",invoke=function() normalize_all_instruments() end}
+renoise.tool():add_midi_mapping{name="Paketti:Normalize All Instruments",invoke=function(message) if message:is_trigger() then normalize_all_instruments() end end}
 
 ------
 -- Public synchronous normalize-and-reduce on a passed-in sample.

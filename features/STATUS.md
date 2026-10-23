@@ -23,6 +23,7 @@
 | command-wheel-adjustments | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | device-hotswap-missing-to-actual | 9 | ✗ | — | — | @designed |
 | device-toggle-automation | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
+| disk-browser-auto-toggle | 3 | ✓ | ✗ | — | @code-verified @runtime-untested |
 | disk-browser-refresh | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | duplicate-instrument-devices | 4 | ✓ | ~ partial | — | @code-verified @runtime-untested @runtime-verified |
 | dynamic-toolbar-actions | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
@@ -47,6 +48,7 @@
 | netdrive-zero-byte-guard | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
 | normalize-selected-channel | 6 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | note-off-cleanup | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @sim-verified |
+| oblique-startup-options | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested @stock |
 | parameter-editor-close | 3 | ✗ | ~ partial | — | @runtime-untested @runtime-verified @sim-verified |
 | parameter-editor-mixer-and-config | 7 | ✓ | ✓ | — | @built @code-verified @feasibility @in-renoise @logic-verified @runtime-verified @untested |
 | pattern-matrix-duplicate-x | 3 | ✓ | ✗ | — | @built @code-verified @runtime-untested |
@@ -78,8 +80,8 @@
 | wav-import-destination | 8 | ✓ | ✗ | — | @code-verified @runtime-untested |
 
 ## Tally (computed)
-- Cards: 64
-- Build-verified: 54
+- Cards: 66
+- Build-verified: 56
 - Runtime-verified: 3 full + 4 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 2
 

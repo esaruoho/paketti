@@ -2177,6 +2177,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize Samp
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize All Instruments",invoke=function() normalize_all_instruments() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Process:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Process:Normalize Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
@@ -2428,6 +2429,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize S
   renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to Full Loop",invoke=function() set_loop_length_for_selected_instrument("full") end}
   renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to End-Half Loop",invoke=function() set_loop_length_for_selected_instrument("half") end}
   renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to Beginning Half Loop",invoke=function() set_loop_length_for_selected_instrument("begin") end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize All Instruments",invoke=function() normalize_all_instruments() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
@@ -2530,6 +2532,7 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Invert Right
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Normalize All Instruments",invoke=function() normalize_all_instruments() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Process:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
