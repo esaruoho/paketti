@@ -197,11 +197,11 @@ renoise.tool():add_keybinding{name="Global:Paketti:Dump All Settings to Text Fil
 -- instrument per file (which is exactly "N dropped files = N instruments"). If
 -- Renoise refuses the registration, we learn that and nothing changes.
 --
--- Import hooks cannot be removed at runtime, so the hook stays registered for
--- the session once added; it re-reads the preference on every call, so turning
--- the preference off makes it fall back to a plain add instead of breaking .wav.
+-- Hooks are removed while the recorder is visible or the preference is off,
+-- and restored on idle when enabled with the recorder hidden.
 --------------------------------------------------------------------------------
 local paketti_wav_hook_registered = false
+local paketti_wav_owned_hooks = {}
 
 -- REPORT-CARD >> features/wav-import-destination.feature
 -- Remember pre-existing slots between drops, including intentionally empty ones.
@@ -291,6 +291,9 @@ end
 
 --- The actual import. Returns true if Renoise should consider the file handled.
 function PakettiWavImportHookInvoke(file_name)
+  -- Recorder visibility disables hook registration; guard any in-flight call too.
+  if renoise.app().window.sample_record_dialog_is_visible then return false end
+
   local on = preferences and preferences.pakettiWavImportHook
     and preferences.pakettiWavImportHook.value
 
@@ -368,6 +371,7 @@ end
 
 --- Register the hook if it isn't already. Returns ok, message.
 function PakettiWavImportHookRegister()
+  if renoise.app().window.sample_record_dialog_is_visible then return true, "recorder visible" end
   if paketti_wav_hook_registered then return true, "already registered" end
   local ok, err = pcall(function()
     for _, ext in ipairs({"wav", "aiff", "aif", "flac", "mp3"}) do
@@ -377,12 +381,30 @@ function PakettiWavImportHookRegister()
           extensions = {ext},
           invoke = function(file_name) return PakettiWavImportHookInvoke(file_name) end,
         }
+        paketti_wav_owned_hooks[ext] = true
       end
     end
   end)
   if ok then paketti_wav_hook_registered = true end
   return ok, err
 end
+
+-- REPORT-CARD >> features/wav-import-destination.feature
+-- No recorder visibility observable exists; synchronize registration on idle.
+function PakettiWavImportHookSync()
+  local enabled = preferences.pakettiWavImportHook.value
+    and not renoise.app().window.sample_record_dialog_is_visible
+  if enabled then
+    if not paketti_wav_hook_registered then PakettiWavImportHookRegister() end
+  else
+    for ext in pairs(paketti_wav_owned_hooks) do
+      renoise.tool():remove_file_import_hook("sample", {ext})
+      paketti_wav_owned_hooks[ext] = nil
+    end
+    paketti_wav_hook_registered = false
+  end
+end
+renoise.tool().app_idle_observable:add_notifier(PakettiWavImportHookSync)
 
 --- Menu/keybinding toggle: flips the preference and registers on first enable.
 function PakettiToggleWavImportHook()
@@ -408,10 +430,11 @@ function PakettiToggleWavImportHook()
         .. "'Isolate Slices or Samples to New Instruments'.")
     end
   else
+    PakettiWavImportHookSync()
     renoise.app():show_message(
       "Paketti Audio Import Hook set to OFF.\n\n"
       .. "New audio drags load the normal way again. (The hook itself only fully "
-      .. "clears when you restart Renoise, but it honours this OFF setting.)")
+      .. "is now unregistered.)")
   end
 end
 

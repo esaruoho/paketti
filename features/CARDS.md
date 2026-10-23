@@ -345,15 +345,16 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 `features/golden-chord-corrections.feature` · [session](golden-chord-corrections.session.md)
 
-**Behaviour (3 scenarios):**
+**Behaviour (4 scenarios):**
 
 - Canonical golden chords (ch. 25) — `@code-verified`
 - Well-formed golden scales (ch. 23/36) — `@code-verified`
 - Golden cadences, golden circle and golden passing chords (ch. 27/29/31) — `@built @runtime-untested`
+- Golden harmony scales in the Arpeggiator (ch. 23/25/36) — `@code-verified @runtime-untested`
 
-**How it does it:** **Key procs:** `get_golden_chords`, `golden_chain_steps`, `generate_silver13`, `golden_cadences`, `PakettiInsertGoldenCircle`, `PakettiInsertGoldenPassing` · **Source files:** `PakettiMicrotonalTunings.lua`
+**How it does it:** **Key procs:** `get_golden_chords`, `golden_chain_steps`, `generate_silver13`, `golden_cadences`, `PakettiInsertGoldenCircle`, `PakettiInsertGoldenPassing`, `PakettiArp_GenerateScale`, `PakettiArp_ResolveNoteValue`, `PakettiApply36EDOToInstrument` · **Source files:** `PakettiMicrotonalTunings.lua`, `PakettiArpeggiator.lua`
 
-**Grade:** @built ×1 · @code-verified ×2 · @runtime-untested ×1
+**Grade:** @built ×1 · @code-verified ×3 · @runtime-untested ×2
 
 
 <a id="groovebox-8120-default-instrument-slots"></a>
@@ -1295,8 +1296,9 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 
 `features/wav-import-destination.feature` · [session](wav-import-destination.session.md)
 
-**Behaviour (7 scenarios):**
+**Behaviour (8 scenarios):**
 
+- Disable import hooks while the sample recorder is visible — `@code-verified @runtime-untested`
 - Fill newly allocated drop destinations — `@code-verified @runtime-untested`
 - Preserve existing slots and keep imports additive — `@code-verified @runtime-untested`
 - Retain preference-off behavior — `@code-verified @runtime-untested`
@@ -1305,9 +1307,9 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - Expose the switch at Options, Preferences and Experimental — `@code-verified @runtime-untested`
 - Apply embedded WAV cue sets after drop cleanup — `@code-verified @runtime-untested`
 
-**How it does it:** **Key procs:** `PakettiWavImportHookRegister`, `paketti_wav_finish_sample`, `PakettiWavImportHookInvoke`, `paketti_wav_blank_destination`, `paketti_wav_remember_instruments` · **Source files:** `PakettiDebug.lua`, `tests/wav_import_hook_regression.lua`, `Paketti0G01_Loader.lua`, `PakettiWavCueExtract.lua`
+**How it does it:** **Key procs:** `PakettiWavImportHookSync`, `PakettiWavImportHookRegister`, `paketti_wav_finish_sample`, `PakettiWavImportHookInvoke`, `paketti_wav_blank_destination`, `paketti_wav_remember_instruments` · **Source files:** `PakettiDebug.lua`, `tests/wav_import_hook_regression.lua`, `Paketti0G01_Loader.lua`, `PakettiWavCueExtract.lua`
 
-**Grade:** @code-verified ×7 · @runtime-untested ×7
+**Grade:** @code-verified ×8 · @runtime-untested ×8
 
 
 ---

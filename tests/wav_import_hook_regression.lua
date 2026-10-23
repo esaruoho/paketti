@@ -22,7 +22,8 @@ local function instrument()
 end
 local song = {instruments = {instrument(), instrument()}, selected_instrument_index = 1}
 local idle
-renoise = {tool = function() return {app_idle_observable = {add_notifier = function(_, fn) idle = fn end}} end, song = function() return song end, app = function() return {show_status = function() end} end}
+local window = {sample_record_dialog_is_visible = false}
+renoise = {tool = function() return {app_idle_observable = {add_notifier = function(_, fn) idle = fn end}} end, song = function() return song end, app = function() return {window = window, show_status = function() end} end}
 local function select(i) song.selected_instrument_index = i; song.selected_instrument = song.instruments[i] end
 safeInsertInstrumentAt = function(_, i)
   local inst = instrument(); table.insert(song.instruments, i, inst)
@@ -36,6 +37,18 @@ PakettiRestoreNewSampleMonitoring = function(v) assert(v == "monitor"); restores
 local preamble = assert(source:find("local paketti_wav_existing = {}", 1, true))
 local ending = assert(source:find("local function paketti_wav_basename", preamble, true))
 assert(loadstring(source:sub(preamble, ending - 1) .. hook_source))()
+-- In-flight recorder callbacks must do nothing, with either preference state.
+local real_song = renoise.song
+window.sample_record_dialog_is_visible = true
+renoise.song = function() error("recorder bypass must not access song") end
+for _, enabled in ipairs({true, false}) do
+  preferences.pakettiWavImportHook.value = enabled
+  assert(PakettiWavImportHookInvoke("/tmp/TempSampleRef1.wav") == false)
+end
+assert(templates == 0 and restores == 0)
+renoise.song = real_song
+window.sample_record_dialog_is_visible = false
+preferences.pakettiWavImportHook.value = true
 -- Renoise supplies eight selected destinations after two existing instruments.
 for i = 1, 8 do song.instruments[#song.instruments + 1] = instrument() end
 for i = 1, 8 do
@@ -89,15 +102,31 @@ idle() -- a consumed queue must be harmless
 print("PASS: additive batch, post-drop placeholders/mapping, other audio and selection preserved")
 
 -- Register every extension even when WAV is already registered.
-local tool, registered = {}, {wav = true}
+local tool, registered = {app_idle_observable = {add_notifier = function() end}}, {wav = true}
+function tool:remove_file_import_hook(_, exts) registered[exts[1]] = nil end
 function tool:has_file_import_hook(category, exts) assert(category == "sample"); return registered[exts[1]] end
 function tool:add_file_import_hook(hook) registered[hook.extensions[1]] = hook end
 renoise.tool = function() return tool end
 local register_start = assert(source:find("function PakettiWavImportHookRegister()", 1, true))
 local register_end = assert(source:find("--- Menu/keybinding toggle", register_start, true))
-assert(loadstring("local paketti_wav_hook_registered = false\n" .. source:sub(register_start, register_end - 1)))()
+assert(loadstring("local paketti_wav_hook_registered = false; local paketti_wav_owned_hooks = {}\n" .. source:sub(register_start, register_end - 1)))()
 assert(PakettiWavImportHookRegister())
 for _, ext in ipairs({"wav", "aiff", "aif", "flac", "mp3"}) do assert(registered[ext], ext) end
+window.sample_record_dialog_is_visible = true
+PakettiWavImportHookSync()
+for _, ext in ipairs({"aiff", "aif", "flac", "mp3"}) do assert(not registered[ext]) end
+assert(registered.wav == true, "do not remove another owner's registration")
+assert(PakettiWavImportHookRegister())
+assert(not registered.aiff, "must not register while recorder visible")
+window.sample_record_dialog_is_visible = false
+PakettiWavImportHookSync()
+assert(registered.aiff, "restore imports when recorder hidden")
+preferences.pakettiWavImportHook.value = false
+PakettiWavImportHookSync()
+assert(not registered.aiff)
+preferences.pakettiWavImportHook.value = true
+PakettiWavImportHookSync()
+print("PASS: recorder visibility removes owned hooks and hiding restores them")
 -- Parse real RIFF cue bytes; do not create a sidecar next to the source.
 local cf = assert(io.open("PakettiWavCueExtract.lua", "rb"))
 local cue_source = cf:read("*a"); cf:close()

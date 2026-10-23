@@ -4,12 +4,25 @@
 # Areaspace: Additive WAV hook allocation; preserve every pre-existing instrument.
 # SESSION: wav-import-destination.session.md
 # RESULT: Worktree only; no commit, push or PR.
-# WATCH: PakettiWavImportHookRegister paketti_wav_finish_sample PakettiWavImportHookInvoke paketti_wav_blank_destination paketti_wav_remember_instruments
+# WATCH: PakettiWavImportHookSync PakettiWavImportHookRegister paketti_wav_finish_sample PakettiWavImportHookInvoke paketti_wav_blank_destination paketti_wav_remember_instruments
 # RESULT-LOG >>
+#   2026-10-23  direct-commit  touched: PakettiWavImportHookSync PakettiWavImportHookRegister PakettiWavImportHookInvoke
 #   2026-10-20  direct-commit  touched: PakettiWavImportHookRegister
 #   2026-10-18  direct-commit  touched: PakettiWavImportHookRegister PakettiWavImportHookInvoke
 #   2026-10-20  direct-commit  touched: Main Menu:Options checkbox + Paketti Preferences toggle (PakettiDebug.lua, Paketti0G01_Loader.lua)
 Feature: Add dropped WAVs without duplicate empty instruments
+  @code-verified @runtime-untested
+  Scenario: Disable import hooks while the sample recorder is visible
+    # cite: PakettiDebug.lua PakettiWavImportHookInvoke
+    # cite: tests/wav_import_hook_regression.lua
+    Given the sample recorder is visible and the import hook is registered
+    When registration synchronizes on idle
+    Then all Paketti-owned audio import hooks are removed
+    And an in-flight callback returns false without accessing or changing the song
+    And this bypass applies with the import preference both on and off
+    And owned hooks register again when the recorder is hidden and the preference is enabled
+    And another owner's hooks are not removed
+
   @code-verified @runtime-untested
   Scenario: Fill newly allocated drop destinations
     # cite: PakettiDebug.lua paketti_wav_blank_destination PakettiWavImportHookInvoke
