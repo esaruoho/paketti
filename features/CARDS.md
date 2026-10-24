@@ -20,6 +20,7 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 - [Disk Browser refresh nudge](#disk-browser-refresh) — `disk-browser-refresh.feature`
 - [Preserve devices when duplicating a track and instrument](#duplicate-instrument-devices) — `duplicate-instrument-devices.feature`
 - [Dynamic Macro Toolbar action safety](#dynamic-toolbar-actions) — `dynamic-toolbar-actions.feature`
+- [Initialize Dynamic View preferences as a standalone document](#dynamic-view-preferences) — `dynamic-view-preferences.feature`
 - [EQ10 keyboard controls](#eq10-keyboard-controls) — `eq10-keyboard-controls.feature`
 - [Execute configurable shell commands](#execute-command-slots) — `execute-command-slots.feature`
 - [Golden harmony per David Chester (Music Theory of Golden Harmony, 36-EDO)](#golden-chord-corrections) — `golden-chord-corrections.feature`
@@ -316,6 +317,21 @@ Each card is a triad: the `.feature` spec, a `.session.md` (the conversation tha
 **How it does it:** **Key procs:** `execute_action`, `create_button_list`, `DynamicMacroToolbar`, `show_euclid_dialog`, `list_preset_records`, `load_preset`, `save_preset` · **Source files:** `PakettiDynamicMacroToolbar.lua`, `PakettiMainMenuEntries.lua`
 
 **Grade:** @built ×3 · @code-verified ×3 · @runtime-untested ×3 · @shipped ×3 · @stock ×1
+
+
+<a id="dynamic-view-preferences"></a>
+## Initialize Dynamic View preferences as a standalone document
+
+`features/dynamic-view-preferences.feature` · [session](dynamic-view-preferences.session.md)
+
+**Behaviour (2 scenarios):**
+
+- The loader has already assigned a DocumentList global — `@code-verified @runtime-untested`
+- No saved preferences file exists — `@code-verified @runtime-untested`
+
+**How it does it:** **Key procs:** `loadDynamicViewPreferences` · **Source files:** `PakettiDynamicViews.lua`, `tests/dynamic-view-preferences.lua`
+
+**Grade:** @code-verified ×2 · @runtime-untested ×2
 
 
 <a id="eq10-keyboard-controls"></a>

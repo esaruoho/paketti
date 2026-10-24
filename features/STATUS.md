@@ -27,6 +27,7 @@
 | disk-browser-refresh | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped @stock |
 | duplicate-instrument-devices | 4 | ✓ | ~ partial | — | @code-verified @runtime-untested @runtime-verified |
 | dynamic-toolbar-actions | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
+| dynamic-view-preferences | 2 | ✓ | ✗ | — | @code-verified @runtime-untested |
 | eq10-keyboard-controls | 3 | ✓ | ✗ | — | @code-verified @runtime-untested @shipped |
 | execute-command-slots | 7 | ✓ | ✗ | — | @built @code-verified @runtime-untested @shipped @stock |
 | golden-chord-corrections | 4 | ✓ | ✗ | — | @built @code-verified @runtime-untested |
@@ -80,8 +81,8 @@
 | wav-import-destination | 8 | ✓ | ✗ | — | @code-verified @runtime-untested |
 
 ## Tally (computed)
-- Cards: 66
-- Build-verified: 56
+- Cards: 67
+- Build-verified: 57
 - Runtime-verified: 3 full + 4 partial
 - **Hardware-verified: 6**  ·  hardware-untested: 2
 

@@ -1,3 +1,21 @@
+### 2026-10-23 - Improvement: Dynamic Views F3 Direct Sample Editor Navigation
+Fixed an issue in Paketti Dynamic Views where pressing F3 (`Cycle Paketti Dynamic View 02`) while in Pattern Editor, Mixer, or other views would sometimes cycle into Sample Keyzones (samplemappings), Sample Modulation, or Sample Effects instead of opening the Sample Editor. Now, if Renoise is not currently on the Sample Editor middle frame (`MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR`), pressing F3 always hits the Sample Editor directly. Subsequent presses of F3 while already on the Sample Editor continue through the configured dynamic view cycle as expected. Similarly, pressing F2 (`Cycle Paketti Dynamic View 01`) from outside the Pattern Editor always directly hits the Pattern Editor first.
+
+### 2026-10-23 - Feature: Record to New Instrument (Toggle & Pedal MIDI Mappings)
+Directly record audio into a fresh instrument without imprinting anything to the pattern editor or creating extra tracks. When triggered, it checks the current instrument: if free (empty or blank sample slot), it reuses it; if occupied, it automatically inserts a new instrument and selects it. It opens the Renoise Sample Recorder dialog and starts recording. When stopped (via second toggle press or pedal release), it waits for sample capture (including pattern sync tails if enabled), closes the recorder dialog, and immediately switches the Renoise view directly to the Sample Editor with keyboard focus locked and the recorded sample set to autoseek and autofade. The pattern editor, tracks, columns, and line notes remain completely untouched.
+- MIDI Mapping: `Paketti:Record to New Instrument x[Toggle]`
+- MIDI Mapping: `Paketti:Record to New Instrument (2nd) x[Toggle]`
+- MIDI Mapping: `Paketti:Record to New Instrument (Pedal) x[Knob]`
+- MIDI Mapping: `Paketti:Record to New Instrument (Pedal) (2nd) x[Knob]`
+- Keybinding: `Global:Paketti:Record to New Instrument (Toggle)`
+- Keybinding: `Sample Editor:Paketti:Record to New Instrument (Toggle)`
+- Keybinding: `Pattern Editor:Paketti:Record to New Instrument (Toggle)`
+- Keybinding: `Mixer:Paketti:Record to New Instrument (Toggle)`
+- Menu: `Instrument Box:Paketti:Record:Record to New Instrument (Toggle)`
+- Menu: `Sample Editor:Paketti:Record:Record to New Instrument (Toggle)`
+- Menu: `Mixer:Paketti:Record:Record to New Instrument (Toggle)`
+- Menu: `Pattern Editor:Paketti:Record:Record to New Instrument (Toggle)`
+
 ### 2026-10-23 - Feature: Normalize All Instruments
 Peak-normalizes every sample in every instrument in the song to 0 dBFS using the standard Paketti Normalize, in one pass with a progress dialog you can cancel. It is slice-aware (an instrument that has slice markers only normalizes its first sample, so slices stay intact) and skips any sample that is already at full peak or empty. This is the 0 dB counterpart to the existing "Normalize All Instruments -12dB".
 - Keybinding: `Global:Paketti:Normalize All Instruments`

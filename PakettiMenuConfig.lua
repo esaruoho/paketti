@@ -2077,6 +2077,7 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Wipe&Slice:Double Sli
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Wipe&Slice:Halve Slices",invoke=function() halveslices() end}
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Record:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Record:Record to New Instrument (Toggle)",invoke=function() PakettiRecordToNewInstrumentToggle() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Record:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Record:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Record:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
@@ -2143,6 +2144,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Export:Convert:Duplica
 
 -- Sample Editor Record
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Record:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}  
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Record:Record to New Instrument (Toggle)",invoke=function() PakettiRecordToNewInstrumentToggle() end}  
 
 -- Sample Editor Process
 
@@ -2751,6 +2753,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti:Duplicate Track and Instrument
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Show Paketti Formula Device Manual Dialog...",invoke = pakettiFormulaDeviceDialog}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Add Input Inertia Formula Device",invoke = add_input_inertia}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Record:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Record:Record to New Instrument (Toggle)",invoke=function() PakettiRecordToNewInstrumentToggle() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Record:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Record:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Record:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
@@ -3196,6 +3199,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Devices:Enable 8 Tr
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Devices:Bypass 8 Track DSP Devices (Write to Pattern)",invoke=function() effectbypasspattern() end}
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Record:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Record:Record to New Instrument (Toggle)",invoke=function() PakettiRecordToNewInstrumentToggle() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Record:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Record:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Record:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}

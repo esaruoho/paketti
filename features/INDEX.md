@@ -102,3 +102,5 @@ Derived views — GENERATED, never hand-edit:
 - [oblique-startup-options.feature](oblique-startup-options.feature) — worktree; [session](oblique-startup-options.session.md).
 
 - [disk-browser-auto-toggle.feature](disk-browser-auto-toggle.feature) — worktree; [session](disk-browser-auto-toggle.session.md).
+
+- [dynamic-view-preferences.feature](dynamic-view-preferences.feature) — fix startup DocumentList reuse; worktree; [session](dynamic-view-preferences.session.md).

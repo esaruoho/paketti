@@ -1,7 +1,9 @@
 -- PakettiDynamicViews.lua
 
--- Declare DynamicViewPrefs before using it
-local DynamicViewPrefs
+-- REPORT-CARD >> features/dynamic-view-preferences.feature
+-- The loader's global is a DocumentList, not this standalone XML document.
+-- Reset it so initialization below always creates the correct DocumentNode.
+DynamicViewPrefs = nil
 
 -- Set the number of dynamic views
 local dynamic_views_count = 9
@@ -421,6 +423,77 @@ function cycle_dynamic_view(dv)
       return
     end
     last_cycled_time[dv] = current_time
+
+    local app_window = renoise.app().window
+    local active_middle = app_window.active_middle_frame
+
+    -- If cycling Dynamic View 02 (F3) and not currently on Sample Editor middle frame,
+    -- always jump directly to the Sample Editor step instead of advancing through other steps.
+    if dv == 2 and active_middle ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+      local sample_editor_step = nil
+      for _, step in ipairs(configured_steps) do
+        local middle_frame_index = DynamicViewPrefs["dynamic_view" .. dv_id .. "_middle_step" .. step].value
+        if middle_frame_index > 1 then
+          local frame = views_middle[middle_frame_index - 1].frame
+          if frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+            sample_editor_step = step
+            break
+          end
+        end
+      end
+
+      local step = sample_editor_step or configured_steps[1] or 1
+      apply_dynamic_view_step(dv, step)
+      if app_window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+        app_window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      end
+      current_steps[dv] = step
+
+      local middle_frame_index = DynamicViewPrefs["dynamic_view" .. dv_id .. "_middle_step" .. step].value
+      local middle_frame_label = ""
+      if middle_frame_index > 1 then
+        middle_frame_label = views_middle[middle_frame_index - 1].label
+      else
+        middle_frame_label = "Sample Editor"
+      end
+      local status_message = "Paketti Dynamic View " .. dv_id .. " - Step " .. string.format("%02d", step) .. ": " .. middle_frame_label
+      renoise.app():show_status(status_message)
+      return
+    end
+
+    -- If cycling Dynamic View 01 (F2) and not currently on Pattern Editor middle frame,
+    -- always jump directly to the Pattern Editor step.
+    if dv == 1 and active_middle ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+      local pattern_editor_step = nil
+      for _, step in ipairs(configured_steps) do
+        local middle_frame_index = DynamicViewPrefs["dynamic_view" .. dv_id .. "_middle_step" .. step].value
+        if middle_frame_index > 1 then
+          local frame = views_middle[middle_frame_index - 1].frame
+          if frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+            pattern_editor_step = step
+            break
+          end
+        end
+      end
+
+      local step = pattern_editor_step or configured_steps[1] or 1
+      apply_dynamic_view_step(dv, step)
+      if app_window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+        app_window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      end
+      current_steps[dv] = step
+
+      local middle_frame_index = DynamicViewPrefs["dynamic_view" .. dv_id .. "_middle_step" .. step].value
+      local middle_frame_label = ""
+      if middle_frame_index > 1 then
+        middle_frame_label = views_middle[middle_frame_index - 1].label
+      else
+        middle_frame_label = "Pattern Editor"
+      end
+      local status_message = "Paketti Dynamic View " .. dv_id .. " - Step " .. string.format("%02d", step) .. ": " .. middle_frame_label
+      renoise.app():show_status(status_message)
+      return
+    end
 
     local current_step_index = 0
     for index, step in ipairs(configured_steps) do

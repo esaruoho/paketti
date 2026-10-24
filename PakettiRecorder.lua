@@ -44,61 +44,16 @@ renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record On/Off
 local paketti_sample_timer = nil
 
 function PakettiSampleAndToSampleEditor()
-  local w=renoise.app().window
-  local t=renoise.song().transport
-  local s=renoise.song()
-  
-  if w.sample_record_dialog_is_visible==false then
-    -- Check if there's already a selected sample and create new instrument if needed
-    if s.selected_sample then
-      if not canInsertInstrument() then
-        renoise.app():show_status("Cannot create instrument: maximum of 255 instruments reached")
-        return
-      end
-      local new_instrument_index=s.selected_instrument_index + 1
-      s:insert_instrument_at(new_instrument_index)
-      s.selected_instrument_index=new_instrument_index
-    end
-
-    -- Start recording
-    w.sample_record_dialog_is_visible=true
-    pakettiSampleRecordingStart()
-  else
-    -- Stop recording and start monitoring for completion
-    pakettiSampleRecordingStop()
-    
-    -- Clean up existing timer if any
-    if paketti_sample_timer and renoise.tool():has_timer(PakettiSampleAndToSampleEditorMonitor) then
-      renoise.tool():remove_timer(PakettiSampleAndToSampleEditorMonitor)
-      paketti_sample_timer = nil
-    end
-    
-    -- Start new timer
-    paketti_sample_timer = renoise.tool():add_timer(PakettiSampleAndToSampleEditorMonitor, 100)
-  end
+  PakettiRecordToNewInstrumentToggle()
 end
 
 function PakettiSampleAndToSampleEditorMonitor()
-  local s=renoise.song()
-  
-  if s.selected_sample and s.selected_sample.sample_buffer.has_sample_data then
-    PakettiSampleAndToSampleEditorFinish()
-    -- Stop monitoring
-    paketti_sample_timer = nil
-    renoise.tool():remove_timer(PakettiSampleAndToSampleEditorMonitor)
-    return false
-  end
-  -- Continue monitoring
-  return true
+  return PakettiRecordToNewInstrumentMonitor()
 end
 
 function PakettiSampleAndToSampleEditorFinish()
-  local w=renoise.app().window
-  w.active_upper_frame=1
-  w.active_middle_frame=5
-  w.lock_keyboard_focus=true
-  renoise.song().selected_sample.autoseek=true
-  renoise.song().selected_sample.autofade=true
+  local s = renoise.song()
+  PakettiRecordToNewInstrumentFinish(s.selected_instrument_index)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
@@ -180,9 +135,19 @@ local function pakettiRecordInstrumentHasMidiOutput(instrument)
 end
 
 local function pakettiRecordInstrumentIsFree(instrument)
-  return #instrument.samples == 0
-    and not instrument.plugin_properties.plugin_loaded
-    and not pakettiRecordInstrumentHasMidiOutput(instrument)
+  if not instrument then
+    return false
+  end
+  if instrument.plugin_properties.plugin_loaded or pakettiRecordInstrumentHasMidiOutput(instrument) then
+    return false
+  end
+  if #instrument.samples == 0 then
+    return true
+  end
+  if #instrument.samples == 1 and not instrument.samples[1].sample_buffer.has_sample_data then
+    return true
+  end
+  return false
 end
 
 local function pakettiRecordFindFreeInstrumentAfter(song, index)
@@ -234,6 +199,152 @@ local function pakettiRecordSelectDestinationInstrument(song)
     math.min(current_index + 1, #song.instruments + 1),
     "  Current instrument not empty; created new instr at index %d.")
 end
+
+--------------------------------------------------------------------------------
+-- Record to New Instrument
+--
+-- Records audio using Renoise's sample recorder into a fresh or free instrument,
+-- opens the sample recorder, and on completion switches focus directly to the
+-- Sample Editor with autoseek and autofade enabled.
+-- DOES NOT write any notes, patterns, or tracks to the pattern editor.
+--------------------------------------------------------------------------------
+local paketti_record_new_instrument_active = false
+local paketti_record_new_instrument_target_index = nil
+local paketti_record_new_instrument_timer = nil
+
+function PakettiRecordToNewInstrumentIsRecording()
+  return paketti_record_new_instrument_active
+end
+
+function PakettiRecordToNewInstrumentCleanup()
+  if paketti_record_new_instrument_timer and renoise.tool():has_timer(PakettiRecordToNewInstrumentMonitor) then
+    renoise.tool():remove_timer(PakettiRecordToNewInstrumentMonitor)
+  end
+  paketti_record_new_instrument_timer = nil
+  paketti_record_new_instrument_active = false
+  paketti_record_new_instrument_target_index = nil
+end
+
+function PakettiRecordToNewInstrumentFinish(target_index)
+  local auto_samplify_state = nil
+  if type(PakettiTemporarilyDisableNewSampleMonitoring) == "function" then
+    auto_samplify_state = PakettiTemporarilyDisableNewSampleMonitoring()
+  end
+
+  local s = renoise.song()
+  local w = renoise.app().window
+
+  if target_index and s.instruments[target_index] then
+    s.selected_instrument_index = target_index
+  end
+
+  -- Close the sample recorder dialog
+  w.sample_record_dialog_is_visible = false
+
+  -- Switch Renoise view to Sample Editor with keyboard focus locked
+  w.active_upper_frame = 1
+  w.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  w.lock_keyboard_focus = true
+
+  local target_inst = s.instruments[s.selected_instrument_index]
+  if target_inst and #target_inst.samples > 0 and target_inst.samples[1] then
+    target_inst.samples[1].autoseek = true
+    target_inst.samples[1].autofade = true
+  end
+
+  local instr_idx = s.selected_instrument_index
+
+  PakettiRecordToNewInstrumentCleanup()
+
+  if type(PakettiRestoreNewSampleMonitoring) == "function" then
+    PakettiRestoreNewSampleMonitoring(auto_samplify_state)
+  end
+
+  renoise.app():show_status(string.format("Recorded to instrument %02X - ready in Sample Editor", instr_idx - 1))
+end
+
+function PakettiRecordToNewInstrumentMonitor()
+  local s = renoise.song()
+
+  -- If Renoise is still capturing (e.g. pattern sync tail), continue waiting
+  if pakettiSampleRecordingIsActive() then
+    return true
+  end
+
+  if paketti_record_new_instrument_active then
+    local target_idx = paketti_record_new_instrument_target_index
+    if target_idx and s.instruments[target_idx]
+       and #s.instruments[target_idx].samples > 0
+       and s.instruments[target_idx].samples[1].sample_buffer
+       and s.instruments[target_idx].samples[1].sample_buffer.has_sample_data
+    then
+      PakettiRecordToNewInstrumentFinish(target_idx)
+    elseif s.selected_sample
+       and s.selected_sample.sample_buffer
+       and s.selected_sample.sample_buffer.has_sample_data
+    then
+      PakettiRecordToNewInstrumentFinish(s.selected_instrument_index)
+    else
+      -- Dialog was closed without recording or take was aborted
+      PakettiRecordToNewInstrumentCleanup()
+    end
+    return false
+  end
+
+  return true
+end
+
+function PakettiRecordToNewInstrumentStart()
+  if paketti_record_new_instrument_active then
+    return false
+  end
+
+  local s = renoise.song()
+  local w = renoise.app().window
+
+  if not pakettiRecordSelectDestinationInstrument(s) then
+    return false
+  end
+
+  paketti_record_new_instrument_target_index = s.selected_instrument_index
+  paketti_record_new_instrument_active = true
+
+  w.sample_record_dialog_is_visible = true
+  pakettiSampleRecordingStart()
+
+  if paketti_record_new_instrument_timer and renoise.tool():has_timer(PakettiRecordToNewInstrumentMonitor) then
+    renoise.tool():remove_timer(PakettiRecordToNewInstrumentMonitor)
+    paketti_record_new_instrument_timer = nil
+  end
+
+  paketti_record_new_instrument_timer = renoise.tool():add_timer(PakettiRecordToNewInstrumentMonitor, 100)
+  return true
+end
+
+function PakettiRecordToNewInstrumentStop()
+  if not paketti_record_new_instrument_active then
+    return false
+  end
+
+  pakettiSampleRecordingStop()
+  return true
+end
+
+function PakettiRecordToNewInstrumentToggle()
+  if PakettiRecordToNewInstrumentIsRecording() then
+    PakettiRecordToNewInstrumentStop()
+    renoise.app():show_status("Record to New Instrument: stopped, finalizing...")
+  else
+    if PakettiRecordToNewInstrumentStart() then
+      renoise.app():show_status("Record to New Instrument: recording...")
+    end
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Record to New Instrument (Toggle)",invoke=function() PakettiRecordToNewInstrumentToggle() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Record to New Instrument (Toggle)",invoke=function() PakettiRecordToNewInstrumentToggle() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Record to New Instrument (Toggle)",invoke=function() PakettiRecordToNewInstrumentToggle() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Record to New Instrument (Toggle)",invoke=function() PakettiRecordToNewInstrumentToggle() end}
 
 
 --------------------------------------------------------------------------------

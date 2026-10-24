@@ -550,6 +550,39 @@ renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track (Pattern S
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row Pedal (2nd) x[Knob]",invoke=function(message) PakettiPedalRecordAndWriteRow(message) end}
 renoise.tool():add_midi_mapping{name="Paketti:Record to Current Track and Row New Track Pedal (2nd) x[Knob]",invoke=function(message) PakettiPedalRecordNewTrackAndWriteRow(message) end}
 
+function PakettiPedalRecordToNewInstrument(message)
+  local value = PakettiPedalRecordMidiValue(message)
+  if value == nil then
+    return
+  end
+
+  if value == 127 then
+    if not PakettiRecordToNewInstrumentIsRecording() then
+      if PakettiRecordToNewInstrumentStart() then
+        renoise.app():show_status("Record to New Instrument: recording...")
+      end
+    end
+  else
+    if PakettiRecordToNewInstrumentIsRecording() then
+      PakettiRecordToNewInstrumentStop()
+      renoise.app():show_status("Record to New Instrument: stopped, finalizing...")
+    end
+  end
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Record to New Instrument x[Toggle]",invoke=function(message)
+  if message:is_trigger() then PakettiRecordToNewInstrumentToggle() end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to New Instrument (2nd) x[Toggle]",invoke=function(message)
+  if message:is_trigger() then PakettiRecordToNewInstrumentToggle() end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to New Instrument (Pedal) x[Knob]",invoke=function(message)
+  PakettiPedalRecordToNewInstrument(message)
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Record to New Instrument (Pedal) (2nd) x[Knob]",invoke=function(message)
+  PakettiPedalRecordToNewInstrument(message)
+end}
+
 
 renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track (Pattern Sync)",invoke=function() PakettiRecordToCurrentTrackPatternSyncShortcut() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track and Row",invoke=function() PakettiRecordToCurrentTrackAndRowShortcut() end}
