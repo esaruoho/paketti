@@ -2006,7 +2006,11 @@ local function tuning_comparison_ab()
   local src = song.instruments[src_index]
   for s = 1, #src.samples do
     if s > #dst.samples then dst:insert_sample_at(s) end
-    dst.samples[s]:copy_from(src.samples[s])
+    if type(rawget(_G, "PakettiCopySample")) == "function" then
+      PakettiCopySample(src.samples[s], dst.samples[s])
+    else
+      dst.samples[s]:copy_from(src.samples[s])
+    end
   end
   dst.name = src.name .. " (B)"
 

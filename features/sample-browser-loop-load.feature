@@ -7,6 +7,7 @@
 # Files: the two Lua sources, regression test, PLAN.md, this card and session bundle.
 # WATCH: plsb_do_load PakettiWavCueImportWavWithCuesIntoSample
 # RESULT-LOG >>
+#   2026-10-29  direct-commit  touched: PakettiWavCueImportWavWithCuesIntoSample
 #   2026-10-06  direct-commit  touched: plsb_do_load PakettiWavCueImportWavWithCuesIntoSample
 Feature: Preserve preview loops and reject single-cue slicing
   @sim-verified @runtime-untested

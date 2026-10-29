@@ -2833,7 +2833,12 @@ function duplicateTrackDuplicateInstrument()
   -- Duplicate the current instrument
   if not safeInsertInstrumentAt(song, instrument_index + 1) then return end
   local new_instrument_index = instrument_index + 1
-  song.instruments[new_instrument_index]:copy_from(song.instruments[instrument_index])
+  
+  if type(rawget(_G, "PakettiCopyInstrument")) == "function" then
+    PakettiCopyInstrument(song.instruments[instrument_index], song.instruments[new_instrument_index])
+  else
+    song.instruments[new_instrument_index]:copy_from(song.instruments[instrument_index])
+  end
 
   -- Handle phrases
   if #song.instruments[instrument_index].phrases > 0 then
@@ -3574,7 +3579,22 @@ function PakettiIsolateSlicesToInstrumentDirect()
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
     local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
 
-    renoise.app():load_instrument(defaultInstrument)
+    local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+    PakettiWavImportHookBypass = true
+    if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+      pcall(PakettiWavImportHookUnregister)
+    end
+
+    if not defaultInstrument or not io.open(defaultInstrument, "r") then
+      defaultInstrument = fallbackInstrument
+    end
+    pcall(function() renoise.app():load_instrument(defaultInstrument) end)
+
+    PakettiWavImportHookBypass = prior_bypass
+    if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+      pcall(PakettiWavImportHookSync)
+    end
+
     local new_instrument = song.instruments[index]
     new_instrument.name = instrument.name .. name_suffix
 
@@ -3730,7 +3750,22 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
     song.selected_instrument_index = index
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
     local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
-    renoise.app():load_instrument(defaultInstrument)
+
+    local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+    PakettiWavImportHookBypass = true
+    if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+      pcall(PakettiWavImportHookUnregister)
+    end
+
+    if not defaultInstrument or not io.open(defaultInstrument, "r") then
+      defaultInstrument = fallbackInstrument
+    end
+    pcall(function() renoise.app():load_instrument(defaultInstrument) end)
+
+    PakettiWavImportHookBypass = prior_bypass
+    if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+      pcall(PakettiWavImportHookSync)
+    end
     local new_instrument = song.instruments[index]
     -- Clear only placeholder samples from the drumkit template before copying real samples
     local deleted_count = 0
@@ -3867,8 +3902,23 @@ function PakettiIsolateSlicesToInstrumentProcessed(selected_instrument_index, in
     if not safeInsertInstrumentAt(song, index) then return nil end
     song.selected_instrument_index = index
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
+    local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
 
-    renoise.app():load_instrument(defaultInstrument)
+    local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+    PakettiWavImportHookBypass = true
+    if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+      pcall(PakettiWavImportHookUnregister)
+    end
+
+    if not defaultInstrument or not io.open(defaultInstrument, "r") then
+      defaultInstrument = fallbackInstrument
+    end
+    pcall(function() renoise.app():load_instrument(defaultInstrument) end)
+
+    PakettiWavImportHookBypass = prior_bypass
+    if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+      pcall(PakettiWavImportHookSync)
+    end
     local new_instrument = song.instruments[index]
     new_instrument.name = instrument.name .. name_suffix
 
@@ -4051,7 +4101,21 @@ function PakettiIsolateSelectedSampleToInstrument()
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
   local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend_Drumkit_C0.xrni")
 
-  renoise.app():load_instrument(defaultInstrument)
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+
+  if not defaultInstrument or not io.open(defaultInstrument, "r") then
+    defaultInstrument = fallbackInstrument
+  end
+  pcall(function() renoise.app():load_instrument(defaultInstrument) end)
+
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
   local new_instrument = song.instruments[insert_index]
   new_instrument.name = sample.name .. " (Isolated)"
 

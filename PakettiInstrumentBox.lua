@@ -63,7 +63,11 @@ function DuplicateInstrumentAndSelectNewInstrument_Wrong()
       end
       coroutine.yield()
       if slicer and slicer:was_cancelled() then return end
-      dst_inst:copy_from(src_inst)
+      if type(rawget(_G, "PakettiCopyInstrument")) == "function" then
+        PakettiCopyInstrument(src_inst, dst_inst)
+      else
+        dst_inst:copy_from(src_inst)
+      end
     else
       -- Manual, sliced duplication of samples and phrases to avoid timeouts
       if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
@@ -245,18 +249,33 @@ function DuplicateInstrumentAndSelectNewInstrument()
   end
 
   local i = rs.selected_instrument_index
-  if renoise.app().window.active_middle_frame == 3 then
-    rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
-    rs.selected_instrument_index = i + 1
-    renoise.app().window.active_middle_frame = 3
-  elseif renoise.app().window.active_middle_frame == 9 then
-    rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
-    rs.selected_instrument_index = i + 1
-    renoise.app().window.active_middle_frame = 9
-  else
-    rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
-    rs.selected_instrument_index = i + 1
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
   end
+
+  local ok, err = pcall(function()
+    rs:insert_instrument_at(i + 1)
+    if type(rawget(_G, "PakettiCopyInstrument")) == "function" then
+      PakettiCopyInstrument(rs.selected_instrument, rs.instruments[i + 1])
+    else
+      rs.instruments[i + 1]:copy_from(rs.selected_instrument)
+    end
+    rs.selected_instrument_index = i + 1
+    if renoise.app().window.active_middle_frame == 3 then
+      renoise.app().window.active_middle_frame = 3
+    elseif renoise.app().window.active_middle_frame == 9 then
+      renoise.app().window.active_middle_frame = 9
+    end
+  end)
+
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+
+  if not ok then error(err) end
 
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -283,10 +302,29 @@ function duplicateSelectInstrumentToLastInstrument()
   local src_inst_i = rs.selected_instrument_index
   local src_inst = rs:instrument(src_inst_i)
 
-  rs:insert_instrument_at(n_instruments)
-  rs.selected_instrument_index = n_instruments
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
 
-  rs.selected_instrument:copy_from(src_inst)
+  local ok, err = pcall(function()
+    rs:insert_instrument_at(n_instruments)
+    rs.selected_instrument_index = n_instruments
+
+    if type(rawget(_G, "PakettiCopyInstrument")) == "function" then
+      PakettiCopyInstrument(src_inst, rs.selected_instrument)
+    else
+      rs.selected_instrument:copy_from(src_inst)
+    end
+  end)
+
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+
+  if not ok then error(err) end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select Last Instrument",invoke=function() duplicateSelectInstrumentToLastInstrument() end}

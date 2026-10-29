@@ -90,7 +90,11 @@ function SliceSafelyWipeAndSlice(slice_count)
     
     if src_sample and src_sample.sample_buffer and src_sample.sample_buffer.has_sample_data then
       new_instrument:insert_sample_at(#new_instrument.samples + 1)
-      new_instrument.samples[#new_instrument.samples]:copy_from(src_sample)
+      if type(rawget(_G, "PakettiCopySample")) == "function" then
+        PakettiCopySample(src_sample, new_instrument.samples[#new_instrument.samples])
+      else
+        new_instrument.samples[#new_instrument.samples]:copy_from(src_sample)
+      end
     end
   end
   

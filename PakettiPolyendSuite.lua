@@ -2662,8 +2662,11 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
     local new_sample = drumkit_instrument:insert_sample_at(i)
     
     if source_sample.sample_buffer.has_sample_data then
-      -- FAST BULK COPY - no more frame-by-frame bullshit!
-      new_sample:copy_from(source_sample)
+      if type(rawget(_G, "PakettiCopySample")) == "function" then
+        PakettiCopySample(source_sample, new_sample)
+      else
+        new_sample:copy_from(source_sample)
+      end
       
       -- Remove loops for drumkits (override after copy)
       new_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
@@ -3066,8 +3069,11 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
     local new_sample = drumkit_instrument:insert_sample_at(i)
     
     if source_sample.sample_buffer.has_sample_data then
-      -- FAST BULK COPY - no more frame-by-frame bullshit!
-      new_sample:copy_from(source_sample)
+      if type(rawget(_G, "PakettiCopySample")) == "function" then
+        PakettiCopySample(source_sample, new_sample)
+      else
+        new_sample:copy_from(source_sample)
+      end
       
       -- Remove loops for drumkits (override after copy)
       new_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF

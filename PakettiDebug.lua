@@ -260,6 +260,16 @@ local function paketti_wav_remember_instruments()
           if not ok_finish then
             print("-- Paketti WAV post-drop cleanup failed: " .. tostring(err))
             renoise.app():show_status("Paketti WAV cleanup failed: " .. tostring(err))
+          else
+            if item.cues and #item.cues > 1 and type(rawget(_G, "PakettiAmigoHandleSlicedImport")) == "function" then
+              local inst_idx = nil
+              for idx, i in ipairs(song.instruments) do
+                if i == inst then inst_idx = idx; break end
+              end
+              if inst_idx then
+                pcall(PakettiAmigoHandleSlicedImport, inst_idx, "WAV+CUE")
+              end
+            end
           end
           break
         end
@@ -284,15 +294,71 @@ local function paketti_wav_blank_destination(inst)
 end
 
 
+PakettiWavImportHookBypass = false
+
 local function paketti_wav_basename(file_name)
   local n = tostring(file_name):match("[^/\\]+$") or "Sample"
   return (n:gsub("%.[^.]+$", ""))
+end
+
+local function paketti_wav_is_internal_file(file_name)
+  if PakettiWavImportHookBypass then return true end
+
+  local fn = tostring(file_name)
+  local base = paketti_wav_basename(fn)
+
+  -- Renoise recorded sample buffer cache & temporary workspace files:
+  -- Matches TempSampleRef*, Renoise_TmpPath-*, Renoise_TmpFile-*, /Renoise-<session>/
+  if fn:find("TempSampleRef")
+      or fn:find("Renoise_Tmp")
+      or fn:find("[/\\]Renoise%-%d+[%-_]")
+      or base:match("^TempSampleRef")
+      or base:match("^Renoise_Tmp") then
+    return true
+  end
+
+  -- Renoise internal application UI audio & skin files (e.g. Skin/Metronome.wav):
+  if base:lower() == "metronome"
+      or fn:find("[/\\]Resources[/\\]Skin[/\\]")
+      or fn:find("[/\\]Skin[/\\]") then
+    return true
+  end
+
+  return false
+end
+
+local function paketti_wav_file_exists(path)
+  if type(io.exists) == "function" then return io.exists(path) end
+  local f = io.open(path, "rb")
+  if f then f:close(); return true end
+  return false
 end
 
 --- The actual import. Returns true if Renoise should consider the file handled.
 function PakettiWavImportHookInvoke(file_name)
   -- Recorder visibility disables hook registration; guard any in-flight call too.
   if renoise.app().window.sample_record_dialog_is_visible then return false end
+
+  -- Programmatic bypass or Renoise internal files (recording cache, skin audio)
+  if paketti_wav_is_internal_file(file_name) then return false end
+
+  -- Check if this WAV was already imported as part of an Octatrack .ot pair
+  local ot_pairs = rawget(_G, "PakettiRecentlyImportedOTPairs")
+  if ot_pairs and ot_pairs[file_name] then
+    local elapsed = os.clock() - ot_pairs[file_name]
+    if elapsed >= 0 and elapsed < 5 then
+      print("-- Paketti WAV Hook: skipping duplicate for recently imported OT pair: " .. file_name)
+      return true
+    end
+  end
+
+  -- If this WAV has an accompanying .ot file in the same folder, delegate to OT slice importer
+  local ot_sibling = tostring(file_name):gsub("%.[^.]+$", ".ot")
+  if paketti_wav_file_exists(ot_sibling) and type(rawget(_G, "ot_import_filehook")) == "function" then
+    print("-- Paketti WAV Hook: detected sibling .ot file " .. ot_sibling .. ", delegating to OT slice importer")
+    local ok = pcall(ot_import_filehook, ot_sibling)
+    if ok then return true end
+  end
 
   local on = preferences and preferences.pakettiWavImportHook
     and preferences.pakettiWavImportHook.value
@@ -389,19 +455,35 @@ function PakettiWavImportHookRegister()
   return ok, err
 end
 
+function PakettiWavImportHookUnregister()
+  for ext in pairs(paketti_wav_owned_hooks) do
+    pcall(function() renoise.tool():remove_file_import_hook("sample", {ext}) end)
+    paketti_wav_owned_hooks[ext] = nil
+  end
+  paketti_wav_hook_registered = false
+end
+
 -- REPORT-CARD >> features/wav-import-destination.feature
 -- No recorder visibility observable exists; synchronize registration on idle.
 function PakettiWavImportHookSync()
-  local enabled = preferences.pakettiWavImportHook.value
-    and not renoise.app().window.sample_record_dialog_is_visible
+  local is_recording = false
+  if type(rawget(_G, "pakettiAmIRecording")) == "function" then
+    is_recording = pakettiAmIRecording()
+  else
+    local ok_win, win = pcall(function() return renoise.app().window end)
+    is_recording = ok_win and win and win.sample_record_dialog_is_visible
+  end
+  local bypassed = rawget(_G, "PakettiWavImportHookBypass")
+
+  local enabled = preferences and preferences.pakettiWavImportHook
+    and preferences.pakettiWavImportHook.value
+    and not is_recording
+    and not bypassed
+
   if enabled then
     if not paketti_wav_hook_registered then PakettiWavImportHookRegister() end
   else
-    for ext in pairs(paketti_wav_owned_hooks) do
-      renoise.tool():remove_file_import_hook("sample", {ext})
-      paketti_wav_owned_hooks[ext] = nil
-    end
-    paketti_wav_hook_registered = false
+    PakettiWavImportHookUnregister()
   end
 end
 renoise.tool().app_idle_observable:add_notifier(PakettiWavImportHookSync)

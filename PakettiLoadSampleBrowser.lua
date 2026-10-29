@@ -1014,8 +1014,10 @@ local function plsb_set_loop_mode(mode)
 end
 
 local PLSB_LOOP_CYCLE = {
-  renoise.Sample.LOOP_MODE_OFF, renoise.Sample.LOOP_MODE_FORWARD,
-  renoise.Sample.LOOP_MODE_REVERSE, renoise.Sample.LOOP_MODE_PING_PONG,
+  (renoise.Sample and renoise.Sample.LOOP_MODE_OFF) or 1,
+  (renoise.Sample and renoise.Sample.LOOP_MODE_FORWARD) or 2,
+  (renoise.Sample and renoise.Sample.LOOP_MODE_REVERSE) or 3,
+  (renoise.Sample and renoise.Sample.LOOP_MODE_PING_PONG) or 4,
 }
 local function plsb_cycle_loop_mode(delta)
   local smp = plsb_scratch_sample()
@@ -1381,10 +1383,14 @@ local function plsb_do_load(path, opts)
     local smp = instr.samples[1]
     if not smp then instr:insert_sample_at(1); smp = instr.samples[1] end
     local base = plsb_basename(path)
-    if not edited_path and ext == "wav" and not (tuned_loop and tuned_loop.mode
-      and tuned_loop.mode ~= renoise.Sample.LOOP_MODE_OFF) then
+    local loop_off = (renoise.Sample and renoise.Sample.LOOP_MODE_OFF) or 1
+    if not edited_path and ext == "wav" and type(rawget(_G, "PakettiWavCueImportWavWithCuesIntoSample")) == "function"
+      and not (tuned_loop and tuned_loop.mode and tuned_loop.mode ~= loop_off) then
       -- Preserve cue slicing only when no active preview loop was chosen.
-      pcall(function() PakettiWavCueImportWavWithCuesIntoSample(smp, path) end)
+      local ok_cue = pcall(function() PakettiWavCueImportWavWithCuesIntoSample(smp, path) end)
+      if not ok_cue or not smp.sample_buffer.has_sample_data then
+        pcall(function() smp.sample_buffer:load_from(path) end)
+      end
     else
       local ok, loaded = pcall(function() return smp.sample_buffer:load_from(edited_path or path) end)
       if edited_path and (not ok or not loaded) then
@@ -1492,8 +1498,11 @@ local function plsb_load_path(path)
   local smp = instr.samples[1]
   if not smp then instr:insert_sample_at(1); smp = instr.samples[1] end
   local base = plsb_basename(path)
-  if ext == "wav" then
+  if ext == "wav" and type(rawget(_G, "PakettiWavCueImportWavWithCuesIntoSample")) == "function" then
     pcall(function() PakettiWavCueImportWavWithCuesIntoSample(smp, path) end)
+    if not smp.sample_buffer.has_sample_data then
+      pcall(function() smp.sample_buffer:load_from(path) end)
+    end
   else
     pcall(function() smp.sample_buffer:load_from(path) end)
   end
@@ -1576,7 +1585,7 @@ end
 -- change the keyboard (transport) octave, clamped, and refresh the readout
 local function plsb_shift_octave(delta)
   local song = renoise.song()
-  if not song then return end
+  if not song or not song.transport then return end
   local oct = (song.transport.octave or 4) + delta
   if oct < 0 then oct = 0 elseif oct > 8 then oct = 8 end
   plsb_all_notes_off()   -- avoid stuck notes when the octave moves mid-hold
@@ -1621,7 +1630,11 @@ local function plsb_cut_selection(trim)
   local slot = #inst.samples + 1
   inst:insert_sample_at(slot)
   local backup = inst.samples[slot]
-  backup:copy_from(smp)
+  if type(rawget(_G, "PakettiCopySample")) == "function" then
+    PakettiCopySample(smp, backup)
+  else
+    backup:copy_from(smp)
+  end
   local old = backup.sample_buffer
   local mode, ls, le = smp.loop_mode, smp.loop_start, smp.loop_end
   local function shifted(f)
@@ -1645,7 +1658,13 @@ local function plsb_cut_selection(trim)
     local start, stop = shifted(ls), shifted(le)
     if start < stop then smp.loop_end = stop; smp.loop_start = start; smp.loop_mode = mode end
   end)
-  if not ok then smp:copy_from(backup) end
+  if not ok then
+    if type(rawget(_G, "PakettiCopySample")) == "function" then
+      PakettiCopySample(backup, smp)
+    else
+      smp:copy_from(backup)
+    end
+  end
   inst:delete_sample_at(slot)
   if not ok then renoise.app():show_error(tostring(err)); return end
   plsb_apply_beatsync(smp)
@@ -1737,7 +1756,7 @@ local function plsb_key_handler(dialog, key)
   end
 
   local octave_delta = plsb_octave_key_delta(key)
-  if octave_delta then plsb_shift_octave(octave_delta); return nil end
+  if octave_delta then plsb_shift_octave(octave_delta); return key end
 
   -- navigation + actions (not key-repeat sensitive except arrows)
   if name == "esc" then

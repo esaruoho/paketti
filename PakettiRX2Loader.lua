@@ -486,6 +486,21 @@ end
 --------------------------------------------------------------------------------
 function rx2_loadsample(filename, opts)
   opts = opts or {}
+
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+
+  local function rx2_finish(res)
+    PakettiWavImportHookBypass = prior_bypass
+    if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+      pcall(PakettiWavImportHookSync)
+    end
+    return res
+  end
+
   -- Paketti has two ways to read a .rx2: this one, which runs the external
   -- decoder (native on macOS and Windows, the Windows build under Wine on Linux),
   -- and PakettiRX2Decode.lua, which decodes the codec in Lua with nothing
@@ -853,7 +868,7 @@ end
 
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
-  return true
+  return rx2_finish(true)
 end
 
 --------------------------------------------------------------------------------

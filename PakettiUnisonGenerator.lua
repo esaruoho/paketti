@@ -231,7 +231,17 @@ function PakettiCreateUnisonSamples()
     -- Duplicate the entire instrument using copy_from
     if not safeInsertInstrumentAt(song, new_instrument_index) then return end
     new_instrument = song.instruments[new_instrument_index]
+    
+    local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+    PakettiWavImportHookBypass = true
+    if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+      pcall(PakettiWavImportHookUnregister)
+    end
     new_instrument:copy_from(instrument)
+    PakettiWavImportHookBypass = prior_bypass
+    if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+      pcall(PakettiWavImportHookSync)
+    end
     
     -- Copy phrases if they exist
     if #instrument.phrases > 0 then
@@ -342,8 +352,8 @@ function PakettiCreateUnisonSamples()
     
     -- Validate sample slot exists before copying
     if #new_instrument.samples >= 1 and new_instrument.samples[1] then
-      -- Copy sample buffer from the original instrument's selected sample to the new instrument
-      new_instrument.samples[1]:copy_from(original_sample)
+      -- Copy sample from the original instrument's selected sample to the new instrument safely
+      PakettiCopySample(original_sample, new_instrument.samples[1])
       -- Reset the first sample's panning to center
       new_instrument.samples[1].panning = 0.5
       new_instrument.samples[1].interpolation_mode = preferences.pakettiLoaderInterpolation.value
@@ -434,7 +444,7 @@ function PakettiCreateUnisonSamples()
       local new_index = #new_instrument.samples + 1
       new_instrument:insert_sample_at(new_index)
       if new_instrument.samples[new_index] then
-        new_instrument.samples[new_index]:copy_from(wave_a_sample)
+        PakettiCopySample(wave_a_sample, new_instrument.samples[new_index])
         new_instrument.samples[new_index].device_chain_index = 1  -- FX Chain 1
         print("DEBUG: Created Wave A copy", i, "at index", new_index)
       end
@@ -445,7 +455,7 @@ function PakettiCreateUnisonSamples()
       local new_index = #new_instrument.samples + 1
       new_instrument:insert_sample_at(new_index)
       if new_instrument.samples[new_index] then
-        new_instrument.samples[new_index]:copy_from(wave_b_sample)
+        PakettiCopySample(wave_b_sample, new_instrument.samples[new_index])
         new_instrument.samples[new_index].device_chain_index = 2  -- FX Chain 2
         print("DEBUG: Created Wave B copy", i, "at index", new_index)
       end
@@ -559,7 +569,7 @@ function PakettiCreateUnisonSamples()
     
     -- Validate sample slot exists before copying
     if #new_instrument.samples >= i and new_instrument.samples[i] and base_sample then
-      new_instrument.samples[i]:copy_from(base_sample)
+      PakettiCopySample(base_sample, new_instrument.samples[i])
       new_instrument.samples[i].loop_mode = 2
       new_instrument.samples[i].interpolation_mode = preferences.pakettiLoaderInterpolation.value
       new_instrument.samples[i].oversample_enabled = preferences.pakettiLoaderOverSampling.value

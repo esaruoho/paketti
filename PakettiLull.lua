@@ -109,7 +109,17 @@ function PakettiLullInstrumentRange(vol_factor, s_track, e_track, s_line, e_line
     local new_idx = #song.instruments          -- 0-based index of the new instrument
     song:insert_instrument_at(new_idx + 1)
     local dupe = song.instruments[new_idx + 1]
+    
+    local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+    PakettiWavImportHookBypass = true
+    if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+      pcall(PakettiWavImportHookUnregister)
+    end
     dupe:copy_from(orig)
+    PakettiWavImportHookBypass = prior_bypass
+    if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+      pcall(PakettiWavImportHookSync)
+    end
     dupe.name = lull_name
     existing[lull_name] = new_idx
     map[orig_idx] = new_idx

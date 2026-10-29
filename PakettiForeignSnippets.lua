@@ -3027,7 +3027,11 @@ function pakettiSortSamplesByName()
   
   for i, sample in ipairs(sorted_samples) do
     local new_sample = instr:insert_sample_at(i)
-    new_sample:copy_from(sample)
+    if type(rawget(_G, "PakettiCopySample")) == "function" then
+      PakettiCopySample(sample, new_sample)
+    else
+      new_sample:copy_from(sample)
+    end
   end
   
   renoise.app():show_status(string.format("Sorted %d samples by name in '%s'", #sorted_samples, instr.name))
@@ -3081,7 +3085,11 @@ function pakettiSortSamplesByBaseNote()
   
   for i, sample in ipairs(sorted_samples) do
     local new_sample = instr:insert_sample_at(i)
-    new_sample:copy_from(sample)
+    if type(rawget(_G, "PakettiCopySample")) == "function" then
+      PakettiCopySample(sample, new_sample)
+    else
+      new_sample:copy_from(sample)
+    end
   end
   
   renoise.app():show_status(string.format("Sorted %d samples by base note in '%s'", #sorted_samples, instr.name))
@@ -3140,7 +3148,11 @@ function pakettiSortSamplesByVelocity()
   
   for i, sample in ipairs(sorted_samples) do
     local new_sample = instr:insert_sample_at(i)
-    new_sample:copy_from(sample)
+    if type(rawget(_G, "PakettiCopySample")) == "function" then
+      PakettiCopySample(sample, new_sample)
+    else
+      new_sample:copy_from(sample)
+    end
   end
   
   renoise.app():show_status(string.format("Sorted %d samples by velocity in '%s'", #sorted_samples, instr.name))
@@ -3199,7 +3211,11 @@ function pakettiSortSamplesByMultipleCriteria()
   
   for i, sample in ipairs(sorted_samples) do
     local new_sample = instr:insert_sample_at(i)
-    new_sample:copy_from(sample)
+    if type(rawget(_G, "PakettiCopySample")) == "function" then
+      PakettiCopySample(sample, new_sample)
+    else
+      new_sample:copy_from(sample)
+    end
   end
   
   renoise.app():show_status(string.format("Sorted %d samples by base note -> velocity -> name in '%s'", #sorted_samples, instr.name))

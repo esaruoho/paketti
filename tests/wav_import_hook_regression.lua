@@ -163,3 +163,24 @@ local sidecar = io.open(path:gsub("%.WAV$", ".cue"), "rb")
 assert(not sidecar, "unexpected cue sidecar")
 os.remove(path)
 print("PASS: all five extensions and real embedded WAV cue offsets, deduplication and bounds")
+
+-- Renoise internal files (recording cache, session temp workspace, and skin sounds) must be bypassed
+for _, internal_path in ipairs({
+  "/Applications/Renoise.app/Contents/Resources/Skin/Metronome.wav",
+  "C:\\Program Files\\Renoise\\Resources\\Skin\\Metronome.wav",
+  "/private/var/folders/ly/fy8lysdn46x8hx7ybrhcmyf80000gn/T/Renoise-0-10691/Renoise_TmpPath-0-0/TempSampleRef1.wav",
+  "/private/var/folders/ly/fy8lysdn46x8hx7ybrhcmyf80000gn/T/Renoise-0-10691/Renoise_TmpPath-0-1/Renoise_TmpFile-0-4.wav",
+  "/tmp/Renoise-0-9999/TempSampleRef42.flac",
+  "C:\\Users\\User\\AppData\\Local\\Temp\\Renoise-0-1234\\Renoise_TmpPath-0-0\\TempSampleRef1.wav",
+  "/tmp/TempSampleRef3.wav",
+  "TempSampleRef9"
+}) do
+  assert(PakettiWavImportHookInvoke(internal_path) == false, "Must bypass " .. internal_path)
+end
+
+-- Programmatic bypass flag must short-circuit any import
+PakettiWavImportHookBypass = true
+assert(PakettiWavImportHookInvoke("/tmp/user_drop.wav") == false, "Must bypass when PakettiWavImportHookBypass is set")
+PakettiWavImportHookBypass = false
+
+print("PASS: internal Renoise files and PakettiWavImportHookBypass ignored")

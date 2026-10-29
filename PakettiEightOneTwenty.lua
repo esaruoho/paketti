@@ -191,6 +191,15 @@ gbx_record_phase = {0,0,0,0,0,0,0,0} -- 0=idle, 1=recording
 gbx_prev_sample_count = {0,0,0,0,0,0,0,0}
 gbx_record_instrument_index = {0,0,0,0,0,0,0,0}
 
+function PakettiEightOneTwentyIsRecording()
+  if type(gbx_record_phase) == "table" then
+    for i = 1, 8 do
+      if gbx_record_phase[i] == 1 then return true end
+    end
+  end
+  return false
+end
+
 -- Return keyboard focus to Renoise's middle frame after interacting with any
 -- 8120 control (checkbox/knob/slider/valuebox). Clicking a control in the tool
 -- dialog steals keyboard focus, which would otherwise swallow Renoise global

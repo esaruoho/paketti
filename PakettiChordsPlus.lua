@@ -909,7 +909,12 @@ function DuplicateSpecificNotesToNewTrack(note_type, instrument_mode)
     if not safeInsertInstrumentAt(song, instrument_index + 1) then return end
     final_instrument_index = instrument_index + 1
     local new_instrument = song.instruments[final_instrument_index]
-    new_instrument:copy_from(original_instrument)
+    
+    if type(rawget(_G, "PakettiCopyInstrument")) == "function" then
+      PakettiCopyInstrument(original_instrument, new_instrument)
+    else
+      new_instrument:copy_from(original_instrument)
+    end
     if #original_instrument.phrases > 0 then
       for phrase_index = 1, #original_instrument.phrases do
         new_instrument:insert_phrase_at(phrase_index)

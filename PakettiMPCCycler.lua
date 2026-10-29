@@ -452,7 +452,11 @@ local function commit_preview()
   local preview_sample = preview_inst.samples[1]
   
   -- Copy sample data
-  target_sample:copy_from(preview_sample)
+  if type(rawget(_G, "PakettiCopySample")) == "function" then
+    PakettiCopySample(preview_sample, target_sample)
+  else
+    target_sample:copy_from(preview_sample)
+  end
   
   -- Cleanup
   cleanup_preview_instrument()

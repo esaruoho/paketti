@@ -797,7 +797,11 @@ function PakettiApplyLoaderSettingsToSample(instrument_index, sample_index)
     end
   else
     -- Normal copy for non-alias samples
-    new_sample:copy_from(source_sample)
+    if type(rawget(_G, "PakettiCopySample")) == "function" then
+      PakettiCopySample(source_sample, new_sample)
+    else
+      new_sample:copy_from(source_sample)
+    end
   end
   new_sample.name = sample_name
   new_instrument.name = sample_name
@@ -1197,7 +1201,11 @@ function PakettiApplyLoaderSettingsToNewSamples(new_samples)
                 new_sample.name = source_sample.name
               else
                 -- Normal copy for samples without slice markers
-                new_sample:copy_from(source_sample)
+                if type(rawget(_G, "PakettiCopySample")) == "function" then
+                  PakettiCopySample(source_sample, new_sample)
+                else
+                  new_sample:copy_from(source_sample)
+                end
                 new_sample.name = source_sample.name
               end
 

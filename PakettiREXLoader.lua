@@ -13,6 +13,20 @@ local function read_dword(data, pos)
 end
 
 function rex_loadsample(filename)
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+
+  local function rex_finish(res)
+    PakettiWavImportHookBypass = prior_bypass
+    if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+      pcall(PakettiWavImportHookSync)
+    end
+    return res
+  end
+
   -- Temporarily disable AutoSamplify monitoring to prevent interference
   local AutoSamplifyMonitoringState = PakettiTemporarilyDisableNewSampleMonitoring()
   
@@ -22,7 +36,7 @@ function rex_loadsample(filename)
     renoise.app():show_status("REX import cancelled - no file selected")
     -- Restore AutoSamplify monitoring state
     PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
-    return false
+    return rex_finish(false)
   end
   
   dprint("Starting REX import for file:", filename)
@@ -393,7 +407,7 @@ function rex_loadsample(filename)
   
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
-  return true
+  return rex_finish(true)
 end
 
 -- NOTE: File import hook registration moved to PakettiImport.lua for centralized management

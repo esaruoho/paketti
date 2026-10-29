@@ -374,35 +374,172 @@ function PakettiApplyLoaderModulationSettings(instrument, debug_context)
   return false, "No modulation sets"
 end
 
+--- Canonical safe sample copy: duplicates sample properties, mapping, slice markers,
+--- and audio buffer data without failing on Renoise recorded temporary buffers or import hooks.
+function PakettiCopySample(from_sample, to_sample)
+  if not from_sample or not to_sample then return false end
+
+  -- 1. Unregister import hook temporarily so native copy_from has zero interference
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+
+  -- 2. Call native copy_from to preserve all Renoise internal modulation, mappings, and settings
+  pcall(function() to_sample:copy_from(from_sample) end)
+  pcall(function() to_sample.name = from_sample.name end)
+
+  -- Preserve mapping explicitly (in case copy_from target belongs to different instrument/keyzone)
+  if from_sample.sample_mapping and to_sample.sample_mapping then
+    pcall(function()
+      to_sample.sample_mapping.base_note = from_sample.sample_mapping.base_note
+      to_sample.sample_mapping.note_range = {
+        from_sample.sample_mapping.note_range[1],
+        from_sample.sample_mapping.note_range[2]
+      }
+      to_sample.sample_mapping.velocity_range = {
+        from_sample.sample_mapping.velocity_range[1],
+        from_sample.sample_mapping.velocity_range[2]
+      }
+      to_sample.sample_mapping.map_key_to_pitch = from_sample.sample_mapping.map_key_to_pitch
+      to_sample.sample_mapping.map_velocity_to_volume = from_sample.sample_mapping.map_velocity_to_volume
+    end)
+  end
+
+  -- 3. Check if audio buffer transferred; if not, transfer directly
+  if from_sample.sample_buffer and from_sample.sample_buffer.has_sample_data then
+    if not to_sample.sample_buffer or not to_sample.sample_buffer.has_sample_data
+        or to_sample.sample_buffer.number_of_frames ~= from_sample.sample_buffer.number_of_frames then
+      local tmp = (type(rawget(_G, "pakettiGetTempFilePath")) == "function")
+        and pakettiGetTempFilePath(".wav")
+        or (os.tmpname() .. ".wav")
+      local loaded = false
+      local saved = pcall(function() return from_sample.sample_buffer:save_as(tmp, "wav") end)
+      if saved then
+        local f = io.open(tmp, "rb")
+        if f then
+          f:close()
+          loaded = pcall(function() return to_sample.sample_buffer:load_from(tmp) end)
+          pcall(function() os.remove(tmp) end)
+        end
+      end
+
+      -- Memory fallback if file transfer did not load
+      if not loaded or not to_sample.sample_buffer.has_sample_data then
+        local fb = from_sample.sample_buffer
+        local tb = to_sample.sample_buffer
+        tb:create_sample_data(fb.sample_rate, fb.bit_depth, fb.number_of_channels, fb.number_of_frames)
+        tb:prepare_sample_data_changes()
+        for ch = 1, fb.number_of_channels do
+          for fr = 1, fb.number_of_frames do
+            tb:set_sample_data(ch, fr, fb:sample_data(ch, fr))
+          end
+        end
+        tb:finalize_sample_data_changes()
+      end
+    end
+  end
+
+  -- Restore slice markers if buffer re-creation cleared them
+  if from_sample.slice_markers and #from_sample.slice_markers > 0 and #to_sample.slice_markers == 0 then
+    pcall(function()
+      for _, marker in ipairs(from_sample.slice_markers) do
+        to_sample:insert_slice_marker(marker)
+      end
+    end)
+  end
+
+  -- 4. Restore import hook
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+
+  return true
+end
+
+--- Canonical safe instrument copy: duplicates instrument settings, phrases,
+--- plugins, and verifies all sample buffers transfer without data loss.
+function PakettiCopyInstrument(from_instrument, to_instrument)
+  if not from_instrument or not to_instrument then return false end
+
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+
+  -- Native instrument duplication
+  pcall(function() to_instrument:copy_from(from_instrument) end)
+
+  -- Verify all sample buffers transferred; restore via PakettiCopySample if needed
+  if from_instrument.samples and to_instrument.samples then
+    for s = 1, #from_instrument.samples do
+      if s > #to_instrument.samples then
+        to_instrument:insert_sample_at(s)
+      end
+      local fs = from_instrument.samples[s]
+      local ts = to_instrument.samples[s]
+      if fs and ts and fs.sample_buffer and fs.sample_buffer.has_sample_data then
+        if not ts.sample_buffer or not ts.sample_buffer.has_sample_data
+            or ts.sample_buffer.number_of_frames ~= fs.sample_buffer.number_of_frames then
+          PakettiCopySample(fs, ts)
+        end
+      end
+    end
+  end
+
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+
+  return true
+end
+
 function pakettiPreferencesDefaultInstrumentLoader()
-  local defaultInstrument = preferences.pakettiDefaultXRNI.value
-  local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
-  
-  -- Function to check if a file exists
-  local function file_exists(file)
-    local f = io.open(file, "r")
-    if f then f:close() end
-    return f ~= nil
-  end
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  local ok, err = pcall(function()
+    local defaultInstrument = preferences.pakettiDefaultXRNI.value
+    local fallbackInstrument = pakettiGetVersionedPresetPath("12st_Pitchbend.xrni")
+    
+    -- Function to check if a file exists
+    local function file_exists(file)
+      local f = io.open(file, "r")
+      if f then f:close() end
+      return f ~= nil
+    end
 
-  -- Check if the defaultInstrument is nil or the file doesn't exist
-  if not defaultInstrument or not file_exists(defaultInstrument) then
-    defaultInstrument = fallbackInstrument
-    renoise.app():show_status("The Default XRNI has not been set, using Paketti default 12st_Pitchbend.xrni")
-  end
+    -- Check if the defaultInstrument is nil or the file doesn't exist
+    if not defaultInstrument or not file_exists(defaultInstrument) then
+      defaultInstrument = fallbackInstrument
+      renoise.app():show_status("The Default XRNI has not been set, using Paketti default 12st_Pitchbend.xrni")
+    end
 
-  print("Loading instrument from path: " .. defaultInstrument)
-  renoise.app():load_instrument(defaultInstrument)
+    print("Loading instrument from path: " .. defaultInstrument)
+    renoise.app():load_instrument(defaultInstrument)
 
-  -- Apply modulation settings using helper function
-  local instrument = renoise.song().selected_instrument
-  PakettiApplyLoaderModulationSettings(instrument, "pakettiPreferencesDefaultInstrumentLoader")
+    -- Apply modulation settings using helper function
+    local instrument = renoise.song().selected_instrument
+    PakettiApplyLoaderModulationSettings(instrument, "pakettiPreferencesDefaultInstrumentLoader")
+  end)
+  PakettiWavImportHookBypass = prior_bypass
+  if not ok then error(err) end
 end
 
 
 ---------------
 -- files is optional: pass a list to skip the file dialog
 function pitchBendDrumkitLoader(files)
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+
+  local ok, err = pcall(function()
   local selected_sample_filenames = files
   if not selected_sample_filenames then
     selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read(
@@ -542,6 +679,13 @@ end
   -- Additional actions after loading samples
   on_sample_count_change()
   -- showAutomation()
+  end)
+
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+  if not ok then error(err) end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
@@ -617,6 +761,12 @@ function loadRandomDrumkitSamples(num_samples, folder_path, create_automation_de
 
     -- Define the process function
     local function process_func()
+        local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+        PakettiWavImportHookBypass = true
+        if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+            pcall(PakettiWavImportHookUnregister)
+        end
+
         -- Load each sample as a new drum zone with specified properties
         for i = 1, num_samples_to_load do
             -- Update progress
@@ -711,6 +861,11 @@ function loadRandomDrumkitSamples(num_samples, folder_path, create_automation_de
                     fail.index, fail.file:match("([^/\\]+)$"), fail.folder, fail.size, fail.error)
             end
             renoise.app():show_warning(message)
+        end
+
+        PakettiWavImportHookBypass = prior_bypass
+        if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+            pcall(PakettiWavImportHookSync)
         end
     end
 
@@ -1290,6 +1445,12 @@ function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normal
   -- DISABLE Sample Range Device Loader to prevent it from creating duplicate instruments
   local SampleRangeLoaderState = preferences.pakettiSampleRangeDeviceLoaderEnabled.value
   preferences.pakettiSampleRangeDeviceLoaderEnabled.value = false
+
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
   
   for index, filename in ipairs(selected_sample_filenames) do
     pitchbend_loader_progress.current_file_index = index
@@ -1374,6 +1535,11 @@ function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normal
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
   preferences.pakettiSampleRangeDeviceLoaderEnabled.value = SampleRangeLoaderState
   
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+
   -- Reset progress tracking when complete
   pitchbend_loader_progress.current_file_index = 0
   pitchbend_loader_progress.current_filename = ""
@@ -1414,33 +1580,48 @@ function noteOnToNoteOff(noteoffPitch)
     end
   end
 
-  -- Iterate over each sample in the note-on layer
-  for i = 1, #instrument.samples do
-    local note_on_sample = instrument.samples[i]
-
-    -- Determine the mute group for the note-on sample
-    local mute_group = note_on_sample.mute_group
-    if mute_group == 0 then -- No mute group set
-      mute_group = 15 -- Set to Group F (group index is 15)
-      note_on_sample.mute_group = mute_group
-    end
-
-    -- Insert new sample at the end for the note-off layer
-    local new_sample_index = #instrument.samples + 1
-    instrument:insert_sample_at(new_sample_index)
-    renoise.song().selected_sample_index = new_sample_index
-
-    local note_off_sample = instrument.samples[new_sample_index]
-
-    -- Copy properties from note-on sample to note-off sample
-    note_off_sample:copy_from(note_on_sample)
-    note_off_sample.sample_mapping.layer = 2 -- Set layer to note-off
-    note_off_sample.mute_group = mute_group -- Ensure same mute group
-
-    -- Transpose the note-off sample
-    note_off_sample.transpose = noteoffPitch
-    note_off_sample.name = note_on_sample.name
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
   end
+
+  local ok, err = pcall(function()
+    -- Iterate over each sample in the note-on layer
+    for i = 1, #instrument.samples do
+      local note_on_sample = instrument.samples[i]
+
+      -- Determine the mute group for the note-on sample
+      local mute_group = note_on_sample.mute_group
+      if mute_group == 0 then -- No mute group set
+        mute_group = 15 -- Set to Group F (group index is 15)
+        note_on_sample.mute_group = mute_group
+      end
+
+      -- Insert new sample at the end for the note-off layer
+      local new_sample_index = #instrument.samples + 1
+      instrument:insert_sample_at(new_sample_index)
+      renoise.song().selected_sample_index = new_sample_index
+
+      local note_off_sample = instrument.samples[new_sample_index]
+
+      -- Copy properties and audio from note-on sample to note-off sample safely
+      PakettiCopySample(note_on_sample, note_off_sample)
+      note_off_sample.sample_mapping.layer = 2 -- Set layer to note-off
+      note_off_sample.mute_group = mute_group -- Ensure same mute group
+
+      -- Transpose the note-off sample
+      note_off_sample.transpose = noteoffPitch
+      note_off_sample.name = note_on_sample.name
+    end
+  end)
+
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+
+  if not ok then error(err) end
 
   -- Reset selection to the first note-on sample
   renoise.song().selected_sample_index = 1
@@ -2540,7 +2721,7 @@ function PakettiDuplicateAndReverseInstrument()
     local sample_buffer = sample.sample_buffer
     if #sample.slice_markers == 0 and sample_buffer.has_sample_data then
       local new_sample = new_instrument:insert_sample_at(1)
-      new_sample:copy_from(sample)
+      PakettiCopySample(sample, new_sample)
       new_sample.sample_buffer:prepare_sample_data_changes()
       PakettiReverseSampleBuffer(new_sample.sample_buffer)
       new_sample.sample_buffer:finalize_sample_data_changes()
@@ -2577,7 +2758,7 @@ function PakettiDuplicateAndReverseInstrument()
         local sample_buffer = sample.sample_buffer
         if sample_buffer.has_sample_data then
           local new_sample = new_instrument:insert_sample_at(sample_index)
-          new_sample:copy_from(sample)
+          PakettiCopySample(sample, new_sample)
           local new_sample_buffer = new_sample.sample_buffer
           new_sample_buffer:prepare_sample_data_changes()
           PakettiReverseSampleBuffer(new_sample_buffer)
@@ -4842,6 +5023,12 @@ function PakettiInjectDefaultXRNI()
     return
   end
 
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+  local ok, err = pcall(function()
   -- Check preference to determine whether to replace current instrument or create new one
   if preferences.pakettifyReplaceInstrument.value then
     -- REPLACE CURRENT INSTRUMENT MODE
@@ -5044,7 +5231,7 @@ function PakettiInjectDefaultXRNI()
 
     -- Remove the placeholder sample from the last slot if it exists
     local num_samples = #current_instrument.samples
-    if num_samples > 0 and current_instrument.samples[num_samples].name == "Placeholder sample" then
+    if num_samples > #original_samples_data and current_instrument.samples[num_samples].name == "Placeholder sample" then
       current_instrument:delete_sample_at(num_samples)
       print("Removed placeholder sample from last slot")
     end
@@ -5054,8 +5241,28 @@ function PakettiInjectDefaultXRNI()
 
   else
     -- CREATE NEW INSTRUMENT MODE (original behavior)
+    -- Save sample audio buffers to temp WAV files before loading preset (guarantees 100% reliable transfer)
+    local temp_wavs = {}
+    for i = 1, #original_instrument.samples do
+      local s = original_instrument.samples[i]
+      if s.sample_buffer.has_sample_data and not s.is_slice_alias then
+        local tmp = os.tmpname() .. ".wav"
+        local ok = pcall(function() return s.sample_buffer:save_as(tmp, "wav") end)
+        if ok then
+          local f = io.open(tmp, "rb")
+          if f then
+            f:close()
+            temp_wavs[i] = tmp
+          end
+        end
+      end
+    end
+
     local new_instrument_index = selected_instrument_index + 1
-    if not safeInsertInstrumentAt(song, new_instrument_index) then return end
+    if not safeInsertInstrumentAt(song, new_instrument_index) then
+      for _, tmp in pairs(temp_wavs) do pcall(function() os.remove(tmp) end) end
+      return
+    end
     song.selected_instrument_index = new_instrument_index
     local new_instrument = song.selected_instrument
 
@@ -5088,23 +5295,28 @@ function PakettiInjectDefaultXRNI()
         local from_buffer = from_sample.sample_buffer
         local to_sample_buffer = to_sample.sample_buffer
         
-        to_sample_buffer:create_sample_data(
-          from_buffer.sample_rate,
-          from_buffer.bit_depth,
-          from_buffer.number_of_channels,
-          from_buffer.number_of_frames
-        )
-        
-        to_sample_buffer:prepare_sample_data_changes()
+        if temp_wavs[i] then
+          to_sample_buffer:load_from(temp_wavs[i])
+          pcall(function() os.remove(temp_wavs[i]) end)
+          temp_wavs[i] = nil
+        else
+          to_sample_buffer:create_sample_data(
+            from_buffer.sample_rate,
+            from_buffer.bit_depth,
+            from_buffer.number_of_channels,
+            from_buffer.number_of_frames
+          )
+          to_sample_buffer:prepare_sample_data_changes()
 
-        for channel = 1, from_buffer.number_of_channels do
-          for frame = 1, from_buffer.number_of_frames do
-            local sample_value = from_buffer:sample_data(channel, frame)
-            to_sample_buffer:set_sample_data(channel, frame, sample_value)
+          for channel = 1, from_buffer.number_of_channels do
+            for frame = 1, from_buffer.number_of_frames do
+              local sample_value = from_buffer:sample_data(channel, frame)
+              to_sample_buffer:set_sample_data(channel, frame, sample_value)
+            end
           end
-        end
 
-        to_sample_buffer:finalize_sample_data_changes()
+          to_sample_buffer:finalize_sample_data_changes()
+        end
 
         -- Copy slice markers
         -- Clear existing slice markers (no clear_slice_markers function exists!)
@@ -5202,6 +5414,38 @@ function PakettiInjectDefaultXRNI()
         end
         local to_sample = new_instrument:sample(i)
         to_sample:copy_from(from_sample)
+        to_sample.name = from_sample.name
+
+        -- Load audio from temp WAV file (exact, instantaneous, sidesteps all hook interference)
+        if temp_wavs[i] then
+          to_sample.sample_buffer:load_from(temp_wavs[i])
+          pcall(function() os.remove(temp_wavs[i]) end)
+          temp_wavs[i] = nil
+        elseif from_sample.sample_buffer.has_sample_data then
+          local from_buffer = from_sample.sample_buffer
+          local to_buffer = to_sample.sample_buffer
+          to_buffer:create_sample_data(
+            from_buffer.sample_rate,
+            from_buffer.bit_depth,
+            from_buffer.number_of_channels,
+            from_buffer.number_of_frames
+          )
+          to_buffer:prepare_sample_data_changes()
+          for channel = 1, from_buffer.number_of_channels do
+            for frame = 1, from_buffer.number_of_frames do
+              to_buffer:set_sample_data(channel, frame, from_buffer:sample_data(channel, frame))
+            end
+          end
+          to_buffer:finalize_sample_data_changes()
+        end
+
+        if from_sample.sample_mapping then
+          pcall(function()
+            to_sample.sample_mapping.base_note = from_sample.sample_mapping.base_note
+            to_sample.sample_mapping.note_range = {from_sample.sample_mapping.note_range[1], from_sample.sample_mapping.note_range[2]}
+            to_sample.sample_mapping.velocity_range = {from_sample.sample_mapping.velocity_range[1], from_sample.sample_mapping.velocity_range[2]}
+          end)
+        end
         if #new_instrument.sample_device_chains > 0 then
           to_sample.device_chain_index = 1
         end
@@ -5219,9 +5463,9 @@ function PakettiInjectDefaultXRNI()
     new_instrument.sample_modulation_sets[1].name = "Pitchbend"
     new_instrument.volume = instVol
     
-    -- Remove the placeholder sample from the last slot
+    -- Remove the placeholder sample from the last slot only if an extra placeholder was pushed beyond original sample count
     local num_samples = #new_instrument.samples
-    if num_samples > 0 and new_instrument.samples[num_samples].name == "Placeholder sample" then
+    if num_samples > #original_instrument.samples and new_instrument.samples[num_samples].name == "Placeholder sample" then
       new_instrument:delete_sample_at(num_samples)
       print("Removed placeholder sample from last slot")
     end
@@ -5308,6 +5552,10 @@ function PakettiInjectDefaultXRNI()
       print("No note references found to update")
       renoise.app():show_status("Pakettified instrument created (no existing notes to update)")
     end
+
+    if temp_wavs then
+      for _, tmp in pairs(temp_wavs) do pcall(function() os.remove(tmp) end) end
+    end
   end
 
   -- At the end, before returning focus:
@@ -5316,6 +5564,12 @@ function PakettiInjectDefaultXRNI()
 
   -- Return focus to the Instrument Sample Editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  end)
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+  if not ok then error(err) end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
@@ -6338,6 +6592,14 @@ function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount, quiet)
     return
   end
 
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+
+  local ok, err = pcall(function()
+
   -- Check ALL samples for slice markers
   for _, sample in ipairs(instrument.samples) do
     if #sample.slice_markers > 0 then
@@ -6417,7 +6679,7 @@ function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount, quiet)
   -- Now copy all samples while they're muted
   for _, sample_info in ipairs(new_samples) do
     local new_sample = sample_info.sample
-    new_sample:copy_from(sample_info.original)
+    PakettiCopySample(sample_info.original, new_sample)
     new_sample.transpose = sample_info.original.transpose + transpose_amount
     
     new_sample.sample_mapping.base_note = sample_info.mapping.base_note
@@ -6435,6 +6697,12 @@ function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount, quiet)
 
   if not quiet then renoise.app():show_status(string.format("Duplicated %d samples with transpose %d", 
     #original_samples, transpose_amount)) end
+  end)
+  PakettiWavImportHookBypass = prior_bypass
+  if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+    pcall(PakettiWavImportHookSync)
+  end
+  if not ok then error(err) end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}
@@ -7513,7 +7781,7 @@ function duplicateTrackAndInstrumentCore(copy_dsp, copy_automation, jump_to_edit
   -- Insert and copy the instrument
   if not safeInsertInstrumentAt(song, instrument_index + 1) then return end
   local new_instrument = song.instruments[instrument_index + 1]
-  new_instrument:copy_from(original_instrument)
+  PakettiCopyInstrument(original_instrument, new_instrument)
 
   -- Copy phrases if they exist
   if #original_instrument.phrases > 0 then

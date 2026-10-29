@@ -51,7 +51,11 @@ function PakettiMergeInstruments(source_index, target_index)
       song.selected_instrument:insert_sample_at(target_slot)
       
       print(string.format("  Copying sample data..."))
-      song.selected_instrument.samples[target_slot]:copy_from(song.instruments[source_index].samples[idx])
+      if type(rawget(_G, "PakettiCopySample")) == "function" then
+        PakettiCopySample(song.instruments[source_index].samples[idx], song.selected_instrument.samples[target_slot])
+      else
+        song.selected_instrument.samples[target_slot]:copy_from(song.instruments[source_index].samples[idx])
+      end
       
       local new_sample = song.selected_instrument.samples[target_slot]
       print(string.format("  TARGET SAMPLE:"))

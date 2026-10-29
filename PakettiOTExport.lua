@@ -973,11 +973,37 @@ function PakettiOTDebugDialog()
     show_ot_debug_dialog(ot_data, filename)
 end
 
+rawset(_G, "PakettiRecentlyImportedOTPairs", rawget(_G, "PakettiRecentlyImportedOTPairs") or {})
+
 -- File import hook for .ot files (drag & drop support)
 function ot_import_filehook(filename)
   if not filename then
     renoise.app():show_error("OT Import Error: No filename provided!")
     return false
+  end
+
+  local ot_pairs = rawget(_G, "PakettiRecentlyImportedOTPairs")
+  -- Skip duplicate invocation if this .ot was already imported in the last 5 seconds (e.g. from paired drop)
+  if ot_pairs and ot_pairs[filename] then
+    local elapsed = os.clock() - ot_pairs[filename]
+    if elapsed >= 0 and elapsed < 5 then
+      print("-- Paketti OT Hook: already imported recently, skipping duplicate for " .. filename)
+      return true
+    end
+  end
+
+  local prior_bypass = rawget(_G, "PakettiWavImportHookBypass")
+  PakettiWavImportHookBypass = true
+  if type(rawget(_G, "PakettiWavImportHookUnregister")) == "function" then
+    pcall(PakettiWavImportHookUnregister)
+  end
+
+  local function ot_finish(res)
+    PakettiWavImportHookBypass = prior_bypass
+    if type(rawget(_G, "PakettiWavImportHookSync")) == "function" then
+      pcall(PakettiWavImportHookSync)
+    end
+    return res
   end
 
   print("Starting OT import via file hook for file:", filename)
@@ -989,7 +1015,7 @@ function ot_import_filehook(filename)
   local ot_data = read_ot_file(filename)
   if not ot_data then
     renoise.app():show_error("OT Import Error", "Could not read .ot file: " .. filename)
-    return false
+    return ot_finish(false)
   end
   
   -- Look for the corresponding .wav file. Octatrack convention is .ot and .wav
@@ -1010,6 +1036,10 @@ function ot_import_filehook(filename)
   local sample_loaded = false
   if wav_found then
     print("Found corresponding .wav file:", wav_filename)
+    if ot_pairs then
+      ot_pairs[wav_filename] = os.clock()
+      ot_pairs[filename] = os.clock()
+    end
     
     -- Create new instrument for the OT import
     local song = renoise.song()
@@ -1155,7 +1185,7 @@ function ot_import_filehook(filename)
     PakettiAmigoHandleSlicedImport(renoise.song().selected_instrument_index, "OT")
   end
 
-  return true
+  return ot_finish(true)
 end
 
 -- NOTE: File import hook registration moved to PakettiImport.lua for centralized management

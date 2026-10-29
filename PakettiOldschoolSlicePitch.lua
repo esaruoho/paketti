@@ -416,7 +416,11 @@ function pakettiOldschoolSlicePitchFillAllGaps()
   
   -- Create new sample for the result
   local new_sample = instrument:insert_sample_at(song.selected_sample_index + 1)
-  new_sample:copy_from(sample)
+  if type(rawget(_G, "PakettiCopySample")) == "function" then
+    PakettiCopySample(sample, new_sample)
+  else
+    new_sample:copy_from(sample)
+  end
   
   -- Fill all gaps in the new sample
   for i = #gaps, 1, -1 do -- Reverse order to maintain frame positions
@@ -440,7 +444,11 @@ function pakettiOldschoolSlicePitchFillAllGapsCopied()
   
   -- Create new sample for the result
   local new_sample = instrument:insert_sample_at(song.selected_sample_index + 1)
-  new_sample:copy_from(sample)
+  if type(rawget(_G, "PakettiCopySample")) == "function" then
+    PakettiCopySample(sample, new_sample)
+  else
+    new_sample:copy_from(sample)
+  end
   
   -- Update to work with the new sample
   song.selected_sample_index = song.selected_sample_index + 1
@@ -465,7 +473,11 @@ function pakettiOldschoolSlicePitchFillAllGapsPingPong()
   
   -- Create new sample for the result
   local new_sample = instrument:insert_sample_at(song.selected_sample_index + 1)
-  new_sample:copy_from(sample)
+  if type(rawget(_G, "PakettiCopySample")) == "function" then
+    PakettiCopySample(sample, new_sample)
+  else
+    new_sample:copy_from(sample)
+  end
   
   -- Update to work with the new sample
   song.selected_sample_index = song.selected_sample_index + 1
@@ -1334,7 +1346,11 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm, in_place)
     -- Non-destructive: duplicate the instrument and put the phrase on the copy.
     new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
     if not new_instrument then return end
-    new_instrument:copy_from(instrument)
+    if type(rawget(_G, "PakettiCopyInstrument")) == "function" then
+      PakettiCopyInstrument(instrument, new_instrument)
+    else
+      new_instrument:copy_from(instrument)
+    end
     new_instrument.name = instrument.name .. " (Phrase)"
   end
 
@@ -1543,7 +1559,11 @@ function pakettiSlicesToPhrasesPerSlice(use_detected_bpm, in_place)
     -- Non-destructive: duplicate the instrument and put the phrases on the copy.
     new_instrument = safeInsertInstrumentAt(song, song.selected_instrument_index + 1)
     if not new_instrument then return end
-    new_instrument:copy_from(instrument)
+    if type(rawget(_G, "PakettiCopyInstrument")) == "function" then
+      PakettiCopyInstrument(instrument, new_instrument)
+    else
+      new_instrument:copy_from(instrument)
+    end
     new_instrument.name = instrument.name .. " (Phrases Per Slice)"
   end
 

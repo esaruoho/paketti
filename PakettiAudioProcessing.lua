@@ -383,7 +383,11 @@ local function duplicate_sample()
 
   -- Create a duplicate of the selected sample
   local duplicate = instrument:insert_sample_at(#instrument.samples + 1)
-  duplicate:copy_from(sample)
+  if type(rawget(_G, "PakettiCopySample")) == "function" then
+    PakettiCopySample(sample, duplicate)
+  else
+    duplicate:copy_from(sample)
+  end
 
   -- Restore AutoSamplify monitoring state
   PakettiRestoreNewSampleMonitoring(AutoSamplifyMonitoringState)
@@ -1393,7 +1397,11 @@ function PakettiMoveSilenceCoroutine()
 
   -- Create temporary sample only if we found silence to move
   local temp_sample = instrument:insert_sample_at(#instrument.samples + 1)
-  temp_sample:copy_from(sample)
+  if type(rawget(_G, "PakettiCopySample")) == "function" then
+    PakettiCopySample(sample, temp_sample)
+  else
+    temp_sample:copy_from(sample)
+  end
   
   -- Now process the audio data in the temporary sample
   local temp_buffer = temp_sample.sample_buffer

@@ -3973,7 +3973,11 @@ function paketti_build_sample_variants()
 
   local function clone_and_process(label, transform)
     local new=instr:insert_sample_at(#instr.samples+1)
-    new:copy_from(base)
+    if type(rawget(_G, "PakettiCopySample")) == "function" then
+      PakettiCopySample(base, new)
+    else
+      new:copy_from(base)
+    end
     new.name=name.." ("..label..")"
     new.volume=0.0  -- Set volume to -INF dB so user can fade them in manually
 

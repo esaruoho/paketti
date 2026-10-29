@@ -6,6 +6,7 @@
 # RESULT: Worktree only; no commit, push or PR.
 # WATCH: PakettiWavImportHookSync PakettiWavImportHookRegister paketti_wav_finish_sample PakettiWavImportHookInvoke paketti_wav_blank_destination paketti_wav_remember_instruments
 # RESULT-LOG >>
+#   2026-10-29  direct-commit  touched: PakettiWavImportHookSync PakettiWavImportHookInvoke
 #   2026-10-23  direct-commit  touched: PakettiWavImportHookSync PakettiWavImportHookRegister PakettiWavImportHookInvoke
 #   2026-10-20  direct-commit  touched: PakettiWavImportHookRegister
 #   2026-10-18  direct-commit  touched: PakettiWavImportHookRegister PakettiWavImportHookInvoke

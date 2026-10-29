@@ -489,6 +489,47 @@ function pakettiSampleRecordingSyncSet(enabled)
   return true
 end
 
+-- ============================================================================
+-- Canonical Recording State Check (DRY)
+-- The single authoritative method to check if sample recording is active across:
+--   - Renoise sample recording transport state
+--   - Paketti Overdub (recordtocurrenttrack / am_i_recording)
+--   - Paketti Record to New Instrument
+--   - Groovebox 8120 row recording
+-- ============================================================================
+function pakettiAmIRecording()
+  -- Physical prerequisite: in Renoise, sample recording cannot occur without the dialog open
+  local ok_win, win = pcall(function() return renoise.app().window end)
+  if not (ok_win and win and win.sample_record_dialog_is_visible) then
+    return false
+  end
+
+  -- 1. Renoise transport state / shadow flag
+  if pakettiSampleRecordingIsActive() or pakettiSampleRecordingWasStarted() then
+    return true
+  end
+
+  -- 2. Paketti Overdub / recordtocurrenttrack
+  if type(rawget(_G, "PakettiRecordToCurrentTrackIsRecording")) == "function"
+      and PakettiRecordToCurrentTrackIsRecording() then
+    return true
+  end
+
+  -- 3. Paketti Record to New Instrument
+  if type(rawget(_G, "PakettiRecordToNewInstrumentIsRecording")) == "function"
+      and PakettiRecordToNewInstrumentIsRecording() then
+    return true
+  end
+
+  -- 4. Groovebox 8120 recording
+  if type(rawget(_G, "PakettiEightOneTwentyIsRecording")) == "function"
+      and PakettiEightOneTwentyIsRecording() then
+    return true
+  end
+
+  return false
+end
+
 ------------------------------------------------------------------------
 -- Done.  Print confirmation if debug output is enabled.
 ------------------------------------------------------------------------
