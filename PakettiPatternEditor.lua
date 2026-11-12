@@ -4890,6 +4890,581 @@ for _, tracks_opt in ipairs(tracks_options) do
 end
 end
 end
+
+--------------------------------------------------------------------------------
+-- Replicate Note Off
+-- Replicates Note Offs (OFF) from above the cursor or selection to the rest of the pattern or phrase,
+-- preserving existing notes on non-note-off lines.
+--------------------------------------------------------------------------------
+function PakettiReplicateNoteOff(scope, row_option)
+  scope = scope or "column"
+  row_option = row_option or "above_and_current"
+  local song = renoise.song()
+  if not song then return end
+
+  -- Determine if in Phrase Editor or Pattern Editor
+  local in_phrase_editor = false
+  if PAKETTI_HAS_PHRASES then
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+      local phrase = song.selected_phrase
+      if phrase then
+        in_phrase_editor = true
+      end
+    end
+  end
+
+  local total_lines, cursor_row, selection, get_line, visible_note_cols, selected_col
+
+  if in_phrase_editor then
+    local phrase = song.selected_phrase
+    if not phrase then
+      renoise.app():show_status("Paketti: No phrase selected.")
+      return
+    end
+    total_lines = phrase.number_of_lines
+    cursor_row = song.selected_phrase_line_index
+    visible_note_cols = phrase.visible_note_columns
+    selected_col = song.selected_phrase_note_column_index
+    get_line = function(line_idx)
+      return phrase:line(line_idx)
+    end
+    selection = nil
+  else
+    if song.selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+      renoise.app():show_status("Paketti: Select a sequencer track to replicate note offs.")
+      return
+    end
+    local pattern = song.selected_pattern
+    if not pattern then return end
+    total_lines = pattern.number_of_lines
+    cursor_row = song.selected_line_index
+    local track_idx = song.selected_track_index
+    local pattern_track = pattern:track(track_idx)
+    visible_note_cols = song.selected_track.visible_note_columns
+    selected_col = song.selected_note_column_index
+    get_line = function(line_idx)
+      return pattern_track:line(line_idx)
+    end
+    selection = song.selection_in_pattern
+  end
+
+  -- Determine columns to process
+  local columns = {}
+  if scope == "track" then
+    for c = 1, visible_note_cols do
+      table.insert(columns, c)
+    end
+  else
+    local col = (selected_col and selected_col > 0 and selected_col <= visible_note_cols) and selected_col or 1
+    table.insert(columns, col)
+  end
+
+  if #columns == 0 then
+    renoise.app():show_status("Paketti: No note columns found to replicate note offs.")
+    return
+  end
+
+  local repeat_length, start_row, source_start_row
+  local status_suffix
+
+  if selection and not in_phrase_editor then
+    local sel_track = song.selected_track_index
+    if selection.start_track ~= sel_track or selection.end_track ~= sel_track then
+      renoise.app():show_status("Selection must be within a single track column.")
+      return
+    end
+    source_start_row = selection.start_line
+    repeat_length = selection.end_line - selection.start_line + 1
+    start_row = selection.end_line + 1
+    status_suffix = " (from selection)"
+    if start_row > total_lines then
+      renoise.app():show_status("Selection is at the end of pattern, nothing to replicate.")
+      return
+    end
+  else
+    if cursor_row == total_lines and row_option == "above_and_current" then
+      renoise.app():show_status("You are on the last row, nothing to replicate.")
+      return
+    end
+    if cursor_row == 1 and row_option == "above_current" then
+      row_option = "above_and_current"
+    end
+
+    if row_option == "above_current" then
+      if cursor_row <= 1 then
+        renoise.app():show_status("You are on the first row, nothing to replicate.")
+        return
+      end
+      repeat_length = cursor_row - 1
+      start_row = cursor_row
+      source_start_row = 1
+      status_suffix = " (above current)"
+    elseif row_option == "above_and_current" then
+      repeat_length = cursor_row
+      start_row = cursor_row + 1
+      source_start_row = 1
+      status_suffix = " (above + current)"
+    else
+      renoise.app():show_status("Invalid row option: " .. tostring(row_option))
+      return
+    end
+  end
+
+  if repeat_length <= 0 or start_row > total_lines then
+    renoise.app():show_status("No rows to replicate.")
+    return
+  end
+
+  -- Check if source lines have ANY note offs in the targeted columns
+  local has_note_off = false
+  for r = source_start_row, source_start_row + repeat_length - 1 do
+    local line = get_line(r)
+    if line and not line.is_empty then
+      for _, col_idx in ipairs(columns) do
+        local nc = line.note_columns[col_idx]
+        if nc and nc.note_value == 120 then
+          has_note_off = true
+          break
+        end
+      end
+    end
+    if has_note_off then break end
+  end
+
+  if not has_note_off then
+    renoise.app():show_status("Paketti: No note offs found in source range to replicate.")
+    return
+  end
+
+  song:describe_undo("Paketti: Replicate Note Off")
+
+  local placed_count = 0
+  local cleared_count = 0
+
+  for row = start_row, total_lines do
+    local source_row = source_start_row + ((row - start_row) % repeat_length)
+    local source_line = get_line(source_row)
+    local dest_line = get_line(row)
+
+    for _, col_idx in ipairs(columns) do
+      local src_nc = source_line.note_columns[col_idx]
+      local dst_nc = dest_line.note_columns[col_idx]
+
+      if src_nc and dst_nc then
+        if src_nc.note_value == 120 then
+          dst_nc.note_value = 120
+          dst_nc.instrument_value = (src_nc.instrument_value < 255) and src_nc.instrument_value or 255
+          dst_nc.volume_value = (src_nc.volume_value < 255) and src_nc.volume_value or 255
+          dst_nc.panning_value = (src_nc.panning_value < 255) and src_nc.panning_value or 255
+          dst_nc.delay_value = src_nc.delay_value
+          dst_nc.effect_number_value = src_nc.effect_number_value
+          dst_nc.effect_amount_value = src_nc.effect_amount_value
+          placed_count = placed_count + 1
+        else
+          -- Source line does not have a note off.
+          -- If destination line had an old note off, clear it so the note-off pattern matches.
+          if dst_nc.note_value == 120 then
+            dst_nc.note_value = 121
+            dst_nc.delay_value = 0
+            if dst_nc.instrument_value == 255 and dst_nc.volume_value == 255 and dst_nc.panning_value == 255 and dst_nc.effect_number_value == 0 and dst_nc.effect_amount_value == 0 then
+              dst_nc:clear()
+            end
+            cleared_count = cleared_count + 1
+          end
+        end
+      end
+    end
+  end
+
+  local msg = string.format("Paketti: Replicated note offs (%d placed%s)%s",
+    placed_count, cleared_count > 0 and string.format(", %d cleared", cleared_count) or "", status_suffix)
+  renoise.app():show_status(msg)
+end
+
+function PakettiReplicateNoteOffAboveCurrentRow()
+  PakettiReplicateNoteOff("column", "above_current")
+end
+
+function PakettiReplicateNoteOffAboveAndCurrent()
+  PakettiReplicateNoteOff("column", "above_and_current")
+end
+
+function PakettiReplicateNoteOffTrackAboveCurrentRow()
+  PakettiReplicateNoteOff("track", "above_current")
+end
+
+function PakettiReplicateNoteOffTrackAboveAndCurrent()
+  PakettiReplicateNoteOff("track", "above_and_current")
+end
+
+-- Registrations for Replicate Note Off
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Replicate:Replicate Note Off Above Current Row", invoke=PakettiReplicateNoteOffAboveCurrentRow}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Replicate:Replicate Note Off Above + Current", invoke=PakettiReplicateNoteOffAboveAndCurrent}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Replicate:Replicate Note Off Track Above Current Row", invoke=PakettiReplicateNoteOffTrackAboveCurrentRow}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:Replicate:Replicate Note Off Track Above + Current", invoke=PakettiReplicateNoteOffTrackAboveAndCurrent}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Note Off Above Current Row", invoke=PakettiReplicateNoteOffAboveCurrentRow}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Note Off Above + Current", invoke=PakettiReplicateNoteOffAboveAndCurrent}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Note Off at Cursor", invoke=PakettiReplicateNoteOffAboveAndCurrent}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Note Off Track Above Current Row", invoke=PakettiReplicateNoteOffTrackAboveCurrentRow}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Note Off Track Above + Current", invoke=PakettiReplicateNoteOffTrackAboveAndCurrent}
+
+renoise.tool():add_midi_mapping{name="Paketti:Replicate Note Off Above Current Row", invoke=function(message)
+  if message:is_trigger() then PakettiReplicateNoteOffAboveCurrentRow() end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Replicate Note Off Above + Current", invoke=function(message)
+  if message:is_trigger() then PakettiReplicateNoteOffAboveAndCurrent() end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Replicate Note Off at Cursor", invoke=function(message)
+  if message:is_trigger() then PakettiReplicateNoteOffAboveAndCurrent() end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Replicate Note Off Track Above Current Row", invoke=function(message)
+  if message:is_trigger() then PakettiReplicateNoteOffTrackAboveCurrentRow() end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Replicate Note Off Track Above + Current", invoke=function(message)
+  if message:is_trigger() then PakettiReplicateNoteOffTrackAboveAndCurrent() end
+end}
+
+if PAKETTI_HAS_PHRASES then
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:Replicate:Replicate Note Off Above Current Row", invoke=PakettiReplicateNoteOffAboveCurrentRow}
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:Replicate:Replicate Note Off Above + Current", invoke=PakettiReplicateNoteOffAboveAndCurrent}
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:Replicate:Replicate Note Off Track Above Current Row", invoke=PakettiReplicateNoteOffTrackAboveCurrentRow}
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:Replicate:Replicate Note Off Track Above + Current", invoke=PakettiReplicateNoteOffTrackAboveAndCurrent}
+
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Replicate Note Off Above Current Row", invoke=PakettiReplicateNoteOffAboveCurrentRow}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Replicate Note Off Above + Current", invoke=PakettiReplicateNoteOffAboveAndCurrent}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Replicate Note Off at Cursor", invoke=PakettiReplicateNoteOffAboveAndCurrent}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Replicate Note Off Track Above Current Row", invoke=PakettiReplicateNoteOffTrackAboveCurrentRow}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Replicate Note Off Track Above + Current", invoke=PakettiReplicateNoteOffTrackAboveAndCurrent}
+end
+
+--------------------------------------------------------------------------------
+-- EditStep with Note Off
+-- Automatically places a Note Off when entering notes with EditStep (>= 2)
+-- Variations:
+-- 1. Above EditStep (Right Before): row (L + edit_step - 1)
+-- 2. Below Input Note (Right After): row (L + 1)
+-- 3. Halfway: row (L + floor(edit_step / 2)), with delay 128 (0x80) on odd steps
+--------------------------------------------------------------------------------
+PAKETTI_EDITSTEP_NOTEOFF_OFF = 1
+PAKETTI_EDITSTEP_NOTEOFF_ABOVE_EDITSTEP = 2
+PAKETTI_EDITSTEP_NOTEOFF_BELOW_INPUT = 3
+PAKETTI_EDITSTEP_NOTEOFF_HALFWAY = 4
+
+local editstep_noteoff_last_line = nil
+local editstep_noteoff_last_track = nil
+local editstep_noteoff_last_pattern = nil
+local editstep_noteoff_last_col = nil
+local editstep_noteoff_last_phrase_line = nil
+local editstep_noteoff_last_phrase_col = nil
+local editstep_noteoff_last_phrase = nil
+local editstep_noteoff_last_note_val = nil
+
+function PakettiApplyEditStepNoteOff(mode, edit_step, prev_line, col_idx, num_lines, get_line_func, track_obj)
+  local target_offset = 0
+  local target_delay = 0
+
+  if mode == PAKETTI_EDITSTEP_NOTEOFF_ABOVE_EDITSTEP then
+    target_offset = edit_step - 1
+  elseif mode == PAKETTI_EDITSTEP_NOTEOFF_BELOW_INPUT then
+    target_offset = 1
+  elseif mode == PAKETTI_EDITSTEP_NOTEOFF_HALFWAY then
+    local half = edit_step / 2
+    target_offset = math.floor(half)
+    if (edit_step % 2) ~= 0 then
+      target_delay = 128
+      if track_obj and not track_obj.delay_column_visible then
+        track_obj.delay_column_visible = true
+      end
+    end
+  else
+    return
+  end
+
+  local target_line = prev_line + target_offset
+  if target_line > num_lines then
+    target_line = ((target_line - 1) % num_lines) + 1
+  end
+
+  if target_line >= 1 and target_line <= num_lines then
+    local line = get_line_func(target_line)
+    if line and line.note_columns[col_idx] then
+      local nc = line.note_columns[col_idx]
+      nc.note_value = 120
+      nc.instrument_value = 255
+      nc.delay_value = target_delay
+      local song = renoise.song()
+      if song then
+        song:describe_undo("Paketti: EditStep Note Off")
+      end
+    end
+  end
+end
+
+function PakettiEditStepNoteOffIdleTick()
+  local song = renoise.song()
+  if not song then return end
+
+  if not preferences or not preferences.pakettiEditStepNoteOffMode then return end
+  local mode = preferences.pakettiEditStepNoteOffMode.value
+  if mode <= PAKETTI_EDITSTEP_NOTEOFF_OFF then return end
+
+  local transport = song.transport
+  if not transport.edit_mode then
+    editstep_noteoff_last_line = song.selected_line_index
+    editstep_noteoff_last_track = song.selected_track_index
+    editstep_noteoff_last_pattern = song.selected_pattern_index
+    editstep_noteoff_last_col = song.selected_note_column_index
+    return
+  end
+
+  local edit_step = transport.edit_step
+  if edit_step < 2 then
+    editstep_noteoff_last_line = song.selected_line_index
+    editstep_noteoff_last_track = song.selected_track_index
+    editstep_noteoff_last_pattern = song.selected_pattern_index
+    editstep_noteoff_last_col = song.selected_note_column_index
+    return
+  end
+
+  -- Check Phrase Editor vs Pattern Editor
+  local in_phrase_editor = false
+  if PAKETTI_HAS_PHRASES then
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+      local phrase = song.selected_phrase
+      if phrase then
+        in_phrase_editor = true
+      end
+    end
+  end
+
+  if in_phrase_editor then
+    local phrase = song.selected_phrase
+    local cur_phrase_line = song.selected_phrase_line_index
+    local cur_phrase_col = song.selected_phrase_note_column_index
+    local num_lines = phrase.number_of_lines
+
+    if editstep_noteoff_last_phrase == phrase and editstep_noteoff_last_phrase_line ~= nil then
+      local prev_line = editstep_noteoff_last_phrase_line
+      local prev_col = editstep_noteoff_last_phrase_col or 1
+      if prev_col == 0 then prev_col = 1 end
+
+      local stepped = false
+      if cur_phrase_line == prev_line + edit_step then
+        stepped = true
+      elseif cur_phrase_line == ((prev_line + edit_step - 1) % num_lines) + 1 and prev_line + edit_step > num_lines then
+        stepped = true
+      end
+
+      if stepped and prev_col <= phrase.visible_note_columns then
+        local prev_note_col = phrase:line(prev_line).note_columns[prev_col]
+        if prev_note_col and prev_note_col.note_value < 120 and prev_note_col.note_value ~= editstep_noteoff_last_note_val then
+          PakettiApplyEditStepNoteOff(mode, edit_step, prev_line, prev_col, num_lines, function(l) return phrase:line(l) end, nil)
+        end
+      end
+    end
+
+    editstep_noteoff_last_phrase = phrase
+    editstep_noteoff_last_phrase_line = cur_phrase_line
+    editstep_noteoff_last_phrase_col = cur_phrase_col
+    if cur_phrase_col and cur_phrase_col > 0 and cur_phrase_col <= phrase.visible_note_columns then
+      editstep_noteoff_last_note_val = phrase:line(cur_phrase_line).note_columns[cur_phrase_col].note_value
+    else
+      editstep_noteoff_last_note_val = nil
+    end
+    return
+  end
+
+  -- Pattern Editor
+  if song.selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    return
+  end
+
+  local cur_line = song.selected_line_index
+  local cur_track = song.selected_track_index
+  local cur_pattern = song.selected_pattern_index
+  local cur_col = song.selected_note_column_index
+  local pattern = song.selected_pattern
+  local num_lines = pattern.number_of_lines
+  local track_obj = song.selected_track
+
+  if editstep_noteoff_last_pattern == cur_pattern and
+     editstep_noteoff_last_track == cur_track and
+     editstep_noteoff_last_line ~= nil then
+
+    local prev_line = editstep_noteoff_last_line
+    local prev_col = editstep_noteoff_last_col or 1
+    if prev_col == 0 then prev_col = 1 end
+
+    local stepped = false
+    if cur_line == prev_line + edit_step then
+      stepped = true
+    elseif cur_line == ((prev_line + edit_step - 1) % num_lines) + 1 and prev_line + edit_step > num_lines then
+      stepped = true
+    end
+
+    if stepped and prev_col <= track_obj.visible_note_columns then
+      local pattern_track = pattern:track(cur_track)
+      local prev_note_col = pattern_track:line(prev_line).note_columns[prev_col]
+      if prev_note_col and prev_note_col.note_value < 120 and prev_note_col.note_value ~= editstep_noteoff_last_note_val then
+        PakettiApplyEditStepNoteOff(mode, edit_step, prev_line, prev_col, num_lines, function(l) return pattern_track:line(l) end, track_obj)
+      end
+    end
+  end
+
+  editstep_noteoff_last_line = cur_line
+  editstep_noteoff_last_track = cur_track
+  editstep_noteoff_last_pattern = cur_pattern
+  editstep_noteoff_last_col = cur_col
+  if cur_col and cur_col > 0 and cur_col <= track_obj.visible_note_columns then
+    local pattern_track = pattern:track(cur_track)
+    editstep_noteoff_last_note_val = pattern_track:line(cur_line).note_columns[cur_col].note_value
+  else
+    editstep_noteoff_last_note_val = nil
+  end
+end
+
+function PakettiUpdateEditStepNoteOffNotifier()
+  if not preferences or not preferences.pakettiEditStepNoteOffMode then return end
+  local mode = preferences.pakettiEditStepNoteOffMode.value
+  local tool = renoise.tool()
+  if mode > PAKETTI_EDITSTEP_NOTEOFF_OFF then
+    if not tool.app_idle_observable:has_notifier(PakettiEditStepNoteOffIdleTick) then
+      tool.app_idle_observable:add_notifier(PakettiEditStepNoteOffIdleTick)
+    end
+    local song = renoise.song()
+    if song then
+      editstep_noteoff_last_line = song.selected_line_index
+      editstep_noteoff_last_track = song.selected_track_index
+      editstep_noteoff_last_pattern = song.selected_pattern_index
+      editstep_noteoff_last_col = song.selected_note_column_index
+      editstep_noteoff_last_note_val = nil
+    end
+  else
+    if tool.app_idle_observable:has_notifier(PakettiEditStepNoteOffIdleTick) then
+      tool.app_idle_observable:remove_notifier(PakettiEditStepNoteOffIdleTick)
+    end
+    editstep_noteoff_last_line = nil
+    editstep_noteoff_last_track = nil
+    editstep_noteoff_last_pattern = nil
+    editstep_noteoff_last_col = nil
+    editstep_noteoff_last_note_val = nil
+  end
+end
+
+function PakettiToggleEditStepNoteOffAboveEditStep()
+  if preferences.pakettiEditStepNoteOffMode.value == PAKETTI_EDITSTEP_NOTEOFF_ABOVE_EDITSTEP then
+    preferences.pakettiEditStepNoteOffMode.value = PAKETTI_EDITSTEP_NOTEOFF_OFF
+    renoise.app():show_status("Paketti: EditStep Note Off: OFF")
+  else
+    preferences.pakettiEditStepNoteOffMode.value = PAKETTI_EDITSTEP_NOTEOFF_ABOVE_EDITSTEP
+    renoise.app():show_status("Paketti: EditStep Note Off: Above EditStep (Right Before)")
+  end
+  PakettiUpdateEditStepNoteOffNotifier()
+end
+
+function PakettiToggleEditStepNoteOffBelowInput()
+  if preferences.pakettiEditStepNoteOffMode.value == PAKETTI_EDITSTEP_NOTEOFF_BELOW_INPUT then
+    preferences.pakettiEditStepNoteOffMode.value = PAKETTI_EDITSTEP_NOTEOFF_OFF
+    renoise.app():show_status("Paketti: EditStep Note Off: OFF")
+  else
+    preferences.pakettiEditStepNoteOffMode.value = PAKETTI_EDITSTEP_NOTEOFF_BELOW_INPUT
+    renoise.app():show_status("Paketti: EditStep Note Off: Below Input Note (Right After)")
+  end
+  PakettiUpdateEditStepNoteOffNotifier()
+end
+
+function PakettiToggleEditStepNoteOffHalfway()
+  if preferences.pakettiEditStepNoteOffMode.value == PAKETTI_EDITSTEP_NOTEOFF_HALFWAY then
+    preferences.pakettiEditStepNoteOffMode.value = PAKETTI_EDITSTEP_NOTEOFF_OFF
+    renoise.app():show_status("Paketti: EditStep Note Off: OFF")
+  else
+    preferences.pakettiEditStepNoteOffMode.value = PAKETTI_EDITSTEP_NOTEOFF_HALFWAY
+    renoise.app():show_status("Paketti: EditStep Note Off: Halfway")
+  end
+  PakettiUpdateEditStepNoteOffNotifier()
+end
+
+function PakettiDisableEditStepNoteOff()
+  preferences.pakettiEditStepNoteOffMode.value = PAKETTI_EDITSTEP_NOTEOFF_OFF
+  renoise.app():show_status("Paketti: EditStep Note Off: OFF")
+  PakettiUpdateEditStepNoteOffNotifier()
+end
+
+-- Keybindings
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle EditStep Note Off (Above EditStep)", invoke=PakettiToggleEditStepNoteOffAboveEditStep}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle EditStep Note Off (Below Input Note)", invoke=PakettiToggleEditStepNoteOffBelowInput}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle EditStep Note Off (Halfway)", invoke=PakettiToggleEditStepNoteOffHalfway}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle EditStep Note Off (Above EditStep)", invoke=PakettiToggleEditStepNoteOffAboveEditStep}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle EditStep Note Off (Below Input Note)", invoke=PakettiToggleEditStepNoteOffBelowInput}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle EditStep Note Off (Halfway)", invoke=PakettiToggleEditStepNoteOffHalfway}
+
+if PAKETTI_HAS_PHRASES then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle EditStep Note Off (Above EditStep)", invoke=PakettiToggleEditStepNoteOffAboveEditStep}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle EditStep Note Off (Below Input Note)", invoke=PakettiToggleEditStepNoteOffBelowInput}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle EditStep Note Off (Halfway)", invoke=PakettiToggleEditStepNoteOffHalfway}
+end
+
+-- MIDI Mappings
+renoise.tool():add_midi_mapping{name="Paketti:Toggle EditStep Note Off (Above EditStep)", invoke=function(message)
+  if message:is_trigger() then PakettiToggleEditStepNoteOffAboveEditStep() end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle EditStep Note Off (Below Input Note)", invoke=function(message)
+  if message:is_trigger() then PakettiToggleEditStepNoteOffBelowInput() end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle EditStep Note Off (Halfway)", invoke=function(message)
+  if message:is_trigger() then PakettiToggleEditStepNoteOffHalfway() end
+end}
+
+-- Options Menu Entries
+PakettiAddMenuOptionsEntry{
+  name = "EditStep Note Off: Above EditStep (Right Before)",
+  invoke = PakettiToggleEditStepNoteOffAboveEditStep,
+  selected = function()
+    return preferences.pakettiEditStepNoteOffMode.value == PAKETTI_EDITSTEP_NOTEOFF_ABOVE_EDITSTEP
+  end
+}
+PakettiAddMenuOptionsEntry{
+  name = "EditStep Note Off: Below Input Note (Right After)",
+  invoke = PakettiToggleEditStepNoteOffBelowInput,
+  selected = function()
+    return preferences.pakettiEditStepNoteOffMode.value == PAKETTI_EDITSTEP_NOTEOFF_BELOW_INPUT
+  end
+}
+PakettiAddMenuOptionsEntry{
+  name = "EditStep Note Off: Halfway",
+  invoke = PakettiToggleEditStepNoteOffHalfway,
+  selected = function()
+    return preferences.pakettiEditStepNoteOffMode.value == PAKETTI_EDITSTEP_NOTEOFF_HALFWAY
+  end
+}
+PakettiAddMenuOptionsEntry{
+  name = "EditStep Note Off: Off",
+  invoke = PakettiDisableEditStepNoteOff,
+  selected = function()
+    return preferences.pakettiEditStepNoteOffMode.value == PAKETTI_EDITSTEP_NOTEOFF_OFF
+  end
+}
+
+-- Context Menu Entries for Pattern Editor
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:EditStep Note Off:Toggle Above EditStep", invoke=PakettiToggleEditStepNoteOffAboveEditStep}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:EditStep Note Off:Toggle Below Input Note", invoke=PakettiToggleEditStepNoteOffBelowInput}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:EditStep Note Off:Toggle Halfway", invoke=PakettiToggleEditStepNoteOffHalfway}
+PakettiAddMenuEntry{name="Pattern Editor:Paketti:EditStep Note Off:Disable", invoke=PakettiDisableEditStepNoteOff}
+
+if PAKETTI_HAS_PHRASES then
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:EditStep Note Off:Toggle Above EditStep", invoke=PakettiToggleEditStepNoteOffAboveEditStep}
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:EditStep Note Off:Toggle Below Input Note", invoke=PakettiToggleEditStepNoteOffBelowInput}
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:EditStep Note Off:Toggle Halfway", invoke=PakettiToggleEditStepNoteOffHalfway}
+  PakettiAddMenuEntry{name="Phrase Editor:Paketti:EditStep Note Off:Disable", invoke=PakettiDisableEditStepNoteOff}
+end
+
+-- Initialize notifier on new document
+if not renoise.tool().app_new_document_observable:has_notifier(PakettiUpdateEditStepNoteOffNotifier) then
+  renoise.tool().app_new_document_observable:add_notifier(PakettiUpdateEditStepNoteOffNotifier)
+end
+
 ------------
 -- Function to adjust the delay column within the selected area or current note column
 -- REPORT-CARD >> features/quick-edit-navigation.feature

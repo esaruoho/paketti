@@ -319,6 +319,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiPhraseVoiceDebugEnabled=false,      -- Debug logging mode
   
   pakettiCaptureLastTakeSmartNoteOff=true,
+  pakettiEditStepNoteOffMode=1, -- 1=Off, 2=Above EditStep, 3=Below Input Note, 4=Halfway
   pakettiSwitcharooAutoGrab=true,
   PakettiImpulseTrackerF8=1,
   PakettiImpulseTrackerBlockLoopOff=3, -- 1=Always turn off, 2=Only when Block Loop Follow disabled, 3=Never turn off
@@ -1469,6 +1470,9 @@ function pakettiPreferences()
   if preferences.pakettiUnisonDuplicateInstrument.value == nil then
     preferences.pakettiUnisonDuplicateInstrument.value = true
   end
+  if preferences.pakettiEditStepNoteOffMode == nil or preferences.pakettiEditStepNoteOffMode.value == nil then
+    preferences.pakettiEditStepNoteOffMode.value = 1
+  end
 
   local pakettiDeviceChainPathDisplayId = "pakettiDeviceChainPathDisplay_" .. tostring(math.random(2, 30000))
   local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2, 30000))
@@ -2030,6 +2034,24 @@ vb:row{
                     pakettiFrameCalculatorStartLiveUpdate()
                   end
                 end}
+            },
+            vb:row{
+              vb:text{text="EditStep Note Off",width=150,tooltip="Automatically place a Note Off when entering notes with EditStep (>= 2)."},
+              vb:popup{
+                items={"Off","Above EditStep","Below Input Note","Halfway"},
+                value=preferences.pakettiEditStepNoteOffMode.value,
+                width=140,
+                tooltip="Automatically place a Note Off when entering notes with EditStep (>= 2).\nHalfway auto-enables delay column and calculates sub-line delay for odd editsteps (e.g. editstep 3 = 1.5 lines).",
+                notifier=function(value)
+                  preferences.pakettiEditStepNoteOffMode.value = value
+                  preferences:save_as("preferences.xml")
+                  if type(PakettiUpdateEditStepNoteOffNotifier) == "function" then
+                    PakettiUpdateEditStepNoteOffNotifier()
+                  end
+                  local mode_names = {"Off", "Above EditStep", "Below Input Note", "Halfway"}
+                  renoise.app():show_status("EditStep Note Off: " .. mode_names[value])
+                end
+              }
             },
             vb:row{
               vb:text{text="Impulse Tracker F8",width=150,tooltip="F8 (Stop Playback) behavior"},

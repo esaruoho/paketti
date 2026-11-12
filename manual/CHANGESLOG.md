@@ -1,3 +1,56 @@
+### 2026-11-12 - Feature: EditStep Note Off (Above EditStep, Below Input Note, Halfway)
+Automatically places a Note Off when entering notes with EditStep (step >= 2) in record/edit mode. Three placement modes:
+1. **Above EditStep (Right Before):** Places `OFF` on the line immediately preceding where the cursor lands ($L + \text{step} - 1$).
+2. **Below Input Note (Right After):** Places `OFF` on the line immediately following the entered note ($L + 1$).
+3. **Halfway:** Places `OFF` at the exact midpoint ($L + \lfloor\text{step} / 2\rfloor$). For odd steps (such as `edit_step = 3` giving 1.5 lines), it automatically enables the track's delay column if hidden and calculates the fractional sub-line delay (`delay_value = 128` / `0x80` = 50% line delay).
+Includes three independent toggle shortcuts (press once to enable, press again to disable, or switch between them cleanly), full `Main Menu:Options:EditStep Note Off` checkmarks, a dropdown selector in the Paketti Preferences dialog under Pattern Editor, and context menu entries for Pattern Editor and Phrase Editor.
+- Keybinding: `Pattern Editor:Paketti:Toggle EditStep Note Off (Above EditStep)`
+- Keybinding: `Pattern Editor:Paketti:Toggle EditStep Note Off (Below Input Note)`
+- Keybinding: `Pattern Editor:Paketti:Toggle EditStep Note Off (Halfway)`
+- Keybinding: `Global:Paketti:Toggle EditStep Note Off (Above EditStep)`
+- Keybinding: `Global:Paketti:Toggle EditStep Note Off (Below Input Note)`
+- Keybinding: `Global:Paketti:Toggle EditStep Note Off (Halfway)`
+- Keybinding: `Phrase Editor:Paketti:Toggle EditStep Note Off (Above EditStep)`
+- Keybinding: `Phrase Editor:Paketti:Toggle EditStep Note Off (Below Input Note)`
+- Keybinding: `Phrase Editor:Paketti:Toggle EditStep Note Off (Halfway)`
+- MIDI Mapping: `Paketti:Toggle EditStep Note Off (Above EditStep)`
+- MIDI Mapping: `Paketti:Toggle EditStep Note Off (Below Input Note)`
+- MIDI Mapping: `Paketti:Toggle EditStep Note Off (Halfway)`
+- Menu: `Main Menu:Options:EditStep Note Off: Above EditStep (Right Before)`
+- Menu: `Main Menu:Options:EditStep Note Off: Below Input Note (Right After)`
+- Menu: `Main Menu:Options:EditStep Note Off: Halfway`
+- Menu: `Main Menu:Options:EditStep Note Off: Off`
+- Menu: `Pattern Editor:Paketti:EditStep Note Off:Toggle Above EditStep`
+- Menu: `Pattern Editor:Paketti:EditStep Note Off:Toggle Below Input Note`
+- Menu: `Pattern Editor:Paketti:EditStep Note Off:Toggle Halfway`
+- Menu: `Pattern Editor:Paketti:EditStep Note Off:Disable`
+
+### 2026-11-12 - Feature: Replicate Note Off (Above Cursor & At Cursor)
+Replicates Note Offs (OFF) from above the cursor or active pattern selection across the rest of the pattern or phrase, repeating every N rows to match the source note-off spacing without overwriting or destroying notes on other rows. If you are on row 2 with an OFF on row 2 and no OFF on row 1, running Replicate Note Off Above + Current (or Replicate Note Off at Cursor) repeats the note offs every 2nd row (rows 4, 6, 8, etc.) all the way to the end of the pattern while keeping all melody notes, volume, panning, and instruments on rows 1, 3, 5, 7 intact. Preserves note-off delays (e.g. `OFF .. .. 40`), clears stale/unwanted note offs on rows where the source has no note off, and supports both note-column and track-wide scopes in both the Pattern Editor and Phrase Editor.
+- Keybinding: `Pattern Editor:Paketti:Replicate Note Off Above Current Row`
+- Keybinding: `Pattern Editor:Paketti:Replicate Note Off Above + Current`
+- Keybinding: `Pattern Editor:Paketti:Replicate Note Off at Cursor`
+- Keybinding: `Pattern Editor:Paketti:Replicate Note Off Track Above Current Row`
+- Keybinding: `Pattern Editor:Paketti:Replicate Note Off Track Above + Current`
+- Keybinding: `Phrase Editor:Paketti:Replicate Note Off Above Current Row`
+- Keybinding: `Phrase Editor:Paketti:Replicate Note Off Above + Current`
+- Keybinding: `Phrase Editor:Paketti:Replicate Note Off at Cursor`
+- Keybinding: `Phrase Editor:Paketti:Replicate Note Off Track Above Current Row`
+- Keybinding: `Phrase Editor:Paketti:Replicate Note Off Track Above + Current`
+- MIDI Mapping: `Paketti:Replicate Note Off Above Current Row`
+- MIDI Mapping: `Paketti:Replicate Note Off Above + Current`
+- MIDI Mapping: `Paketti:Replicate Note Off at Cursor`
+- MIDI Mapping: `Paketti:Replicate Note Off Track Above Current Row`
+- MIDI Mapping: `Paketti:Replicate Note Off Track Above + Current`
+- Menu: `Pattern Editor:Paketti:Replicate:Replicate Note Off Above Current Row`
+- Menu: `Pattern Editor:Paketti:Replicate:Replicate Note Off Above + Current`
+- Menu: `Pattern Editor:Paketti:Replicate:Replicate Note Off Track Above Current Row`
+- Menu: `Pattern Editor:Paketti:Replicate:Replicate Note Off Track Above + Current`
+- Menu: `Phrase Editor:Paketti:Replicate:Replicate Note Off Above Current Row`
+- Menu: `Phrase Editor:Paketti:Replicate:Replicate Note Off Above + Current`
+- Menu: `Phrase Editor:Paketti:Replicate:Replicate Note Off Track Above Current Row`
+- Menu: `Phrase Editor:Paketti:Replicate:Replicate Note Off Track Above + Current`
+
 ### 2026-10-23 - Improvement: Dynamic Views F3 Direct Sample Editor Navigation
 Fixed an issue in Paketti Dynamic Views where pressing F3 (`Cycle Paketti Dynamic View 02`) while in Pattern Editor, Mixer, or other views would sometimes cycle into Sample Keyzones (samplemappings), Sample Modulation, or Sample Effects instead of opening the Sample Editor. Now, if Renoise is not currently on the Sample Editor middle frame (`MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR`), pressing F3 always hits the Sample Editor directly. Subsequent presses of F3 while already on the Sample Editor continue through the configured dynamic view cycle as expected. Similarly, pressing F2 (`Cycle Paketti Dynamic View 01`) from outside the Pattern Editor always directly hits the Pattern Editor first.
 
